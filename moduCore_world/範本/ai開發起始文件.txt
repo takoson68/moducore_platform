@@ -1,0 +1,51 @@
+AI 開發起始文件（範本）
+
+目的
+- 這份文件是「新專案初始化用」，用來建立每個專案的 ai/ 文件結構與閱讀規則。
+- 每天開場閱讀應以 `ai/INDEX.md` 為準，快速掌握需讀的文件清單。
+- 原則：AI 不會自動讀取，必須在任務開始時明確指定讀取清單。
+
+建議的 ai/ 目錄結構
+ai/
+├─ INDEX.md                    # 入口索引（像 index.js，一定先讀）
+├─ TASKS.md                    # 常用流程或檢查清單（可選）僅記錄可重複執行的流程，不記錄一次性任務。
+├─ workspace/                   # 個人工作區（可選）內文件僅作為個人工作輔助，不得視為專案規範或設計依據。
+│  ├─ ai開發起始文件.txt        # 建立 ai/ 文件的範本
+│  ├─ 成熟常用指令.txt          # 常用指令與用法整理
+│  └─ 今天.txt                  # 當日工作筆記
+├─ core/
+│  ├─ CONTEXT.md               # 專案背景與架構概覽
+│  └─ CONVENTIONS.md           # 程式風格與開發規範 僅記錄已確認且不應隨意回退的決策。
+├─ meta/
+│  ├─ CHANGELOG.md             # 重大變更紀錄
+│  ├─ DECISIONS.md             # 關鍵設計決策
+│  └─ KNOWN_ISSUES.md           # 已知限制/風險
+└─ reference/
+   ├─ MODULES.md               # 模組清單與用途
+   └─ GLOSSARY.md              # 專案用語表
+
+INDEX.md 範本（要點）
+- 使用語言（例如：一律繁體中文）
+- 更新責任（重大更改需同步更新 core/ 文件）
+- 目錄結構與檔案用途說明
+- 建議閱讀順序
+- 每日開場指令（固定模板）
+
+每日開場指令（建議）
+目的：每日開場請使用 `ai/INDEX.md` 內的指令與閱讀順序。
+
+維護規則
+- 只要有重大更改或調整關鍵流程/函式，必須同步更新 ai/core/CONTEXT.md 或 ai/core/CONVENTIONS.md。
+- 重大事件與變更請記到 ai/meta/CHANGELOG.md。
+- 僅在我明確指示時，AI 才能新增或修改 ai/ 內文件。
+- AI 不得自行推斷文件需要更新。
+
+
+建立流程（建議順序）
+1) 建立 ai/ 目錄與子資料夾（core/meta/reference）。
+2) 建立 INDEX.md（寫入讀取規則與開場指令）。
+3) 補齊 core/ 的 CONTEXT.md 與 CONVENTIONS.md。
+4) 補上 meta/ 的 CHANGELOG/DECISIONS/KNOWN_ISSUES。
+5) 補上 reference/ 的 MODULES/GLOSSARY。
+6) 需要時再補 TASKS.md。
+7) 若專案已有 docs/INDEX.md，必須標示 ai/INDEX.md 的位置與用途。
