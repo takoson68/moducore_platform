@@ -1,3 +1,2 @@
-# moducore_platform-
-
-開啟檔案
+# moducore_platform
+這專案是使用模組世界延伸出的開發平台
