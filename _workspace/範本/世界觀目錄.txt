@@ -1,0 +1,26 @@
+
+/ai
+├─ world/              ← AI 世界啟動指令（唯一入口）
+│  ├─ INDEX.md
+│  ├─ 00_PURPOSE.md                    # 世界存在目的（WHY）
+│  ├─ 01_WORLD_MODEL.md                # 世界組成與基本存在（WHAT）
+│  ├─ 02_WORLD_BOUNDARIES.md           # 永不可跨越的邊界（LIMIT）
+│  ├─ 03_WORLD_LIFECYCLE.md            # 世界真實運行流程（WHEN / ORDER）
+│  ├─ 04_WORLD_RULES.md                # 生命週期中的不變規則（MUST / MUST NOT）
+│  ├─ 05_OUTPUT_DEFINITION.md          # AI 輸出目標與產物種類（GOAL）
+│  ├─ 06_STRUCTURE_AND_NAMING.md       # 目錄結構與命名系統（WHERE）
+│  ├─ 07_AUTHORING_STYLE.md            # 作者偏好與表達風格（STYLE）
+│  ├─ 08_CHANGE_PROTOCOL.md            # 修改、重構、演進流程（HOW TO CHANGE）
+│  └─ _templates/
+│     ├─ lifecycle.flow.md             # （選用）生命週期流程模板
+│     ├─ module.definition.md          # （選用）模組定義模板
+│     └─ rule.statement.md             # （選用）規則書寫模板
+│
+│
+├─ prompts/            ← 一次性或任務型 prompt（可拋棄）
+│
+├─ tasks/              ← 任務描述、重構請求
+│
+├─ outputs/            ← AI 產生的結果（文件 / 架構草稿）
+│
+└─ tools/              ← 腳本 / CLI / 輔助工具
