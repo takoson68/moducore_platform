@@ -136,6 +136,37 @@ Git 的使用僅用於保存進度與歷史脈絡，
 
 ---
 
+## Rule 8：Vue Output Format（唯一合法形式）
+
+工程產出任何 `.vue` 檔案時，**必須符合以下格式規範**：
+
+- `<script>` **必須** 使用 `<script setup>`
+- `<template>` **必須** 使用 `pug`（`<template lang="pug">`）
+- `<style>` **必須** 使用 `sass` 縮排語法（非 scss）
+
+### Scoped 使用規則
+
+- 預設 **不得** 使用 `scoped`
+- 若必須使用 `scoped`：
+  - 必須在檔案註解或工程紀錄中明確說明原因
+  - 理由必須與樣式隔離或副作用風險直接相關
+- 未說明即使用 `scoped`，視為不合法工程產出
+
+### 合法結構示意（格式示意，非功能範例）
+
+```vue
+<script setup>
+</script>
+
+<template lang="pug">
+</template>
+
+<style lang="sass">
+</style>
+```
+
+---
+
 ## Invariants
 
 - 工程紀律優先於短期速度

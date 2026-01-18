@@ -25,7 +25,8 @@
 **行為**
 - 讀取目標專案的 project 定義
 - 決定本次要生成哪一個世界出口
-- 載入對應的 platformConfig（世界藍圖）
+- 若存在 platformConfig，則載入作為世界藍圖；否則世界以單一 Project 脈絡成立
+
 
 **語意**
 - 此階段決定「世界長什麼樣」
@@ -55,7 +56,7 @@
 - Core boot 完成後
 
 **行為**
-- 套用 platformConfig
+- 若存在 platformConfig，則套用其世界上下文設定
 - 建立未登入（guest）世界狀態
 - 設定基礎樣式（CSS root / theme）
 - 尚未評估業務模組顯示條件
@@ -160,8 +161,9 @@
 **行為**
 - 卸載業務模組
 - 清空 container 中的業務能力
-- 保留 platformConfig
+- 若存在 platformConfig，則保留其世界上下文
 - 回到 Guest World Establishment 狀態
+
 
 **語意**
 - 世界倒帶，不是世界重生
