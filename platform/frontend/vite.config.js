@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
-import { cp, mkdir } from 'node:fs/promises'
+import { cp, mkdir, rm } from 'node:fs/promises'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -29,7 +29,9 @@ function copyDistToBackend(project) {
     async closeBundle() {
       const projectDistDir = path.resolve(__dirname, 'projects', project, 'dist')
       const backendPublicDir = path.resolve(__dirname, '..', 'backend', 'public')
+      const backendAssetsDir = path.join(backendPublicDir, 'assets')
       await mkdir(backendPublicDir, { recursive: true })
+      await rm(backendAssetsDir, { force: true, recursive: true })
       await cp(projectDistDir, backendPublicDir, { force: true, recursive: true })
     },
   }
