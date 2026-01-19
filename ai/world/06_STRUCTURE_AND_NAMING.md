@@ -41,28 +41,33 @@
 
 ## World Directory (`ai/world/`)
 
-以下為世界**主鏈文件**之結構定義：
-```
+以下為世界**主鏈文件**之結構定義。
+
+主鏈文件用於定義世界本身，
+其內容具備裁決力。
+
+```text
 /ai/world
 ├─ INDEX.md
 ├─ 00_PURPOSE.md
 ├─ 01_WORLD_MODEL.md
 ├─ 02_WORLD_BOUNDARIES.md
-├─ 03_WORLD_LIFECYCLE.md
-├─ 04_WORLD_RULES.md
+├─ 03_WORLD_API_RULES.md
+├─ 04_WORLD_LIFECYCLE.md
 ├─ 05_OUTPUT_DEFINITION.md
 ├─ 06_STRUCTURE_AND_NAMING.md
 ├─ 07_AUTHORING_STYLE.md
-└─ 08_CHANGE_PROTOCOL.md
+├─ 08_CHANGE_PROTOCOL.md
+├─ 09_WORLD_RULES.md
 
 ```
 
 規則：
-- 檔名前綴數字即主鏈閱讀與理解順序
+- 檔名前綴數字代表結構層級識別，不必然等同閱讀順序
+- 主鏈文件的閱讀順序與理解流程，一律以 INDEX.md 為準
 - 主鏈中不允許插入未編號文件
-- 主鏈文件僅能描述世界本身，不得描述任務
+- 主鏈文件僅能描述世界本身，不得描述任務或操作
 - 延伸敘事層（如 model/）不屬於主鏈結構
-
 ---
 
 

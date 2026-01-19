@@ -39,19 +39,16 @@
 
 ---
 
-## Reading Order
+## Reading Order（權威來源）
 
-理解本世界時，必須依照以下順序閱讀：
+本文件**不自行定義**世界文件的閱讀順序。
 
-1. `00_PURPOSE.md`
-2. `01_WORLD_MODEL.md`
-3. `02_WORLD_BOUNDARIES.md`
-4. `03_WORLD_LIFECYCLE.md`
-5. `04_WORLD_RULES.md`
-6. `05_OUTPUT_DEFINITION.md`
-7. `06_STRUCTURE_AND_NAMING.md`
+請一律以以下文件為唯一閱讀順序依據：
 
-任何脫離此順序的理解，都可能導致世界誤讀。
+- `ai/world/INDEX.md`
+
+任何未依 `INDEX.md` 所定義順序進行的理解，
+均可能導致世界誤讀。
 
 ---
 

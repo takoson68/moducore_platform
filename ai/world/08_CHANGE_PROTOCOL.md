@@ -1,8 +1,13 @@
 # Change Protocol
 
 本文件定義在此世界中，
-對「世界定義文件（00–06）」進行修改時，
+對「具備世界裁決力的世界定義文件」進行修改時，
 必須遵守的變更流程與原則。
+
+
+任何涉及主鏈閱讀順序的調整，
+只能透過修改 `INDEX.md` 進行；
+不得僅透過重新編號檔名前綴達成。
 
 本文件不定義世界規則，
 只定義「變更世界的合法方式」。
@@ -11,19 +16,26 @@
 
 ## Scope of This Protocol
 
-本變更協議僅適用於以下文件：
+本變更協議適用於所有**具備世界裁決力**的世界定義文件。
+
+包含：
 
 - 00_PURPOSE.md
 - 01_WORLD_MODEL.md
 - 02_WORLD_BOUNDARIES.md
-- 03_WORLD_LIFECYCLE.md
-- 04_WORLD_RULES.md
+- 03_WORLD_API_RULES.md
+- 04_WORLD_LIFECYCLE.md
 - 05_OUTPUT_DEFINITION.md
 - 06_STRUCTURE_AND_NAMING.md
+- 09_WORLD_RULES.md
 
 不適用於：
-- 07_AUTHORING_STYLE.md
+
+- 07_AUTHORING_STYLE.md（僅影響表達方式，不改變世界語意）
+- 08_CHANGE_PROTOCOL.md（本文件本身）
+- Supplementary / model / draft 類文件
 - Project、Module、Prompt、Tool 層級內容
+
 
 ---
 
@@ -63,7 +75,7 @@
 
 限制：
 - 不得即席進行
-- 必須重新檢查 01–06 全部文件的一致性
+- 必須重新檢查所有具備世界裁決力的主鏈文件之一致性
 - 視為世界版本升級（World vX.Y）
 
 ---
@@ -110,6 +122,22 @@
 
 任何未遵守本協議的變更，
 視為無效。
+
+### Self-Applicability
+
+本文件（08_CHANGE_PROTOCOL.md）本身之修改：
+
+- 仍須遵守本協議所定義之分類原則（Type A / B / C）
+- 仍須說明修改原因、影響範圍與變更性質
+
+但其最終裁決權：
+
+- 屬於世界設計者（World Designer）
+- 不受本文件 Scope 限制
+
+此設計用以避免遞迴衝突，
+並維持世界治理的一致性與可預期性。
+
 
 ---
 

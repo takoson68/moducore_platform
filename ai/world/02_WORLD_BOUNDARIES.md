@@ -24,7 +24,8 @@
 
 ## Boundary 2：Project Isolation
 
-- 每一個 Project 視為一個獨立國家或平行世界
+- 每一個 Project 視為一個獨立世界實例
+- Project 對應唯一的 tenant_id
 - Project 之間的資料、設定、狀態必須完全隔離
 
 禁止：
@@ -33,7 +34,7 @@
 - 跨 Project 的直接行為影響
 
 刪除一個 Project：
-- 等同關閉一個世界
+- 等同於終止一個世界實例
 - 不可影響其他 Project 或 Platform 的存在
 
 ---
@@ -106,14 +107,22 @@ Container 僅負責：
 
 ---
 
-## Boundary 8：State Authority
+## Boundary 8：State Projection (Not Authority)
 
-- 任何會影響 World 未來行為的資料，必須進入 Store
-- 不影響 World 未來行為的資料，不得強制入 Store
+- 後端資料是世界的事實權威（Source of Truth）
+- 前端 Store 僅保存世界在前端運行所需的狀態投影
+
+規定：
+- 任何會影響 World 在前端運行行為的狀態，必須進入 Store
+- Store 中的狀態必須具備可追溯的後端或平台初始化來源
+- Store 狀態不得凌駕或推翻後端事實
 
 允許：
 - Ephemeral Data 存於記憶體或瀏覽器
-- Ephemeral Data 不得成為世界決策依據
+- Ephemeral Data 不得成為世界或權限的裁決依據
+
+若 Store 狀態與後端資料衝突：
+- 必須以後端資料為準
 
 ---
 
@@ -137,7 +146,7 @@ Routing Guard 必須阻止：
 
 禁止：
 - run-time 動態修改 PlatformConfig 核心語意
-- 模組覆寫世界藍圖
+- 模組覆寫或扭曲世界藍圖
 
 ---
 
@@ -147,8 +156,8 @@ Routing Guard 必須阻止：
 - Reset 不得改變 PlatformConfig
 - Reset 後 World 必須回到未登入狀態
 
-Reset 不是重建世界，
-而是清空世界內容。
+Reset 不是建立新世界，
+而是清空既有世界內容。
 
 ---
 
@@ -157,6 +166,7 @@ Reset 不是重建世界，
 - 世界不關心模組存在，但必須確保缺席安全
 - 世界行為必須可預期
 - 世界結構必須可除錯
+- 世界的事實來源必須可追溯
 
 ---
 

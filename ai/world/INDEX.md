@@ -20,20 +20,58 @@
 
 ---
 
+## World 主鏈（會裁決世界）
+
+以下文件構成 World 的**主鏈定義**，  
+其內容具備裁決力，違反即視為破壞世界一致性。
+
+```text
+00_PURPOSE.md                  這套世界文件為何存在、給誰用、如何被閱讀
+01_WORLD_MODEL.md              世界裡有誰
+02_WORLD_BOUNDARIES.md         哪些事永不可做
+03_WORLD_API_RULES.md          世界如何合法接觸真實
+04_WORLD_LIFECYCLE.md          世界如何生成、啟動、重置與消亡
+05_OUTPUT_DEFINITION.md        世界對外會產出什麼
+06_STRUCTURE_AND_NAMING.md     世界的結構與命名如何被約束
+07_AUTHORING_STYLE.md          世界文件本身應如何被撰寫
+08_CHANGE_PROTOCOL.md          世界規則應如何被修改與演進
+09_WORLD_RULES.md              世界運作時必須遵守的一般規則
+
+```
+
+## Reading Order vs File Prefix
+
+世界主鏈文件的**閱讀與理解順序**，
+一律以本文件（INDEX.md）所定義之 Reading Order 為準。
+
+檔名前綴數字僅作為：
+- 結構分類識別
+- 歷史命名與穩定引用用途
+
+**不代表閱讀順序，
+亦不得作為推論世界理解流程的依據。**
+
+若閱讀順序與檔名前綴出現不一致，
+必須以 INDEX.md 為最高權威。
+
+
 ## Reading Order（強制）
 
 你必須依以下順序閱讀世界主鏈文件，
 不得跳讀或選讀：
 
-1. 00_PURPOSE  
-2. 01_WORLD_MODEL  
-3. 02_WORLD_BOUNDARIES  
-4. 03_WORLD_LIFECYCLE  
-5. 04_WORLD_RULES  
-6. 05_OUTPUT_DEFINITION  
-7. 06_STRUCTURE_AND_NAMING  
-8. 07_AUTHORING_STYLE  
-9. 08_CHANGE_PROTOCOL  
+1. 00_PURPOSE.md
+2. 01_WORLD_MODEL.md
+3. 02_WORLD_BOUNDARIES.md
+4. 03_WORLD_API_RULES.md
+5. 04_WORLD_LIFECYCLE.md
+6. 09_WORLD_RULES.md
+7. 05_OUTPUT_DEFINITION.md
+8. 06_STRUCTURE_AND_NAMING.md
+9. 07_AUTHORING_STYLE.md
+10. 08_CHANGE_PROTOCOL.md
+
+<!-- 10_supplementary.md 不屬於主鏈，不納入 boot -->
 
 在未完成閱讀前，
 你不得推論世界整體結構，
@@ -56,14 +94,13 @@
 - 任何對 world 文件的變更：  
   - 必須遵守 `08_CHANGE_PROTOCOL`
 
-若行為與上述約束衝突，
-應視為理解未完成，而非世界需要調整。
+- 09_WORLD_RULES 為世界運行階段的一般裁決規則，其層級低於 World Boundaries，但仍具備世界裁決力，並受 Change Protocol 管轄。
+
 
 ---
-
 ## Model Extension Layer（結構延伸層）
 
-本世界除主鏈（00–08）外，
+本世界除主鏈（具備世界裁決力的文件）外，
 另設一延伸敘事層（model），
 用以補充既有世界概念之結構性描述。
 
@@ -84,9 +121,10 @@ model 層：
 
 ---
 
+
 ## Engineering Layer（工程層）
 
-在完成世界主鏈（00–08）之閱讀與理解後：
+在完成世界主鏈（00–09）之閱讀與理解後：
 
 - 若僅進行概念釐清、問題分析或世界層討論  
   → 不需進入 engineering 層
