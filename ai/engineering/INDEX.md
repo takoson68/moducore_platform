@@ -174,5 +174,18 @@ Git 的使用僅用於保存進度與歷史脈絡，
 - 未被記錄的工程行為，視為不存在
 
 ---
+---
+
+🔽 附屬技術規範（在不衝突前提下生效）
+
+以下文件僅在 **不違反 World 規則（ai/world/）與 Engineering Index** 的前提下適用，  
+其內容屬於「操作層規範」，**不得覆寫或挑戰 Engineering 層決策**。
+
+- 工程慣例與約定（Conventions）  
+  → `./CONVENTIONS.md`
+
+若附屬技術規範之內容與 Engineering Index 發生衝突：  
+→ **立即停止該工程行為，並以 Engineering Index 為最終裁決依據。**
+
 
 End of Engineering Index

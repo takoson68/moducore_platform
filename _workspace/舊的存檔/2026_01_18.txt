@@ -291,6 +291,143 @@ reset 是：
 
 
 
+今日任務：
+僅定義並確認最小可行環境目錄（MVEL），
+不撰寫任何程式碼、不建立任何實作檔案。
+
+目標：
+1. 鎖定 root 層目錄語意
+2. 明確 ai / src / _workspace 的邊界
+3. 不進入世界實作、不進入模組層
+
+
+目錄結構
+
+/
+├─ ai/                 # AI 與世界規則（不可被產物污染）
+├─ src/                # ⚠️ 起初由 Vite 建立，後續將被「世界入口」重新定義
+├─ _workspace/         # 你個人的思考、今日記錄、草稿（不屬於世界）
+├─ public/             # build 產物對應的靜態入口（暫空也可以）
+├─ package.json
+├─ vite.config.js
+└─ README.md
+
+
+目錄建好後安裝vite進入專案
+
+
+//--------
+
+
+添加 sass , pug 
+
+且在工程規範裡面添加.vue檔的輸出格式中。使用pug , sass編寫
+
+
+//-----------------
+
+
+今日任務（工程行為）：
+
+請先閱讀並遵守：
+- ai/world/INDEX.md
+- ai/engineering/INDEX.md
+
+---
+
+任務說明：
+
+請依照以下「平台世界 Root 結構」建立與調整目錄，
+這是一個「平台專案」，不是單一前端專案。
+
+目標僅限於：
+1. 建立缺少的目錄結構
+2. 調整現有專案位置（move / rename）
+3. 確保 frontend 仍可正常啟動與 build
+
+不得進行：
+- 世界邏輯實作
+- 模組實作
+- container / router / lifecycle 設計
+- 架構延伸或重構
+
+---
+
+## 平台 Root 結構（語意即規則）
+
+最終 Root 結構應為：
+
+/
+├─ ai/
+├─ platform/
+│  ├─ frontend/
+│  │  ├─ projects/
+│  │  │  └─ _template/
+│  │  ├─ src/
+│  │  ├─ public/
+│  │  ├─ package.json
+│  │  └─ vite.config.js
+│  │
+│  └─ backend/
+│
+├─ scripts/
+├─ _workspace/
+│
+├─ .github/
+├─ .vscode/
+├─ README.md
+└─ .gitignore
+
+---
+
+---
+
+## 具體操作指示（只做這些）
+
+1️⃣ 建立以下目錄（若不存在）：
+- platform/
+- platform/backend/
+- projects/
+- projects/_template/
+- scripts/
+- _workspace/
+
+2️⃣ 將現有「前端專案」整體搬移至：
+- 從：/frontend
+- 到：/platform/frontend
+
+（包含 src / public / package.json / vite.config.js / node_modules 等）
+
+3️⃣ 調整 Root 層設定，使開發流程明確：
+- Root 僅作為平台層
+- 前端啟動與 build 仍在 platform/frontend 目錄內進行
+- 不嘗試合併 frontend 與 root 的 package.json
+
+4️⃣ 驗證結果（僅確認，不新增功能）：
+- platform/frontend 專案可正常 dev / build
+- 不新增任何新功能或世界結構
+
+---
+
+## 行為約束（嚴格）
+
+- 不建立或修改 ai/world 內容
+- 不新增 src/world / src/modules 等世界結構
+- 不新增任何業務或範例模組
+- 僅完成目錄與可運行性調整
+
+---
+
+開始前，請先回覆：
+1. 你對本次任務的單句理解
+2. 是否存在破壞既有功能的風險（若有請指出）
+
+在我確認後，再開始執行。
+
+//--------------
+
+
+
 
 
 
