@@ -1,4 +1,26 @@
-# World Boot Instruction
+# World Index (ai_new)
+
+本文件為 ai_new 世界文件的入口與閱讀順序。
+
+World Version: v2
+Status: Governance Complete
+
+## Reading Order（治理主鏈）
+
+1. 00_PURPOSE.md
+2. 01_WORLD_MODEL.md
+3. 02_WORLD_BOUNDARIES.md
+4. 03_WORLD_API_RULES.md
+5. 04_WORLD_LIFECYCLE.md
+6. 09_WORLD_RULES.md
+7. 05_OUTPUT_DEFINITION.md
+8. 06_STRUCTURE_AND_NAMING.md
+9. 07_AUTHORING_STYLE.md
+10. 08_CHANGE_PROTOCOL.md
+
+---
+
+## Boot Instruction
 
 本文件為進入此既有世界的**啟動指令與行為契約**。
 
@@ -20,120 +42,10 @@
 
 ---
 
-# 📖 World Reading Directive（必讀）
-
-> **以下指令用以規範「如何閱讀世界文件」。**  
-> 與目錄結構、新舊世界無關，所有讀者（人類與 AI）必須遵守。
-
----
-
-``` note
-請依「語意層級」閱讀文件，而非依資料夾、檔名或路徑直覺。
-
-閱讀時必須遵守以下順序，不得跳階、不得反向推論。
-```
-
----
-
-## ① 世界裁決層（World Core）
-
-**閱讀目的：**  
-理解世界是什麼，以及世界如何做出裁決。
-
-**閱讀規則：**
-
-- 找出被標示為「世界主鏈 / World Core / Single Source of Truth」的文件
-- 完整閱讀該主鏈（例如 00–08 或等價文件）
-
-``` warning
-在完成本層閱讀之前：
-
-- 不得推論任何 API 行為
-- 不得推論任何 Module 行為
-- 不得閱讀任何「如何使用世界」的文件
-```
-
----
-
-## ② 存在結構層（Model / Extension）
-
-**閱讀目的：**  
-理解世界如何承認某個存在（如 Project、Module）是合法的。
-
-**本層只回答：**
-
-- 世界承認什麼存在
-- 哪些結構組合會被世界拒絕
-
-**本層不回答：**
-
-- 初始化流程
-- 執行行為
-- API 使用方式
-
-``` info
-若文件描述的是「存在成立條件」而非「行為」，則屬於本層。
-```
-
----
-
-## ③ 運行語意層（Operational Worlds）
-
-``` note
-僅在「世界裁決層已完成」後，才允許閱讀本層。
-```
-
-本層文件用以說明 **世界成立後如何被使用**，包含但不限於：
-
-### A. API World
-
-- 描述世界對外的語意表達方式
-- 不具世界裁決權
-- API 回應不構成世界事實
-
-### B. Module World
-
-- 描述世界內部功能單位的角色與運行語意
-- 不影響世界生命週期
-- 不具裁決權
-
-``` warning
-- 不得以 API 行為推論世界裁決  
-- 不得以 Module 狀態推論世界生命週期
-```
-
----
-
-## ④ 工程與實作層（Implementation）
-
-**閱讀條件：**
-
-- 僅在前三層語意皆已理解後才可進入
-
-``` note
-所有工程細節：
-
-- 不得反向推論為世界規則
-- 若世界文件未定義，視為工程自由選擇
-```
-
----
-
-## 🚫 禁止閱讀行為
-
-- 以 API 行為推論世界裁決
-- 以 Module 初始化流程推論世界生命週期
-- 以工程限制回補世界設計
-
----
-
-``` quote
-世界文件定義的是「語意允許的邊界」，  
-工程只是在邊界內做選擇。
-```
 
 
 ---
+
 ## World 主鏈（會裁決世界）
 
 以下文件構成 World 的**主鏈定義**，  
@@ -185,8 +97,6 @@
 9. 07_AUTHORING_STYLE.md
 10. 08_CHANGE_PROTOCOL.md
 
-<!-- 10_supplementary.md 不屬於主鏈，不納入 boot -->
-
 在未完成閱讀前，
 你不得推論世界整體結構，
 亦不得基於片段理解做出判斷。
@@ -210,6 +120,37 @@
 
 - 09_WORLD_RULES 為世界運行階段的一般裁決規則，其層級低於 World Boundaries，但仍具備世界裁決力，並受 Change Protocol 管轄。
 
+---
+
+---
+## Operational Worlds Entry（運行語意層入口）
+
+本新世界已完成世界裁決層（World Core），  
+並正式開放運行語意層（Operational Worlds）以供測試與使用。
+
+### 可進入之運行語意層
+
+在完成世界主鏈（00–09）閱讀後，  
+讀者 **被允許** 進入以下世界延伸層：
+
+- **API World**：`ai_new/api/`
+  - 作為世界對外語意表達介面
+  - 不具世界裁決權
+  - 不得回寫或改寫世界規則
+
+- **Module World**：`ai_new/modules/`
+  - 作為世界內部功能與 UI 單位
+  - 不影響世界生命週期
+  - 僅能依附於既有世界裁決存在
+
+### 導讀約束
+
+- 運行語意層僅用於理解與驗證世界如何被使用
+- 不得將其內容反向推論為世界裁決或結構定義
+- 若發現與世界主鏈語意不一致，以世界主鏈為最終依據
+
+---
+
 
 ---
 ## Model Extension Layer（結構延伸層）
@@ -217,6 +158,7 @@
 本世界除主鏈（具備世界裁決力的文件）外，
 另設一延伸敘事層（model），
 用以補充既有世界概念之結構性描述。
+請自 ai_new/world/model/INDEX.md 開始閱讀。
 
 model 層：
 
@@ -231,10 +173,7 @@ model 層：
 - 結構組合是否可被世界承認
 - 文件之間是否存在語意衝突
 
-請自 `ai/world/model/INDEX.md` 開始閱讀。
-
 ---
-
 
 ## Engineering Layer（工程層）
 
@@ -249,13 +188,20 @@ model 層：
   - 記錄問題、決策或變更
   - 使用 Git 保存或回溯工作狀態  
 
-  則必須同時閱讀並遵守：
-
-  - `ai/engineering/INDEX.md`
+  則必須同時閱讀並遵守工程層入口文件。
 
 engineering 層僅用於規範工程行為，
 不得違反或改寫本世界所定義的任何內容。
 
 ---
 
-End of World Boot Instruction
+## Consistency Report
+
+- 不變量僅定義於 `ai_new/world/01_INVARIANTS.md`；其他文件僅引用 INV 編號。
+- Role Contracts 皆含 Derived From；無缺口。
+- feedback 內容未被寫成世界規則；未發現違規位置。
+- 未發現內容重複、矛盾或來源不明的段落。
+
+---
+
+End of World Index
