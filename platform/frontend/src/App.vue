@@ -1,4 +1,6 @@
 <script setup>
+import RootShell from '../projects/project-a/layout/RootShell.vue'
+
 defineProps({
   projectConfig: Object,
   discoveredModules: Array
@@ -6,17 +8,5 @@ defineProps({
 </script>
 
 <template lang="pug">
-.shell
-  h1 Frontend Shell Running
-
-  h2 Project
-  pre {{ projectConfig }}
-
-  h2 Discovered Modules
-  pre {{ discoveredModules }}
+RootShell(:project-config="projectConfig" :discovered-modules="discoveredModules")
 </template>
-
-<style lang="sass">
-.shell
-  padding: 24px
-</style>

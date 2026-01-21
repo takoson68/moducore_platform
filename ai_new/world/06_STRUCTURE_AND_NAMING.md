@@ -104,16 +104,36 @@
 所有 Project 所使用的模組，
 必須透過以下結構宣告：
 ```
-/projects/modules/
+/projects/{project-name}/modules/
 ├─ index.js                     # 模組世界掃描入口（唯一）
-└─ {project-name}/
-   └─ index.js                  # 該 Project 的模組介面定義
+└─ {module-name}/
+   └─ index.js                  # 該模組的對外介面定義
+
 ```
 規則：
-- modules/index.js 只負責收集 Project Modules Namespace
-- {project-name}/index.js 是該 Project 唯一合法的模組宣告位置
-- World 僅透過 index.js 系列檔案感知模組存在
-- Project 本身不持有模組集合
+
+- /projects/{project-name}/modules/index.js
+是該 Project 唯一合法的模組宣告與註冊入口
+只負責收集並輸出 Project Modules Namespace
+不得在此進行模組實作、初始化、組裝或任何具副作用的行為
+
+- {module-name}/index.js
+僅負責宣告該 module 的對外介面與中繼資訊
+不得在此執行模組載入、世界操作或影響其他模組
+未具備 index.js 的 module，對 World 而言視為不存在
+
+- World 不解析 Project 內部結構，
+不掃描目錄、不推論模組存在，
+僅透過 modules/index.js 與各 module 的 index.js 系列檔案
+感知模組是否存在
+
+- Project 可以使用模組，但不持有模組集合
+不負責組裝、不裁決模組存在性
+模組集合僅存在於 Registry 的輸出結果中
+
+- 任何未經 /modules/index.js 宣告的模組，
+無論實體檔案是否存在，
+在世界層級上一律視為不存在，亦不得被使用或合理化
 
 ---
 
@@ -126,7 +146,7 @@
 
 ### Business Module
 ```
-/modules/{module-name}/
+/projects/{project-name}/modules/{module-name}/
 ├─ index.js # 模組介接口（唯一對外出口）
 ├─ pages/ # 頁面（可選）
 ├─ stores/ # 狀態（可選）
@@ -137,10 +157,13 @@
 ```
 
 
+
 規則：
 - `index.js` 必須存在
 - 模組內自由 import
 - 模組外不得直接 import 其內部結構
+- 模組只能被所屬 Project 使用，不得跨 Project 共享或依賴
+
 
 ---
 

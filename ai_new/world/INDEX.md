@@ -123,6 +123,85 @@ Status: Governance Complete
 ---
 
 ---
+## World Semantic Boundaries（治理補完層）
+
+本世界另設 **World Semantic Boundaries** 作為治理補完層。
+
+此層文件之語意定位為：
+
+- 不構成 World 主鏈
+- 不新增、修改或推翻任何世界裁決
+- 不具獨立的世界定義權
+
+其唯一目的為：
+
+> 在「世界裁決已完成」之後，  
+> 明確限制各運行層與工程層  
+> **不得越權誤用世界語意**
+
+---
+
+### Reading Prerequisite（強制）
+
+你 **僅在完成以下閱讀後**，  
+才被允許進入 World Semantic Boundaries：
+
+- 本 INDEX 文件
+- World 主鏈（00–09 全部）
+
+在完成上述閱讀前：
+
+- 不得進入本層
+- 不得引用本層任何內容
+- 不得以本層內容推論世界結構或裁決結果
+
+---
+
+### Legal Status（法階說明）
+
+- 本層屬於「治理補完層」
+- 僅對 **如何使用世界** 生效
+- 不對 **世界是什麼** 具備裁決力
+
+若本層內容與 World 主鏈出現語意衝突：
+
+- 一律以 World 主鏈為最高權威
+- 本層內容視為無效，不得適用
+
+---
+
+### Boundary Documents
+
+World Semantic Boundaries 包含但不限於以下文件：
+
+- Platform Boot & Lifecycle — Semantic Boundary
+- Container & Capability Registration — Semantic Boundary
+- API Interaction Boundary
+- Routing & Guards — Semantic Boundary
+- Module Collections — Semantic Boundary
+- Layout & Styles — Semantic Boundary
+
+---
+
+### Entry Command（進入命令）
+
+僅在 World 主鏈閱讀完成後，  
+你才被允許執行以下行為：
+
+> 進入並閱讀  
+> `ai_new/world/semantic_boundaries/`  
+> 以理解各運行層與工程層的語意邊界限制。
+
+你不得：
+
+- 將本層內容視為世界裁決
+- 反向推論世界定義
+- 以本層內容修改、補充或延伸主鏈規則
+
+---
+
+
+---
 ## Operational Worlds Entry（運行語意層入口）
 
 本新世界已完成世界裁決層（World Core），  

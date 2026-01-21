@@ -1,0 +1,21 @@
+# 世界補完 INDEX
+
+本文件為「世界補完」閱讀入口與唯一閱讀順序來源。
+本層僅供理解世界語意缺口與補完方向，不具世界裁決權。
+
+---
+
+## Reading Order
+
+1. WORLD_COMPLETION_SUGGESTIONS.md
+2. 01_PLATFORM_BOOT_AND_LIFECYCLE.md
+3. 02_CONTAINER_AND_CAPABILITY_REGISTRATION.md
+4. 03_API_INTERACTION_BOUNDARY.md
+5. 04_ROUTING_AND_GUARDS.md
+6. 05_MODULE_COLLECTIONS.md
+7. 06_LAYOUT_AND_STYLES.md
+
+---
+
+End of World Completion Index
+

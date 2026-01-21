@@ -60,3 +60,11 @@ ai_new/
 - ai_new/ 是否建立完成
 - Consistency Report 是否已寫入
 - 若存在阻塞缺口，請列成清單（不要自行補完）
+
+**********************
+
+議題：模組放置位置的世界層裁決需求
+背景：目前工程實作已將模組放入 `platform/frontend/projects/{project}/modules/`，但世界結構定義（`ai_new/world/06_STRUCTURE_AND_NAMING.md`）仍採全域 `/modules/{module-name}/`。這造成世界語意與工程落地衝突，後續易重演。
+需求：希望世界層明確裁決「模組是否必須位於專案目錄下」，並界定其合法結構與語意角色。
+影響：若裁決為專案內模組，需調整世界結構定義；若維持全域模組，則應回退工程實作並恢復一致性。
+建議變更類型：Refinement 或 Behavioral Change（待世界設計者判定）。
