@@ -1,22 +1,22 @@
-import { createRouter, createWebHistory } from 'vue-router'
+// src/app/router/index.js
+// 主 Router，登入後動態注入模組 routes
 
-export function createAppRouter({ routes }) {
-  const routeList = Array.isArray(routes) ? [...routes] : []
+//- Router 沒有注入容器中，因為 createRouter 需要 async 操作
+//- 若要在其他地方使用 router 實例，請透過 holder.js 取得
 
-  if (routeList.length > 0) {
-    routeList.unshift({ path: '/', redirect: routeList[0].path })
-  } else {
-    routeList.push({
-      path: '/',
-      name: 'empty',
-      component: {
-        template: '<div class="module-page">No modules available.</div>'
-      }
-    })
-  }
+import { createRouter, createWebHistory } from "vue-router";
+import { buildRoutes } from "./routes.js";
+import { setupAuthGuard } from "./guards.js";
 
-  return createRouter({
+export async function createAppRouter() {
+  const routes = await buildRoutes();
+
+  const router = createRouter({
     history: createWebHistory(),
-    routes: routeList
-  })
+    routes,
+  });
+
+  setupAuthGuard(router);
+
+  return router;
 }

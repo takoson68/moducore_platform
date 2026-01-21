@@ -18,6 +18,7 @@ defineProps({
     p(v-if="subtitle") {{ subtitle }}
   section.layout-body
     slot
+    RouterView
 </template>
 
 <style lang="sass">

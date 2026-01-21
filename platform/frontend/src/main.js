@@ -3,6 +3,7 @@ import App from './App.vue'
 import { loadProjectConfig } from '../projects/loadProject.js'
 import { discoverModules } from '../projects/moduleDiscovery.js'
 import { createAppRouter } from './router/index.js'
+import { setRouter } from './router/holder.js'
 import { getProjectModuleRegistry } from '../projects/modulesRegistry.js'
 import { container } from './app/container/container.js'
 import { createRegister } from './app/container/register.js'
@@ -26,16 +27,13 @@ async function boot() {
     await registry.installModules({ register, container }, { allowList })
   }
 
-  const routes = registry?.buildModuleRoutes
-    ? registry.buildModuleRoutes().routes
-    : []
-
   const lifecycleStore = container.resolve('lifecycle')
   lifecycleStore.setPhase('ready')
   const moduleStore = container.resolve('module')
   moduleStore.setModules(allowList)
 
-  const router = createAppRouter({ routes })
+  const router = await createAppRouter()
+  setRouter(router)
 
   createApp(App, {
     projectConfig,

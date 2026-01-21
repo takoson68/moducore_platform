@@ -1,0 +1,51 @@
+// - src/router/guards.js
+// beforeEach：登入、權限、模組啟用判斷
+import { container } from '@/app/container'
+
+export function setupAuthGuard(router) {
+
+  router.beforeEach((to) => {
+
+    const meta = to.meta || {}
+    const hasFlags = typeof meta.public === 'boolean' && typeof meta.auth === 'boolean'
+
+    // 非模組路由或未標示權限旗標，直接通過
+    if (!hasFlags) {
+      return true
+    }
+
+    const isPublic = meta.public === true && meta.auth === true
+    const isAuthOnly = meta.public === false && meta.auth === true
+    const isDisabled = meta.public === false && meta.auth === false
+
+    if (isPublic) {
+      return true
+    }
+
+    if (isDisabled) {
+      return { path: '/404' }
+    }
+
+    // auth-only 路由
+    let authStore = null
+    try {
+      authStore = container.resolve('auth')
+    } catch (err) {
+      console.warn('[RouterGuard] auth store not available')
+      return { path: '/' }
+    }
+
+    // ⭐ 平台唯一登入判斷點
+    const isLoggedIn = authStore.isLoggedIn()
+
+    if (!isLoggedIn) {
+      console.warn('[RouterGuard] 未登入，導向 /')
+
+      return {
+        path: '/',
+      }
+    }
+
+    return true
+  })
+}
