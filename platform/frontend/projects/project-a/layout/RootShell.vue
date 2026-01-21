@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { container } from '../../../src/app/container/container.js'
 
 const props = defineProps({
   projectConfig: Object,
@@ -13,6 +14,11 @@ const navRoutes = computed(() => {
     label: route.meta?.label ?? route.meta?.nav?.label ?? route.name ?? route.path
   }))
 })
+
+const lifecycleStore = container.resolve('lifecycle')
+const moduleStore = container.resolve('module')
+const phase = computed(() => lifecycleStore.state.phase)
+const moduleCount = computed(() => moduleStore.state.modules.length)
 </script>
 
 <template lang="pug">
@@ -20,9 +26,10 @@ const navRoutes = computed(() => {
   header.topbar
     .brand
       .brand-title {{ projectConfig?.title ?? 'Project' }}
-      .brand-sub Guest World Establishment
+      .brand-sub Guest World Establishment · {{ phase }}
     .topbar-actions
       span.badge {{ projectConfig?.name ?? 'unknown' }}
+      span.badge Modules {{ moduleCount }}
 
   .main
     aside.sidebar
@@ -81,6 +88,7 @@ const navRoutes = computed(() => {
   border: 1px solid var(--border)
   background: var(--surface-muted)
   font-size: 12px
+  margin-left: 6px
 
 .main
   display: grid
