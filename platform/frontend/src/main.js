@@ -1,46 +1,28 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import { loadProjectConfig } from '../projects/loadProject.js'
-import { discoverModules } from '../projects/moduleDiscovery.js'
+import { boot } from './app/boot/boot.js'
 import { createAppRouter } from './router/index.js'
 import { setRouter } from './router/holder.js'
-import { getProjectModuleRegistry } from '../projects/modulesRegistry.js'
 import { container } from './app/container/container.js'
-import { createRegister } from './app/container/register.js'
 import { coreStoreFactories } from './app/stores/index.js'
+import { loadProjectConfig } from '../projects/loadProject.js'
 
-async function boot() {
-  const register = createRegister(container)
+async function start() {
   for (const [name, factory] of Object.entries(coreStoreFactories)) {
-    register.store(name, factory)
+    container.register(name, factory)
   }
 
   const projectConfig = await loadProjectConfig()
-  const discoveredModules = discoverModules(projectConfig)
-  const registry = getProjectModuleRegistry(projectConfig?.name)
-
-  console.log('[World] project =', projectConfig)
-  console.log('[World] discovered modules =', discoveredModules)
-
-  const allowList = discoveredModules.map(entry => entry.name)
-  if (registry?.installModules) {
-    await registry.installModules({ register, container }, { allowList })
-  }
-
-  const lifecycleStore = container.resolve('lifecycle')
-  lifecycleStore.setPhase('ready')
-  const moduleStore = container.resolve('module')
-  moduleStore.setModules(allowList)
-
+  const { appProps } = await boot({ projectConfig })
   const router = await createAppRouter()
   setRouter(router)
 
   createApp(App, {
-    projectConfig,
-    discoveredModules
+    ...appProps,
+    projectConfig
   })
     .use(router)
     .mount('#app')
 }
 
-boot()
+start()

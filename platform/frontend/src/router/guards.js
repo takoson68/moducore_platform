@@ -7,16 +7,19 @@ export function setupAuthGuard(router) {
   router.beforeEach((to) => {
 
     const meta = to.meta || {}
-    const hasFlags = typeof meta.public === 'boolean' && typeof meta.auth === 'boolean'
+    const access = meta.access || {}
+    const publicFlag = typeof access.public === 'boolean' ? access.public : meta.public
+    const authFlag = typeof access.auth === 'boolean' ? access.auth : meta.auth
+    const hasFlags = typeof publicFlag === 'boolean' && typeof authFlag === 'boolean'
 
     // 非模組路由或未標示權限旗標，直接通過
     if (!hasFlags) {
       return true
     }
 
-    const isPublic = meta.public === true && meta.auth === true
-    const isAuthOnly = meta.public === false && meta.auth === true
-    const isDisabled = meta.public === false && meta.auth === false
+    const isPublic = publicFlag === true && authFlag === true
+    const isAuthOnly = publicFlag === false && authFlag === true
+    const isDisabled = publicFlag === false && authFlag === false
 
     if (isPublic) {
       return true

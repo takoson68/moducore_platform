@@ -21,13 +21,16 @@ export function createRegister(container) {
   }
 
   function validateAccessMeta(meta = {}) {
-    const hasPublic = typeof meta.public === 'boolean'
-    const hasAuth = typeof meta.auth === 'boolean'
+    const access = meta.access || {}
+    const publicFlag = typeof access.public === 'boolean' ? access.public : meta.public
+    const authFlag = typeof access.auth === 'boolean' ? access.auth : meta.auth
+    const hasPublic = typeof publicFlag === 'boolean'
+    const hasAuth = typeof authFlag === 'boolean'
     if (!hasPublic || !hasAuth) {
       throw new Error('[Routes] meta.public/meta.auth 必須為布林值且不得缺少')
     }
-    const isPublic = meta.public === true
-    const isAuth = meta.auth === true
+    const isPublic = publicFlag === true
+    const isAuth = authFlag === true
 
     if (isPublic && meta.auth === false) {
       throw new Error('[Routes] meta { public: true, auth: false } 不允許')
@@ -50,16 +53,24 @@ export function createRegister(container) {
         : normalizePath(base ? `${base}/${path}` : path)
 
       const meta = route.meta ? { ...route.meta } : {}
-      if (meta.nav && parentPath) {
-        meta.nav = { ...meta.nav, parent: normalizedParent || null }
+      if (parentPath) {
+        meta.navParent = normalizedParent || null
       }
 
+      const metaChildren = Array.isArray(meta.child) ? meta.child : []
+      if (meta.child) {
+        delete meta.child
+      }
       const { children, ...rest } = route
       const entry = { ...rest, path: fullPath, meta }
       list.push(entry)
 
-      if (Array.isArray(children) && children.length > 0) {
-        list.push(...flattenRoutes(children, fullPath))
+      const combinedChildren = [
+        ...(Array.isArray(children) ? children : []),
+        ...metaChildren
+      ]
+      if (combinedChildren.length > 0) {
+        list.push(...flattenRoutes(combinedChildren, fullPath))
       }
     })
     return list
@@ -88,12 +99,23 @@ export function createRegister(container) {
         bucket.all.push(route)
       }
 
-      flatRoutes.forEach(pushRoute)
+      const getOrder = (route) => {
+        const meta = route?.meta || {}
+        const order = meta.order
+        return Number.isFinite(order) ? order : 0
+      }
+      const sortedRoutes = [...flatRoutes].sort((a, b) => {
+        const orderDiff = getOrder(a) - getOrder(b)
+        if (orderDiff !== 0) return orderDiff
+        return String(a.path || '').localeCompare(String(b.path || ''))
+      })
+
+      sortedRoutes.forEach(pushRoute)
 
       // 若 router 已建立，立即注入 children 到 root
       try {
         const router = getRouter()
-        flatRoutes.forEach(r => router.addRoute('root', r))
+        sortedRoutes.forEach(r => router.addRoute('root', r))
       } catch (err) {
         // router 尚未就緒時忽略
       }

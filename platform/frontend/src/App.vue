@@ -1,12 +1,20 @@
 <script setup>
-import RootShell from '../projects/project-a/layout/RootShell.vue'
+import { computed } from 'vue'
+import { layoutRef } from './app/layout/layoutStore.js'
 
 defineProps({
   projectConfig: Object,
   discoveredModules: Array
 })
+
+const layout = computed(() => layoutRef.value)
 </script>
 
 <template lang="pug">
-RootShell(:project-config="projectConfig" :discovered-modules="discoveredModules")
+component(
+  :is="layout?.component"
+  :project-config="projectConfig"
+  :discovered-modules="discoveredModules"
+)
+  RouterView
 </template>

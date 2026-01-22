@@ -8,3 +8,9 @@
 ---------------------------------------------------------
 
 
+***********
+2026-01-22
+- 建議：整理並文件化 Multi-Nav Projection 的規則（meta.access / meta.nav[] / navParent）與範例，避免日後歧義
+- 建議：將 project-b routes 升級為新 nav 結構，並補齊 topbar/sidebar 的投影示範
+- 建議：針對 404 與 Project B layout 做視覺一致性檢查（對比、字級、按鈕狀態）
+- 建議：檢查 boot Phase B–E 的資料流是否需對應到工程 changelog

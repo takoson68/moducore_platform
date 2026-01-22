@@ -26,6 +26,15 @@ export async function buildRoutes() {
     ...publicRoutes,
     ...authPages,
     ...authRoutes,
+    {
+      path: '404',
+      name: 'not-found',
+      component: () => import('@/router/NotFound.vue'),
+    },
+    {
+      path: ':pathMatch(.*)*',
+      redirect: '/404',
+    },
   ];
 
   return [
