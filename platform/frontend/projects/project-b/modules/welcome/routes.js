@@ -1,9 +1,13 @@
 export const routes = [{
   path: '/',
   meta: {
-    public: true,
-    auth: true,
-    label: 'Welcome',
-    order: 1
+    access: {
+      public: true,
+      auth: true
+    },
+    nav: [
+      { area: 'sidebar', label: 'Welcome', order: 1 },
+      { area: 'topbar', label: 'Welcome', order: 1 }
+    ]
   }
 }]

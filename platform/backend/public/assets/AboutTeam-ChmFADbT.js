@@ -1,1 +1,0 @@
-import t from"./LayoutRoot-DZVhlEX2.js";import{h as e,w as a,o,d as s,t as r}from"./index-Cpt8xa2B.js";const c="About Team",i="This team builds modular worlds with clear boundaries.",d={__name:"AboutTeam",setup(l){return(n,u)=>(o(),e(t,{title:c,subtitle:"Project A"},{default:a(()=>[s("p",null,r(i))]),_:1}))}};export{d as default};

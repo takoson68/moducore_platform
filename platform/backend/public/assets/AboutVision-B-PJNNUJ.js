@@ -1,0 +1,1 @@
+import t from"./LayoutRoot-BQVrDKJ_.js";import{i as e,w as o,o as s,d as a,t as i}from"./index-BsgZhFbW.js";const r="About Vision",c="The vision is a stable platform where projects evolve safely.",f={__name:"AboutVision",setup(l){return(n,p)=>(s(),e(t,{title:r,subtitle:"Project A"},{default:o(()=>[a("p",null,i(c))]),_:1}))}};export{f as default};

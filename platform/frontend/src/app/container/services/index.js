@@ -16,5 +16,8 @@
  * ==================================================
  */
 
+import { resolveNavProjection } from './resolveNavProjection.js'
+
 export const services = {
+  resolveNavProjection
 }

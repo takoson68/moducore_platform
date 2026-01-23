@@ -1,4 +1,6 @@
 <script setup>
+import ProjectTopbar from '../components/ProjectTopbar.vue'
+
 defineProps({
   projectConfig: Object,
   discoveredModules: Array
@@ -8,11 +10,7 @@ defineProps({
 <template lang="pug">
 .shell
   .bg-grid
-  header.topbar
-    .brand
-      .brand-title {{ projectConfig?.title ?? 'Project' }}
-      .brand-sub Guest World Establishment
-    .pill Project B
+  ProjectTopbar(:project-config="projectConfig")
   .main
     RouterView
 </template>
@@ -34,35 +32,6 @@ defineProps({
   background-size: 28px 28px
   mask-image: radial-gradient(circle at 15% 20%, rgba(0, 0, 0, 0.5), transparent 70%)
   pointer-events: none
-
-.topbar
-  display: flex
-  align-items: center
-  justify-content: space-between
-  padding: 18px 28px
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08)
-  background: rgba(255, 255, 255, 0.75)
-  backdrop-filter: blur(6px)
-  position: relative
-
-.brand-title
-  font-size: 22px
-  font-weight: 700
-  letter-spacing: 0.3px
-
-.brand-sub
-  font-size: 12px
-  color: #0f172a
-  opacity: 0.6
-
-.pill
-  padding: 6px 12px
-  border-radius: 999px
-  border: 1px solid rgba(14, 116, 144, 0.2)
-  background: rgba(14, 116, 144, 0.12)
-  color: #0e7490
-  font-size: 12px
-  font-weight: 600
 
 .main
   padding: 28px
