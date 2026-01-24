@@ -9,7 +9,8 @@ final class Request
         public readonly string $method,
         public readonly string $path,
         public readonly array $query,
-        public readonly array $body
+        public readonly array $body,
+        public readonly array $headers
     ) {
     }
 
@@ -28,6 +29,25 @@ final class Request
             }
         }
 
-        return new self($method, $path, $_GET, $body);
+        $headers = [];
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+        } else {
+            foreach ($_SERVER as $key => $value) {
+                if (str_starts_with($key, 'HTTP_')) {
+                    $header = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+                    $headers[$header] = $value;
+                }
+            }
+        }
+
+        if (!isset($headers['Authorization'])) {
+            $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+            if (is_string($auth) && $auth !== '') {
+                $headers['Authorization'] = $auth;
+            }
+        }
+
+        return new self($method, $path, $_GET, $body, $headers);
     }
 }

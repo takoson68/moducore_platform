@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { container } from '@app/container'
+import PlatformLoginPanel from './PlatformLoginPanel.vue'
 
 defineProps({
   projectConfig: Object
@@ -76,8 +77,9 @@ header.topbar
         )
           | {{ child.label }}
   .topbar-actions
-    span.badge {{ projectConfig?.name ?? 'unknown' }}
-    span.badge Modules {{ moduleCount }}
+    PlatformLoginPanel
+    //- span.badge {{ projectConfig?.name ?? 'unknown' }}
+    //- span.badge Modules {{ moduleCount }}
 </template>
 
 <style lang="sass">
@@ -163,6 +165,11 @@ header.topbar
 .brand-sub
   font-size: 13px
   color: #6b7280
+
+.topbar-actions
+  display: flex
+  align-items: center
+  gap: 10px
 
 .badge
   padding: 6px 10px

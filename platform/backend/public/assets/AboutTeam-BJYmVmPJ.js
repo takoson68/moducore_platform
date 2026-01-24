@@ -1,0 +1,1 @@
+import t from"./LayoutRoot-VlXF6E0F.js";import{m as e,k as a,d as o,e as s,t as r}from"./index-DiR3mkho.js";const c="About Team",i="This team builds modular worlds with clear boundaries.",d={__name:"AboutTeam",setup(l){return(m,n)=>(o(),e(t,{title:c,subtitle:"Project A"},{default:a(()=>[s("p",null,r(i))]),_:1}))}};export{d as default};

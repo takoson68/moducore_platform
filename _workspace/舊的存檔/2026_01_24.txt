@@ -1,0 +1,115 @@
+[Task Title]
+Platform – Minimal Auth Core with API Capability Registration
+
+[Goal]
+建立「平台級會員登入最小核心」，驗證 ModuCore 平台能在
+未登入 → 已登入 → 登出
+的狀態切換中，完成一次乾淨的世界重建（world rebuild）。
+
+本任務同時驗證：
+- Auth 為 Platform Capability，而非 Project / Module 功能
+- API 能力必須註冊進 Container，並受平台治理
+- Project 僅負責登入樣式與呼叫，不持有登入邏輯
+
+---
+
+[Core Principle – 必須遵守]
+- 所有世界（專案）共用同一套登入 API
+- 登入資料來自同一資料庫
+- API 呼叫邏輯屬於平台層（Platform），不是 Project
+- Project 不得直接呼叫 fetch / axios / request
+- API 必須以 Capability 形式註冊進 Container
+
+---
+
+[Scope – 必須完成]
+
+1. Platform Auth API Capability
+- 建立 authApi（平台級能力）
+- authApi 職責：
+  - 封裝登入 API 呼叫
+  - 隱藏 request / token / session 實作細節
+- authApi 必須：
+  - 透過 container.register 註冊
+  - 透過 container.resolve 取得
+- 不得在任何 Project 或 Module 中直接實作登入 API
+
+2. Auth Store（平台級）
+- 建立 authStore（平台層 store）
+- authStore 只能：
+  - 透過 container.resolve 取得 authApi
+  - 不可直接呼叫任何 HTTP 函式
+- authStore 必須包含：
+  - isAuthenticated（boolean）
+  - user（object | null）
+- 提供方法：
+  - login(payload)
+  - logout()
+- 登入狀態必須可從瀏覽器（localStorage）復原
+- 不實作角色、權限、refresh token
+
+3. PlatformConfig 切分（依登入狀態）
+- platformConfig 必須支援動態切換：
+  - 未登入（public world）
+  - 已登入（auth world）
+- allowList（或等價機制）需由平台層注入
+- Project 不得自行判斷登入狀態決定模組存在
+
+4. World Rebuild 行為
+- 登入成功後：
+  - 觸發平台層 world rebuild
+  - 清除既有 modules / stores / routes
+  - 依已登入狀態重新裝配世界
+- 登出後：
+  - 完整 reset world
+  - 回到 public world
+- 嚴禁 reload 整頁
+
+5. Project 行為限制
+- 各 Project 只負責：
+  - Login UI / 樣式
+  - 呼叫 authStore.login()
+- Project 不得：
+  - 存取 authApi
+  - 存取平台 API 設定
+  - 寫登入判斷邏輯
+
+---
+
+[Explicit Non-Goals – 嚴禁事項]
+- 不建立完整會員系統
+- 不實作角色（RBAC / ACL）
+- 不處理 API 安全細節
+- 不做多租戶（tenant）
+- 不為 Project B 或其他世界開特例
+- 不在 Module 內寫任何登入 API
+
+---
+
+[Architecture Constraints]
+- API 能力、Store、Service 一律視為 Capability
+- Capability 必須：
+  - 註冊於 Platform Container
+  - 由 Container 控制生命週期
+- Module 與 Project 僅能消費能力，不得創建能力
+- 平台層必須保有世界主控權（world before project）
+
+---
+
+[Completion Criteria]
+任務視為完成，需同時滿足：
+- 同一頁面可完成：
+  未登入 → 登入 → 登出
+- 每次切換皆完成：
+  - API Capability 正確注入
+  - Store 重建
+  - Route 重建
+  - Module 投影正確變化
+- 不同 Project 可使用同一登入 API
+- Project 間不存在登入邏輯重複
+
+---
+
+[Context Note]
+本任務不是會員功能開發，
+而是驗證「平台是否具備跨世界身份治理能力」。

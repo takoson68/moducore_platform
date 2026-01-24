@@ -20,6 +20,14 @@ export default defineConfig(({ mode }) => {
         '@project': path.resolve(__dirname, `projects/${project}`),
       },
     },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://moducore_platform.test',
+          changeOrigin: true,
+        },
+      },
+    },
   }
 })
 

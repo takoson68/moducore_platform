@@ -25,4 +25,97 @@ frontend/src/App.vue 這裡面有 import RootShell from '../projects/project-a/l
 至於public: false, auth: false, 這樣的組合代表不展示，所以這樣的模組不會注入容器
 
 
+//-----------//-----------//-----------//-----------//-----------//-----------//-----------//-----------//-----------
+
+
+
+[Task Title]
+Project A – Minimal Auth Core（會員登入最小閉環）
+
+[Goal]
+建立「會員登入／登出」的最小平台核心能力，用於驗證平台可在「未登入 ↔ 已登入 ↔ 登出」之間完成一次完整世界重建（rebuild），而非製作完整會員系統。
+
+此任務目的為：
+- 證明 platformConfig 可依登入狀態動態切分
+- 證明 container 可 reset 並重新裝配
+- 作為 Project A 可展示閉環的前置條件
+
+---
+
+[Scope – 必須完成]
+1. Auth Store（最小核心）
+- 建立 authStore
+- 必須包含：
+  - isAuthenticated（boolean）
+  - user（object | null）
+- 提供方法：
+  - login(payload)
+  - logout()
+- 登入狀態需可從瀏覽器（localStorage）復原
+- 不做角色、不做權限、不做 refresh token
+
+2. PlatformConfig 切分（關鍵）
+- platformConfig 必須區分：
+  - 未登入狀態（public world）
+  - 已登入狀態（auth world）
+- allowList 或等價機制：
+  - 未登入只載入 public modules / routes
+  - 登入後載入 auth modules / routes
+- platformConfig 不可為靜態常數，需可依 auth 狀態重新套用
+
+3. World Rebuild 行為
+- 登入後：
+  - 清空舊世界（stores / modules / routes）
+  - 依登入狀態重新裝配世界
+- 登出後：
+  - 完整 reset
+  - 回到 public world
+- 不允許 reload 整頁
+
+4. Router 行為驗證
+- 未登入：
+  - 不可存取 auth routes
+  - 不存在於導覽投影（topbar / sidebar）
+- 已登入：
+  - auth routes 正常顯示並可切換
+- 切換登入狀態後：
+  - router 結構需正確重建
+
+---
+
+[Explicit Non-Goals – 不要做]
+- 不建立完整會員系統
+- 不處理角色、RBAC、ACL
+- 不做 API 安全性細節
+- 不寫 UI 美化
+- 不支援多租戶（tenant）
+- 不實作 Project B 相關功能
+
+---
+
+[Architecture Constraints]
+- 所有 store 必須透過 container register / resolve
+- 模組不得直接互相 import
+- Project A 為唯一實作目標
+- 嚴禁在模組內寫死登入判斷
+- 世界切換必須經由平台層（非頁面層）觸發
+
+---
+
+[Completion Criteria]
+此任務視為完成，需同時滿足：
+- 可在同一頁面中完成：
+  未登入 → 登入 → 登出
+- 每次切換：
+  - modules
+  - stores
+  - routes
+  皆為乾淨狀態
+- platformConfig 的治理價值可被清楚展示
+
+---
+
+[Context Note]
+此 Auth Core 並非產品功能，
+而是 ModuCore 平台是否成立的關鍵驗證點。
 

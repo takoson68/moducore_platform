@@ -1,74 +1,23 @@
-2026-01-22
---------------------------------------------------------
-- 本地執行 `npm run dev` 驗證路由/導航與頁面渲染正常
-- 確認 `.htaccess` 在實際伺服器上的 SPA 重寫行為是否正確
-- 若需要恢復平台服務（如 http/permission），整理需求清單後再補回
+今天完成項目
+
+後端：新增最小 Auth API（/api/login、/api/logout、/api/session），支援 mock token 驗證與 X-Project 檢查；補讀 Authorization header
+後端入口：將 API 入口改為 api.php，並修正 .htaccess 讓 /api 正確導向
+前端：project‑a 加入登入 UI（浮層+遮罩），預填測試帳密
+前端：建立 src/app/api/ 組裝層，統一帶 token / X-Project；401 自動登出
+前端：登入流程改用 authApi，並將 session/token 邏輯移回 api 層
+尚未完成
+
+平台能力註冊（authApi 需透過 container.register/resolve）
+authStore 作為唯一登入狀態來源，Project 只能呼叫 authStore
+world rebuild（登入/登出觸發的 routes/modules/stores 重建）
+platformConfig 依登入狀態切換 public/auth world
 
 
----------------------------------------------------------
+---
 
-
-***********
-2026-01-22
-- 建議：整理並文件化 Multi-Nav Projection 的規則（meta.access / meta.nav[] / navParent）與範例，避免日後歧義
-- 建議：將 project-b routes 升級為新 nav 結構，並補齊 topbar/sidebar 的投影示範
-- 建議：針對 404 與 Project B layout 做視覺一致性檢查（對比、字級、按鈕狀態）
-- 建議：檢查 boot Phase B–E 的資料流是否需對應到工程 changelog
-
-
-***********
-2026-01-24
-
-【唯一目標】
-- 完成 Project A 的「可展示閉環」，不處理 Project B
-
-【凍結宣告（先做）】
-- 冻結 Project B（不修改、不驗證、不同步）
-- 不補 Phase C–E 文件
-- 不重構 container / services
-- 可跑、可看、可理解 > 架構完整度
-
-【Project A 展示範圍確認】
-- Project A 定義為 Demo World
-- 模組數量限制：2～3 個
-- 每個模組只展示 1 個頁面
-- 頁面用途以「示範」為主，不追功能完整
-
-【導覽（Sidebar）完成條件】
-- sidebar 僅顯示 Project A 模組
-- routes 皆具有明確 meta.access
-- resolveNavProjection 對 Project A 投影結果穩定
-- sidebar 點擊後可正常進入頁面
-- 不抽共用邏輯、不處理 A/B 對齊
-
-【頁面最低展示標準】
-- 每個 sidebar 對應頁面必須存在
-- 每頁至少包含：
-  - 頁面標題（明確語意）
-  - 一段說明文字（此頁在示範什麼）
-- 不做視覺優化、不補互動效果
-
-【展示說明文件】
-- 建立：
-  projects/project-a/README_DEMO.txt
-- 內容僅包含：
-  - Project A 的定位與用途
-  - 為什麼存在（不是怎麼實作）
-  - 此專案適合誰觀看
-- 不提 Project B
-- 不提 Phase、World Model、未來規劃
-
-【完成即停手條件】
-- Project A 可單獨啟動
-- sidebar 行為正確
-- 所有展示頁面可點可看
-- 第三方工程師 5 分鐘內可理解用途
-
-【強制停止規則】
-- 任何不影響「展示理解」的事項，一律延後
-- 一旦開始想處理 Project B，立即停止
-- 不允許「順便優化 / 順便整理」
-
-備註：
-- 今日目標是「讓世界站起來」
-- 不是讓世界變完美
+[明日建議]
+1. 依本文件把 authApi 註冊為 Platform Capability（container.register / container.resolve），移出 Project 直接 import 的使用方式。
+2. 建立 authStore 作為平台唯一登入狀態來源，並改由 authStore 呼叫 authApi（Project 只呼叫 authStore.login/logout）。
+3. 補上 world rebuild 流程（登入/登出觸發）：重建 modules / stores / routes，嚴禁整頁 reload。
+4. 規範 Project 僅做 Login UI（移除 project-a 內的 API 調用，改成只呼叫 authStore）。
+5. 釐清 platformConfig 依登入狀態切換 public/auth world 的規則與 allowList 注入點。
