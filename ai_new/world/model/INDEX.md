@@ -52,4 +52,11 @@
 
 ---
 
+### 身分與世界資料模型（Identity & World）
+
+- IDENTITY_DB_USERS.md  
+  平台層使用者身分資料模型（users table），  
+  定義 tenant 隔離與 world rebuild 的資料依據。
+
+
 End of Model Extension Layer Index (New World)

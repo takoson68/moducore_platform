@@ -92,6 +92,8 @@ header.topbar
   border-bottom: 1px solid var(--border)
   background: var(--surface)
   gap: 16px
+  position: relative
+  z-index: 10000
 
 .topbar-nav
   display: flex

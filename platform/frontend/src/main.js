@@ -8,6 +8,7 @@ import { container } from './app/container/container.js'
 import { coreStoreFactories } from './app/stores/index.js'
 import { loadProjectConfig } from '../projects/loadProject.js'
 import { initApi } from './app/api/index.js'
+import '@project/style.sass'
 
 async function start() {
   for (const [name, factory] of Object.entries(coreStoreFactories)) {

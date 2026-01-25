@@ -1,18 +1,5 @@
 //- projects/moduleDiscovery.js
-const registryFiles = import.meta.glob('./*/modules/index.js', { eager: true })
-
-function getRegistryForProject(projectName) {
-  const match = Object.entries(registryFiles).find(([path]) =>
-    path === `./${projectName}/modules/index.js`
-  )
-
-  if (!match) {
-    return null
-  }
-
-  const [, mod] = match
-  return mod.default ?? mod
-}
+import * as registry from '@project/modules/index.js'
 
 function normalizeDeclared(declared) {
   if (!Array.isArray(declared)) {
@@ -28,7 +15,6 @@ function normalizeDeclared(declared) {
 }
 
 export function discoverModules(projectConfig) {
-  const registry = getRegistryForProject(projectConfig?.name)
   const registryList = typeof registry?.listModules === 'function'
     ? registry.listModules()
     : null

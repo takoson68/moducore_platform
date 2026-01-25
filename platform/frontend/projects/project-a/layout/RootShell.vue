@@ -27,7 +27,6 @@ defineProps({
 </template>
 
 <style lang="sass">
-@use "../layout/base" as *
 
 .shell
   min-height: 100vh

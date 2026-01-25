@@ -5,8 +5,8 @@ import { container } from '@app/container'
 import { authApi } from '@app/api'
 
 const authStore = container.resolve('auth')
-const username = ref('demo')
-const password = ref('demo123')
+const username = ref('admin')
+const password = ref('1234')
 const loading = ref(false)
 const error = ref('')
 const isOpen = ref(false)
@@ -82,6 +82,7 @@ onMounted(() => {
         :disabled="loading"
       ) {{ loading ? '登出中...' : '登出' }}
 
+    Teleport(to="body")
       .login-popover(v-if="isOpen && !isLoggedIn")
         h3.login-title 平台登入
         p.login-subtitle 使用測試帳密進行登入（帳號 demo / 密碼 demo123）
@@ -104,7 +105,8 @@ onMounted(() => {
               | {{ loading ? '登入中...' : '登入' }}
         p.panel-message.error(v-if="error") {{ error }}
 
-  .login-overlay(v-if="isOpen && !isLoggedIn" @click.self="isOpen = false")
+  
+      .login-overlay(v-if="isOpen && !isLoggedIn" @click.self="isOpen = false")
 
 </template>
 
@@ -188,17 +190,18 @@ onMounted(() => {
 
 .login-anchor
   position: relative
+  z-index: 10001
 
 .login-overlay
   position: fixed
   inset: 0
   background: rgba(15, 23, 42, 0.45)
-  z-index: 40
+  z-index: 10000
 
 .login-popover
-  position: absolute
-  top: calc(100% + 8px)
-  right: 0
+  position: fixed
+  top: 4em
+  right: 1.75em
   width: 280px
   display: grid
   gap: 10px
@@ -207,7 +210,7 @@ onMounted(() => {
   border: 1px solid #e2e8f0
   background: #fff
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12)
-  z-index: 50
+  z-index: 10002
 
 .login-title
   margin: 0

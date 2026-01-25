@@ -1,28 +1,15 @@
 //- src/app/layout/discoverLayout.js
 import { markRaw } from 'vue'
-
-const layoutDefinitions = import.meta.glob('../../../projects/*/layout/index.js')
-
-function getLayoutLoader(projectName) {
-  const key = `../../../projects/${projectName}/layout/index.js`
-  return layoutDefinitions[key]
-}
+import * as layoutModule from '@project/layout/index.js'
 
 export async function discoverLayout(projectConfig) {
-  const projectName = projectConfig?.name
-  if (!projectName) {
+  if (!projectConfig?.name) {
     throw new Error('[Layout] Missing project name')
   }
 
-  const loader = getLayoutLoader(projectName)
-  if (!loader) {
-    throw new Error(`[Layout] Missing layout definition for project "${projectName}"`)
-  }
-
-  const mod = await loader()
-  const defineLayout = mod?.defineLayout ?? mod?.default
+  const defineLayout = layoutModule?.defineLayout
   if (typeof defineLayout !== 'function') {
-    throw new Error(`[Layout] defineLayout not found for project "${projectName}"`)
+    throw new Error(`[Layout] defineLayout not found for project "${projectConfig.name}"`)
   }
 
   const layout = await defineLayout()

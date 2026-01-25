@@ -19,3 +19,10 @@ Test:
 ```powershell
 curl http://localhost:8080/health
 ```
+
+## Auth session table
+Run once to create the token table used by logout/session checks:
+
+```sql
+source sql/001_auth_tokens.sql;
+```
