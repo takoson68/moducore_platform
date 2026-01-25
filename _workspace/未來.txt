@@ -1,10 +1,11 @@
 今天完成項目
 
-後端：新增最小 Auth API（/api/login、/api/logout、/api/session），支援 mock token 驗證與 X-Project 檢查；補讀 Authorization header
-後端入口：將 API 入口改為 api.php，並修正 .htaccess 讓 /api 正確導向
-前端：project‑a 加入登入 UI（浮層+遮罩），預填測試帳密
-前端：建立 src/app/api/ 組裝層，統一帶 token / X-Project；401 自動登出
-前端：登入流程改用 authApi，並將 session/token 邏輯移回 api 層
+前端：為 js/vue 檔案加入路徑標頭，並將 vue 改為 <!-- path --> 格式
+前端：Vite build 設定切換（單檔/分拆方案保留）並加註解
+前端：新增專案專屬樣式入口（@project/style.sass），避免跨專案樣式混入
+前端：修正 project modules/layout 的載入方式，改為只引入當前專案（@project）
+前端：調整登入 UI z-index 與 overlay 透過 Teleport 進 body
+後端：新增 db.php 連線、Auth 改為 users 表驗證、登出後 token 失效、建立 user_tokens 表
 尚未完成
 
 平台能力註冊（authApi 需透過 container.register/resolve）
@@ -16,8 +17,5 @@ platformConfig 依登入狀態切換 public/auth world
 ---
 
 [明日建議]
-1. 依本文件把 authApi 註冊為 Platform Capability（container.register / container.resolve），移出 Project 直接 import 的使用方式。
-2. 建立 authStore 作為平台唯一登入狀態來源，並改由 authStore 呼叫 authApi（Project 只呼叫 authStore.login/logout）。
-3. 補上 world rebuild 流程（登入/登出觸發）：重建 modules / stores / routes，嚴禁整頁 reload。
-4. 規範 Project 僅做 Login UI（移除 project-a 內的 API 調用，改成只呼叫 authStore）。
-5. 釐清 platformConfig 依登入狀態切換 public/auth world 的規則與 allowList 注入點。
+
+6. 明日確定事項：將「世界 B」也寫入登入功能，用於驗證世界邊界隔離。
