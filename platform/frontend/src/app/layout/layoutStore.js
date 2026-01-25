@@ -1,3 +1,4 @@
+//- src/app/layout/layoutStore.js
 import { shallowRef } from 'vue'
 
 export const layoutRef = shallowRef(null)

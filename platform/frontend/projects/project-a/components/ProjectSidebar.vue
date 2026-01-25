@@ -1,3 +1,4 @@
+<!-- projects/project-a/components/ProjectSidebar.vue -->
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'

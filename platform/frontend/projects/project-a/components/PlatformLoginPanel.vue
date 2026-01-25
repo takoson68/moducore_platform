@@ -1,3 +1,4 @@
+<!-- projects/project-a/components/PlatformLoginPanel.vue -->
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { container } from '@app/container'

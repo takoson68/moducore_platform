@@ -1,4 +1,4 @@
-// src/router/routes.js
+//- src/router/routes.js
 
 const ROUTE_BUCKET_KEY = '__MODULE_ROUTES__'
 

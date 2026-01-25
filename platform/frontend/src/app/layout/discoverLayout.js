@@ -1,3 +1,4 @@
+//- src/app/layout/discoverLayout.js
 import { markRaw } from 'vue'
 
 const layoutDefinitions = import.meta.glob('../../../projects/*/layout/index.js')

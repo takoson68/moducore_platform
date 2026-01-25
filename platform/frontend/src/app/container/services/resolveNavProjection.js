@@ -1,3 +1,4 @@
+//- src/app/container/services/resolveNavProjection.js
 function getAccess(meta) {
   const access = meta?.access || {}
   const publicFlag = typeof access.public === 'boolean' ? access.public : meta?.public

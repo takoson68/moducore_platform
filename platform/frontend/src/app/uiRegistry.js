@@ -1,3 +1,4 @@
+//- src/app/uiRegistry.js
 import { ref } from 'vue'
 
 const slotMap = new Map()

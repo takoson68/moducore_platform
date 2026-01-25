@@ -1,3 +1,4 @@
+<!-- projects/project-a/layout/RootShell.vue -->
 <script setup>
 import ProjectTopbar from '../components/ProjectTopbar.vue'
 import ProjectSidebar from '../components/ProjectSidebar.vue'

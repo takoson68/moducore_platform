@@ -1,3 +1,4 @@
+<!-- src/router/NotFound.vue -->
 <script setup>
 </script>
 

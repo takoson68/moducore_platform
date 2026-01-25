@@ -1,3 +1,4 @@
+//- projects/project-a/modules/index.js
 import { registerUISlot } from '../../../src/app/uiRegistry.js'
 
 const modules = import.meta.glob('./*/index.js')

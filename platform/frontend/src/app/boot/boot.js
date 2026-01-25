@@ -1,3 +1,4 @@
+//- src/app/boot/boot.js
 import { discoverModules } from '../../../projects/moduleDiscovery.js'
 import { getProjectModuleRegistry } from '../../../projects/modulesRegistry.js'
 import { container } from '../container/container.js'
@@ -22,10 +23,10 @@ export async function boot({ projectConfig } = {}) {
 
 // Phase A: assertPlatformBoundary
 async function assertPlatformBoundary() {
-  // TODO: enforce platform boundary checks
+  // TODO: 強制執行平台邊界檢查
 }
 
-// Phase B: resolveWorldVisibility (metadata only, no registration)
+// Phase B: resolveWorldVisibility （僅元數據，不註冊）
 async function resolveWorldVisibility(projectConfig) {
   const layout = await discoverLayout(projectConfig)
   layoutStore.set(layout)
@@ -40,7 +41,7 @@ async function resolveWorldVisibility(projectConfig) {
   return { discoveredModules, allowList }
 }
 
-// Phase C: registerAllowedModules (container.register only)
+// Phase C: registerAllowedModules （僅使用 container.register）
 async function registerAllowedModules(projectConfig, allowList) {
   const registry = getProjectModuleRegistry(projectConfig?.name)
   if (!registry?.installModules) {
@@ -53,7 +54,7 @@ async function registerAllowedModules(projectConfig, allowList) {
 
 // Phase D: initModules
 async function initModules() {
-  // TODO: initialize modules
+  // TODO: 初始化模組
 }
 
 // Phase E: enterRuntime
@@ -65,7 +66,7 @@ async function enterRuntime(allowList) {
   moduleStore.setModules(allowList ?? [])
 }
 
-// Phase F: exposeResetHook
+// Phase F: 進入運行時
 function exposeResetHook() {
-  // TODO: expose reset hook
+  // TODO: 回復至初始值
 }

@@ -1,3 +1,4 @@
+//- src/app/stores/platformConfigStore.js
 import { createStore } from './_storeFactory.js'
 
 export function createPlatformConfigStore() {

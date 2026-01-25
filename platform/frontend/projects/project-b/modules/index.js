@@ -1,3 +1,4 @@
+//- projects/project-b/modules/index.js
 const modules = import.meta.glob('./*/index.js')
 
 export const moduleLoaders = Object.fromEntries(

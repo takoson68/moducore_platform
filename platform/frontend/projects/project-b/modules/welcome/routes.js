@@ -1,3 +1,4 @@
+//- projects/project-b/modules/welcome/routes.js
 export const routes = [{
   path: '/',
   meta: {

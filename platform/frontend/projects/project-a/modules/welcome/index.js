@@ -1,3 +1,4 @@
+//- projects/project-a/modules/welcome/index.js
 import WelcomePage from './pages/WelcomePage.vue'
 import { routes } from './routes.js'
 

@@ -1,3 +1,4 @@
+//- projects/modulesRegistry.js
 const registries = import.meta.glob('./*/modules/index.js', { eager: true })
 
 export function getProjectModuleRegistry(projectName) {

@@ -1,3 +1,4 @@
+//- src/main.js
 import { createApp } from 'vue'
 import App from './App.vue'
 import { boot } from './app/boot/boot.js'

@@ -1,3 +1,4 @@
+//- projects/moduleDiscovery.js
 const registryFiles = import.meta.glob('./*/modules/index.js', { eager: true })
 
 function getRegistryForProject(projectName) {

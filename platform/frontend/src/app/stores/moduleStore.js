@@ -1,3 +1,4 @@
+//- src/app/stores/moduleStore.js
 import { createStore } from './_storeFactory.js'
 
 export function createModuleStore() {

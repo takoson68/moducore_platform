@@ -1,3 +1,4 @@
+<!-- projects/project-b/layout/LayoutRoot.vue -->
 <script setup>
 </script>
 

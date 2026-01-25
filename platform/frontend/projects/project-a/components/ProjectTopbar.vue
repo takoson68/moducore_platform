@@ -1,3 +1,4 @@
+<!-- projects/project-a/components/ProjectTopbar.vue -->
 <script setup>
 import { computed } from 'vue'
 import { container } from '@app/container'

@@ -1,4 +1,4 @@
-// src/app/container/register.js
+//- src/app/container/register.js
 import { getRouter } from '@/router/holder.js'
 import { normalizePath } from '@/router/routes.js'
 // --------------------------------------------------

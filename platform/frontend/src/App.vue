@@ -1,3 +1,4 @@
+<!-- src/App.vue -->
 <script setup>
 import { computed } from 'vue'
 import { layoutRef } from './app/layout/layoutStore.js'

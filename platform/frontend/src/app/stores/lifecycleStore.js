@@ -1,3 +1,4 @@
+//- src/app/stores/lifecycleStore.js
 import { createStore } from './_storeFactory.js'
 
 export function createLifecycleStore() {

@@ -1,3 +1,4 @@
+//- projects/project-a/project.config.js
 export default {
   name: 'project-a',
   title: 'Project A',

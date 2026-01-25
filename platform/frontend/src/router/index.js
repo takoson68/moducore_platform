@@ -1,4 +1,4 @@
-// src/app/router/index.js
+//- src/router/index.js
 // 主 Router，登入後動態注入模組 routes
 
 //- Router 沒有注入容器中，因為 createRouter 需要 async 操作

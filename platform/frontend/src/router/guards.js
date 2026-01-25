@@ -1,4 +1,4 @@
-// - src/router/guards.js
+//- src/router/guards.js
 // beforeEach：登入、權限、模組啟用判斷
 import { container } from '@/app/container'
 

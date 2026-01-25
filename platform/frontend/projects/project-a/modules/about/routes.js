@@ -1,3 +1,4 @@
+//- projects/project-a/modules/about/routes.js
 export const routes = [
   {
     path: '/about',

@@ -1,4 +1,4 @@
-//- loadProject.js 
+//- projects/loadProject.js
 // 只負責「載入 project」，不負責任何世界規則
 export async function loadProjectConfig() {
   const name = import.meta.env.VITE_PROJECT || 'project-a'

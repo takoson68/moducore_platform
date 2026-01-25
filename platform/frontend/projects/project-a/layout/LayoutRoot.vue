@@ -1,3 +1,4 @@
+<!-- projects/project-a/layout/LayoutRoot.vue -->
 <script setup>
 defineProps({
   title: {

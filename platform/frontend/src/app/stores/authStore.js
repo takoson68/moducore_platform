@@ -1,3 +1,4 @@
+//- src/app/stores/authStore.js
 import { createStore } from './_storeFactory.js'
 
 export function createAuthStore() {

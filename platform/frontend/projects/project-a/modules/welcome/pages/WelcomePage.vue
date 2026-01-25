@@ -1,3 +1,4 @@
+<!-- projects/project-a/modules/welcome/pages/WelcomePage.vue -->
 <script setup>
 import LayoutRoot from '../../../layout/LayoutRoot.vue'
 

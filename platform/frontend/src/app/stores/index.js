@@ -1,3 +1,4 @@
+//- src/app/stores/index.js
 import { createAuthStore } from './authStore.js'
 import { createLifecycleStore } from './lifecycleStore.js'
 import { createModuleStore } from './moduleStore.js'
