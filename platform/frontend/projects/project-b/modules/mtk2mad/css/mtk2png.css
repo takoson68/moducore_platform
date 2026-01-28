@@ -204,7 +204,7 @@ a {
   text-decoration: none;
   color: black;
 }
-
+*/
 [v-cloak] {
   display: none;
 }
@@ -393,7 +393,7 @@ input[type="reset"],
 .icon-windows8:before {
   content: "\eac2";
 }
-
+/*
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
   margin: 0;
   padding: 0;
@@ -1112,14 +1112,14 @@ section#mtkBox {
   -webkit-box-direction: normal;
       -ms-flex-direction: row;
           flex-direction: row;
-  height: calc(100vh - 50px);
+  height: calc( 100vh - 7em );
   overflow: hidden;
   padding-bottom: 0em;
   background-color: #000;
 }
 
 section#mtkBox .mdTopng {
-  min-width: 300px;
+  min-width: 450px;
   position: relative;
   max-width: 1200px;
   display: -webkit-box;
@@ -1129,6 +1129,7 @@ section#mtkBox .mdTopng {
   -webkit-box-direction: normal;
       -ms-flex-direction: column;
           flex-direction: column;
+  height: calc( 100% - 8em );
 }
 
 section#mtkBox .mdTopng .actTitle {
@@ -1607,7 +1608,7 @@ ul.box li ul li {
   -webkit-box-pack: center;
       -ms-flex-pack: center;
           justify-content: center;
-  border: 4px solid #1B96F1;
+  /* border: 4px solid #1B96F1; */
   background-color: #fc3848;
 }
 
@@ -2486,8 +2487,9 @@ input.inp_1.flex_3 + input {
   -webkit-box-pack: center;
       -ms-flex-pack: center;
           justify-content: center;
-  border-style: solid;
+  /* border-style: solid; */
   color: #ffffff;
+  border-radius: 1em;
 }
 
 .icontext circle {

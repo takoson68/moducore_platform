@@ -5,6 +5,10 @@
         md => png
         <b>備註：若產圖失敗，請 [ 分段 ] 確認輸入的格式是否正確。</b>
       </h1>
+      <button class="top_right btn_dlo center" type="button" @click="screenshot">
+      <span class="material-icons">cloud_download</span>
+      <b>下載圖片</b>
+    </button>
     </section>
     <section id="mdBox">
       <div class="mdTopng" ref="mdTopng">
@@ -83,10 +87,7 @@
         <div class="dragBox" ref="dragBox"></div>
       </div>
     </section>
-    <button class="top_right btn_dlo center" type="button" @click="screenshot">
-      <span class="material-icons">cloud_download</span>
-      <b>下載圖片</b>
-    </button>
+    
   </div>
 </template>
 
@@ -738,6 +739,23 @@ export default {
 };
 </script>
 <style scoped> 
-@import url('../css/mdeditor.css');
+  @import url('../css/mdeditor.css');
+  .sys_title {
+    position: relative;
+  }
+  .sys_title h1 {
+    margin: 0;
+    padding: 0;
+  }
+  .btn_dlo {
+    position: absolute !important;
+    font-size: 16px;
+    right: 1em !important;
+    margin-right: 1em !important;
+    /* top: 16px !important; */
+  }
+  #printable {
+    padding: 0 1em !important;
+  }
 </style>
 <!-- /* <style src="../css/mdeditor.css"></style> */ -->

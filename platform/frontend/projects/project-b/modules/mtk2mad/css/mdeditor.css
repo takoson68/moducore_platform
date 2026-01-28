@@ -804,6 +804,7 @@ canvas:not(#myChart) {
   width: 100%;
   text-align: center;
   position: relative;
+  font-size: 32px;
 }
 .mdeditor .sys_title h1 b {
   font-size: 0.8rem;
@@ -825,7 +826,7 @@ section#mdBox {
 }
 section#mdBox .mdTopng {
   flex: 1;
-  min-width: 300px;
+  min-width: 450px;
 }
 section#mdBox .mdTopng textarea {
   width: 100%;
@@ -964,6 +965,7 @@ section#mdBox #printable .timeBox h1.date {
   color: #ffffff;
   background-image: linear-gradient(to top, #a332ee 0%, #5e0c94 100%);
   font-weight: bolder;
+  font-size: 16px;
 }
 section#mdBox #printable .timeBox h1.date::before {
   position: absolute;
