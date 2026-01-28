@@ -19,3 +19,21 @@ platformConfig 依登入狀態切換 public/auth world
 [明日建議]
 
 6. 明日確定事項：將「世界 B」也寫入登入功能，用於驗證世界邊界隔離。
+
+---
+
+今天完成項目（2026-01-28）
+
+後端：建立 project-b 的 API 與控制器（employee/task/vote/notification），補上路由
+後端：建立並灌入 project-b 行為資料表（含 seed.sql）
+後端：員工表新增 role、user_id 並回填；投票表新增 anonymous
+後端：Auth 回傳 role（由 project_b_employees 取得）以啟用 manager 權限
+前端：API 切換為 real 並串接通知 API
+前端：投票詳情與員工編輯 modal Teleport 到 body 並置中
+
+[明日建議]
+
+1. 補齊 employees 與 users 的一致性校驗（JOIN 檢查缺漏/不一致）
+2. 投票/任務 API 回傳 username 需求評估與必要欄位整理
+3. 補上通知 API 的 member_id 來源（由 auth.user.user_id/ member_id 導入）
+4. 加入簡單 API error 提示與 loading 狀態（employee/task/vote/notification）

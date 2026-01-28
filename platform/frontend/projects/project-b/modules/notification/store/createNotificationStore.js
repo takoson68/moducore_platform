@@ -25,6 +25,11 @@ export function createNotificationStore() {
       unread: 0,
     },
     actions: {
+      setList(storeRef, list = []) {
+        const normalized = Array.isArray(list) ? list.map(normalize) : [];
+        const unread = normalized.reduce((count, item) => count + (item.read ? 0 : 1), 0);
+        storeRef.set({ list: normalized, unread });
+      },
       addNotification(storeRef, item) {
         const state = storeRef.get();
         const notification = normalize(item);

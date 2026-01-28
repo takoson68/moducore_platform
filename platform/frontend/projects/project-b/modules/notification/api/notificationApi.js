@@ -52,16 +52,16 @@ const mockApi = {
 
 const realApi = {
   list() {
-    return http.get("/notifications");
+    return http.get("/api/notifications");
   },
   create(payload) {
-    return http.post("/notifications", payload);
+    return http.post("/api/notifications", payload);
   },
   markRead(id) {
-    return http.post(`/notifications/${id}/read`);
+    return http.post("/api/notifications/read", { id });
   },
   clear() {
-    return http.post("/notifications/clear");
+    return http.post("/api/notifications/clear");
   },
 };
 

@@ -15,6 +15,7 @@ final class AuthController
             'tenant_id' => (string)$user['tenant_id'],
             'username' => (string)$user['username'],
             'name' => (string)$user['username'],
+            'role' => (string)($user['role'] ?? ''),
         ];
     }
 
@@ -49,6 +50,21 @@ final class AuthController
         $user = $stmt->fetch();
 
         return $user ?: null;
+    }
+
+    private function resolveEmployeeRole(string $project, int $userId): ?string
+    {
+        $project = trim($project);
+        if ($project === 'project-b' || $project === 'project_b') {
+            $stmt = db()->prepare('SELECT role FROM project_b_employees WHERE user_id = ? LIMIT 1');
+            $stmt->execute([$userId]);
+            $row = $stmt->fetch();
+            if ($row && isset($row['role'])) {
+                return (string)$row['role'];
+            }
+        }
+
+        return null;
     }
 
     private function resolveTokenFromRequest(Request $request): string
@@ -118,10 +134,11 @@ final class AuthController
         $tenantIds = $this->resolveTenantIds($project);
         $user = $this->findUserForLogin($tenantIds, $username, $password);
         if ($user) {
+            $role = $this->resolveEmployeeRole($project, (int)$user['id']);
             $token = $this->createTokenForUser($user);
             $response->json([
                 'success' => true,
-                'user' => $this->buildUserPayload($user),
+                'user' => $this->buildUserPayload(array_merge($user, ['role' => $role])),
                 'token' => $token,
             ]);
             return;
@@ -166,11 +183,12 @@ final class AuthController
         $token = $this->resolveTokenFromRequest($request);
         $user = $this->findUserForSession($token);
         $isLoggedIn = $user !== null;
+        $role = $user ? $this->resolveEmployeeRole($project, (int)$user['id']) : null;
 
         $response->json([
             'success' => true,
             'authenticated' => $isLoggedIn,
-            'user' => $isLoggedIn ? $this->buildUserPayload($user) : null,
+            'user' => $isLoggedIn ? $this->buildUserPayload(array_merge($user, ['role' => $role])) : null,
             'token' => $isLoggedIn ? $token : null,
         ]);
     }

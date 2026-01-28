@@ -24,9 +24,13 @@ const user = computed(() => auth.state.user || {});
 </template>
 
 <style scoped lang="sass">
+// .main
+//   overflow: hidden
+// .content 
+//   height: calc(100vh - 6em)
 .task-layout
   width: 100%
-  height: 100%
+  height: calc(100vh - 6em)
   display: flex
   flex-direction: column
   // background: linear-gradient(135deg, #f7f9ff, #eef2fb)

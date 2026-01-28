@@ -205,7 +205,7 @@ onMounted(() => {
   top: 64px
   right: 16px
   width: min(320px, 92vw)
-  height: 30%
+  height: auto
   max-height: 70vh
   display: flex
   flex-direction: column

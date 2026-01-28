@@ -1,7 +1,8 @@
 ﻿<script setup>
-import { computed, ref, nextTick } from "vue";
+import { computed, ref, nextTick, onMounted } from "vue";
 import { container } from "@/app/container";
 import NotificationPopup from "./NotificationPopup.vue";
+import { notificationService } from "../services/notificationService.js";
 
 const props = defineProps({
   placement: { type: String, default: "fixed" }, // fixed | sidebar
@@ -24,6 +25,13 @@ function toggle() {
     });
   }
 }
+
+onMounted(() => {
+  if (!isAuth.value) return;
+  notificationService.fetchList().catch((err) => {
+    console.error("[notification] fetch list failed", err);
+  });
+});
 </script>
 
 <template lang="pug">

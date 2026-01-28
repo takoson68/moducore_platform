@@ -4,6 +4,7 @@ import { container } from "@/app/container";
 import { taskService } from "@project/modules/task/services/taskService.js";
 import { employeeService } from "@project/modules/employee/services/employeeService.js";
 import { voteService } from "@project/modules/vote/services/voteService.js";
+import { notificationService } from "../services/notificationService.js";
 
 const storeNames = container.list().stores || [];
 const hasTask = storeNames.includes("taskStore");
@@ -200,6 +201,7 @@ function sendTest(type) {
 
 onMounted(async () => {
   const jobs = [];
+  if (hasNotification) jobs.push({ name: "notification", run: () => notificationService.fetchList() });
   if (hasTask) jobs.push({ name: "task", run: () => taskService.fetchList() });
   if (hasEmployee) jobs.push({ name: "employee", run: () => employeeService.fetchList() });
   if (hasVote) jobs.push({ name: "vote", run: () => voteService.fetchList() });

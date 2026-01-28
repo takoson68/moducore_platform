@@ -109,47 +109,48 @@ function close() {
 </script>
 
 <template lang="pug">
-.editor-wrap(v-if="open" @click.self="close")
-  .panel
-    .panel-header
-      .titles
-        p.kicker Employee Center
-        h3 {{ titleText }}
-        p.subtitle 管理與維護員工資料，快速建立或更新人員
-      button.close-btn(type="button" @click="close") X
+teleport(to="body")
+  .editor-wrap(v-if="open" @click.self="close")
+    .panel
+      .panel-header
+        .titles
+          p.kicker Employee Center
+          h3 {{ titleText }}
+          p.subtitle 管理與維護員工資料，快速建立或更新人員
+        button.close-btn(type="button" @click="close") X
 
-    form.panel-body(@submit.prevent="handleSubmit")
-      .form-grid
-        label.field
-          span.label 姓名
-          input(v-model="form.name" type="text" placeholder="輸入姓名")
-        label.field
-          span.label 職稱
-          input(v-model="form.title" type="text" placeholder="例如：工程師")
-        label.field
-          span.label 部門
-          input(v-model="form.department" type="text" placeholder="例如：研發部")
-        label.field
-          span.label Email
-          input(v-model="form.email" type="email" placeholder="name@email.com")
-        label.field
-          span.label 電話
-          input(v-model="form.phone" type="text" placeholder="0900-000-000")
-        label.field
-          span.label 角色
-          select(v-model="form.role")
-            option(v-for="r in roleOptions" :key="r.value" :value="r.value") {{ r.label }}
-        label.field
-          span.label 狀態
-          select(v-model="form.status")
-            option(v-for="s in statusOptions" :key="s.value" :value="s.value") {{ s.label }}
-        label.field(v-if="isCreate")
-          span.label 登入密碼（示範）
-          input(v-model="form.password" type="text" placeholder="輸入登入密碼")
+      form.panel-body(@submit.prevent="handleSubmit")
+        .form-grid
+          label.field
+            span.label 姓名
+            input(v-model="form.name" type="text" placeholder="輸入姓名")
+          label.field
+            span.label 職稱
+            input(v-model="form.title" type="text" placeholder="例如：工程師")
+          label.field
+            span.label 部門
+            input(v-model="form.department" type="text" placeholder="例如：研發部")
+          label.field
+            span.label Email
+            input(v-model="form.email" type="email" placeholder="name@email.com")
+          label.field
+            span.label 電話
+            input(v-model="form.phone" type="text" placeholder="0900-000-000")
+          label.field
+            span.label 角色
+            select(v-model="form.role")
+              option(v-for="r in roleOptions" :key="r.value" :value="r.value") {{ r.label }}
+          label.field
+            span.label 狀態
+            select(v-model="form.status")
+              option(v-for="s in statusOptions" :key="s.value" :value="s.value") {{ s.label }}
+          label.field(v-if="isCreate")
+            span.label 登入密碼（示範）
+            input(v-model="form.password" type="text" placeholder="輸入登入密碼")
 
-      .footer
-        button.ghost(type="button" @click="close") 取消
-        button.primary(type="submit") {{ actionLabel }}
+        .footer
+          button.ghost(type="button" @click="close") 取消
+          button.primary(type="submit") {{ actionLabel }}
 </template>
 
 <style scoped lang="sass">

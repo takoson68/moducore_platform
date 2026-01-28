@@ -98,48 +98,49 @@ function close() {
 </script>
 
 <template lang="pug">
-.detail-wrap(v-if="open" @click.self="close")
-  .panel(v-if="vote")
-    .panel-header
-      .titles
-        p.kicker 投票詳情
-        h3 {{ vote.title }}
-        p.subtitle {{ vote.description || '無描述' }}
-      button.close-btn(type="button" @click="close") X
+teleport(to="body")
+  .detail-wrap(v-if="open" @click.self="close")
+    .panel(v-if="vote")
+      .panel-header
+        .titles
+          p.kicker 投票詳情
+          h3 {{ vote.title }}
+          p.subtitle {{ vote.description || '無描述' }}
+        button.close-btn(type="button" @click="close") X
 
-    .body
-      .meta-row
-        span.chip(:class="vote.status === 'closed' ? 'closed' : 'open'") {{ vote.status === 'closed' ? '已開票' : '投票中' }}
-        span.chip {{ allowMultiple ? '多選' : '單選' }} · {{ isAnonymous ? '匿名' : '記名' }}
-        span.chip 發佈者：{{ vote.publisher || '未指定' }}
-        span.chip(v-if="vote.rule?.mode === 'all'") 全員投完即開票 ({{ vote.votesReceived }}/{{ vote.rule.totalVoters || '不限' }})
-        span.chip(v-else) 開票時間：{{ vote.rule?.deadline || '未設定' }}
+      .body
+        .meta-row
+          span.chip(:class="vote.status === 'closed' ? 'closed' : 'open'") {{ vote.status === 'closed' ? '已開票' : '投票中' }}
+          span.chip {{ allowMultiple ? '多選' : '單選' }} · {{ isAnonymous ? '匿名' : '記名' }}
+          span.chip 發佈者：{{ vote.publisher || '未指定' }}
+          span.chip(v-if="vote.rule?.mode === 'all'") 全員投完即開票 ({{ vote.votesReceived }}/{{ vote.rule.totalVoters || '不限' }})
+          span.chip(v-else) 開票時間：{{ vote.rule?.deadline || '未設定' }}
 
-      .options
-        label.option-row(v-for="opt in vote.options" :key="opt.id")
-          input(
-            v-if="!isClosed"
-            :type="allowMultiple ? 'checkbox' : 'radio'"
-            :name="vote.id"
-            :value="opt.id"
-            :checked="selection.picks.includes(opt.id)"
-            @change="togglePick(opt.id)"
-          )
-          .info
-            p.label {{ opt.label }}
-            p.count 已得 {{ opt.votes }} 票
-          .voters(v-if="showVoters")
-            span(v-if="!opt.voters?.length" class="hint") 尚無記名投票
-            span.voter-tag(v-for="(u, idx) in opt.voters" :key="idx") {{ u }}
-          progress(:value="opt.votes" :max="Math.max(1, Math.max(...vote.options.map(o => o.votes)))")
+        .options
+          label.option-row(v-for="opt in vote.options" :key="opt.id")
+            input(
+              v-if="!isClosed"
+              :type="allowMultiple ? 'checkbox' : 'radio'"
+              :name="vote.id"
+              :value="opt.id"
+              :checked="selection.picks.includes(opt.id)"
+              @change="togglePick(opt.id)"
+            )
+            .info
+              p.label {{ opt.label }}
+              p.count 已得 {{ opt.votes }} 票
+            .voters(v-if="showVoters")
+              span(v-if="!opt.voters?.length" class="hint") 尚無記名投票
+              span.voter-tag(v-for="(u, idx) in opt.voters" :key="idx") {{ u }}
+            progress(:value="opt.votes" :max="Math.max(1, Math.max(...vote.options.map(o => o.votes)))")
 
-      .actions
-        button.primary(type="button" @click="castVote" :disabled="isClosed") 送出投票
-        button.ghost(type="button" @click="openResult" :disabled="isClosed") 提早開票
-        button.ghost(type="button" @click="openResult" :disabled="isClosed || !(canCloseByAll(vote) || canCloseByTime(vote))") 開票條件達成
-        button.danger(type="button" @click="removeVote") 刪除投票
+        .actions
+          button.primary(type="button" @click="castVote" :disabled="isClosed") 送出投票
+          button.ghost(type="button" @click="openResult" :disabled="isClosed") 提早開票
+          button.ghost(type="button" @click="openResult" :disabled="isClosed || !(canCloseByAll(vote) || canCloseByTime(vote))") 開票條件達成
+          button.danger(type="button" @click="removeVote") 刪除投票
 
-      .note 投票者：{{ currentUser }}
+        .note 投票者：{{ currentUser }}
 </template>
 
 <style scoped lang="sass">

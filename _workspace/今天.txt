@@ -4,118 +4,29 @@
 
 
 //---------------------------
-frontend/src/App.vue 這裡面有 import RootShell from '../projects/project-a/layout/RootShell.vue'
-在這裡不應該 import 個別專案的目錄裡的資料，因為這裡不能從單獨專案import他甚至本身都不應該知道他import哪個專案的layout，
-他應該由.env 來決定切換從哪裡取得layout
-
-//--------------
-
-我覺得frontend/src/App.vue 裡面取得layout的方式應該也跟取得模組的方式一樣，
-由每個專案下都設定一個layout/index.js 由他設定該數出給frontend/src/App.vue來加載layout
-這樣的設計才能符合平台要求
-
-//--------------
-
-現在回來設計project-a/ 
-現在我要將 .sidebar 路由的功能拿到 .topbar 
-在project-a/ 專案.topbar 主要是顯示公開頁面的內容，所以現在所有路由meta標示為public: true,的頁面通通會在這邊展示
-
-而原本.sidebar 的位置是展示 public: false, auth: true, 的項目，
-
-至於public: false, auth: false, 這樣的組合代表不展示，所以這樣的模組不會注入容器
 
 
-//-----------//-----------//-----------//-----------//-----------//-----------//-----------//-----------//-----------
+你是一名後端工程代理，請依下列前提直接執行：
 
+【已存在（不可更動）】
+- members 資料表已存在（平台共用、tenant-aware）
+- user_tokens 資料表已存在（登入狀態管理）
+- 本次任務不得修改或新增任何 Identity / Auth 相關資料表
 
+【本次唯一任務】
+1. 在 backend/api/project-b/ 下，依前端模組建立後端 API 目錄
+2. 為每個 project-b 模組建立 tables.sql
+3. tables.sql 僅定義該模組的「行為資料表」
 
-[Task Title]
-Project A – Minimal Auth Core（會員登入最小閉環）
+【嚴格限制】
+- 不建立任何會員或 token 相關資料表
+- 模組資料表只允許使用 member_id 作為關聯
+- 不建立實體 Foreign Key
+- 不跨模組耦合
 
-[Goal]
-建立「會員登入／登出」的最小平台核心能力，用於驗證平台可在「未登入 ↔ 已登入 ↔ 登出」之間完成一次完整世界重建（rebuild），而非製作完整會員系統。
+【輸出】
+- 建立所有目錄與檔案
+- PHP 檔案維持 PHP 8 合法空殼即可
+- tables.sql 必須可直接執行於 MySQL / MariaDB
 
-此任務目的為：
-- 證明 platformConfig 可依登入狀態動態切分
-- 證明 container 可 reset 並重新裝配
-- 作為 Project A 可展示閉環的前置條件
-
----
-
-[Scope – 必須完成]
-1. Auth Store（最小核心）
-- 建立 authStore
-- 必須包含：
-  - isAuthenticated（boolean）
-  - user（object | null）
-- 提供方法：
-  - login(payload)
-  - logout()
-- 登入狀態需可從瀏覽器（localStorage）復原
-- 不做角色、不做權限、不做 refresh token
-
-2. PlatformConfig 切分（關鍵）
-- platformConfig 必須區分：
-  - 未登入狀態（public world）
-  - 已登入狀態（auth world）
-- allowList 或等價機制：
-  - 未登入只載入 public modules / routes
-  - 登入後載入 auth modules / routes
-- platformConfig 不可為靜態常數，需可依 auth 狀態重新套用
-
-3. World Rebuild 行為
-- 登入後：
-  - 清空舊世界（stores / modules / routes）
-  - 依登入狀態重新裝配世界
-- 登出後：
-  - 完整 reset
-  - 回到 public world
-- 不允許 reload 整頁
-
-4. Router 行為驗證
-- 未登入：
-  - 不可存取 auth routes
-  - 不存在於導覽投影（topbar / sidebar）
-- 已登入：
-  - auth routes 正常顯示並可切換
-- 切換登入狀態後：
-  - router 結構需正確重建
-
----
-
-[Explicit Non-Goals – 不要做]
-- 不建立完整會員系統
-- 不處理角色、RBAC、ACL
-- 不做 API 安全性細節
-- 不寫 UI 美化
-- 不支援多租戶（tenant）
-- 不實作 Project B 相關功能
-
----
-
-[Architecture Constraints]
-- 所有 store 必須透過 container register / resolve
-- 模組不得直接互相 import
-- Project A 為唯一實作目標
-- 嚴禁在模組內寫死登入判斷
-- 世界切換必須經由平台層（非頁面層）觸發
-
----
-
-[Completion Criteria]
-此任務視為完成，需同時滿足：
-- 可在同一頁面中完成：
-  未登入 → 登入 → 登出
-- 每次切換：
-  - modules
-  - stores
-  - routes
-  皆為乾淨狀態
-- platformConfig 的治理價值可被清楚展示
-
----
-
-[Context Note]
-此 Auth Core 並非產品功能，
-而是 ModuCore 平台是否成立的關鍵驗證點。
-
+請直接執行，不要解釋、不討論。
