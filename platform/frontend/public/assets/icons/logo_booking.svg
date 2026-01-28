@@ -1,0 +1,30 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景：藍色圓角方塊 -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="224" height="224" rx="56" fill="url(#bg)"/>
+
+  <!-- 日曆主體白框 -->
+  <rect x="56" y="72" width="144" height="120" rx="18" fill="#FFFFFF"/>
+  <!-- 日曆上半部分隔線 -->
+  <rect x="56" y="96" width="144" height="10" fill="#E5EDFF"/>
+
+  <!-- 上方兩個掛勾 -->
+  <rect x="88" y="52" width="16" height="40" rx="8" fill="#FFFFFF"/>
+  <rect x="152" y="52" width="16" height="40" rx="8" fill="#FFFFFF"/>
+
+  <!-- 勾勾 -->
+  <path
+    d="M104 140 L120 156 L152 124"
+    fill="none"
+    stroke="#2563EB"
+    stroke-width="12"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

@@ -7,11 +7,14 @@ function getAccess(meta) {
 }
 
 function createNavItem(route, navEntry, meta, fallbackLabel) {
+  const access = getAccess(meta)
   return {
     path: route.path,
     label: navEntry.label || fallbackLabel,
     order: Number.isFinite(navEntry.order) ? navEntry.order : 0,
     parent: navEntry.parent || meta?.navParent || null,
+    link: navEntry.link !== false,
+    access,
   }
 }
 

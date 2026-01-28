@@ -122,3 +122,7 @@ export const authApi = {
     return result
   }
 }
+
+export { createClient } from './client.js'
+export { http } from './http.js'
+export { useMock } from './mockSwitch.js'

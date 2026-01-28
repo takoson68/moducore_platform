@@ -116,7 +116,7 @@ onMounted(() => {
   gap: 8px
   align-items: center
   justify-content: end
-  min-width: 220px
+  // min-width: 220px
   flex-direction: row
 
 .panel-status

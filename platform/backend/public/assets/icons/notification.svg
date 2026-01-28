@@ -1,0 +1,79 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="32"
+  height="32"
+  viewBox="0 0 24 24"
+>
+  <!-- 外框 -->
+  <rect
+    x="4"
+    y="3"
+    width="16"
+    height="18"
+    rx="2"
+    ry="2"
+    fill="none"
+    stroke="white"
+    stroke-width="2"
+  />
+
+  <!-- 上方標題條 -->
+  <rect
+    x="4"
+    y="3"
+    width="16"
+    height="4"
+    fill="white"
+  />
+
+  <!-- 第一行 -->
+  <circle
+    cx="7"
+    cy="10"
+    r="1"
+    fill="white"
+  />
+  <line
+    x1="10"
+    y1="10"
+    x2="18"
+    y2="10"
+    stroke="white"
+    stroke-width="1.8"
+    stroke-linecap="round"
+  />
+
+  <!-- 第二行 -->
+  <circle
+    cx="7"
+    cy="14"
+    r="1"
+    fill="white"
+  />
+  <line
+    x1="10"
+    y1="14"
+    x2="18"
+    y2="14"
+    stroke="white"
+    stroke-width="1.8"
+    stroke-linecap="round"
+  />
+
+  <!-- 第三行 -->
+  <circle
+    cx="7"
+    cy="18"
+    r="1"
+    fill="white"
+  />
+  <line
+    x1="10"
+    y1="18"
+    x2="18"
+    y2="18"
+    stroke="white"
+    stroke-width="1.8"
+    stroke-linecap="round"
+  />
+</svg>

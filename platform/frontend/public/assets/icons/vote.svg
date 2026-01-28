@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="24"
+     height="24"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="#ffffff"
+     stroke-width="2"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+
+  <!-- ballot paper -->
+  <rect x="8" y="2" width="8" height="10" rx="1"/>
+  <path d="M10 5h4"/>
+  <path d="M10 8h4"/>
+
+  <!-- hand -->
+  <path d="M4 14c0-1.5 1.5-3 3-3h6"/>
+  <path d="M13 11l3 1.5c1 .5 1 2-.5 2.5l-5 2"/>
+  <path d="M4 14v3c0 1.5 1.5 3 3 3h5"/>
+
+</svg>

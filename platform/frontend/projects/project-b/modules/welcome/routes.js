@@ -1,14 +1,15 @@
-//- projects/project-b/modules/welcome/routes.js
+﻿//- projects/project-b/modules/welcome/routes.js
 export const routes = [{
   path: '/',
   meta: {
     access: {
-      public: true,
-      auth: true
+      public: false,
+      auth: false
     },
     nav: [
-      { area: 'sidebar', label: 'Welcome', order: 1 },
+      // { area: 'sidebar', label: 'Welcome', order: 1 },
       { area: 'topbar', label: 'Welcome', order: 1 }
     ]
   }
 }]
+

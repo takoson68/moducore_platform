@@ -1,0 +1,350 @@
+/* ==== DefaultLayout/style.css ==== */
+
+
+/* ==== calendarComponent/style.css ==== */
+.calendarComponent-template {
+  padding: 1rem;
+  background: #f2f2f2;
+  border: 1px dashed #999;
+}
+
+
+/* ==== componentTemplate/style.css ==== */
+.component-template {
+  padding: 1rem;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  font-family: sans-serif;
+  border-radius: .5em;
+  color: green;
+}
+
+
+/* ==== coverComponent/style.css ==== */
+.component-template {
+  padding: 1rem;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  font-family: sans-serif;
+  border-radius: .5em;
+  color: green;
+}
+
+
+/* ==== listComponent/style.css ==== */
+.listComponent-template {
+  padding: 1rem;
+  background: #f2f2f2;
+  border: 1px dashed #999;
+}
+
+
+/* ==== listUseStarTemp/style.css ==== */
+.listUseStarTemp-template {
+  padding: 1rem;
+  background: #f2f2f2;
+  border: 1px dashed #999;
+}
+
+
+/* ==== loginComponent/style.css ==== */
+
+
+/* ==== menuComponent/style.css ==== */
+.pickLi {
+  border-bottom: 3px solid red !important;
+}
+
+
+/* ==== modalComponent/style.css ==== */
+.modalComponent-template {
+  padding: 1rem;
+  background: #44e35c;
+  border: 1px dashed #999;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+}
+
+/* ==== mytestComponent/style.css ==== */
+.mytestComponent-template {
+  padding: 1rem;
+  background: #f2f2f2;
+  border: 1px dashed #999;
+}
+.mytestComponent-template h2 {
+  color: #b40660;
+}
+
+/* ==== pagination-module/style.css ==== */
+@charset "UTF-8";
+.pagination-wrapper {
+  font-family: sans-serif;
+  border: 1px solid #ccc;
+  padding: 1em;
+  border-radius: 8px;
+  -webkit-box-shadow: 0 0 10px #ccc;
+          box-shadow: 0 0 10px #ccc;
+}
+
+.pagination-wrapper .controls {
+  margin-bottom: 0.5em;
+}
+
+.pagination-wrapper .pagination {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  margin-top: 0.5em;
+}
+
+ul.userBox {
+  border: 1px solid #bbbbbb;
+  position: relative;
+}
+
+ul.userBox li {
+  border-top: 1px solid #bbbbbb;
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  width: 100%;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+}
+
+ul.userBox li:first-child {
+  border-top: 0px solid red;
+}
+
+ul.userBox li:nth-child(2n) {
+  background-color: #f1f1f1;
+}
+
+ul.userBox li:hover {
+  position: relative;
+}
+
+ul.userBox li:hover div {
+  -webkit-transform: scale(1.025);
+          transform: scale(1.025);
+  background-color: #ffffff;
+  border: 1px solid #cccccc;
+  z-index: 1;
+  -webkit-box-shadow: 0 0 .5em #bbbbbb;
+          box-shadow: 0 0 .5em #bbbbbb;
+  border-radius: .5em;
+}
+
+ul.userBox li div {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  width: 100%;
+  min-height: 2.25em;
+  padding: 1em;
+  -webkit-transition: 0.35s;
+  transition: 0.35s;
+  border: 1px solid #ffffff00;
+}
+
+ul.userBox li span {
+  -webkit-box-flex: 2;
+      -ms-flex: 2;
+          flex: 2;
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+}
+
+ul.userBox li span + span {
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  padding-left: .5em;
+  -webkit-box-pack: right;
+      -ms-flex-pack: right;
+          justify-content: right;
+  text-align: right;
+}
+
+ul.userBox li .nbr {
+  font-size: .7em;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  height: 2.2em;
+  width: 2.2em;
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  border-radius: 2em;
+  background-color: #8bc34a;
+  color: #ffffff;
+  margin-right: 1em;
+}
+
+.showsetBtn {
+  padding: .25em .5em;
+  background-color: red;
+  border-radius: .25em;
+  margin-left: 1em;
+  color: #ffffff;
+  cursor: pointer;
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+}
+
+/* 讓空白列保持一致高度 */
+.blank-row {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+
+/* ==== ratingStarComponent/style.css ==== */
+.ratingStarComponent-template {
+  padding: 1rem;
+  background: #f2f2f2;
+  border: 1px dashed #999;
+}
+
+.rating-stars {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  gap: 0.25rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.star {
+  color: #ccc;
+  -webkit-transition: color 0.2s;
+  transition: color 0.2s;
+}
+
+.star.filled {
+  color: #ffc107;
+}
+
+
+/* ==== tableComponent/style.css ==== */
+.tableComponent-template {
+  padding: 1rem;
+  background: #f2f2f2;
+  border: 1px dashed #999;
+}
+
+
+/* ==== todoListComponent/style.css ==== */
+.todo-container {
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  max-width: 400px;
+}
+
+.todo-input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+ul.todo-list {
+  padding: 0;
+}
+
+ul.todo-list li {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: start;
+      -ms-flex-pack: start;
+          justify-content: flex-start;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px dashed #ddd;
+  counter-increment: my-counter;
+  position: relative;
+  -webkit-transition: 0.35s;
+  transition: 0.35s;
+}
+
+ul.todo-list li::before {
+  content: "(" counter(my-counter) ")";
+}
+
+ul.todo-list li:hover {
+  background-color: #eeeeee;
+  padding-left: 1em;
+}
+
+ul.todo-list li button {
+  position: absolute;
+  right: .5em;
+  z-index: 1;
+  border-radius: 8px;
+  background-color: #f16e11;
+  border: solid 2px #ffc4c4;
+  color: #ffffff;
+}
+
+ul.todo-list li span {
+  cursor: pointer;
+  padding: .5em;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+ul.todo-list li span.done {
+  text-decoration: line-through;
+  color: gray;
+}
+
+ul.todo-list li span small {
+  position: absolute;
+  right: 3rem;
+  background-color: #28aa28;
+  border: solid 2px #72da72;
+  padding: .5em 1em;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: .6em;
+}

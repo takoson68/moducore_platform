@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+     fill="none" stroke="#fff" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round">
+  <!-- 清單外框 -->
+  <rect x="4" y="4" width="16" height="16" rx="3" ry="3"/>
+  <!-- 上方標題線 -->
+  <line x1="8" y1="8" x2="16" y2="8"/>
+  <!-- 第一項 -->
+  <rect x="6.5" y="10.5" width="3" height="3" rx="0.7" ry="0.7"/>
+  <path d="M7.2 12l1 1 1.8-1.8"/>
+  <line x1="12" y1="12" x2="17" y2="12"/>
+  <!-- 第二項 -->
+  <rect x="6.5" y="15" width="3" height="3" rx="0.7" ry="0.7"/>
+  <line x1="12" y1="16.5" x2="17" y2="16.5"/>
+</svg>

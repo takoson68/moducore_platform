@@ -3,12 +3,15 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { container } from '@app/container'
+import PlatformLoginPanel from './PlatformLoginPanel.vue'
+import UiSlot from '@/components/UiSlot.vue'
 
 defineProps({
   projectConfig: Object
 })
 
 const route = useRoute()
+const authStore = container.resolve('auth')
 const resolveNavProjection = container.getService('resolveNavProjection')
 const navProjection = computed(() => {
   const bucket = window.__MODULE_ROUTES__ || { all: [] }
@@ -16,8 +19,18 @@ const navProjection = computed(() => {
 })
 
 const topbarItems = computed(() => {
+  const isLoggedIn = authStore.isLoggedIn()
   const unique = new Map()
-  ;(navProjection.value.topbar || []).forEach((item) => {
+  ;(navProjection.value.topbar || [])
+    .filter((item) => {
+      const access = item?.access || {}
+      const hasFlags = typeof access.public === 'boolean' && typeof access.auth === 'boolean'
+      if (!hasFlags) return true
+      if (access.public === true) return true
+      if (access.auth === true) return isLoggedIn
+      return false
+    })
+    .forEach((item) => {
     if (!item?.path || unique.has(item.path)) return
     unique.set(item.path, { ...item, children: [] })
   })
@@ -67,15 +80,17 @@ header.topbar
     .topbar-item(
       v-for="item in topbarItems"
       :key="item.path"
-      :class="{ active: isItemActive(item) }"
+      :class="{ active: isItemActive(item), group: item.link === false }"
     )
       RouterLink(
+        v-if="item.link !== false"
         :to="item.path"
         class="topbar-link"
         active-class="is-active"
         exact-active-class="is-active"
       )
         | {{ item.label }}
+      span.topbar-link.group-label(v-else) {{ item.label }}
       .topbar-submenu(v-if="item.children && item.children.length")
         RouterLink(
           v-for="child in item.children"
@@ -86,7 +101,10 @@ header.topbar
           exact-active-class="is-active"
         )
           | {{ child.label }}
-  .pill Project B
+  .topbar-actions
+    UiSlot(name="header:right")
+    PlatformLoginPanel
+    .pill Project B
 </template>
 
 <style lang="sass">
@@ -123,6 +141,10 @@ header.topbar
   font-size: 12px
   font-weight: 600
   transition: transform 120ms ease, box-shadow 120ms ease
+
+.topbar-link.group-label
+  cursor: default
+  opacity: 0.7
 
 .topbar-link.is-active,
 .topbar-item.active .topbar-link
@@ -187,4 +209,9 @@ header.topbar
   color: #0e7490
   font-size: 12px
   font-weight: 600
+
+.topbar-actions
+  display: flex
+  align-items: center
+  gap: 12px
 </style>

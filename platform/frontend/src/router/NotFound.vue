@@ -15,7 +15,7 @@
       RouterLink.home-link(to="/") 回首頁
 </template>
 
-<style lang="sass">
+<style scoped lang="sass">
 .not-found
   --bg-1: #f6fbff
   --bg-2: #e9f2ff

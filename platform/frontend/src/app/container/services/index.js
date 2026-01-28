@@ -17,7 +17,11 @@
  */
 
 import { resolveNavProjection } from './resolveNavProjection.js'
+import { createEventBus } from './eventBus.js'
+
+const eventBus = createEventBus()
 
 export const services = {
-  resolveNavProjection
+  resolveNavProjection,
+  eventBus
 }

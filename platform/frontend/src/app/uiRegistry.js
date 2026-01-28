@@ -1,4 +1,5 @@
 //- src/app/uiRegistry.js
+//- 用於註冊與取得 UI 插槽內容 跨元件用
 import { ref } from 'vue'
 
 const slotMap = new Map()

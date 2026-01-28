@@ -1,0 +1,17 @@
+
+// _tokens.sass 的目的不是多一層，
+// 而是把「命名決策」從「實作決策」中抽離。
+
+/*
+  //- 這層只在「系統規模很大」時才有意義。
+
+  $surface: surface
+  $text: text
+  $primary: primary
+
+    
+  //  然後 themes.sass 才用它：
+  @use tokens as *
+  --#{$surface}: #ffffff
+  
+*/

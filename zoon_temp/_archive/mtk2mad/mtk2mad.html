@@ -1,0 +1,244 @@
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="新增攻擊路線"/>
+    <title>mtk2mad</title>
+    <link rel="stylesheet" href="./css/main.css"/>
+    <link rel="stylesheet" href="./css/components.css"/>
+    <link rel="stylesheet" href="./css/vueComponents.css"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet"/>
+    <link href="./css/mtk2png.css" rel="stylesheet" type="text/css"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  </head>
+  <body data-page="mtk2mad">
+    <div class="mtk2png mtk2mad">
+      <section class="sys_title"> 
+        <h1>攻擊進程圖!!!!!!<a href="./home.html">回首頁</a></h1>
+        <button class="top_right btn_dlo center btn" onClick="screenshot();"><span class="material-icons">cloud_download</span><b>下載圖片</b></button>
+      </section>
+      <section id="mtkBox">
+        <div class="mdTopng">
+          <h1 class="actTitle">新增攻擊路線 <small>( 攻擊起點必須按照出現順序填寫 ) <i>＊ 右邊圖片中箭頭線段及灰底方框皆可雙擊拖曳，且左方輸入資訊欄標註目標紅框  </i></small></h1><small>( 沒有出現 + 就代表此攻擊對象主機重複，此路線不再延展，請由重複之主機路線發展 )</small>
+          <div class="dataListMad"> 
+            <listpapa :md-data="mdData" :tree-box="treeBox" :all-point="allPointBox"> </listpapa>
+          </div>
+          <div class="setInText" v-show="showText"> 
+            <select v-model="setTextIndex" :class="setTextIndex==null&amp;&amp;'onNo'">
+              <option :value="null" disabled="disabled" selected="selected">選取節點 </option>
+              <option v-for="(item,j) in allPointBox" :key="j" :value="item[0]">{{item[0]}}</option>
+            </select>
+            <textarea v-model="setText" placeholder="+ 主機名稱 // 主機ＩＰ // 攻擊單位行為 // 攻擊行為內容"></textarea>
+            <button class="btn" @click="openShowText(1)">送出</button><em class="cloSetText" @click="openShowText(0)">X</em>
+          </div>
+          <div class="readerPic">
+            <button class="btn flex_1" @click="downMan">下載json </button>
+            <label class="btn" for="#fileIpnut"> 
+              <input type="file" id="fileIpnut" @change="handleFileInput"/>
+            </label>
+          </div>
+          <div class="dragWidth" title="拖曳調整輸入框寬度"><span class="material-icons rr90">import_export</span></div>
+        </div>
+        <div id="printable"> 
+          <div id="mtkInit">
+            <ul class="box" id="boxLi">
+              <li v-for="(aa,i) in treeBox" :key="i"> 
+                <svg id="svgBox" ref="svg" v-if="i===0">
+                  <g v-for="(dd,jj) in treePointData">
+                    <marker :id="'e_'+dd.nb" markerUnits="strokeWidth" markerWidth="5" markerHeight="4" refX="0" refY="2" orient="auto">
+                      <path d="M 0 0 L 5 2 L 0 4 z" :fill="dd.offset.color"></path>
+                    </marker>
+                    <marker :id="'b_'+dd.nb" viewBox="-10 -10 70 70" refX="10" refY="10" markerWidth="15" markerHeight="15" orient="auto">
+                      <circle :fill="dd.offset.color" :stroke="dd.offset.color" stroke-width="4" cx="10" cy="10" r="10"></circle>
+                    </marker>
+                    <g v-if="dd.s!==dd.e" :transform="`translate(${dd.offset.x}, ${dd.offset.y})`">
+                      <path class="testPath" v-show="!!!dd.useLine||dd.useLine=='o_d'" :id="'path_'+jj" :d="renderArrow(dd,jj)" @click="pathSet(dd,jj)" @mousedown="dragSvgBox(dd,'#path_'+jj,'offset')" :stroke="dd.offset.color" fill="none" :key="jj" :marker-start="'url(#b_'+dd.nb+')'" :marker-end="'url(#e_'+dd.nb+')'" stroke-width="5" :stroke-dasharray="strokeDasharray(dd.offset.strokeStyle)"></path>
+                      <g v-show="dd.useLine=='n_d'">
+                        <path class="testPath" :id="'path_'+jj+'_n'" :d="dMaker(dd,jj)" @click="pathSet(dd,jj)" @mousedown="dragSvgBox(dd,'#path_'+jj+'_n','offset')" :stroke="dd.offset.color" fill="none" :key="jj" :marker-start="'url(#b_'+dd.nb+')'" :marker-end="'url(#e_'+dd.nb+')'" stroke-width="5" :stroke-dasharray="strokeDasharray(dd.offset.strokeStyle)"></path>
+                        <circle v-show="showPathSet" v-for="(pp,ii) in dd.lineTheme.p" :key="ii" fill="#e21e6c" stroke="#000000" stroke-width="4" :cx="pp[0]" :cy="pp[1]" r="18" @mousedown="dragLineBox(dd.lineTheme.p[ii],'.circle_'+dd.nb+ii,jj,ii)" :class="'circle_'+dd.nb+ii"></circle>
+                      </g>
+                    </g>
+                  </g>
+                  <g v-for="(dd,jj) in treePointData" v-if="dd.n!==''||dd.r!==''" :class="'g_'+dd.nb" @mousedown="dragSvgBox(dd,'.g_'+dd.nb,'textset')" @click="pathSet(dd,jj)">
+                    <rect :id="'rect_'+jj" x="0" y="0" :stroke="dd.offset.color" stroke-width="3" width="100" height="40" :fill="lightenColor(dd.offset.color)" rx="6" ry="6" :transform="`translate(${dd.textset.x},${dd.textset.y})`"></rect>
+                    <text class="dragText" :transform="`translate(${dd.textset.x},${dd.textset.y})`" x=" " y=" " text-anchor="middle" fill="#ffffff"> 
+                      <tspan :id="'text_'+jj" x=" " y=" " font-size="16">{{dd.n}}</tspan>
+                      <tspan :id="'text_'+jj+'_1'" x=" " y=" " font-size="13">{{dd.r}}</tspan>
+                    </text>
+                  </g>
+                </svg>
+                <folders :folder="aa" :nbm="i"></folders>
+                <div class="textIcon" v-if="i===0" v-show="dd.textset.icon" :id="'text_'+jj+'_2'" v-for="(dd,jj) in treePointData" :style="'border-color: '+dd.offset.color+'; background-color: '+dd.offset.color+';'+'transform: translate('+dd.textset.x+'px,'+dd.textset.y+'px);'"><span class="material-icons">{{dd.textset.icon}}</span></div>
+              </li>
+              <div class="typeList"><b v-for="(sd,jj) in useTypeState" :key="jj"> <span class="material-icons">{{sd[0]}}</span><i>{{sd[1]}}</i></b></div>
+            </ul>
+          </div>
+          <div class="scale"> 
+            <ul> 
+              <li v-for="(t,j) in scalMen" :key="j" :class="t===scalPick?'pickMen':''" @click="scaleBox(t)">{{t==1?'原尺寸':t+' 倍'}}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="pathStyleSet lsitCon" v-show="showPathSet"> 
+          <div class="cloShowPathSet" title="關閉折線樣式" @click="cloShowPathSet()"><b>X</b></div>
+          <div class="setInfo">
+            <input class="flex_3 inp_1" v-model="pathStyleSet.offset.color" :style="'background-color: '+pathStyleSet.offset.color+'55; border: 3px solid '+pathStyleSet.offset.color+';'"/>
+            <input class="flex_1" v-model="pathStyleSet.offset.strokeStyle" type="number" max="3" min="0" placeholder="線段種類"/>
+            <button class="btn" @click=" ">樣式</button>
+            <input class="flex_1" v-model="pathStyleSet.offset.lineBox" type="number" max="3" min="0" placeholder="線段種類"/>
+            <button class="btn" @click=" ">線段</button>
+          </div>
+          <ul class="colorSetBox"> 
+            <li v-for="(color,i) in colorLinkBox" @click="setColor(color)" :key="i" :style="'background-color: '+color+'; border-color:'+(color==pathStyleSet.offset.color?color:'#ffffff')+';'"> </li>
+          </ul>
+          <hr/>
+          <div class="lineSetBox">
+            <p>手動設計線段折線 : 
+              <label class="useSetLine"> 
+                <input type="radio" name="line" value="o_d" v-model="pathStyleSet.useLine"/>原始線段
+              </label>
+              <label class="useSetLine"> 
+                <input type="radio" name="line" value="n_d" v-model="pathStyleSet.useLine"/>製作線段
+              </label>
+            </p>
+            <hr/>
+            <div class="setBox_line" v-if="pathStyleSet.useLine==='n_d'">
+              <div class="setBox"><b>選取起始點位置
+                  <div class="line-theme-square">
+                    <label class="lineTheme" v-for="ind in 4" :key="ind" :class="`theme-${ind}`">
+                      <input type="radio" :value="ind" v-model="pathStyleSet.lineTheme.st" name="lineTheme"/>
+                    </label>
+                  </div></b> ||  <b>選取結尾點位置
+                  <div class="line-theme-square">
+                    <label class="lineTheme" v-for="ind in 4" :key="ind" :class="`theme-${ind}`">
+                      <input type="radio" :value="ind" v-model="pathStyleSet.lineTheme.ed" name="lineTheme2"/>
+                    </label>
+                  </div></b></div>
+              <hr class="hrLine"/>
+              <p class="center">
+                <button class="btn addLinePoint" @click="addLinePoint()">添加折點</button>
+                <button class="btn addLinePoint" @click="removeLinePoint()">刪除折點</button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script type="text/x-template" id="folders-component">
+      <template> 
+        <ul> 
+          <folder :folder="folder" :nbm="0" :imgList="imgList" :typeStatus="typeStatus"></folder>
+        </ul>
+      </template>
+    </script>
+    <script type="text/x-template" id="folder-component">
+      <template>
+        <li :class="'flo_'+nbm" v-if="!folder.end">
+          <div class="boxName" :class="folder.one&amp;&amp;'art'">
+            <div class="imgBox" @click="pickFocus(folder.nb)" :id="'point_'+folder.e2" :style="'background-image: url(./images/'+folder.folder_img+'.jpeg)'">
+              <div class="typeStatusBox">
+                <div class="typeStatus" v-if="folder.folder_type.length&gt;0" v-for="(dd,ii) in folder.folder_type" :key="ii"><span class="material-icons material-icons-outlined">{{dd}}</span></div>
+              </div>
+              <div class="imgListBox">
+                <ul><b>主機種類</b>
+                  <li v-for="(dd,ii) in imgList" :key="ii">
+                    <input :value="dd" :id="'img_'+folder.e2+'_'+dd" v-model="folder.folder_img" type="radio"/>
+                    <label :for="'img_'+folder.e2+'_'+dd">{{dd}}</label>
+                  </li>
+                </ul>
+                <hr/>
+                <ul><b>狀態標示 (多選)</b>
+                  <li v-for="(ss,ii) in typeStatus" :key="ii"> 
+                    <input :value="ss[0]" :id="'type_'+folder.e2+'_'+ss[0]" v-model="folder.folder_type" type="checkbox"/>
+                    <label :for="'type_'+folder.e2+'_'+ss[0]">{{ss[1]}}</label>
+                  </li>
+                </ul>
+              </div>
+            </div><b><em :class="!folder.ip&amp;&amp;'noBrb'">{{ folder.e }}</em><small v-if="!!folder.ip">{{ folder.ip }}</small></b>
+          </div>
+          <ul v-if="folder.children &amp;&amp; folder.children.length &gt; 0"> 
+            <folder v-for="(child,ii) in folder.children" :folder="child" :nbm="ii" :imgList="imgList" :typeStatus="typeStatus"></folder>
+          </ul>
+        </li>
+      </template>
+    </script>
+    <script type="text/x-template" id="listpapa-component">
+      <template> 
+        <div class="lsitCon">
+          <p class="acct addActLine"><span>
+              <input v-model="myS" placeholder="新增攻擊來源"/>
+              <select v-model="myS">
+                <option :value="null" disabled="disabled" selected="selected">選取 </option>
+                <option v-for="(item,j) in mySBox" :key="j" :value="item">{{item}}</option>
+              </select></span>
+            <input v-model="myEip" @keydown="allowNumeric(event)" placeholder="攻擊來源 IP"/>
+            <button class="btn acctS" @click="addStart">新增來源</button>
+          </p>
+          <listdata :md-data="mdData" :tree-box="treeBox" :all-point="allPoint" :a2z-list="a2zList" :point-cut="aaa"> </listdata>
+        </div>
+      </template>
+    </script>
+    <script type="text/x-template" id="listdata-component">
+      <template>
+        <ul class="listTop">
+          <li v-for="(item, index) in mdData" :key="index">
+            <div class="lsitCon" :class="item.nb">
+              <p class="conValue"> <b class="opencreat" @click="opencreat(item,index,mdData)" title="新增" v-if="!item.end">✛</b>
+                <input disabled="disabled" v-model="item.e"/>
+                <input class="inp15" v-model="item.ip" @keydown="allowNumeric(event)" placeholder="攻擊單位 IP" :disabled="!!item.end"/>
+                <input v-if="!item.one" v-model="item.n" placeholder="攻擊單位間行為"/>
+                <input v-if="!item.one" v-model="item.r" placeholder="攻擊 行為內容"/><span class="setFlexIcon onlySelect" v-if="!item.one"> 
+                  <select v-model="item.textset.icon" :class="item.textset.icon==''&amp;&amp;'onNo'">
+                    <option value="" selected="selected">== 無圖片 ==</option>
+                    <option v-for="icon in typeIcon" :key="icon[0]" :value="icon[0]">{{icon[1]}}</option>
+                  </select></span><b class="removeMe" @click="removeMe(mdData,index)" title="刪除(＊子項目將一並刪除)">-</b><span class="openUl" v-if="item.children &amp;&amp; item.children.length &gt; 0" :class="showChildren[index]?'showClo':''" @click="openData(index)" title="開關">{{!showChildren[index]?'▼':'▲'}}</span>
+              </p>
+              <p class="addActLine" v-show="item.open">
+                <input v-model="newDD.s" disabled="disabled"/><span>
+                  <input v-model="newDD.e" placeholder="目標(書寫或選取)" :ref="'input_'+item.s2+'-'+index"/>
+                  <select v-model="newDD.e" @change="changeIp(allPoint,newDD.e)">
+                    <option :value="null" disabled="disabled" selected="selected">選取 </option>
+                    <option v-for="item in allPointList(allPoint,newDD.s)" :key="item[0]" :value="item[0]">{{item[0]}}</option>
+                  </select></span>
+                <input v-model="newDD.ip" placeholder="攻擊單位 IP" @keydown="allowNumeric(event)"/>
+                <input v-model="newDD.n" placeholder="攻擊 單位間行為"/>
+                <input v-model="newDD.r" placeholder="攻擊 行為內容"/>
+                <button class="btn" @click="addNewLine(item,index)">新增路線   </button>
+              </p>
+            </div>
+            <template> 
+              <listdata v-show="showChildrenBox(index)" :md-data="item.children" :tree-box="treeBox" :all-point="allPoint" :a2z-list="a2zList"> </listdata>
+            </template>
+          </li>
+        </ul>
+      </template>
+    </script>
+    <script type="text/javascript" src="./components/html2canvas.min.js"> </script>
+  </body>
+  <script src="/projects/tako-shop/vendors/mock/mock.min.js"> </script>
+  <script type="importmap">
+    {
+      "imports": {
+        "@/containers/": "/projects/tako-shop/containers/",
+        "@/mock/": "/projects/tako-shop/mock/",
+        "@/api/": "/projects/tako-shop/api/",
+        "@Vue": "/projects/tako-shop/VueContext.js",
+        "@/": "/projects/tako-shop/",
+        "@/src": "/projects/tako-shop/src/",
+        "@/utils/": "/projects/tako-shop/containers/utils/",
+        "@/framework/": "/projects/tako-shop/containers/framework/",
+        "@/pages/": "/projects/tako-shop/src/pages/",
+        "@/plugins/": "/projects/tako-shop/src/plugins/",
+        "@/layouts/": "/projects/tako-shop/src/layouts/",
+        "@/components/": "/projects/tako-shop/src/components/",
+        "@/vendors/": "/projects/tako-shop/vendors/"
+      }
+    }
+    
+  </script>
+  <script type="module" src="../js/mtkSet.js"></script>
+</html>
