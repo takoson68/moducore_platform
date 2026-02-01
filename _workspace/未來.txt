@@ -38,4 +38,11 @@ platformConfig 依登入狀態切換 public/auth world
 3. 補上通知 API 的 member_id 來源（由 auth.user.user_id/ member_id 導入）
 4. 加入簡單 API error 提示與 loading 狀態（employee/task/vote/notification）
 
+---
+
+[明日建議]（2026-02-02）
+
+1. project-a 建立最小示範世界（welcome/about），驗證 module discovery → register → routing
+2. 完成 boot Phase A/D/F 的最小實作定義（邊界檢查 / init / reset）
+3. 補上 project-a 的 layout 入口與驗證切換不汙染 project-b
 
