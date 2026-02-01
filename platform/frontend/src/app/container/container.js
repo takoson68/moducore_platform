@@ -63,6 +63,26 @@ class Container {
       services: Object.keys(this.services),
     }
   }
+
+  /**
+   * 重置所有 Store 實例
+   * 用於切換世界（Project）時，確保狀態完全清空
+   */
+  destroy() {
+    // 1. 執行每個實例的清理邏輯（如果有）
+    this.instances.forEach((instance) => {
+      if (typeof instance.dispose === 'function') {
+        instance.dispose()
+      }
+    })
+
+    // 2. 清空實例緩存
+    this.instances.clear()
+    
+    // 注意：factories (定義) 通常不需要清空，除非模組定義也會隨世界改變
+  }
+
+
 }
 
 export const container = new Container()
