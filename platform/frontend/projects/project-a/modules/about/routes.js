@@ -4,7 +4,7 @@ export const routes = [
     path: '/about',
     meta: {
       access: {
-        public: true,
+        public: false,
         auth: true
       },
       nav: [
@@ -17,7 +17,7 @@ export const routes = [
           component: () => import('./pages/AboutTeam.vue'),
           meta: {
             access: {
-              public: true,
+              public: false,
               auth: true
             },
             nav: [
@@ -31,7 +31,7 @@ export const routes = [
           component: () => import('./pages/AboutVision.vue'),
           meta: {
             access: {
-              public: true,
+              public: false,
               auth: true
             },
             nav: [

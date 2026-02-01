@@ -1,4 +1,4 @@
-<!-- projects/project-a/components/ProjectTopbar.vue -->
+<!-- projects/_proTemp/components/ProjectTopbar.vue -->
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -9,8 +9,8 @@ defineProps({
   projectConfig: Object
 })
 
-const authStore = container.resolve('auth')
 const route = useRoute()
+const authStore = container.resolve('auth')
 const resolveNavProjection = container.getService('resolveNavProjection')
 const navProjection = computed(() => {
   const bucket = window.__MODULE_ROUTES__ || { all: [] }
@@ -30,9 +30,9 @@ const topbarItems = computed(() => {
       return false
     })
     .forEach((item) => {
-    if (!item?.path || unique.has(item.path)) return
-    unique.set(item.path, { ...item, children: [] })
-  })
+      if (!item?.path || unique.has(item.path)) return
+      unique.set(item.path, { ...item, children: [] })
+    })
 
   const nodes = [...unique.values()]
   const nodeMap = new Map(nodes.map(node => [node.path, node]))
@@ -68,18 +68,13 @@ const isItemActive = (item) => {
   }
   return false
 }
-
-const lifecycleStore = container.resolve('lifecycle')
-const moduleStore = container.resolve('module')
-const phase = computed(() => lifecycleStore.state.phase)
-const moduleCount = computed(() => moduleStore.state.modules.length)
 </script>
 
 <template lang="pug">
 header.topbar
   .brand
     .brand-title {{ projectConfig?.title ?? 'Project' }}
-    .brand-sub Guest World Establishment · {{ phase }}
+    .brand-sub Guest World Establishment
   nav.topbar-nav(v-if="topbarItems.length")
     .topbar-item(
       v-for="item in topbarItems"
@@ -107,8 +102,6 @@ header.topbar
           | {{ child.label }}
   .topbar-actions
     PlatformLoginPanel
-    //- span.badge {{ projectConfig?.name ?? 'unknown' }}
-    //- span.badge Modules {{ moduleCount }}
 </template>
 
 <style lang="sass">
@@ -145,7 +138,12 @@ header.topbar
   font-size: 12px
   font-weight: 600
 
-.topbar-link.is-active
+.topbar-link.group-label
+  cursor: default
+  opacity: 0.7
+
+.topbar-link.is-active,
+.topbar-item.active .topbar-link
   border-color: #000
   background: #000
   color: #fff
@@ -201,12 +199,4 @@ header.topbar
   display: flex
   align-items: center
   gap: 10px
-
-.badge
-  padding: 6px 10px
-  border-radius: 999px
-  border: 1px solid var(--border)
-  background: var(--surface-muted)
-  font-size: 12px
-  margin-left: 6px
 </style>

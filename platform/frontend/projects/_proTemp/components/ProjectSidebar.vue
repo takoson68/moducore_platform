@@ -1,4 +1,4 @@
-<!-- projects/project-a/components/ProjectSidebar.vue -->
+<!-- projects/_proTemp/components/ProjectSidebar.vue -->
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -23,6 +23,7 @@ const navTree = computed(() => {
     if (access.auth === true) return isLoggedIn
     return false
   })
+
   routes.forEach((route) => {
     nodes.set(route.path, { ...route, children: [] })
   })
@@ -122,6 +123,10 @@ aside.sidebar
   font-weight: 700
   position: relative
   transition: transform 120ms ease, box-shadow 120ms ease
+
+.main-link.group-label
+  cursor: default
+  opacity: 0.7
 
 .main-link.is-active
   border-color: #000

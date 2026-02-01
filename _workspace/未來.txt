@@ -45,4 +45,4 @@ platformConfig 依登入狀態切換 public/auth world
 1. project-a 建立最小示範世界（welcome/about），驗證 module discovery → register → routing
 2. 完成 boot Phase A/D/F 的最小實作定義（邊界檢查 / init / reset）
 3. 補上 project-a 的 layout 入口與驗證切換不汙染 project-b
-
+4. 釐清 project.config.js 的 modules 角色（保留為 fallback 或改為單一權威），避免語意混亂
