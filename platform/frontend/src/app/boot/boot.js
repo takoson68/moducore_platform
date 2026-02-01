@@ -23,7 +23,10 @@ export async function boot({ projectConfig } = {}) {
 
 // Phase A: assertPlatformBoundary
 async function assertPlatformBoundary() {
-  // TODO: 強制執行平台邊界檢查
+  // 此階段的存在意義：
+  // - 確保平台層已就緒、世界邊界成立
+  // - 若偵測到跨世界或容器未就緒，應在此中止啟動流程
+  // 考慮到平台切換Project 切換（A → B），預留
 }
 
 // Phase B: resolveWorldVisibility （僅元數據，不註冊）
@@ -54,7 +57,11 @@ async function registerAllowedModules(projectConfig, allowList) {
 
 // Phase D: initModules
 async function initModules() {
-  // TODO: 初始化模組
+  // 注意：
+  // 模組初始化目前在 installModules 階段執行。 // /modules/index.js
+  // 此階段僅作為保留掛點，用於未來：
+  // - 延遲初始化
+  // - 可重跑初始化
 }
 
 // Phase E: enterRuntime
@@ -68,5 +75,12 @@ async function enterRuntime(allowList) {
 
 // Phase F: 進入運行時
 function exposeResetHook() {
-  // TODO: 回復至初始值
+  // 此階段用途說明：
+  // - 提供世界（World）重置 / 倒帶的統一入口
+  // - 用於同一執行階段內的世界切換（例如：登出、SaaS 模式、多租戶切換、除錯工具）
+  //
+  // 設計說明：
+  // - 目前建議 Project 切換採用「不同網域」並整頁 reload 的方式，
+  //   瀏覽器本身即會清空 runtime，因此正常流程不會使用此 hook。
+  // - 此段刻意保留，作為未來同 runtime 世界重置的擴充掛點。
 }
