@@ -37,3 +37,5 @@ platformConfig 依登入狀態切換 public/auth world
 2. 投票/任務 API 回傳 username 需求評估與必要欄位整理
 3. 補上通知 API 的 member_id 來源（由 auth.user.user_id/ member_id 導入）
 4. 加入簡單 API error 提示與 loading 狀態（employee/task/vote/notification）
+
+
