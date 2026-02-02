@@ -1,6 +1,5 @@
 RewriteEngine On
-RewriteCond %{REQUEST_URI} ^/api(/.*)?$ [NC]
-RewriteRule ^ api.php [QSA,L]
+RewriteRule ^api(?:/.*)?$ api.php [QSA,L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [QSA,L]

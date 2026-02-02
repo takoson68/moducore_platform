@@ -5,28 +5,3 @@
 
 //---------------------------
 
-
-你是一名後端工程代理，請依下列前提直接執行：
-
-【已存在（不可更動）】
-- members 資料表已存在（平台共用、tenant-aware）
-- user_tokens 資料表已存在（登入狀態管理）
-- 本次任務不得修改或新增任何 Identity / Auth 相關資料表
-
-【本次唯一任務】
-1. 在 backend/api/project-b/ 下，依前端模組建立後端 API 目錄
-2. 為每個 project-b 模組建立 tables.sql
-3. tables.sql 僅定義該模組的「行為資料表」
-
-【嚴格限制】
-- 不建立任何會員或 token 相關資料表
-- 模組資料表只允許使用 member_id 作為關聯
-- 不建立實體 Foreign Key
-- 不跨模組耦合
-
-【輸出】
-- 建立所有目錄與檔案
-- PHP 檔案維持 PHP 8 合法空殼即可
-- tables.sql 必須可直接執行於 MySQL / MariaDB
-
-請直接執行，不要解釋、不討論。
