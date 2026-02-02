@@ -1,12 +1,15 @@
 ﻿<script setup>
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { container } from "@/app/container";
 
+const router = useRouter();
 const authStore = container.resolve("auth");
 const userName = computed(() => authStore.state.user?.name || "");
 
 function logout() {
   authStore.logout();
+  router.replace("/");
 }
 </script>
 

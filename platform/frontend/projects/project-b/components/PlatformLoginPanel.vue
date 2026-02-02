@@ -1,9 +1,11 @@
 <!-- projects/project-a/components/PlatformLoginPanel.vue -->
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { container } from '@app/container'
 import { authApi } from '@app/api'
 
+const router = useRouter()
 const authStore = container.resolve('auth')
 const username = ref('admin')
 const password = ref('5678')
@@ -52,6 +54,7 @@ async function handleLogout() {
   error.value = ''
 
   await authApi.logout()
+  router.replace('/')
   loading.value = false
 }
 
