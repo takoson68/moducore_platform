@@ -1,0 +1,25 @@
+
+
+//---------------//---------------//---------------//---------------
+
+
+ .htaccess 設定
+
+RewriteEngine On
+
+# 1️⃣ API 先攔
+RewriteRule ^api(/.*)?$ public/api.php [L,QSA]
+
+# 2️⃣ 若 public 底下真的有這個檔案，直接用它
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
+RewriteRule ^(.+)$ public/$1 [L]
+
+# 3️⃣ 根目錄
+RewriteRule ^$ public/index.html [L]
+
+# 4️⃣ 其餘交給 SPA
+RewriteRule . public/index.html [L]
+
+
+
+
