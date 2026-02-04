@@ -1,7 +1,8 @@
 # World Index (_VibeCore)
 
-本文件為 _VibeCore 世界文件的入口，
-世界主鏈閱讀順序由本 index 文件裁決。
+本文件為 _VibeCore 世界之**唯一裁決入口**，
+世界主鏈之閱讀與理解順序由本 index 文件裁決。
+
 
 World Version: v2
 Status: Governance Complete
@@ -37,6 +38,8 @@ Status: Governance Complete
 
 以下文件構成 World 的**主鏈定義**，  
 其內容具備裁決力，違反即視為破壞世界一致性。
+以下列表順序即為 World 主鏈之裁決閱讀順序，
+與檔名前綴數字是否連續或語意無關。
 
 ```text
 world/00_PURPOSE.md                  這套世界文件為何存在、給誰用、如何被閱讀
@@ -269,5 +272,28 @@ engineering 層僅用於規範工程行為，
 - 未發現內容重複、矛盾或來源不明的段落。
 
 ---
+
+
+## 補充裁決文件（Normative Appendix）
+
+以下文件為本世界之「裁決附錄」，  
+用於具體列示各層級的裁決權責、禁止事項與常見違規模式。
+
+- DECISION_MATRIX.md
+
+本文件屬於世界裁決之「規範性附錄」，  
+因此刻意不列入 World 主鏈（00–09）之編號序列，
+以避免被誤解為世界定義條文之一。
+
+本附錄不構成世界入口，
+亦不改寫 RootIndex.md 之裁決權，
+僅作為裁決內容的對照與查驗依據。
+
+當對裁決邊界或責任歸屬產生疑慮時，
+應優先參照此附錄進行核對。
+
+
+---
+
 
 End of World Index

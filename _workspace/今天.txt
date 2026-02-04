@@ -1,4 +1,4 @@
-請讀取並執行 ai_new/_ENTRY/DAILY_BOOT.md，作為本日工程工作階段的起手式。
+請先閱讀 STARTUP_DECLARATION.md，並依其導引進入世界。
 
 
 

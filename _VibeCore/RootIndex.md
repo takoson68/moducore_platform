@@ -4,7 +4,7 @@
 ---
 
 ## 0. 本文件的地位（請務必先讀）
-本文件是 **ModuCore Platform 的唯一入口與註冊彙整文件**。
+本文件是 ModuCore Platform 的唯一**裁決入口**與註冊彙整文件。
 
 任何人類或 AI：
 - 在閱讀、修改、產生任何內容之前
@@ -36,6 +36,9 @@ ModuCore Platform 是一個：
 - 未先閱讀 RootIndex.md 者，不得進行任何實作、重構或生成行為  
 - AI 不得自行跳過目錄層級的 index.md
 
+RootIndex.md 僅裁決「跨目錄層級的閱讀與進入順序」，
+目錄內之閱讀細節，完全由該目錄的 index.md 自行裁決。
+
 ---
 
 ## 3. 註冊目錄（Registry）
@@ -63,6 +66,7 @@ ModuCore Platform 是一個：
 2. **engineering/**
    - 工程規範與實務裁決
    - 可演化，但不得違反 world
+   - engineering 層不定義能力本身，僅規範能力與專案在工程實務中的使用方式。
 
 3. **core/**
    - 核心能力與容器
@@ -185,6 +189,9 @@ ModuCore Platform 的價值不在於技術選型，
 2. 上層目錄的 `index.md`
 3. 當前目錄的 `index.md`
 4. 目錄內個別文件
+
+RootIndex.md 為平台唯一之「跨層級裁決文件」，
+不隸屬於任何單一目錄層級。
 
 **任何低層文件，不得推翻高層 index.md 的裁決。**
 
