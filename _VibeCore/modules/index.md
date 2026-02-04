@@ -99,7 +99,7 @@ Module World 視為完成，必須同時滿足：
 
 ## 6. 治理聲明（Governance Statement）
 
-本 INDEX 只負責 **界定 Module World 的存在方式與閱讀秩序**，
+本 index 只負責 **界定 Module World 的存在方式與閱讀秩序**，
 不授權任何文件或實作者：
 
 * 擴張模組權限

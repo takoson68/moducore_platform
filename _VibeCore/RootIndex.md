@@ -1,10 +1,10 @@
 # RootIndex.md
-## ModuCore Platform — World Entry & Reading Guide
+## ModuCore Platform — Root Entry & Registry
 
 ---
 
 ## 0. 本文件的地位（請務必先讀）
-本文件是 **ModuCore Platform 的唯一入口與最高層導讀文件**。
+本文件是 **ModuCore Platform 的唯一入口與註冊彙整文件**。
 
 任何人類或 AI：
 - 在閱讀、修改、產生任何內容之前
@@ -28,43 +28,31 @@ ModuCore Platform 是一個：
 
 ---
 
-## 2. 強制閱讀順序（不可跳過）
-所有閱讀與理解，必須依照以下順序進行：
-
-1. **RootIndex.md**（本文件）
-2. `/world/index.md`
-3. `/engineering/index.md`
-4. `/core/index.md`
-5. `/skills/index.md`
-6. `/projects/index.md`
+## 2. 閱讀規則（唯一入口）
+所有閱讀與理解，必須先閱讀 **RootIndex.md**。  
+之後依任務進入對應目錄的 `index.md`，**該目錄的閱讀順序由其 index.md 自行裁決**。
 
 ⚠️  
-- 未依此順序閱讀者，不得進行任何實作、重構或生成行為  
-- AI 不得自行選擇閱讀順序
+- 未先閱讀 RootIndex.md 者，不得進行任何實作、重構或生成行為  
+- AI 不得自行跳過目錄層級的 index.md
 
 ---
 
-## 2.1 World 主鏈閱讀順序（由 RootIndex 控制）
-進入 `/world/index.md` 後，世界主鏈文件的閱讀順序由本節統一裁決：
+## 3. 註冊目錄（Registry）
+以下為本平台所有「可被閱讀／可被引用／可被操作」之入口目錄：
 
-1. `world/00_PURPOSE.md`
-2. `world/01_WORLD_MODEL.md`
-3. `world/02_WORLD_BOUNDARIES.md`
-4. `world/03_WORLD_API_RULES.md`
-5. `world/04_WORLD_LIFECYCLE.md`
-6. `world/09_WORLD_RULES.md`
-7. `world/05_OUTPUT_DEFINITION.md`
-8. `world/06_STRUCTURE_AND_NAMING.md`
-9. `world/07_AUTHORING_STYLE.md`
-10. `world/08_CHANGE_PROTOCOL.md`
-
-⚠️  
-- 不得依檔名前綴或自訂順序閱讀  
-- 若與任何世界內文件敘述衝突，以本節為唯一最高權威
+- `world/index.md`
+- `engineering/index.md`
+- `core/index.md`
+- `skills/index.md`
+- `projects/index.md`
+- `api/index.md`
+- `modules/index.md`
+- `feedback/index.md`
 
 ---
 
-## 3. 世界裁決權階層（極重要）
+## 4. 世界裁決權階層（極重要）
 本平台所有文件與程式碼，皆遵守以下裁決權結構：
 
 ### 裁決權由高至低如下：
@@ -93,7 +81,7 @@ ModuCore Platform 是一個：
 
 ---
 
-## 4. 行為邊界定義
+## 5. 行為邊界定義
 ### 允許的行為
 - 新增或擴充 `/skills`
 - 在 `/projects` 建立新專案實例
@@ -108,7 +96,7 @@ ModuCore Platform 是一個：
 
 ---
 
-## 5. 給 AI / Agent 的特別指示
+## 6. 給 AI / Agent 的特別指示
 本平台為 **既有世界**，非空白專案。
 
 AI 在此平台中必須遵守：
@@ -123,7 +111,7 @@ AI 的角色是：
 
 ---
 
-## 6. 最後聲明
+## 7. 最後聲明
 ModuCore Platform 的價值不在於技術選型，  
 而在於 **可被長期攜帶與重複使用的工程決策結構**。
 
@@ -131,7 +119,7 @@ ModuCore Platform 的價值不在於技術選型，
 
 ---
 
-## 使用語言
+## 8. 使用語言
 
 - 你我之間的溝通一律使用繁體中文。
 - 工程實作註解一律使用繁體中文。
@@ -142,7 +130,7 @@ ModuCore Platform 的價值不在於技術選型，
 
 ---
 
-## Index-based Reading Protocol（閱讀協定 v1）
+## 9. Index-based Reading Protocol（閱讀協定 v1）
 
 為確保本平台可被正確理解、維護、擴充與由 AI 協助產出，  
 本系統採用 **Index-based Reading Protocol（索引導讀協定）**。

@@ -108,7 +108,7 @@ API World 視為「完成」必須同時滿足以下條件：
 
 ## 6. 治理聲明（Governance Statement）
 
-本 INDEX 僅負責 **界定 API World 的存在方式**，
+本 index 僅負責 **界定 API World 的存在方式**，
 不授權任何文件或實作者：
 
 * 擴張 API 世界權限

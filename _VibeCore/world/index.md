@@ -1,7 +1,7 @@
 # World Index (_VibeCore)
 
 本文件為 _VibeCore 世界文件的入口，
-世界主鏈閱讀順序由 `RootIndex.md` 統一裁決。
+世界主鏈閱讀順序由本 index 文件裁決。
 
 World Version: v2
 Status: Governance Complete
@@ -39,23 +39,23 @@ Status: Governance Complete
 其內容具備裁決力，違反即視為破壞世界一致性。
 
 ```text
-00_PURPOSE.md                  這套世界文件為何存在、給誰用、如何被閱讀
-01_WORLD_MODEL.md              世界裡有誰
-02_WORLD_BOUNDARIES.md         哪些事永不可做
-03_WORLD_API_RULES.md          世界如何合法接觸真實
-04_WORLD_LIFECYCLE.md          世界如何生成、啟動、重置與消亡
-05_OUTPUT_DEFINITION.md        世界對外會產出什麼
-06_STRUCTURE_AND_NAMING.md     世界的結構與命名如何被約束
-07_AUTHORING_STYLE.md          世界文件本身應如何被撰寫
-08_CHANGE_PROTOCOL.md          世界規則應如何被修改與演進
-09_WORLD_RULES.md              世界運作時必須遵守的一般規則
+world/00_PURPOSE.md                  這套世界文件為何存在、給誰用、如何被閱讀
+world/01_WORLD_MODEL.md              世界裡有誰
+world/02_WORLD_BOUNDARIES.md         哪些事永不可做
+world/03_WORLD_API_RULES.md          世界如何合法接觸真實
+world/04_WORLD_LIFECYCLE.md          世界如何生成、啟動、重置與消亡
+world/05_OUTPUT_DEFINITION.md        世界對外會產出什麼
+world/06_STRUCTURE_AND_NAMING.md     世界的結構與命名如何被約束
+world/07_AUTHORING_STYLE.md          世界文件本身應如何被撰寫
+world/08_CHANGE_PROTOCOL.md          世界規則應如何被修改與演進
+world/09_WORLD_RULES.md              世界運作時必須遵守的一般規則
 
 ```
 
 ## Reading Order Authority
 
 世界主鏈文件的**閱讀與理解順序**，
-一律以 `RootIndex.md` 之 **World 主鏈閱讀順序** 為準。
+一律以本 index 文件所定義之 **World 主鏈閱讀順序** 為準。
 
 檔名前綴數字僅作為：
 - 結構分類識別
@@ -65,7 +65,7 @@ Status: Governance Complete
 亦不得作為推論世界理解流程的依據。**
 
 若閱讀順序與檔名前綴出現不一致，
-必須以 `RootIndex.md` 為最高權威。
+必須以本 index 文件為最高權威。
 
 在未完成閱讀前，
 你不得推論世界整體結構，
@@ -93,6 +93,23 @@ Status: Governance Complete
 ---
 
 ---
+## Role Contracts（角色契約）
+
+本層為世界治理補充資料，
+用於明確描述各角色與構件的責任邊界。
+
+進入本層前，必須完成 World 主鏈（00–09）閱讀。
+
+> 進入並閱讀  
+> `world/02_ROLE_CONTRACTS/index.md`
+
+若本層內容與 World 主鏈衝突：
+
+- 一律以 World 主鏈為最高權威
+
+---
+
+---
 ## World Semantic Boundaries（治理補完層）
 
 本世界另設 **World Semantic Boundaries** 作為治理補完層。
@@ -116,7 +133,7 @@ Status: Governance Complete
 你 **僅在完成以下閱讀後**，  
 才被允許進入 World Semantic Boundaries：
 
-- 本 INDEX 文件
+- 本 index 文件
 - World 主鏈（00–09 全部）
 
 在完成上述閱讀前：
@@ -159,7 +176,7 @@ World Semantic Boundaries 包含但不限於以下文件：
 你才被允許執行以下行為：
 
 > 進入並閱讀  
-> `_VibeCore/world/semantic_boundaries/`  
+> `world/semantic_boundaries/`  
 > 以理解各運行層與工程層的語意邊界限制。
 
 你不得：
@@ -182,12 +199,12 @@ World Semantic Boundaries 包含但不限於以下文件：
 在完成世界主鏈（00–09）閱讀後，  
 讀者 **被允許** 進入以下世界延伸層：
 
-- **API World**：`_VibeCore/api/`
+- **API World**：`api/`
   - 作為世界對外語意表達介面
   - 不具世界裁決權
   - 不得回寫或改寫世界規則
 
-- **Module World**：`_VibeCore/modules/`
+- **Module World**：`modules/`
   - 作為世界內部功能與 UI 單位
   - 不影響世界生命週期
   - 僅能依附於既有世界裁決存在
@@ -207,7 +224,7 @@ World Semantic Boundaries 包含但不限於以下文件：
 本世界除主鏈（具備世界裁決力的文件）外，
 另設一延伸敘事層（model），
 用以補充既有世界概念之結構性描述。
-請自 _VibeCore/world/model/index.md 開始閱讀。
+請自 world/model/index.md 開始閱讀。
 
 model 層：
 
@@ -246,7 +263,7 @@ engineering 層僅用於規範工程行為，
 
 ## Consistency Report
 
-- 不變量僅定義於 `_VibeCore/world/01_INVARIANTS.md`；其他文件僅引用 INV 編號。
+- 不變量僅定義於 `world/01_INVARIANTS.md`；其他文件僅引用 INV 編號。
 - Role Contracts 皆含 Derived From；無缺口。
 - feedback 內容未被寫成世界規則；未發現違規位置。
 - 未發現內容重複、矛盾或來源不明的段落。

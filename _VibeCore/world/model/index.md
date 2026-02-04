@@ -58,5 +58,11 @@
   平台層使用者身分資料模型（users table），  
   定義 tenant 隔離與 world rebuild 的資料依據。
 
+---
+
+## Reading Order
+
+1. IDENTITY_DB_USERS.md
+
 
 End of Model Extension Layer Index (New World)
