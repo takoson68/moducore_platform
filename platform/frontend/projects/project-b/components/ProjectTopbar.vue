@@ -74,8 +74,11 @@ const isItemActive = (item) => {
 <template lang="pug">
 header.topbar
   .brand
-    .brand-title {{ projectConfig?.title ?? 'Project' }}
-    .brand-sub Guest World Establishment
+    RouterLink.brand-logo(to="/")
+      img(src="/assets/icons/moducore.png" alt="ModuCore")
+    .brand-text
+      .brand-title {{ projectConfig?.title ?? 'Project' }}
+      .brand-sub Guest World Establishment
   nav.topbar-nav(v-if="topbarItems.length")
     .topbar-item(
       v-for="item in topbarItems"
@@ -195,6 +198,32 @@ header.topbar
   font-size: 22px
   font-weight: 700
   letter-spacing: 0.3px
+
+.brand
+  display: flex
+  align-items: center
+  gap: 10px
+
+.brand-text
+  display: flex
+  flex-direction: column
+  gap: 0px
+
+.brand-logo
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 60px
+  height: 60px
+  border-radius: 10px
+  background: transparent
+  overflow: hidden
+  text-decoration: none
+
+.brand-logo img
+  width: 100%
+  height: 100%
+  object-fit: contain
 
 .brand-sub
   font-size: 12px

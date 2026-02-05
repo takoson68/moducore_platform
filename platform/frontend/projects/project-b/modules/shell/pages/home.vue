@@ -1,5 +1,5 @@
 <script setup>
-import IMG from '../assets/moduCore_con.png'
+import IMG from '../assets/moducore_platform.jpg'
 const sellingPoints = [
   {
     title: "前後台分離設計",
@@ -35,13 +35,23 @@ const modules = [
       <p>
         本專案是一個由
         <b>ModuCore 模組驅動的專案引擎</b>
-        <i>（Project Assembly Engine）</i>
         所組裝而成、<b>以前端為核心</b>的實際專案示範。
         <br /><br />
 
-        ModuCore 提供
+        <b>ModuCore 並非試圖提供完整功能框架</b>，
+        而是以
+        <b>極小核心</b>
+        ，
+        專注於在
+        <b>容器模式下</b>
+        定義並治理
+        <b>能力的註冊、存取與作用範圍</b>
+        ，使多專案與多模組得以在同一平台下
+        <b>安全共存</b>。
+        <br /><br />
+
+        在此基礎上，ModuCore 提供
         <b>單一平台工作區</b>
-        <i>（Workspace）</i>，
         支援在同一平台中
         <b>自由切換不同專案</b>，
         並允許工程師於
@@ -53,8 +63,7 @@ const modules = [
         與
         <b>系統層級的規則約束</b>
         <i>（非人為約定，而是平台內建行為）</i>
-        ，
-        各專案可在共享平台環境下
+        ，各專案可在共享平台環境下
         <b>維持獨立運行與資料隔離</b>，
         在
         <b>不互相干擾</b>
@@ -65,7 +74,8 @@ const modules = [
         <b>「員工管理」</b>、
         <b>「任務派發」</b>、
         <b>「內部投票」</b>
-        <i>等業務模組</i>，
+        <i>等業務模組</i>
+        ，
         驗證
         <b>專案級模組組裝</b>、
         <b>流程編排</b>
@@ -112,14 +122,14 @@ const modules = [
 </template>
 
 <style scoped>
-
 .hero big {
   font-size: 1.12em;
-  font-weight: 600;
+  font-weight: bolder;
 }
 
 .hero b {
-  font-weight: 600;
+  font-weight: bolder;
+  font-size: 1.1em;
 }
 
 .hero i {
