@@ -85,7 +85,7 @@ Container **不負責**：
 - UI（頁面 / 元件）
 - Routes
 - Store
-- API 介面
+- 可被註冊的服務能力（透過 Container 存取）
 - 權限語意（public / auth）
 - 模組生命週期掛鉤（init / dispose）
 
