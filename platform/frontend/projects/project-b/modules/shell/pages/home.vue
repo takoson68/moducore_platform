@@ -29,24 +29,62 @@ const modules = [
   <div class="landing">
     <header class="hero">
       <div class="eyebrow">模組化專案引擎示範</div>
-      <h1>任務派發與投票管理系統</h1>
+
+      <h1>任務派發與投票管理系統 - 請直接登入</h1>
+
       <p>
-        本專案是一個由 <strong>ModuCore 模組驅動的專案引擎（Project Assembly Engine）</strong>
-        所組裝而成以前端為主的實際專案示範。
+        本專案是一個由
+        <b>ModuCore 模組驅動的專案引擎</b>
+        <i>（Project Assembly Engine）</i>
+        所組裝而成、<b>以前端為核心</b>的實際專案示範。
         <br /><br />
-        透過模組化前端架構與 API 導向的後端設計，
-        將「員工管理」、「任務派發」、「內部投票」等功能
-        視為可組裝、可替換的模組單元，
-        用以驗證專案級模組組裝、流程編排與系統擴展的可行性。
+
+        ModuCore 提供
+        <b>單一平台工作區</b>
+        <i>（Workspace）</i>，
+        支援在同一平台中
+        <b>自由切換不同專案</b>，
+        並允許工程師於
+        <b>同一工作區內平行開發多個專案</b>。
+        <br /><br />
+
+        透過
+        <b>明確的模組邊界</b>
+        與
+        <b>系統層級的規則約束</b>
+        <i>（非人為約定，而是平台內建行為）</i>
+        ，
+        各專案可在共享平台環境下
+        <b>維持獨立運行與資料隔離</b>，
+        在
+        <b>不互相干擾</b>
+        的前提下持續演化與擴充。
+        <br /><br />
+
+        本示範專案以
+        <b>「員工管理」</b>、
+        <b>「任務派發」</b>、
+        <b>「內部投票」</b>
+        <i>等業務模組</i>，
+        驗證
+        <b>專案級模組組裝</b>、
+        <b>流程編排</b>
+        與
+        <b>系統擴展</b>
+        的可行性。
       </p>
 
-      <div class="imgBox"><img :src=IMG alt=""></div>
+      <div class="imgBox">
+        <img :src="IMG" alt="" />
+      </div>
+
       <div class="cta">
         <a href="" class="primary">查看系統功能</a>
         <a href="" class="ghost">功能簡介</a>
       </div>
-
     </header>
+
+
 
     <section class="grid">
       <article v-for="p in sellingPoints" :key="p.title" class="card">
@@ -74,6 +112,22 @@ const modules = [
 </template>
 
 <style scoped>
+
+.hero big {
+  font-size: 1.12em;
+  font-weight: 600;
+}
+
+.hero b {
+  font-weight: 600;
+}
+
+.hero i {
+  font-style: italic;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
 .landing {
   padding: 48px 6vw;
   display: grid;
