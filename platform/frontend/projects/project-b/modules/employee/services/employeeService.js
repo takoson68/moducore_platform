@@ -1,5 +1,6 @@
 import { container } from "@/app/container";
 import { employeeApi } from "../api/employeeApi.js";
+import { notificationService } from "@project/modules/notification/services/notificationService.js";
 
 function unwrap(res) {
   if (res && typeof res === "object" && "data" in res) return res.data;
@@ -39,6 +40,12 @@ export const employeeService = {
     const created = unwrap(await employeeApi.create(payload));
     const employee = normalizeEmployee(created);
     getStore().addEmployee(employee);
+    try {
+      container.resolve("notificationStore");
+      await notificationService.fetchList();
+    } catch {
+      // notification module not available
+    }
     return employee;
   },
 

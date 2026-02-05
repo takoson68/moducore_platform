@@ -1,5 +1,6 @@
 // modules/employee/api/employeeApi.js
 import { createClient } from "@/app/api/client.js";
+import { getApiMode } from "@/app/api/apiMode.js";
 
 function clone(data) {
   try {
@@ -11,14 +12,6 @@ function clone(data) {
 
 function delay(ms = 200) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function getApiMode() {
-  const forced = import.meta.env.VITE_API_MODE;
-  if (forced === "real" || forced === "mock") return forced;
-  const host = window.location.hostname;
-  if (host === "moducore.test") return "real";
-  return "mock";
 }
 
 const client = createClient();

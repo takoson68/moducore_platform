@@ -209,6 +209,12 @@ final class TaskController
             }
         }
 
+        $notifyMemberId = $assigneeId > 0 ? $assigneeId : ($publisherId > 0 ? $publisherId : 1);
+        $notifyTitle = '新增任務';
+        $notifyContent = "任務「{$title}」已建立";
+        $stmt = db()->prepare('INSERT INTO project_b_notifications (member_id, type, title, content, is_read, created_at) VALUES (?, ?, ?, ?, 0, NOW())');
+        $stmt->execute([$notifyMemberId, 'task', $notifyTitle, $notifyContent]);
+
         $employees = $this->fetchEmployees();
         $employeeNames = $this->mapEmployeeNames($employees);
         $payload = $this->buildTaskDetail($taskId, $employees, $employeeNames);

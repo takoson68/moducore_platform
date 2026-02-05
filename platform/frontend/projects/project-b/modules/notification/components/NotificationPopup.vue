@@ -1,6 +1,7 @@
 ﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, watch } from "vue";
 import { container } from "@/app/container";
+import { notificationService } from "../services/notificationService.js";
 
 const emit = defineEmits(["close"]);
 const props = defineProps({
@@ -34,8 +35,13 @@ function setPosition(rect) {
   pos.top = clamp(top, EDGE, maxTop);
 }
 
-function markRead(id) {
-  notificationStore.markAsRead(id);
+async function markRead(id) {
+  if (!id) return;
+  try {
+    await notificationService.markRead(id);
+  } catch (err) {
+    console.error("[notification] mark read failed", err);
+  }
 }
 
 function formatTime(ts) {

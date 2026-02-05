@@ -77,8 +77,12 @@ function openResult() {
 
 async function removeVote() {
   if (!vote.value) return;
-  const isPublisher = vote.value.publisher && vote.value.publisher === currentUser.value;
-  const isAdmin = authStore.state.user?.role === "admin";
+  const user = authStore.state.user || {};
+  const isPublisherByUserId =
+    vote.value.publisher_user_id != null && user.id != null && Number(vote.value.publisher_user_id) === Number(user.id);
+  const isPublisherByName = vote.value.publisher && vote.value.publisher === currentUser.value;
+  const isPublisher = isPublisherByUserId || isPublisherByName;
+  const isAdmin = ["admin", "super_admin", "manager"].includes(user.role);
   if (!isPublisher && !isAdmin) {
     alert("只有管理者或發佈者可以刪除投票");
     return;

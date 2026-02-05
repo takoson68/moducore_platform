@@ -80,6 +80,11 @@ final class EmployeeController
             (string)($request->body['role'] ?? 'staff'),
         ]);
 
+        $notifyTitle = '新增成員';
+        $notifyContent = "新增成員「{$name}」";
+        $stmt = db()->prepare('INSERT INTO project_b_notifications (member_id, type, title, content, is_read, created_at) VALUES (?, ?, ?, ?, 0, NOW())');
+        $stmt->execute([1, 'member', $notifyTitle, $notifyContent]);
+
         $row = $this->findByMemberId($memberId);
         $response->json($row ? $this->normalizeEmployee($row) : ['id' => $memberId]);
     }

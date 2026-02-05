@@ -1,5 +1,6 @@
 import { container } from "@/app/container";
 import { taskApi } from "../api/taskApi.js";
+import { notificationService } from "@project/modules/notification/services/notificationService.js";
 
 function unwrap(res) {
   if (res && typeof res === "object" && "data" in res) return res.data;
@@ -86,6 +87,12 @@ export const taskService = {
   async create(payload) {
     const created = normalizeTask(unwrap(await taskApi.create(payload)));
     getStore().addTask(created);
+    try {
+      container.resolve("notificationStore");
+      await notificationService.fetchList();
+    } catch {
+      // notification module not available
+    }
     return created;
   },
 

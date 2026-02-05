@@ -8,6 +8,8 @@ function normalizeVote(vote, fallback = {}) {
     anonymous: false,
     rule: { mode: "time", deadline: null, totalVoters: 0 },
     publisher: "未指定",
+    publisher_id: null,
+    publisher_user_id: null,
     options: [],
     votesReceived: 0,
     voted: false,
@@ -79,7 +81,7 @@ export function createVoteStore() {
         const state = store.get();
         const nextId =
           state.list.reduce(
-            (max, v) => Math.max(max, parseInt(v.id?.replace(/\D/g, "") || 0, 10)),
+            (max, v) => Math.max(max, parseInt(String(v.id ?? "").replace(/\D/g, "") || "0", 10)),
             0
           ) + 1;
         const vote = normalizeVote({

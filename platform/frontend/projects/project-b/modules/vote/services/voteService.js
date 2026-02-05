@@ -1,5 +1,6 @@
 import { container } from "@/app/container";
 import { voteApi } from "../api/voteApi.js";
+import { notificationService } from "@project/modules/notification/services/notificationService.js";
 
 function unwrap(res) {
   if (res && typeof res === "object" && "data" in res) return res.data;
@@ -22,6 +23,12 @@ export const voteService = {
     const created = unwrap(await voteApi.create(payload));
     const vote = created?.vote ?? created;
     getStore().addVote(vote);
+    try {
+      container.resolve("notificationStore");
+      await notificationService.fetchList();
+    } catch {
+      // notification module not available
+    }
     return vote;
   },
 

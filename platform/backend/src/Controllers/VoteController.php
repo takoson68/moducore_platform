@@ -10,12 +10,26 @@ final class VoteController
 {
     private function fetchEmployees(): array
     {
-        $stmt = db()->query('SELECT member_id, name, email FROM project_b_employees ORDER BY member_id ASC');
-        $rows = $stmt->fetchAll();
+        $stmt = db()->query('SELECT member_id, user_id, name, email FROM project_b_employees ORDER BY member_id ASC');
+        return $stmt->fetchAll() ?: [];
+    }
+
+    private function mapEmployeeNames(array $rows): array
+    {
         $map = [];
         foreach ($rows as $row) {
             $memberId = (int)$row['member_id'];
             $map[$memberId] = (string)($row['name'] ?: $row['email']);
+        }
+        return $map;
+    }
+
+    private function mapEmployeeUsers(array $rows): array
+    {
+        $map = [];
+        foreach ($rows as $row) {
+            $memberId = (int)$row['member_id'];
+            $map[$memberId] = $row['user_id'] !== null ? (int)$row['user_id'] : null;
         }
         return $map;
     }
@@ -32,7 +46,7 @@ final class VoteController
         return $row ? (int)$row['member_id'] : null;
     }
 
-    private function buildVotePayload(array $vote, array $options, array $ballots, array $employeeNames): array
+    private function buildVotePayload(array $vote, array $options, array $ballots, array $employeeNames, array $employeeUsers): array
     {
         $voteId = (int)$vote['id'];
         $publisherId = (int)$vote['member_id'];
@@ -73,6 +87,8 @@ final class VoteController
             'title' => (string)$vote['title'],
             'description' => (string)$vote['description'],
             'publisher' => $employeeNames[$publisherId] ?? '未指定',
+            'publisher_id' => $publisherId,
+            'publisher_user_id' => $employeeUsers[$publisherId] ?? null,
             'allowMultiple' => (bool)$vote['allow_multiple'],
             'anonymous' => (bool)$vote['anonymous'],
             'status' => (string)$vote['status'],
@@ -88,7 +104,9 @@ final class VoteController
 
     private function fetchVotesPayload(?int $targetId = null): array
     {
-        $employeeNames = $this->fetchEmployees();
+        $employees = $this->fetchEmployees();
+        $employeeNames = $this->mapEmployeeNames($employees);
+        $employeeUsers = $this->mapEmployeeUsers($employees);
 
         if ($targetId !== null) {
             $stmt = db()->prepare('SELECT * FROM project_b_votes WHERE id = ? LIMIT 1');
@@ -113,7 +131,7 @@ final class VoteController
             $ballots = $stmt->fetchAll() ?: [];
         }
 
-        $payloads = array_map(fn ($vote) => $this->buildVotePayload($vote, $options, $ballots, $employeeNames), $votes ?: []);
+        $payloads = array_map(fn ($vote) => $this->buildVotePayload($vote, $options, $ballots, $employeeNames, $employeeUsers), $votes ?: []);
         return $payloads;
     }
 
@@ -176,6 +194,11 @@ final class VoteController
         }
 
         $payloads = $this->fetchVotesPayload($voteId);
+        $notifyMemberId = $publisherId > 0 ? $publisherId : 1;
+        $notifyTitle = '新增投票';
+        $notifyContent = "投票「{$title}」已建立";
+        $stmt = db()->prepare('INSERT INTO project_b_notifications (member_id, type, title, content, is_read, created_at) VALUES (?, ?, ?, ?, 0, NOW())');
+        $stmt->execute([$notifyMemberId, 'vote', $notifyTitle, $notifyContent]);
         $response->json(['vote' => $payloads[0] ?? null]);
     }
 

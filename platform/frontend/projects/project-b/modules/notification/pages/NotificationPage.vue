@@ -175,9 +175,13 @@ function markAll() {
   notificationStore?.markAllAsRead();
 }
 
-function markRead(id) {
+async function markRead(id) {
   if (!id) return;
-  notificationStore?.markAsRead(id);
+  try {
+    await notificationService.markRead(id);
+  } catch (err) {
+    console.error("[notification] mark read failed", err);
+  }
 }
 
 function sendTest(type) {

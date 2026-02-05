@@ -1,9 +1,8 @@
 ﻿// src/modules/notification/api/notificationApi.js
 import { http } from "@/app/api/http.js";
-import { useMock } from "@/app/api/mockSwitch.js";
+import { getApiMode } from "@/app/api/apiMode.js";
 import { mockNotifications } from "./mockNotifications.js";
 
-const USE_MOCK_NOTIFICATION = useMock("VITE_USE_MOCK_NOTIFICATION");
 
 function clone(data) {
   try {
@@ -65,7 +64,9 @@ const realApi = {
   },
 };
 
-export const notificationApi = USE_MOCK_NOTIFICATION ? mockApi : realApi;
+const mode = getApiMode();
+
+export const notificationApi = mode === "mock" ? mockApi : realApi;
 
 export function resetMockNotification() {
   mockDB = clone(mockNotifications);
