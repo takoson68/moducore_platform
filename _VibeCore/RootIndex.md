@@ -45,7 +45,7 @@ RootIndex.md 僅裁決「跨目錄層級的閱讀與進入順序」，
 以下為本平台所有「可被閱讀／可被引用／可被操作」之入口目錄：
 
 - `world/index.md`
-- `engineering/index.md`
+- `new_engineering/index.md`
 - `core/index.md`
 - `skills/index.md`
 - `projects/index.md`
