@@ -2,5 +2,5 @@
 export default {
   name: 'project-a',
   title: 'Project A',
-  modules: ['welcome', 'about'] // fallback only
+  modules: ['welcome', 'about', 'knowledge-base', 'approval-center'] // fallback only
 }

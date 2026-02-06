@@ -127,20 +127,20 @@ onMounted(() => {
 .status-pill
   padding: 4px 10px
   border-radius: 999px
-  border: 1px solid #e2e8f0
-  background: #f8fafc
+  border: 1px solid var(--border)
+  background: var(--surface-muted)
   font-size: 11px
   font-weight: 700
-  color: #475569
+  color: var(--text-sub)
 
 .status-pill.active
-  border-color: #0f172a
-  background: #0f172a
-  color: #fff
+  border-color: #4a6ea9
+  background: var(--accent-soft)
+  color: #c9dcff
 
 .status-text
   font-size: 12px
-  color: #334155
+  color: var(--text-sub)
   font-weight: 600
 
 .panel-form
@@ -152,23 +152,30 @@ onMounted(() => {
 .input-field
   padding: 8px 10px
   border-radius: 10px
-  border: 1px solid #e2e8f0
-  background: #fff
+  border: 1px solid var(--border)
+  background: var(--surface-muted)
+  color: var(--text-main)
   font-size: 12px
 
 .action-btn
   padding: 8px 12px
   border-radius: 10px
-  border: 1px solid #0f172a
-  background: #0f172a
-  color: #fff
+  border: 1px solid #4a6ea9
+  background: var(--accent-soft)
+  color: #c9dcff
   font-size: 12px
   font-weight: 700
   cursor: pointer
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease
+
+.action-btn:hover:not(:disabled)
+  border-color: #5d83c2
+  background: #29456f
 
 .action-btn.outline
-  background: transparent
-  color: #0f172a
+  border-color: var(--border)
+  background: var(--surface-muted)
+  color: var(--text-sub)
 
 .action-btn:disabled
   opacity: 0.6
@@ -183,10 +190,10 @@ onMounted(() => {
   font-size: 11px
 
 .panel-message.error
-  color: #b91c1c
+  color: #f19ca8
 
 .panel-message.info
-  color: #1d4ed8
+  color: #9bc4ff
 
 .login-anchor
   position: relative
@@ -195,7 +202,7 @@ onMounted(() => {
 .login-overlay
   position: fixed
   inset: 0
-  background: rgba(15, 23, 42, 0.45)
+  background: rgba(8, 12, 20, 0.58)
   z-index: 10000
 
 .login-popover
@@ -207,21 +214,20 @@ onMounted(() => {
   gap: 10px
   padding: 12px
   border-radius: 12px
-  border: 1px solid #e2e8f0
-  background: #fff
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12)
+  border: 1px solid var(--border)
+  background: var(--surface)
   z-index: 10002
 
 .login-title
   margin: 0
   font-size: 18px
   font-weight: 700
-  color: #0f172a
+  color: var(--text-main)
 
 .login-subtitle
   margin: 0
   font-size: 12px
-  color: #64748b
+  color: var(--text-muted)
 
 .login-form
   display: grid

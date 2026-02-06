@@ -80,6 +80,8 @@ header.topbar
   .brand
     .brand-title {{ projectConfig?.title ?? 'Project' }}
     .brand-sub Guest World Establishment · {{ phase }}
+  //- .topbar-search
+    input.search-input(type="text" placeholder="Search")
   nav.topbar-nav(v-if="topbarItems.length")
     .topbar-item(
       v-for="item in topbarItems"
@@ -117,17 +119,38 @@ header.topbar
   align-items: center
   justify-content: space-between
   padding: 14px 24px
-  border-bottom: 1px solid var(--border)
+  height: var(--project-a-topbar-height)
+  box-sizing: border-box
+  border-bottom: 1px solid #e2e9ff
   background: var(--surface)
   gap: 16px
-  position: relative
-  z-index: 10000
+  position: fixed
+  top: 0
+  left: var(--project-a-sidebar-width)
+  right: 0
+  z-index: 10002
 
 .topbar-nav
   display: flex
   gap: 10px
-  flex: 1
+  flex: 1 1 auto
   justify-content: center
+
+.topbar-search
+  flex: 0 1 320px
+
+.search-input
+  width: 100%
+  box-sizing: border-box
+  border: 1px solid #dbe4ff
+  background: #f6f9ff
+  color: var(--text-main)
+  border-radius: 12px
+  padding: 10px 12px
+  font-size: 13px
+
+.search-input::placeholder
+  color: #9cabcb
 
 .topbar-item
   position: relative
@@ -136,19 +159,25 @@ header.topbar
   padding-bottom: 6px
 
 .topbar-link
-  padding: 6px 10px
+  padding: 7px 11px
   border-radius: 999px
-  border: 1px solid var(--border)
+  border: 1px solid #dbe4ff
   background: var(--surface-muted)
   text-decoration: none
-  color: inherit
+  color: var(--text-sub)
   font-size: 12px
   font-weight: 600
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease
+
+.topbar-link:hover
+  border-color: #c6d5ff
+  background: var(--surface-elevated)
+  color: var(--text-main)
 
 .topbar-link.is-active
-  border-color: #000
-  background: #000
-  color: #fff
+  border-color: #8ea3ff
+  background: #edf1ff
+  color: #445dff
 
 .topbar-submenu
   position: absolute
@@ -157,9 +186,8 @@ header.topbar
   min-width: 160px
   padding: 8px
   border-radius: 12px
-  border: 1px solid var(--border)
+  border: 1px solid #dbe4ff
   background: var(--surface)
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12)
   display: grid
   gap: 6px
   opacity: 0
@@ -177,25 +205,31 @@ header.topbar
 .topbar-sub-link
   padding: 6px 10px
   border-radius: 10px
-  border: 1px solid var(--border)
+  border: 1px solid #dbe4ff
   background: var(--surface-muted)
   text-decoration: none
-  color: inherit
+  color: var(--text-sub)
   font-size: 12px
   font-weight: 600
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease
+
+.topbar-sub-link:hover
+  border-color: #c6d5ff
+  background: var(--surface-elevated)
+  color: var(--text-main)
 
 .topbar-sub-link.is-active
-  border-color: #000
-  background: #000
-  color: #fff
+  border-color: #8ea3ff
+  background: #edf1ff
+  color: #445dff
 
 .brand-title
-  font-size: 20px
+  font-size: 22px
   font-weight: 700
 
 .brand-sub
   font-size: 13px
-  color: #6b7280
+  color: var(--text-muted)
 
 .topbar-actions
   display: flex
@@ -209,4 +243,5 @@ header.topbar
   background: var(--surface-muted)
   font-size: 12px
   margin-left: 6px
+  color: var(--text-sub)
 </style>

@@ -65,6 +65,8 @@ const isItemActive = (item) => {
 
 <template lang="pug">
 aside.sidebar
+  .sidebar-logo
+    img.sidebar-logo__img(src="/assets/icons/moducore.png" alt="ModuCore")
   nav.module-nav
     .sidebar-item(
       v-for="route in navTree"
@@ -94,50 +96,87 @@ aside.sidebar
 
 <style lang="sass">
 .sidebar
-  display: grid
-  gap: 12px
-  padding: 16px
-  border: 1px solid var(--border)
+  --sidebar-text: #e9f2ff
+  --sidebar-text-strong: #ffffff
+  --sidebar-border: #2b6fda
+  --sidebar-surface: rgba(89, 165, 255, 0.18)
+  --sidebar-surface-hover: rgba(137, 194, 255, 0.24)
+  --sidebar-active-bg: linear-gradient(180deg, #2f7dff 0%, #0f58e6 100%)
+  display: flex
+  flex-direction: column
+  align-items: stretch
+  justify-content: flex-start
+  gap: 14px
+  height: 100%
+  padding: 18px 14px
+  // border: 1px solid var(--sidebar-border)
+  border-radius: 0
+  background: linear-gradient(180deg, #67b5ff 0%, #4a98eb 43%, #1f70d3 74%, #0d50b5 100%)
+
+.sidebar-logo
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 4px 2px 10px
+
+.sidebar-logo__img
+  width: 140px
+  height: auto
+  display: block
+  margin: 0 auto
   border-radius: 16px
-  background: var(--surface)
+  // border: 1px solid #2e3f78
 
 .module-nav
   display: flex
   flex-direction: column
-  gap: 10px
+  justify-content: flex-start
+  gap: 12px
+  flex: 1
 
 .sidebar-item
   display: flex
   flex-direction: column
-  gap: 8px
+  // gap: 10px
 
 .main-link
-  padding: 10px 14px
-  border-radius: 14px
-  border: 1px solid var(--border)
-  background: var(--surface-muted)
+  display: flex
+  align-items: center
+  gap: 0
+  padding: 12px 24px
+  border-radius: 22px
+  border: 1px solid rgba(255, 255, 255, 0.12)
+  background: var(--sidebar-surface)
   text-decoration: none
-  color: inherit
-  font-size: 14px
+  color: var(--sidebar-text)
+  font-size: 15px
   font-weight: 700
   position: relative
-  transition: transform 120ms ease, box-shadow 120ms ease
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease
+
+.main-link:hover
+  border-color: rgba(255, 255, 255, 0.34)
+  background: var(--sidebar-surface-hover)
+  color: var(--sidebar-text-strong)
 
 .main-link.is-active
-  border-color: #000
-  background: #000
-  color: #fff
+  border-color: rgba(107, 188, 255, 0.85)
+  background: var(--sidebar-active-bg)
+  color: #ffffff
 
 .submenu
   display: flex
   flex-direction: column
-  gap: 8px
-  padding-left: 16px
+  gap: 10px
+  padding-left: 26px
+  margin-left: 10px
   position: relative
   max-height: 0
   opacity: 0
   overflow: hidden
   transition: max-height 160ms ease, opacity 160ms ease
+  > a:nth-child(1)
+    margin-top: 10px
 
 .submenu::before
   content: ''
@@ -146,35 +185,35 @@ aside.sidebar
   top: 2px
   width: 1px
   height: calc(100% - 4px)
-  background: rgba(0, 0, 0, 0.12)
+  background: rgba(255, 255, 255, 0.34)
 
 .sub-link
-  padding: 8px 12px
-  border-radius: 12px
-  border: 1px solid var(--border)
-  background: var(--surface-muted)
-  color: inherit
+  display: flex
+  align-items: center
+  gap: 0
+  padding: 10px 12px
+  border-radius: 18px
+  border: 1px solid rgba(255, 255, 255, 0.2)
+  background: rgba(23, 87, 187, 0.3)
+  color: var(--sidebar-text)
   text-decoration: none
-  font-size: 13px
+  font-size: 14px
   font-weight: 600
   position: relative
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease
 
-.sub-link::before
-  content: ''
-  position: absolute
-  left: -12px
-  top: 50%
-  width: 10px
-  height: 1px
-  background: rgba(0, 0, 0, 0.2)
+.sub-link:hover
+  border-color: rgba(255, 255, 255, 0.34)
+  background: rgba(33, 108, 218, 0.42)
+  color: var(--sidebar-text-strong)
 
 .sub-link.is-active
-  border-color: #000
-  background: #000
-  color: #fff
+  border-color: rgba(255, 255, 255, 0.45)
+  background: var(--sidebar-active-bg)
+  color: #ffffff
 
 .sidebar-item:hover .submenu,
 .sidebar-item.active .submenu
-  max-height: 400px
+  max-height: 520px
   opacity: 1
 </style>

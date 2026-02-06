@@ -102,7 +102,7 @@ aside.sidebar
   background: rgba(255, 255, 255, 0.82)
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08)
   backdrop-filter: blur(12px)
-  height: calc( 90vh - 1em )
+  height: calc( 90vh - 2em )
   position: sticky
   top: 5em
 .module-nav

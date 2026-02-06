@@ -12,4 +12,5 @@ components/   router/    container/  stores/
 
 projects/    project-a/   modules/   layout/    
 
+project-b/
 
