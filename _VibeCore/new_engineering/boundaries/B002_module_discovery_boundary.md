@@ -1,4 +1,7 @@
 ﻿# Boundary
+本文件為目前世界承認之行為邊界，
+用於判定 friction 與後續規範演化。
+
 
 ## Boundary Summary
 本文件宣告 project 層級在 modules 入口引用與掃描行為的邊界。

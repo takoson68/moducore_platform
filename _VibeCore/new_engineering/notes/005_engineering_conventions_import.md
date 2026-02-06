@@ -1,0 +1,7 @@
+﻿# Observation
+
+觀察對象：engineering/CONVENTIONS.md 的存在與內容來源
+實際行為描述：new_engineering/conventions/C004_engineering_conventions_import.md 以 engineering/CONVENTIONS.md 作為匯入來源並包含其內容
+出現位置：new_engineering/conventions/C004_engineering_conventions_import.md
+重複次數：1
+目前未觀察到的情況：new_engineering/notes 內尚未有對應此匯入行為的觀察紀錄

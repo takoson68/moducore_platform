@@ -1,4 +1,7 @@
 ﻿# Convention
+本文件不宣告有效行為邊界，
+僅作為 Boundary 文件的推導依據與假說來源。
+
 
 Title: @project/modules/index.js 入口引用邊界
 Status: candidate

@@ -41,6 +41,15 @@ RootIndex.md 僅裁決「跨目錄層級的閱讀與進入順序」，
 
 ---
 
+## Post-Entry Tasks（Non-blocking）
+
+完成 RootIndex.md 之導引後，可執行以下非阻斷任務：
+
+- `new_engineering/evolution/DAILY_EVOLUTION.md`
+  - 依其防重跑規則執行每日一次任務（若今日未執行）
+
+---
+
 ## 3. 註冊目錄（Registry）
 以下為本平台所有「可被閱讀／可被引用／可被操作」之入口目錄：
 
@@ -63,10 +72,10 @@ RootIndex.md 僅裁決「跨目錄層級的閱讀與進入順序」，
    - 世界觀、治理規則、不可被覆寫
    - 等同憲法層級
 
-2. **engineering/**
+2. **new_engineering/**
    - 工程規範與實務裁決
    - 可演化，但不得違反 world
-   - engineering 層不定義能力本身，僅規範能力與專案在工程實務中的使用方式。
+   - new_engineering 層不定義能力本身，僅規範能力與專案在工程實務中的使用方式。
 
 3. **core/**
    - 核心能力與容器
@@ -89,7 +98,7 @@ RootIndex.md 僅裁決「跨目錄層級的閱讀與進入順序」，
 ### 允許的行為
 - 新增或擴充 `/skills`
 - 在 `/projects` 建立新專案實例
-- 擴寫 `/engineering` 中的實務文件
+- 擴寫 `/new_engineering` 中的實務文件
 - 在不違反 world 的前提下演化 core 實作
 
 ### 禁止的行為
@@ -213,7 +222,7 @@ RootIndex.md 為平台唯一之「跨層級裁決文件」，
 本閱讀協定適用於但不限於以下結構：
 
 - 平台根目錄
-- world / engineering / core / skills / projects
+- world / new_engineering / core / skills / projects
 - 專案內模組（module）
 - 未來新增之任何具備語意層級的子目錄
 

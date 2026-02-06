@@ -23,13 +23,6 @@
 - 世界裁決結構已完成定義
 - Index-based Reading Protocol 已正式生效
 
----
-
-0. 讀取 `new_engineering/evolution/DAILY_EVOLUTION.md`，
-   並依防重跑規則執行每日一次任務（若今日未執行）
-
----
-
 ## 世界入口聲明（唯一）
 VibeCore 世界僅存在 **一個合法入口**：
 
