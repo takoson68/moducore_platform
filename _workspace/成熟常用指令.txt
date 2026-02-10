@@ -14,3 +14,23 @@ projects/    project-a/   modules/   layout/
 
 project-b/
 
+
+
+## 切換指令（唯一合法語句）
+
+### 進入世界
+指令：ENTER_WORLD
+效果：狀態切換為 IN_WORLD
+
+### 登出世界
+指令：EXIT_WORLD
+效果：狀態切換為 OUT_OF_WORLD
+
+### 進入維護模式
+指令：ENTER_MAINTENANCE
+前置：必須先 EXIT_WORLD
+效果：狀態切換為 MAINTENANCE
+
+### 結束維護並回到世界
+指令：EXIT_MAINTENANCE
+效果：狀態切換為 IN_WORLD
