@@ -1,9 +1,9 @@
 ﻿<script setup>
 import { computed, ref, watch } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { employeeService } from "../services/employeeService.js";
 
-const employeeStore = container.resolve("employeeStore");
+const employeeStore = world.store("employeeStore");
 const emit = defineEmits([]);
 const props = defineProps({
   showRole: { type: Boolean, default: false },

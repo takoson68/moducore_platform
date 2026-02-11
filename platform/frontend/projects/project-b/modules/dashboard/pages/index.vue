@@ -1,14 +1,14 @@
 ﻿<script setup>
 import { computed, onMounted } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { taskService } from "@project/modules/task/services/taskService.js";
 import { employeeService } from "@project/modules/employee/services/employeeService.js";
 import { voteService } from "@project/modules/vote/services/voteService.js";
 
-const authStore = container.resolve("auth");
-const taskStore = container.resolve("taskStore");
-const employeeStore = container.resolve("employeeStore");
-const voteStore = container.resolve("voteStore");
+const authStore = world.store("auth");
+const taskStore = world.store("taskStore");
+const employeeStore = world.store("employeeStore");
+const voteStore = world.store("voteStore");
 
 const userName = computed(() => {
   const user = authStore.state.user || {};

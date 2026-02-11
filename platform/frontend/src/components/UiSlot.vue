@@ -1,6 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { getUISlots, uiRegistryVersion } from "@/app/uiRegistry";
 
 const props = defineProps({
@@ -10,7 +10,7 @@ const props = defineProps({
   },
 });
 
-const authStore = container.resolve("auth");
+const authStore = world.store("auth");
 
 function resolveAccess(item) {
   const access = item?.access || {};

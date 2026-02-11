@@ -1,12 +1,12 @@
 <!-- projects/project-a/modules/about/pages/AboutVision.vue -->
 <script setup>
-import LayoutRoot from '../../../layout/LayoutRoot.vue'
+import AboutLayout from '../layout/AboutLayout.vue'
 
 const title = 'About Vision'
 const body = 'The vision is a stable platform where projects evolve safely.'
 </script>
 
 <template lang="pug">
-LayoutRoot(:title="title" subtitle="Project A")
+AboutLayout(:title="title" subtitle="Project A")
   p {{ body }}
 </template>

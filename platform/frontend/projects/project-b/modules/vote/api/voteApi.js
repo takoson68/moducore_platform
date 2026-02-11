@@ -1,6 +1,5 @@
 // modules/vote/api/voteApi.js
-import { createClient } from "@/app/api/client.js";
-import { getApiMode } from "@/app/api/apiMode.js";
+import world from '@/world.js'
 import { mockVotes } from "./mockVotes.js";
 
 function clone(data) {
@@ -15,8 +14,8 @@ function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const client = createClient();
-const mode = getApiMode();
+const http = world.http();
+const mode = world.apiMode();
 
 let mockDB = clone(mockVotes);
 
@@ -38,21 +37,21 @@ function applyVoteCloseRule(vote) {
 export const voteApi = {
   async list() {
     if (mode === "real") {
-      return client.get("/api/vote/list");
+      return http.get("/api/vote/list");
     }
     await delay();
     return clone(mockDB);
   },
   async detail(id) {
     if (mode === "real") {
-      return client.get(`/api/vote/detail?id=${id}`);
+      return http.get(`/api/vote/detail?id=${id}`);
     }
     await delay();
     return clone(mockDB.find((item) => String(item.id) === String(id)) || null);
   },
   async create(payload) {
     if (mode === "real") {
-      return client.post("/api/vote/create", payload);
+      return http.post("/api/vote/create", payload);
     }
     await delay();
     const nextId = `v-${Date.now()}`;
@@ -78,7 +77,7 @@ export const voteApi = {
   },
   async cast(id, selections = [], user = {}) {
     if (mode === "real") {
-      return client.post("/api/vote/cast", {
+      return http.post("/api/vote/cast", {
         vote_id: id,
         selections,
         user_id: user?.id ?? null,
@@ -107,7 +106,7 @@ export const voteApi = {
   },
   async openResult(id) {
     if (mode === "real") {
-      return client.post("/api/vote/open_result", { vote_id: id });
+      return http.post("/api/vote/open_result", { vote_id: id });
     }
     await delay();
     mockDB = mockDB.map((vote) => (vote.id === id ? { ...vote, status: "closed" } : vote));
@@ -115,7 +114,7 @@ export const voteApi = {
   },
   async remove(id) {
     if (mode === "real") {
-      return client.post("/api/vote/delete", { id });
+      return http.post("/api/vote/delete", { id });
     }
     await delay();
     mockDB = mockDB.filter((vote) => vote.id !== id);

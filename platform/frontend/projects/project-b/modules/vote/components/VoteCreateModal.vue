@@ -1,13 +1,11 @@
 ﻿<script setup>
 import { computed, reactive, watch } from "vue";
-import { useRouter } from "vue-router";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { voteService } from "../services/voteService.js";
 
-const voteStore = container.resolve("voteStore");
+const voteStore = world.store("voteStore");
 const open = computed(() => voteStore.state.editorOpen);
-const router = useRouter();
-const authStore = container.resolve("auth");
+const authStore = world.store("auth");
 
 const form = reactive({
   title: "",
@@ -98,9 +96,6 @@ async function handleSubmit() {
 
 function close() {
   voteStore.closeEditor();
-  if (router.currentRoute.value.path !== "/vote") {
-    router.replace("/vote");
-  }
 }
 </script>
 

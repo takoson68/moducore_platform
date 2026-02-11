@@ -2,11 +2,11 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { container } from '@app/container'
+import world from '@/world.js'
 
 const route = useRoute()
-const authStore = container.resolve('auth')
-const resolveNavProjection = container.getService('resolveNavProjection')
+const authStore = world.store("auth")
+const resolveNavProjection = world.service('resolveNavProjection')
 const navProjection = computed(() => {
   const bucket = window.__MODULE_ROUTES__ || { all: [] }
   return resolveNavProjection(bucket.all || [])
@@ -94,7 +94,8 @@ aside.sidebar
 
 <style lang="sass">
 .sidebar
-  display: grid
+  display: flex
+  flex-direction: column
   gap: 12px
   padding: 16px
   border: 1px solid rgba(15, 23, 42, 0.12)
@@ -102,13 +103,21 @@ aside.sidebar
   background: rgba(255, 255, 255, 0.82)
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08)
   backdrop-filter: blur(12px)
-  height: calc( 90vh - 2em )
-  position: sticky
+  width: var(--project-b-sidebar-width, 240px)
+  max-width: calc(100vw - 32px)
+  position: fixed
+  left: var(--project-b-shell-padding, 28px)
   top: 5em
+  bottom: var(--project-b-sidebar-edge-gap, 1em)
+  height: auto
+  z-index: 10010
 .module-nav
   display: flex
   flex-direction: column
   gap: 10px
+  min-height: 0
+  overflow-y: auto
+  padding-right: 2px
 
 .sidebar-item
   display: flex
@@ -183,9 +192,10 @@ aside.sidebar
 
 @media (max-width: 960px)
   .sidebar
-    position: sticky
-    top: 88px
-    z-index: 2
+    position: static
+    width: 100%
+    max-width: none
+    height: auto
 
 .sidebar-item:hover .submenu,
 .sidebar-item.active .submenu

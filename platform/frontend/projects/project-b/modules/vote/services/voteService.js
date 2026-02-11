@@ -1,4 +1,4 @@
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { voteApi } from "../api/voteApi.js";
 import { notificationService } from "@project/modules/notification/services/notificationService.js";
 
@@ -8,7 +8,7 @@ function unwrap(res) {
 }
 
 function getStore() {
-  return container.resolve("voteStore");
+  return world.store("voteStore");
 }
 
 export const voteService = {
@@ -24,7 +24,7 @@ export const voteService = {
     const vote = created?.vote ?? created;
     getStore().addVote(vote);
     try {
-      container.resolve("notificationStore");
+      world.store("notificationStore");
       await notificationService.fetchList();
     } catch {
       // notification module not available
@@ -36,7 +36,7 @@ export const voteService = {
     const store = getStore();
     const user = (() => {
       try {
-        return container.resolve("auth")?.state.user || { name: "匿名" };
+        return world.store("auth")?.state.user || { name: "匿名" };
       } catch {
         return { name: "匿名" };
       }

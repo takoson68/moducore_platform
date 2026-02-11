@@ -1,4 +1,4 @@
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { employeeApi } from "../api/employeeApi.js";
 import { notificationService } from "@project/modules/notification/services/notificationService.js";
 
@@ -25,7 +25,7 @@ function normalizeList(res) {
 }
 
 function getStore() {
-  return container.resolve("employeeStore");
+  return world.store("employeeStore");
 }
 
 export const employeeService = {
@@ -41,7 +41,7 @@ export const employeeService = {
     const employee = normalizeEmployee(created);
     getStore().addEmployee(employee);
     try {
-      container.resolve("notificationStore");
+      world.store("notificationStore");
       await notificationService.fetchList();
     } catch {
       // notification module not available

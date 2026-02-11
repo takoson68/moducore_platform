@@ -1,10 +1,10 @@
 <script setup>
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { container } from "@/app/container";
+import world from '@/world.js'
 
 const router = useRouter();
-const auth = container.resolve("auth");
+const auth = world.store("auth");
 const user = computed(() => auth.state.user || {});
 
 

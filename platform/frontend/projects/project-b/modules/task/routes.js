@@ -2,7 +2,20 @@
 export const routes = [
   {
     path: '/task',
-    component: () => import('./pages/board.vue'),
+    component: () => import('./pages/Layout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('./pages/board.vue'),
+        meta: {
+          access: {
+            public: false,
+            auth: true
+          },
+          nav: []
+        }
+      }
+    ],
     meta: {
       access: {
         public: false,
@@ -15,4 +28,3 @@ export const routes = [
     }
   }
 ]
-

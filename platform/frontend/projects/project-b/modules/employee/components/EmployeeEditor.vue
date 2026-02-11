@@ -1,10 +1,10 @@
 ﻿<script setup>
 import { computed, reactive, watch } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { employeeService } from "../services/employeeService.js";
 
-const employeeStore = container.resolve("employeeStore");
-const authStore = container.resolve("auth");
+const employeeStore = world.store("employeeStore");
+const authStore = world.store("auth");
 
 const open = computed(() => employeeStore.state.editorOpen);
 const editingEmployee = computed(() => employeeStore.state.editingEmployee);

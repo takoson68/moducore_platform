@@ -1,6 +1,6 @@
 ﻿<script setup>
 import { computed, ref, nextTick, onMounted } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import NotificationPopup from "./NotificationPopup.vue";
 import { notificationService } from "../services/notificationService.js";
 
@@ -8,8 +8,8 @@ const props = defineProps({
   placement: { type: String, default: "fixed" }, // fixed | sidebar
 });
 
-const notificationStore = container.resolve("notificationStore");
-const authStore = container.resolve("auth");
+const notificationStore = world.store("notificationStore");
+const authStore = world.store("auth");
 const open = ref(false);
 const buttonRef = ref(null);
 const anchorRect = ref(null);

@@ -1,6 +1,5 @@
 ﻿// src/modules/notification/api/notificationApi.js
-import { http } from "@/app/api/http.js";
-import { getApiMode } from "@/app/api/apiMode.js";
+import world from '@/world.js'
 import { mockNotifications } from "./mockNotifications.js";
 
 
@@ -51,20 +50,20 @@ const mockApi = {
 
 const realApi = {
   list() {
-    return http.get("/api/notifications");
+    return world.http().get("/api/notifications");
   },
   create(payload) {
-    return http.post("/api/notifications", payload);
+    return world.http().post("/api/notifications", payload);
   },
   markRead(id) {
-    return http.post("/api/notifications/read", { id });
+    return world.http().post("/api/notifications/read", { id });
   },
   clear() {
-    return http.post("/api/notifications/clear");
+    return world.http().post("/api/notifications/clear");
   },
 };
 
-const mode = getApiMode();
+const mode = world.apiMode();
 
 export const notificationApi = mode === "mock" ? mockApi : realApi;
 

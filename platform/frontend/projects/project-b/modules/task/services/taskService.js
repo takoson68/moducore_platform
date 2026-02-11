@@ -1,4 +1,4 @@
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { taskApi } from "../api/taskApi.js";
 import { notificationService } from "@project/modules/notification/services/notificationService.js";
 
@@ -54,7 +54,7 @@ function attachEmployeeIds(task, employees = []) {
 }
 
 function getStore() {
-  return container.resolve("taskStore");
+  return world.store("taskStore");
 }
 
 export const taskService = {
@@ -88,7 +88,7 @@ export const taskService = {
     const created = normalizeTask(unwrap(await taskApi.create(payload)));
     getStore().addTask(created);
     try {
-      container.resolve("notificationStore");
+      world.store("notificationStore");
       await notificationService.fetchList();
     } catch {
       // notification module not available

@@ -1,5 +1,5 @@
 ﻿import { createStore } from "@/app/stores/_storeFactory.js";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { attachNotificationCollector } from "../notificationCollector.js";
 
 const normalize = (item) => {
@@ -59,7 +59,7 @@ export function createNotificationStore() {
   });
 
   if (!collectorAttached) {
-    const eventBus = container.getService("eventBus");
+    const eventBus = world.service("eventBus");
     attachNotificationCollector(eventBus, store);
     collectorAttached = true;
   }

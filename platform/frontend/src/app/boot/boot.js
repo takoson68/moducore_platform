@@ -3,8 +3,6 @@ import { discoverModules } from '../../../projects/moduleDiscovery.js'
 import { getProjectModuleRegistry } from '../../../projects/modulesRegistry.js'
 import { container } from '../container/container.js'
 import { createRegister } from '../container/register.js'
-import { discoverLayout } from '../layout/discoverLayout.js'
-import { layoutStore } from '../layout/layoutStore.js'
 
 export async function boot({ projectConfig } = {}) {
   await assertPlatformBoundary()
@@ -31,9 +29,6 @@ async function assertPlatformBoundary() {
 
 // Phase B: resolveWorldVisibility （僅元數據，不註冊）
 async function resolveWorldVisibility(projectConfig) {
-  const layout = await discoverLayout(projectConfig)
-  layoutStore.set(layout)
-
   let discoveredModules = discoverModules(projectConfig)
   if (!Array.isArray(discoveredModules) || discoveredModules.length === 0) {
     const declared = Array.isArray(projectConfig?.modules) ? projectConfig.modules : []

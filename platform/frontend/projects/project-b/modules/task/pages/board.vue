@@ -1,14 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { container } from "@/app/container";
-import TaskLayout from "../TaskLayout.vue";
+import world from '@/world.js'
 import TaskList from "../components/TaskList.vue";
 import TaskDetail from "../components/TaskDetail.vue";
 import TaskMessages from "../components/TaskMessages.vue";
 import { taskService } from "../services/taskService.js";
 
-const taskStore = container.resolve("taskStore");
-const authStore = container.resolve("auth");
+const taskStore = world.store("taskStore");
+const authStore = world.store("auth");
 const search = ref("");
 const filterStatus = ref("active");
 const composer = ref("");
@@ -116,36 +115,35 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-TaskLayout
-  .task-board
-    .board-shell
-      TaskList(
-        :tasks="tasks"
-        :assignees="assignees"
-        :active-task-id="taskStore.state.activeTaskId"
-        v-model:search="search"
-        v-model:filter-status="filterStatus"
-        @create-task="createTask"
-        @select-task="selectTask"
-      )
+.task-board
+  .board-shell
+    TaskList(
+      :tasks="tasks"
+      :assignees="assignees"
+      :active-task-id="taskStore.state.activeTaskId"
+      v-model:search="search"
+      v-model:filter-status="filterStatus"
+      @create-task="createTask"
+      @select-task="selectTask"
+    )
 
-      TaskDetail(
-        :task="activeTask"
-        :assignees="assignees"
-        :current-user="currentUser"
-        :current-user-id="currentUserId"
-        @update-status="updateStatus"
-        @update-assignee="updateAssignee"
-        @update-publisher="updatePublisher"
-        @update-desc="updateDesc"
-        @delete-task="deleteTask"
-      )
+    TaskDetail(
+      :task="activeTask"
+      :assignees="assignees"
+      :current-user="currentUser"
+      :current-user-id="currentUserId"
+      @update-status="updateStatus"
+      @update-assignee="updateAssignee"
+      @update-publisher="updatePublisher"
+      @update-desc="updateDesc"
+      @delete-task="deleteTask"
+    )
 
-      TaskMessages(
-        :task="activeTask"
-        v-model:composer="composer"
-        @send="sendMessage"
-      )
+    TaskMessages(
+      :task="activeTask"
+      v-model:composer="composer"
+      @send="sendMessage"
+    )
 </template>
 
 <style scoped lang="sass">
@@ -185,4 +183,5 @@ TaskLayout
 
 :deep(.pane.right)
   overflow: auto
+
 </style>

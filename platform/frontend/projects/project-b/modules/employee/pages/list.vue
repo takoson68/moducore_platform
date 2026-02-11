@@ -1,12 +1,12 @@
 ﻿<script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import EmployeeTable from "../components/EmployeeTable.vue";
 import EmployeeEditor from "../components/EmployeeEditor.vue";
 import { employeeService } from "../services/employeeService.js";
 
-const employeeStore = container.resolve("employeeStore");
-const authStore = container.resolve("auth");
+const employeeStore = world.store("employeeStore");
+const authStore = world.store("auth");
 
 const role = computed(() => authStore.state.user?.role || "staff");
 const canManage = computed(() => ["super_admin", "manager"].includes(role.value));

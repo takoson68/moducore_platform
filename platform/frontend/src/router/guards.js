@@ -1,6 +1,6 @@
 //- src/router/guards.js
 // beforeEach：登入、權限、模組啟用判斷
-import { container } from '@/app/container'
+import world from '@/world.js'
 
 export function setupAuthGuard(router) {
 
@@ -32,7 +32,7 @@ export function setupAuthGuard(router) {
     // auth-only 路由
     let authStore = null
     try {
-      authStore = container.resolve('auth')
+      authStore = world.store("auth")
     } catch (err) {
       console.warn('[RouterGuard] auth store not available')
       return { path: '/' }

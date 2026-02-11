@@ -1,13 +1,13 @@
 ﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, watch } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { notificationService } from "../services/notificationService.js";
 
 const emit = defineEmits(["close"]);
 const props = defineProps({
   anchorRect: { type: Object, default: null },
 });
-const notificationStore = container.resolve("notificationStore");
+const notificationStore = world.store("notificationStore");
 
 const list = computed(() => notificationStore.state.list);
 

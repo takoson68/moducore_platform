@@ -1,4 +1,4 @@
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { notificationApi } from "../api/notificationApi.js";
 
 function unwrap(res) {
@@ -7,7 +7,7 @@ function unwrap(res) {
 }
 
 function getStore() {
-  return container.resolve("notificationStore");
+  return world.store("notificationStore");
 }
 
 export const notificationService = {

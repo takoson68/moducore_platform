@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
@@ -25,7 +25,7 @@ const checkList = [
   "在個人設定開啟二步驗證（MFA）",
 ];
 
-const authStore = container.resolve("auth");
+const authStore = world.store("auth");
 
 function close() {
   emit("update:modelValue", false);

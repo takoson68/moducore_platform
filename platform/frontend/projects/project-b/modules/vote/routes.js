@@ -2,7 +2,20 @@
 export const routes = [
   {
     path: '/vote',
-    component: () => import('./pages/list.vue'),
+    component: () => import('./pages/Layout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('./pages/list.vue'),
+        meta: {
+          access: {
+            public: false,
+            auth: true
+          },
+          nav: []
+        }
+      }
+    ],
     meta: {
       access: {
         public: false,
@@ -14,27 +27,4 @@ export const routes = [
       ]
     }
   },
-  {
-    path: '/vote/create',
-    component: () => import('./pages/list.vue'),
-    meta: {
-      access: {
-        public: false,
-        auth: true
-      },
-      nav: []
-    }
-  },
-  {
-    path: '/vote/:id',
-    component: () => import('./pages/list.vue'),
-    meta: {
-      access: {
-        public: false,
-        auth: true
-      },
-      nav: []
-    }
-  }
 ]
-

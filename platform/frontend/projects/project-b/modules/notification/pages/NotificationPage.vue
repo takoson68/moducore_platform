@@ -1,22 +1,21 @@
 ﻿<script setup>
 import { computed, onMounted } from "vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { taskService } from "@project/modules/task/services/taskService.js";
 import { employeeService } from "@project/modules/employee/services/employeeService.js";
 import { voteService } from "@project/modules/vote/services/voteService.js";
 import { notificationService } from "../services/notificationService.js";
 
-const storeNames = container.list().stores || [];
-const hasTask = storeNames.includes("taskStore");
-const hasEmployee = storeNames.includes("employeeStore");
-const hasVote = storeNames.includes("voteStore");
-const hasNotification = storeNames.includes("notificationStore");
+const hasTask = world.hasStore("taskStore");
+const hasEmployee = world.hasStore("employeeStore");
+const hasVote = world.hasStore("voteStore");
+const hasNotification = world.hasStore("notificationStore");
 
-const notificationStore = hasNotification ? container.resolve("notificationStore") : null;
-const taskStore = hasTask ? container.resolve("taskStore") : null;
-const employeeStore = hasEmployee ? container.resolve("employeeStore") : null;
-const voteStore = hasVote ? container.resolve("voteStore") : null;
-const eventBus = container.getService("eventBus");
+const notificationStore = hasNotification ? world.store("notificationStore") : null;
+const taskStore = hasTask ? world.store("taskStore") : null;
+const employeeStore = hasEmployee ? world.store("employeeStore") : null;
+const voteStore = hasVote ? world.store("voteStore") : null;
+const eventBus = world.service("eventBus");
 
 const notifications = computed(() => notificationStore?.state.list || []);
 const unreadCount = computed(() => notificationStore?.state.unread || 0);
@@ -348,7 +347,7 @@ onMounted(async () => {
   gap: 20px
   // background: radial-gradient(circle at 20% 20%, color-mix(in srgb, $sys_4 18%, $sys_1), $sys_1 55%)
   font-family: $fontBase
-
+  flex: 1
 .hero
   display: flex
   justify-content: space-between

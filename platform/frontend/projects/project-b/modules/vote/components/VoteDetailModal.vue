@@ -1,12 +1,10 @@
 ﻿<script setup>
 import { computed, reactive, watch } from "vue";
-import { useRouter } from "vue-router";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { voteService } from "../services/voteService.js";
 
-const voteStore = container.resolve("voteStore");
-const authStore = container.resolve("auth");
-const router = useRouter();
+const voteStore = world.store("voteStore");
+const authStore = world.store("auth");
 
 const open = computed(() => voteStore.state.detailOpen);
 const vote = computed(() => voteStore.state.activeVote);
@@ -95,9 +93,6 @@ async function removeVote() {
 
 function close() {
   voteStore.closeDetail();
-  if (router.currentRoute.value.path !== "/vote") {
-    router.replace("/vote");
-  }
 }
 </script>
 

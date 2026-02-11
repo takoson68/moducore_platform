@@ -1,5 +1,5 @@
 //- projects/project-b/modules/index.js
-import { registerUISlot } from '../../../src/app/uiRegistry.js'
+import { registerUISlot } from '@app/uiRegistry.js'
 
 // 掃描同層模組目錄（每個模組需有 index.js）
 const modules = import.meta.glob('./*/index.js')

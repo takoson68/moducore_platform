@@ -1,6 +1,6 @@
 <!-- projects/project-b/modules/welcome/pages/WelcomePage.vue -->
 <script setup>
-import LayoutRoot from '../../../layout/LayoutRoot.vue'
+import WelcomeLayout from '../layout/WelcomeLayout.vue'
 
 const title = 'ModuCore'
 const subtitle = '模組化世界平台'
@@ -26,7 +26,7 @@ const steps = [
 </script>
 
 <template lang="pug">
-LayoutRoot(:title="title" :subtitle="subtitle")
+WelcomeLayout(:title="title" :subtitle="subtitle")
   h1.hero-title ModuCore
   .intro
     p.lead ModuCore 是以世界規則為核心的模組化平台，讓專案在一致邊界下快速生成與運行。

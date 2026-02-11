@@ -2,11 +2,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { container } from '@app/container'
-import { authApi } from '@app/api'
+import world from '@/world.js'
 
 const router = useRouter()
-const authStore = container.resolve('auth')
+const authStore = world.store("auth")
 const username = ref('admin')
 const password = ref('5678')
 const loading = ref(false)
@@ -20,7 +19,7 @@ async function restoreSession() {
   loading.value = true
   error.value = ''
 
-  const { ok, data } = await authApi.restoreSession()
+  const { ok, data } = await world.authApi().restoreSession()
   if (!ok) {
     error.value = 'Session 取得失敗'
     loading.value = false
@@ -36,7 +35,7 @@ async function handleLogin() {
   error.value = ''
 
   const payload = { username: username.value, password: password.value }
-  const { ok, data } = await authApi.login(payload)
+  const { ok, data } = await world.authApi().login(payload)
 
   if (!ok || data.success === false) {
     error.value = data.message || '登入失敗'
@@ -53,7 +52,7 @@ async function handleLogout() {
   loading.value = true
   error.value = ''
 
-  await authApi.logout()
+  await world.authApi().logout()
   router.replace('/')
   loading.value = false
 }

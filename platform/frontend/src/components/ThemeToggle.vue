@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted } from 'vue'
-import { container } from '@/app/container'
+import world from '@/world.js'
 
-const uiShellStore = container.resolve('uiShell')
+const uiShellStore = world.store('uiShell')
 const isDark = computed(() => uiShellStore.state.theme === 'dark')
 
 function onToggle() {

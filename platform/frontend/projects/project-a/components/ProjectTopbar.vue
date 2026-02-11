@@ -2,16 +2,16 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { container } from '@app/container'
+import world from '@/world.js'
 import PlatformLoginPanel from './PlatformLoginPanel.vue'
 
 defineProps({
   projectConfig: Object
 })
 
-const authStore = container.resolve('auth')
+const authStore = world.store("auth")
 const route = useRoute()
-const resolveNavProjection = container.getService('resolveNavProjection')
+const resolveNavProjection = world.service('resolveNavProjection')
 const navProjection = computed(() => {
   const bucket = window.__MODULE_ROUTES__ || { all: [] }
   return resolveNavProjection(bucket.all || [])
@@ -69,8 +69,8 @@ const isItemActive = (item) => {
   return false
 }
 
-const lifecycleStore = container.resolve('lifecycle')
-const moduleStore = container.resolve('module')
+const lifecycleStore = world.store('lifecycle')
+const moduleStore = world.store('module')
 const phase = computed(() => lifecycleStore.state.phase)
 const moduleCount = computed(() => moduleStore.state.modules.length)
 </script>

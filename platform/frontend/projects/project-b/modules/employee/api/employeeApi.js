@@ -1,6 +1,5 @@
 // modules/employee/api/employeeApi.js
-import { createClient } from "@/app/api/client.js";
-import { getApiMode } from "@/app/api/apiMode.js";
+import world from '@/world.js'
 
 function clone(data) {
   try {
@@ -14,22 +13,22 @@ function delay(ms = 200) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const client = createClient();
-const mode = getApiMode();
+const http = world.http();
+const mode = world.apiMode();
 
 let mockDB = [];
 
 export const employeeApi = {
   async list() {
     if (mode === "real") {
-      return client.get("/api/employees/list");
+      return http.get("/api/employees/list");
     }
     await delay();
     return clone(mockDB);
   },
   async create(payload) {
     if (mode === "real") {
-      return client.post("/api/employees/create", payload);
+      return http.post("/api/employees/create", payload);
     }
     await delay();
     const nextId = mockDB.reduce((max, e) => Math.max(max, e.id), 0) + 1;
@@ -44,7 +43,7 @@ export const employeeApi = {
   },
   async update(id, payload) {
     if (mode === "real") {
-      return client.post("/api/employees/update", { id, ...payload });
+      return http.post("/api/employees/update", { id, ...payload });
     }
     await delay();
     mockDB = mockDB.map((e) => (e.id === id ? { ...e, ...payload } : e));
@@ -52,7 +51,7 @@ export const employeeApi = {
   },
   async remove(id) {
     if (mode === "real") {
-      return client.post("/api/employees/delete", { id });
+      return http.post("/api/employees/delete", { id });
     }
     await delay();
     mockDB = mockDB.filter((e) => e.id !== id);

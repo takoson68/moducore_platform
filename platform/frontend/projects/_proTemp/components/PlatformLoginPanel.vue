@@ -1,10 +1,9 @@
 <!-- projects/_proTemp/components/PlatformLoginPanel.vue -->
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { container } from '@app/container'
-import { authApi } from '@app/api'
+import world from '@/world.js'
 
-const authStore = container.resolve('auth')
+const authStore = world.store("auth")
 const username = ref('admin')
 const password = ref('1234')
 const loading = ref(false)
@@ -18,7 +17,7 @@ async function restoreSession() {
   loading.value = true
   error.value = ''
 
-  const { ok } = await authApi.restoreSession()
+  const { ok } = await world.authApi().restoreSession()
   if (!ok) {
     error.value = 'Session 取得失敗'
     loading.value = false
@@ -34,7 +33,7 @@ async function handleLogin() {
   error.value = ''
 
   const payload = { username: username.value, password: password.value }
-  const { ok, data } = await authApi.login(payload)
+  const { ok, data } = await world.authApi().login(payload)
 
   if (!ok || data.success === false) {
     error.value = data.message || '登入失敗'
@@ -51,7 +50,7 @@ async function handleLogout() {
   loading.value = true
   error.value = ''
 
-  await authApi.logout()
+  await world.authApi().logout()
   loading.value = false
 }
 

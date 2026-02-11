@@ -1,14 +1,11 @@
 ﻿<script setup>
-import { computed, onMounted, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { container } from "@/app/container";
+import { computed, onMounted } from "vue";
+import world from '@/world.js'
 import { voteService } from "../services/voteService.js";
 import VoteCreateModal from "../components/VoteCreateModal.vue";
 import VoteDetailModal from "../components/VoteDetailModal.vue";
 
-const voteStore = container.resolve("voteStore");
-const route = useRoute();
-const router = useRouter();
+const voteStore = world.store("voteStore");
 
 const votes = computed(() => {
   const keyword = voteStore.state.search.trim().toLowerCase();
@@ -27,16 +24,10 @@ function setSearch(e) {
 
 function openCreate() {
   voteStore.openCreate();
-  if (route.path !== "/vote/create") {
-    router.replace("/vote/create");
-  }
 }
 
 function openDetail(vote) {
   voteStore.openDetail(vote);
-  if (route.path !== `/vote/${vote.id}`) {
-    router.replace(`/vote/${vote.id}`);
-  }
 }
 
 function statusLabel(vote) {
@@ -55,26 +46,6 @@ onMounted(() => {
     console.error("[vote/list] fetch votes failed", err);
   });
 });
-
-watch(
-  [() => route.path, () => route.params.id, () => voteStore.state.list],
-  () => {
-    const isCreate = route.path === "/vote/create";
-    const id = route.params.id;
-    if (isCreate) {
-      voteStore.openCreate();
-    } else {
-      voteStore.closeEditor();
-    }
-    if (id) {
-      const found = voteStore.state.list.find((v) => String(v.id) === String(id));
-      voteStore.openDetail(found || null);
-    } else {
-      voteStore.closeDetail();
-    }
-  },
-  { immediate: true }
-);
 </script>
 
 <template lang="pug">

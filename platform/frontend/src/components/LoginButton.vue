@@ -2,11 +2,11 @@
 <script setup>
 import { ref, computed } from "vue";
 import LoginModal from "@/components/LoginModal.vue";
-import { container } from "@/app/container";
+import world from '@/world.js'
 import { useRouter } from "vue-router";
 
 const showLogin = ref(false);
-const auth = container.resolve("auth");
+const auth = world.store("auth");
 
 // 統一透過 container 取得登入狀態
 const isLoggedIn = computed(() => auth.isLoggedIn());

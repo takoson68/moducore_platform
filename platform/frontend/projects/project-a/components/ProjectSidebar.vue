@@ -2,11 +2,11 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { container } from '@app/container'
+import world from '@/world.js'
 
 const route = useRoute()
-const authStore = container.resolve('auth')
-const resolveNavProjection = container.getService('resolveNavProjection')
+const authStore = world.store("auth")
+const resolveNavProjection = world.service('resolveNavProjection')
 const navProjection = computed(() => {
   const bucket = window.__MODULE_ROUTES__ || { all: [] }
   return resolveNavProjection(bucket.all || [])

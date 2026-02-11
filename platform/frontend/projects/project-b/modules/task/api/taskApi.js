@@ -1,6 +1,5 @@
 // modules/task/api/taskApi.js
-import { createClient } from "@/app/api/client.js";
-import { getApiMode } from "@/app/api/apiMode.js";
+import world from '@/world.js'
 import { mockTasks } from "./mockTasks.js";
 import { mockEmployees } from "../../employee/api/mockEmployees.js";
 
@@ -16,8 +15,8 @@ function delay(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const client = createClient();
-const mode = getApiMode();
+const http = world.http();
+const mode = world.apiMode();
 
 let mockDB = clone(mockTasks);
 
@@ -52,7 +51,7 @@ function buildMockEmployees(tasks = [], base = []) {
 export const taskApi = {
   async list() {
     if (mode === "real") {
-      return client.get("/api/tasks/list");
+      return http.get("/api/tasks/list");
     }
     await delay();
     const employees = buildMockEmployees(mockDB, mockEmployees);
@@ -74,7 +73,7 @@ export const taskApi = {
   },
   async detail(id) {
     if (mode === "real") {
-      return client.get(`/api/tasks/detail?id=${id}`);
+      return http.get(`/api/tasks/detail?id=${id}`);
     }
     await delay();
     const task = mockDB.find((item) => item.id === Number(id));
@@ -83,7 +82,7 @@ export const taskApi = {
   },
   async create(payload) {
     if (mode === "real") {
-      return client.post("/api/tasks/create", payload);
+      return http.post("/api/tasks/create", payload);
     }
     await delay();
     const nextId = mockDB.reduce((max, t) => Math.max(max, t.id), 0) + 1;
@@ -104,7 +103,7 @@ export const taskApi = {
   },
   async update(id, payload) {
     if (mode === "real") {
-      return client.post("/api/tasks/update", { id, ...payload });
+      return http.post("/api/tasks/update", { id, ...payload });
     }
     await delay();
     mockDB = mockDB.map((t) => (t.id === id ? { ...t, ...payload } : t));
@@ -112,7 +111,7 @@ export const taskApi = {
   },
   async addEvent(id, event) {
     if (mode === "real") {
-      return client.post("/api/tasks/messages_create", { task_id: id, ...event });
+      return http.post("/api/tasks/messages_create", { task_id: id, ...event });
     }
     await delay();
     mockDB = mockDB.map((t) => {
@@ -123,7 +122,7 @@ export const taskApi = {
   },
   async remove(id, userId) {
     if (mode === "real") {
-      return client.post("/api/tasks/delete", { id, user_id: userId });
+      return http.post("/api/tasks/delete", { id, user_id: userId });
     }
     await delay();
     mockDB = mockDB.filter((t) => t.id !== id);

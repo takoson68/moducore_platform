@@ -1,5 +1,5 @@
 //- projects/_proTemp/modules/index.js
-import { registerUISlot } from '../../../src/app/uiRegistry.js'
+import { registerUISlot } from '@app/uiRegistry.js'
 
 const modules = import.meta.glob('./*/index.js')
 
