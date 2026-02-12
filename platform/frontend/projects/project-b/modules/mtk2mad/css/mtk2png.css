@@ -1063,7 +1063,7 @@ body, html {
 }
 
 .mtk2png.mtk2mad .mdTopng {
-  width: 40%;
+  width: 40vw;
   padding-right: .5em;
 }
 
@@ -1918,6 +1918,7 @@ ul.box li ul li {
 .mtk2png.mtk2mad {
   padding-bottom: 0em;
   overflow: hidden;
+  width: 80vw;
 }
 
 .mtk2png.mtk2mad section.sys_title h1 {

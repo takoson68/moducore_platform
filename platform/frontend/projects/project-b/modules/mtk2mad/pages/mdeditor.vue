@@ -163,6 +163,9 @@ export default {
       }, 250);
     };
   },
+  async created() {
+    // await this.loadDefaultMdText();
+  },
   methods: {
     async loadDefaultMdText() {
       try {

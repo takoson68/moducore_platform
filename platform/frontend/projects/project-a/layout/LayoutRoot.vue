@@ -21,10 +21,11 @@ const isLoggedIn = computed(() => authStore.isLoggedIn())
 
 <style lang="sass">
 .shell
-  --project-a-topbar-height: 88px
+  --project-a-topbar-height: 60px
   --project-a-sidebar-width: 248px
   --project-a-shell-padding: 20px
   --project-a-layout-gap: 20px
+  --project-a-content-offset: var(--project-a-sidebar-width)
   min-height: 100vh
   background: var(--bg)
   color: var(--text-main)
@@ -43,8 +44,8 @@ const isLoggedIn = computed(() => authStore.isLoggedIn())
 
 .content
   min-width: 0
-  padding: calc(var(--project-a-topbar-height) + var(--project-a-shell-padding)) var(--project-a-shell-padding) var(--project-a-shell-padding)
-  margin-left: var(--project-a-sidebar-width)
+  padding: var(--project-a-topbar-height) var(--project-a-shell-padding) var(--project-a-shell-padding)
+  margin-left: var(--project-a-content-offset)
 
 .main.no-sidebar .content
   margin-left: 0

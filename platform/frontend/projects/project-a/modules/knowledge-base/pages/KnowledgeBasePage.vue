@@ -1,6 +1,6 @@
 <!-- projects/project-a/modules/knowledge-base/pages/KnowledgeBasePage.vue -->
 <script setup>
-import KnowledgeBaseLayout from '../layout/KnowledgeBaseLayout.vue'
+import ProjectModuleLayout from '@project/layout/ModuleContentLayout.vue'
 
 const title = 'Knowledge Base'
 const subtitle = 'Content governance module'
@@ -19,7 +19,7 @@ const reviewQueue = [
 </script>
 
 <template lang="pug">
-KnowledgeBaseLayout(:title="title" :subtitle="subtitle")
+ProjectModuleLayout(:title="title" :subtitle="subtitle")
   section.pa-kb
     .pa-kb__hero
       p.pa-kb__lead 知識治理視圖

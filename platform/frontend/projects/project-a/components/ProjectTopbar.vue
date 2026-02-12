@@ -126,7 +126,7 @@ header.topbar
   gap: 16px
   position: fixed
   top: 0
-  left: var(--project-a-sidebar-width)
+  left: var(--project-a-content-offset, var(--project-a-sidebar-width))
   right: 0
   z-index: 10002
 

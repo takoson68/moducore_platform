@@ -3,7 +3,7 @@ import RootShell from './RootShell.vue'
 
 export function defineLayout() {
   return {
-    id: 'root-shell',
+    id: 'project-template-layout',
     component: RootShell
   }
 }

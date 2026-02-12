@@ -1,6 +1,6 @@
 <!-- projects/project-a/modules/approval-center/pages/ApprovalCenterPage.vue -->
 <script setup>
-import ApprovalCenterLayout from '../layout/ApprovalCenterLayout.vue'
+import ProjectModuleLayout from '@project/layout/ModuleContentLayout.vue'
 
 const title = 'Approval Center'
 const subtitle = 'Decision and approval module'
@@ -19,7 +19,7 @@ const decisionItems = [
 </script>
 
 <template lang="pug">
-ApprovalCenterLayout(:title="title" :subtitle="subtitle")
+ProjectModuleLayout(:title="title" :subtitle="subtitle")
   section.pa-approval
     .pa-approval__header
       p.pa-approval__lead 決策流程看板

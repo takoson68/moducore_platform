@@ -108,6 +108,7 @@ aside.sidebar
   justify-content: flex-start
   gap: 14px
   height: 100%
+  box-sizing: border-box
   padding: 18px 14px
   // border: 1px solid var(--sidebar-border)
   border-radius: 0
