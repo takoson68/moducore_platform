@@ -1,54 +1,64 @@
 <!-- projects/project-a/layout/LayoutRoot.vue -->
 <script setup>
-defineProps({
-  title: {
-    type: String,
-    default: ''
-  },
-  subtitle: {
-    type: String,
-    default: ''
-  }
-})
+import { computed } from 'vue'
+import world from '@/world.js'
+import ProjectTopbar from '../components/ProjectTopbar.vue'
+import ProjectSidebar from '../components/ProjectSidebar.vue'
+
+const authStore = world.store('auth')
+const projectConfig = computed(() => world.projectConfig() || {})
+const isLoggedIn = computed(() => authStore.isLoggedIn())
 </script>
 
 <template lang="pug">
-.layout-root
-  header.layout-header(v-if="title || subtitle")
-    h1 {{ title }}
-    p(v-if="subtitle") {{ subtitle }}
-  section.layout-body
-    slot
-    RouterView
+.shell(:class="{ 'no-sidebar': !isLoggedIn }")
+  ProjectTopbar(:project-config="projectConfig")
+  .main(:class="{ 'no-sidebar': !isLoggedIn }")
+    ProjectSidebar(v-if="isLoggedIn")
+    section.content
+      RouterView
 </template>
 
 <style lang="sass">
-.layout-root
-  padding: 14px
-  display: grid
-  gap: 12px
-
-.layout-header h1
-  margin: 0
-  font-size: 24px
+.shell
+  --project-a-topbar-height: 88px
+  --project-a-sidebar-width: 248px
+  --project-a-shell-padding: 20px
+  --project-a-layout-gap: 20px
+  min-height: 100vh
+  background: var(--bg)
   color: var(--text-main)
-  letter-spacing: 0.01em
 
-.layout-header p
-  margin: 6px 0 0
-  color: var(--text-sub)
-  font-size: 13px
+.main
+  min-height: 100vh
 
-.layout-body
-  display: grid
-  gap: var(--space-1)
+.sidebar
+  position: fixed
+  top: 0
+  left: 0
+  bottom: 0
+  width: var(--project-a-sidebar-width)
+  height: auto
+  z-index: 10003
 
-.layout-body > p
-  margin: 0
-  padding: 12px
-  border: 1px solid var(--border)
-  border-radius: 10px
-  background: var(--surface-muted)
-  color: var(--text-sub)
-  line-height: 1.6
+.content
+  min-width: 0
+  padding: calc(var(--project-a-topbar-height) + var(--project-a-shell-padding)) var(--project-a-shell-padding) var(--project-a-shell-padding)
+  margin-left: var(--project-a-sidebar-width)
+
+.main.no-sidebar .content
+  margin-left: 0
+
+@media (max-width: 960px)
+  .topbar
+    left: 0
+    height: auto
+
+  .sidebar
+    position: static
+    width: 100%
+    height: auto
+
+  .content
+    margin-left: 0
 </style>

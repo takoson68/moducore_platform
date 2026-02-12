@@ -1,50 +1,51 @@
 # World Index (_VibeCore)
 
-本文件為 _VibeCore 世界之**唯一裁決入口**，
-世界主鏈之閱讀與理解順序由本 index 文件裁決。
+本文件為 _VibeCore 世界之**唯一裁決入口**，  
+世界主鏈之閱讀與理解順序由本 index 文件裁決。  
 
+World Version: v2  
+Status: Governance Complete  
 
-World Version: v2
-Status: Governance Complete
+---
 
 ## Boot Instruction
 
-本文件為進入此既有世界的**啟動指令與行為契約**。
+本文件為進入此既有世界的**啟動指令與行為契約**。  
 
-你是此世界的協作者（collaborator），
-不是世界的設計者，
-也不得改寫、擴充或重新詮釋世界規則。
+你是此世界的協作者（collaborator），  
+不是世界的設計者，  
+也不得改寫、擴充或重新詮釋世界規則。  
 
-在開始任何工作前，
-你必須先完整閱讀並遵守本世界文件。
-任何未依本指令進行的行為，
-均視為不具世界合法性。
+在開始任何工作前，  
+你必須先完整閱讀並遵守本世界文件。  
+任何未依本指令進行的行為，  
+均視為不具世界合法性。  
 
 ---
 
 ## 使用語言
 
-- 你我之間的溝通一律使用繁體中文。
-- 工程實作註解一律使用繁體中文。
-- 語言風格屬於表達層規範，不得影響結構或語意裁決。
+- 你我之間的溝通一律使用繁體中文。  
+- 工程實作註解一律使用繁體中文。  
+- 語言風格屬於表達層規範，不得影響結構或語意裁決。  
 
 ---
-
-
 
 ---
 
 ## World 主鏈（會裁決世界）
 
-以下文件構成 World 的**主鏈定義**，  
-其內容具備裁決力，違反即視為破壞世界一致性。
-以下列表順序即為 World 主鏈之裁決閱讀順序，
-與檔名前綴數字是否連續或語意無關。
+以下文件構成世界主鏈，其閱讀順序以 index.md 為唯一權威來源。  
+本文件僅做結構分類與命名約束說明，  
+不得自行推論或重排裁決順序。  
+
+（以下保留既有檔名與編號，不變更任何既生成文件。）
 
 ```text
 world/00_PURPOSE.md                  這套世界文件為何存在、給誰用、如何被閱讀
 world/01_WORLD_MODEL.md              世界裡有誰
 world/02_WORLD_BOUNDARIES.md         哪些事永不可做
+world/03_LAYOUT_WORLD.md             Project 層之 Layout 結構邊界與 UI 治理規範
 world/03_WORLD_API_RULES.md          世界如何合法接觸真實
 world/04_WORLD_LIFECYCLE.md          世界如何生成、啟動、重置與消亡
 world/05_OUTPUT_DEFINITION.md        世界對外會產出什麼
@@ -52,78 +53,86 @@ world/06_STRUCTURE_AND_NAMING.md     世界的結構與命名如何被約束
 world/07_AUTHORING_STYLE.md          世界文件本身應如何被撰寫
 world/08_CHANGE_PROTOCOL.md          世界規則應如何被修改與演進
 world/09_WORLD_RULES.md              世界運作時必須遵守的一般規則
-
 ```
+
+---
 
 ## Reading Order Authority
 
-世界主鏈文件的**閱讀與理解順序**，
-一律以本 index 文件所定義之 **World 主鏈閱讀順序** 為準。
+世界主鏈文件的**閱讀與理解順序**，  
+一律以本 index 文件所定義之 **World 主鏈閱讀順序** 為準。  
 
-檔名前綴數字僅作為：
-- 結構分類識別
-- 歷史命名與穩定引用用途
+檔名前綴數字僅作為：  
 
-**不代表閱讀順序，
-亦不得作為推論世界理解流程的依據。**
+- 結構分類識別  
+- 歷史命名與穩定引用用途  
 
-若閱讀順序與檔名前綴出現不一致，
-必須以本 index 文件為最高權威。
+**不代表閱讀順序，  
+亦不得作為推論世界理解流程的依據。**  
 
-在未完成閱讀前，
-你不得推論世界整體結構，
-亦不得基於片段理解做出判斷。
+若閱讀順序與檔名前綴出現不一致，  
+必須以本 index 文件為最高權威。  
+
+在未完成閱讀前，  
+
+- 你不得推論世界整體結構  
+- 亦不得基於片段理解做出判斷  
 
 ---
 
 ## Behavior Constraints（執行約束）
 
+> 本節之條目編號，對應本 index 中的「World 主鏈閱讀順序」，  
+> 與實際檔名前綴數字無關。
+
 - 未完成 1–4 前：  
-  - 不得輸出任何架構性結論、系統方案或結構推論
+  - 不得輸出任何架構性結論、系統方案或結構推論  
 
 - 未完成 1–6 前：  
-  - 不得建立、修改或刪除任何目錄與檔案
+  - 不得建立、修改或刪除任何目錄與檔案  
 
 - 07_AUTHORING_STYLE：  
   - 僅影響表達方式與書寫取向  
-  - 不得影響結構判斷、世界合法性或裁決結果
+  - 不得影響結構判斷、世界合法性或裁決結果  
 
 - 任何對 world 文件的變更：  
-  - 必須遵守 `08_CHANGE_PROTOCOL`
+  - 必須遵守 `08_CHANGE_PROTOCOL`  
 
-- 09_WORLD_RULES 為世界運行階段的一般裁決規則，其層級低於 World Boundaries，但仍具備世界裁決力，並受 Change Protocol 管轄。
+- 09_WORLD_RULES 為世界運行階段的一般裁決規則，其層級低於 World Boundaries 與 Layout World，但仍具備世界裁決力，並受 Change Protocol 管轄。  
+
+---
 
 ---
 
----
 ## Role Contracts（角色契約）
 
-本層為世界治理補充資料，
-用於明確描述各角色與構件的責任邊界。
+本層為世界治理補充資料，  
+用於明確描述各角色與構件的責任邊界。  
 
-進入本層前，必須完成 World 主鏈（00–09）閱讀。
+進入本層前，必須完成 World 主鏈（00–09）閱讀。  
 
 > 進入並閱讀  
 > `world/02_ROLE_CONTRACTS/index.md`
 
-若本層內容與 World 主鏈衝突：
+若本層內容與 World 主鏈衝突：  
 
-- 一律以 World 主鏈為最高權威
+- 一律以 World 主鏈為最高權威  
+
+---
 
 ---
 
----
 ## World Semantic Boundaries（治理補完層）
 
-本世界另設 **World Semantic Boundaries** 作為治理補完層。
+本世界另設 **World Semantic Boundaries** 作為治理補完層。  
 
-此層文件之語意定位為：
+此層文件之語意定位為：  
 
-- 不構成 World 主鏈
-- 不新增、修改或推翻任何世界裁決
-- 不具獨立的世界定義權
+- 不構成 World 主鏈  
+- 不新增、修改或推翻任何世界裁決  
+- 不具獨立的世界定義權  
 
-其唯一目的為：
+其唯一目的為：  
 
 > 在「世界裁決已完成」之後，  
 > 明確限制各運行層與工程層  
@@ -134,166 +143,163 @@ world/09_WORLD_RULES.md              世界運作時必須遵守的一般規則
 ### Reading Prerequisite（強制）
 
 你 **僅在完成以下閱讀後**，  
-才被允許進入 World Semantic Boundaries：
+才被允許進入 World Semantic Boundaries：  
 
-- 本 index 文件
-- World 主鏈（00–09 全部）
+- 本 index 文件  
+- World 主鏈（00–09 全部）  
 
-在完成上述閱讀前：
+在完成上述閱讀前：  
 
-- 不得進入本層
-- 不得引用本層任何內容
-- 不得以本層內容推論世界結構或裁決結果
+- 不得進入本層  
+- 不得引用本層任何內容  
+- 不得以本層內容推論世界結構或裁決結果  
 
 ---
 
 ### Legal Status（法階說明）
 
-- 本層屬於「治理補完層」
-- 僅對 **如何使用世界** 生效
-- 不對 **世界是什麼** 具備裁決力
+- 本層屬於「治理補完層」  
+- 僅對 **如何使用世界** 生效  
+- 不對 **世界是什麼** 具備裁決力  
 
-若本層內容與 World 主鏈出現語意衝突：
+若本層內容與 World 主鏈出現語意衝突：  
 
-- 一律以 World 主鏈為最高權威
-- 本層內容視為無效，不得適用
+- 一律以 World 主鏈為最高權威  
+- 本層內容視為無效，不得適用  
 
 ---
 
 ### Boundary Documents
 
-World Semantic Boundaries 包含但不限於以下文件：
+World Semantic Boundaries 包含但不限於以下文件：  
 
-- Platform Boot & Lifecycle — Semantic Boundary
-- Container & Capability Registration — Semantic Boundary
-- API Interaction Boundary
-- Routing & Guards — Semantic Boundary
-- Module Collections — Semantic Boundary
-- Layout & Styles — Semantic Boundary
+- Platform Boot & Lifecycle — Semantic Boundary  
+- Container & Capability Registration — Semantic Boundary  
+- API Interaction Boundary  
+- Routing & Guards — Semantic Boundary  
+- Module Collections — Semantic Boundary  
+- Layout & Styles — Semantic Boundary  
 
 ---
 
 ### Entry Command（進入命令）
 
 僅在 World 主鏈閱讀完成後，  
-你才被允許執行以下行為：
+你才被允許執行以下行為：  
 
 > 進入並閱讀  
 > `world/semantic_boundaries/`  
-> 以理解各運行層與工程層的語意邊界限制。
+> 以理解各運行層與工程層的語意邊界限制。  
 
-你不得：
+你不得：  
 
-- 將本層內容視為世界裁決
-- 反向推論世界定義
-- 以本層內容修改、補充或延伸主鏈規則
+- 將本層內容視為世界裁決  
+- 反向推論世界定義  
+- 以本層內容修改、補充或延伸主鏈規則  
+
+---
 
 ---
 
-
----
 ## Operational Worlds Entry（運行語意層入口）
 
 本新世界已完成世界裁決層（World Core），  
-並正式開放運行語意層（Operational Worlds）以供測試與使用。
+並正式開放運行語意層（Operational Worlds）以供測試與使用。  
 
 ### 可進入之運行語意層
 
 在完成世界主鏈（00–09）閱讀後，  
-讀者 **被允許** 進入以下世界延伸層：
+讀者 **被允許** 進入以下世界延伸層：  
 
-- **API World**：`api/`
-  - 作為世界對外語意表達介面
-  - 不具世界裁決權
-  - 不得回寫或改寫世界規則
+- **API World**：`api/`  
+  - 作為世界對外語意表達介面  
+  - 不具世界裁決權  
+  - 不得回寫或改寫世界規則  
 
-- **Module World**：`modules/`
-  - 作為世界內部功能與 UI 單位
-  - 不影響世界生命週期
-  - 僅能依附於既有世界裁決存在
+- **Module World**：`modules/`  
+  - 作為世界內部功能與 UI 單位  
+  - 不影響世界生命週期  
+  - 僅能依附於既有世界裁決存在  
 
 ### 導讀約束
 
-- 運行語意層僅用於理解與驗證世界如何被使用
-- 不得將其內容反向推論為世界裁決或結構定義
-- 若發現與世界主鏈語意不一致，以世界主鏈為最終依據
+- 運行語意層僅用於理解與驗證世界如何被使用  
+- 不得將其內容反向推論為世界裁決或結構定義  
+- 若發現與世界主鏈語意不一致，以世界主鏈為最終依據  
 
 ---
 
-
 ---
+
 ## Model Extension Layer（結構延伸層）
 
-本世界除主鏈（具備世界裁決力的文件）外，
-另設一延伸敘事層（model），
-用以補充既有世界概念之結構性描述。
-請自 world/model/index.md 開始閱讀。
+本世界除主鏈（具備世界裁決力的文件）外，  
+另設一延伸敘事層（model），  
+用以補充既有世界概念之結構性描述。  
+請自 world/model/index.md 開始閱讀。  
 
-model 層：
+model 層：  
 
-- 不新增世界規則
-- 不定義流程、時序或行為
-- 不具備獨立的世界定義權
+- 不新增世界規則  
+- 不定義流程、時序或行為  
+- 不具備獨立的世界定義權  
 
-僅當你需要進行以下判斷時，
-才應進入 model 層：
+僅當你需要進行以下判斷時，  
+才應進入 model 層：  
 
-- 實際配置如何被視為合法宣告
-- 結構組合是否可被世界承認
-- 文件之間是否存在語意衝突
+- 實際配置如何被視為合法宣告  
+- 結構組合是否可被世界承認  
+- 文件之間是否存在語意衝突  
 
 ---
 
 ## Engineering Layer（工程層）
 
-在完成世界主鏈（00–09）之閱讀與理解後：
+在完成世界主鏈（00–09）之閱讀與理解後：  
 
 - 若僅進行概念釐清、問題分析或世界層討論  
-  → 不需進入 engineering 層
+  → 不需進入 engineering 層  
 
-- 若你即將進行任何實際工程行為，例如：
-  - 撰寫或修改程式碼
-  - 建立、調整或重構目錄結構
-  - 記錄問題、決策或變更
+- 若你即將進行任何實際工程行為，例如：  
+  - 撰寫或修改程式碼  
+  - 建立、調整或重構目錄結構  
+  - 記錄問題、決策或變更  
   - 使用 Git 保存或回溯工作狀態  
 
-  則必須同時閱讀並遵守工程層入口文件。
+  則必須同時閱讀並遵守工程層入口文件。  
 
-engineering 層僅用於規範工程行為，
-不得違反或改寫本世界所定義的任何內容。
+engineering 層僅用於規範工程行為，  
+不得違反或改寫本世界所定義的任何內容。  
 
 ---
 
 ## Consistency Report
 
-- 不變量僅定義於 `world/01_INVARIANTS.md`；其他文件僅引用 INV 編號。
-- Role Contracts 皆含 Derived From；無缺口。
-- feedback 內容未被寫成世界規則；未發現違規位置。
-- 未發現內容重複、矛盾或來源不明的段落。
+- 不變量僅定義於 `world/01_INVARIANTS.md`；其他文件僅引用 INV 編號。  
+- Role Contracts 皆含 Derived From；無缺口。  
+- feedback 內容未被寫成世界規則；未發現違規位置。  
+- 未發現內容重複、矛盾或來源不明的段落。  
 
 ---
-
 
 ## 補充裁決文件（Normative Appendix）
 
 以下文件為本世界之「裁決附錄」，  
-用於具體列示各層級的裁決權責、禁止事項與常見違規模式。
+用於具體列示各層級的裁決權責、禁止事項與常見違規模式。  
 
-- DECISION_MATRIX.md
+- DECISION_MATRIX.md  
 
 本文件屬於世界裁決之「規範性附錄」，  
-因此刻意不列入 World 主鏈（00–09）之編號序列，
-以避免被誤解為世界定義條文之一。
+因此刻意不列入 World 主鏈（00–09）之編號序列，  
+以避免被誤解為世界定義條文之一。  
 
-本附錄不構成世界入口，
-亦不改寫 RootIndex.md 之裁決權，
-僅作為裁決內容的對照與查驗依據。
+本附錄不構成世界入口，  
+亦不改寫 RootIndex.md 之裁決權，  
+僅作為裁決內容的對照與查驗依據。  
 
-當對裁決邊界或責任歸屬產生疑慮時，
-應優先參照此附錄進行核對。
-
+當對裁決邊界或責任歸屬產生疑慮時，  
+應優先參照此附錄進行核對。  
 
 ---
-
 
 End of World Index
