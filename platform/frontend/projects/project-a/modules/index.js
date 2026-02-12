@@ -50,13 +50,7 @@ export async function installModules({ register }, { allowList = [] } = {}) {
     }
 
     if (Array.isArray(routes)) {
-      const resolvedRoutes = routes.map(route => {
-        if (route && !route.component) {
-          return { ...route, component: mod.view }
-        }
-        return route
-      })
-      register.routes(resolvedRoutes)
+      register.routes(routes)
     }
 
     if (ui?.slots && typeof ui.slots === 'object') {

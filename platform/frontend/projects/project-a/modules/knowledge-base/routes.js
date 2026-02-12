@@ -1,6 +1,7 @@
 //- projects/project-a/modules/knowledge-base/routes.js
 export const routes = [{
   path: '/kb',
+  component: () => import('./pages/KnowledgeBasePage.vue'),
   meta: {
     access: {
       public: false,

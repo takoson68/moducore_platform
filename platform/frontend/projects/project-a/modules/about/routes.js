@@ -2,6 +2,7 @@
 export const routes = [
   {
     path: '/about',
+    component: () => import('./pages/AboutPage.vue'),
     meta: {
       access: {
         public: false,

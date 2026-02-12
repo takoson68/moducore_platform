@@ -2,20 +2,7 @@
 export const routes = [
   {
     path: '/employee',
-    component: () => import('./pages/Layout.vue'),
-    children: [
-      {
-        path: '',
-        component: () => import('./pages/list.vue'),
-        meta: {
-          access: {
-            public: false,
-            auth: true
-          },
-          nav: []
-        }
-      }
-    ],
+    component: () => import('./pages/index.vue'),
     meta: {
       access: {
         public: false,

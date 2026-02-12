@@ -2,20 +2,7 @@
 export const routes = [
   {
     path: '/notifications',
-    component: () => import('./pages/Layout.vue'),
-    children: [
-      {
-        path: '',
-        component: () => import('./pages/NotificationPage.vue'),
-        meta: {
-          access: {
-            public: false,
-            auth: true
-          },
-          nav: []
-        }
-      }
-    ],
+    component: () => import('./pages/index.vue'),
     meta: {
       access: {
         public: false,

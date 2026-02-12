@@ -1,6 +1,7 @@
 //- projects/project-a/modules/approval-center/routes.js
 export const routes = [{
   path: '/approvals',
+  component: () => import('./pages/ApprovalCenterPage.vue'),
   meta: {
     access: {
       public: false,

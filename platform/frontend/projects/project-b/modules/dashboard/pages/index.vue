@@ -385,7 +385,7 @@ onMounted(async () => {
   gap: 20px
   // background: radial-gradient(circle at 20% 20%, color-mix(in srgb, $sys_4 18%, $sys_1), $sys_1 55%)
   font-family: $fontBase
-
+  width: 100%
 .hero
   display: flex
   justify-content: space-between
