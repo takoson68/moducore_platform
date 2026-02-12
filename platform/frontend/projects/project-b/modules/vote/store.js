@@ -1,4 +1,4 @@
-import { createStore } from "@/app/stores/_storeFactory.js";
+import { createStore } from "@/core";
 import { mockVotes } from "./api/mockVotes.js";
 
 function normalizeVote(vote, fallback = {}) {

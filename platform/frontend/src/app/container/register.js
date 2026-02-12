@@ -92,6 +92,9 @@ export function createRegister(container) {
       const bucket = ensureRouteBucket()
       const flatRoutes = flattenRoutes(routes)
       const pushRoute = (route) => {
+        if (!route?.component) {
+          console.warn(`[Route] missing explicit component: ${route?.path || '(unknown)'}`)
+        }
         const { isPublic, isAuth } = validateAccessMeta(route.meta || {})
         if (!isPublic && !isAuth) return // disabled route
         const target = isPublic ? bucket.public : bucket.auth

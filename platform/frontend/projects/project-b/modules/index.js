@@ -57,14 +57,7 @@ export async function installModules({ register }, { allowList = [] } = {}) {
     }
 
     if (Array.isArray(routes)) {
-      // 若 route 未指定 component，預設使用模組 view
-      const resolvedRoutes = routes.map(route => {
-        if (route && !route.component) {
-          return { ...route, component: mod.view }
-        }
-        return route
-      })
-      register.routes(resolvedRoutes)
+      register.routes(routes)
     }
 
     if (ui?.slots && typeof ui.slots === 'object') {

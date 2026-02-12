@@ -1,5 +1,5 @@
 //- src/app/stores/platformConfigStore.js
-import { createStore } from './_storeFactory.js'
+import { createStore } from '@/core'
 
 export function createPlatformConfigStore() {
   const store = createStore({
@@ -11,11 +11,16 @@ export function createPlatformConfigStore() {
     store.set({ config })
   }
 
+  function reset() {
+    store.clear()
+  }
+
   return {
     get: store.get,
     set: store.set,
     state: store.state,
     setConfig,
+    reset,
     clear: store.clear
   }
 }

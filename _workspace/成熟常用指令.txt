@@ -1,20 +1,13 @@
-請先閱讀 _VibeCore/STARTUP_DECLARATION.md，並依其導引進入世界。
-
+﻿請先閱讀 _VibeCore/STARTUP_DECLARATION.md，並依其導引進入世界。
 
 //---------------------------
 常用目錄單詞
 
-_VibeCore/   RootIndex.md    
-
-platform/    frontend/    backend/   public/  
-
-components/   router/    container/  stores/ 
-
-projects/    project-a/   modules/   layout/    
-
+_VibeCore/   RootIndex.md
+platform/    frontend/    backend/   public/
+components/  router/      container/ stores/
+projects/    project-a/   modules/   layout/
 project-b/
-
-
 
 ## 切換指令（唯一合法語句）
 
@@ -31,6 +24,38 @@ project-b/
 前置：必須先 EXIT_WORLD
 效果：狀態切換為 MAINTENANCE
 
-### 結束維護並回到世界
+### 離開維護模式（回世界）
 指令：EXIT_MAINTENANCE
 效果：狀態切換為 IN_WORLD
+
+//---------------------------
+新模組建立（基本命令）
+
+請直接貼下面這段給 Codex：
+
+# 任務名稱：建立新模組 <module-name>
+# 目標專案：projects/<project-name>
+# 模組路徑：projects/<project-name>/modules/<module-name>
+
+請依目前世界規範與平台工具層建立新模組，並一次完成：
+1) 建立標準檔案：
+   - index.js
+   - routes.js
+   - pages/index.vue
+   - store.js（若需要）
+   - services/*（若需要）
+2) 路由規範：
+   - 單頁模組禁止 children
+   - route 必須顯式 component
+   - 保留 meta.access 與 meta.nav
+3) 工具引用規範：
+   - createStore 一律 `import { createStore } from "@/core"`
+   - 禁止直接 import `@/app/*` 底層工具
+4) 世界對齊：
+   - 若要啟用模組，更新 `projects/<project-name>/project.config.js` 的 modules 清單
+5) 完成後：
+   - 顯示變更檔案清單
+   - 執行 `npm --prefix platform/frontend run build` 並回報結果
+
+最小範例：
+「請建立新模組 `announcement` 到 `projects/project-b`，並依上述規範完成與驗證。」

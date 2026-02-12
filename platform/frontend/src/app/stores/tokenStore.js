@@ -1,5 +1,5 @@
 //- src/app/stores/tokenStore.js
-import { createStore } from './_storeFactory.js'
+import { createStore } from '@/core'
 
 export function createTokenStore() {
   const store = createStore({

@@ -2,5 +2,6 @@
 export default {
   name: 'project-b',
   title: 'Project B',
-  modules: ['welcome']
+  tenant_id: 'project-b',
+  modules: ['shell', 'dashboard', 'employee', 'task', 'vote', 'notification', 'mtk2mad', 'welcome']
 }

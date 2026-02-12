@@ -138,3 +138,42 @@ Git 僅用於保存進度與歷史脈絡，
 ---
 
 ## Promotion Proposals
+
+---
+
+## 新模組建立（Module Scaffolding）
+
+### 目的
+- 讓工程指令本身內建「建立新模組」的基礎認知。
+- 確保產出符合平台工具層與世界規範，不靠臨時口頭補充。
+
+### 標準命令（直接貼給 Codex）
+
+```md
+# 任務名稱：建立新模組 <module-name>
+# 目標專案：projects/<project-name>
+# 模組路徑：projects/<project-name>/modules/<module-name>
+
+請依目前世界規範與平台工具層建立新模組，並一次完成：
+1) 建立標準檔案：
+   - index.js
+   - routes.js
+   - pages/index.vue
+   - store.js（若需要）
+   - services/*（若需要）
+2) 路由規範：
+   - 單頁模組禁止 children
+   - route 必須顯式 component
+   - 保留 meta.access 與 meta.nav
+3) 工具引用規範：
+   - createStore 一律 `import { createStore } from "@/core"`
+   - 禁止直接 import `@/app/*` 底層工具
+4) 世界對齊：
+   - 若要啟用模組，更新 `projects/<project-name>/project.config.js` 的 modules 清單
+5) 完成後：
+   - 顯示變更檔案清單
+   - 執行 `npm --prefix platform/frontend run build` 並回報結果
+```
+
+### 最小範例
+- `請建立新模組 announcement 到 projects/project-b，並依上述規範完成與驗證。`

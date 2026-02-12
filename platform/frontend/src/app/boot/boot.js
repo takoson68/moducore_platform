@@ -1,15 +1,27 @@
 //- src/app/boot/boot.js
 import { discoverModules } from '../../../projects/moduleDiscovery.js'
 import { getProjectModuleRegistry } from '../../../projects/modulesRegistry.js'
+import { resolveWorldVisibility } from '@/core'
 import { container } from '../container/container.js'
 import { createRegister } from '../container/register.js'
 
+// 保留最後一次 boot 參數，讓 reset 可用相同專案上下文重啟。
+let lastBootContext = { projectConfig: null }
+
 export async function boot({ projectConfig } = {}) {
+  // 先快照本次 boot 上下文，供 reset/restart 使用。
+  lastBootContext = { projectConfig: projectConfig ?? null }
+
   await assertPlatformBoundary()
-  const { discoveredModules, allowList } = await resolveWorldVisibility(projectConfig)
+  // 在模組安裝與進入 runtime 前，先注入平台設定。
+  syncPlatformConfig(projectConfig)
+
+  // 先做可見性裁決，再只安裝允許模組。
+  const { discoveredModules, allowList } = await resolveBootVisibility(projectConfig)
   await registerAllowedModules(projectConfig, allowList)
   await initModules()
   await enterRuntime(allowList)
+  // 對外暴露 runtime reset 入口，供 host/除錯工具使用。
   exposeResetHook()
 
   return {
@@ -19,27 +31,40 @@ export async function boot({ projectConfig } = {}) {
   }
 }
 
-// Phase A: assertPlatformBoundary
 async function assertPlatformBoundary() {
-  // 此階段的存在意義：
-  // - 確保平台層已就緒、世界邊界成立
-  // - 若偵測到跨世界或容器未就緒，應在此中止啟動流程
-  // 考慮到平台切換Project 切換（A → B），預留
+  // 保留：平台邊界檢查掛點。
 }
 
-// Phase B: resolveWorldVisibility （僅元數據，不註冊）
-async function resolveWorldVisibility(projectConfig) {
+async function resolveBootVisibility(projectConfig) {
   let discoveredModules = discoverModules(projectConfig)
   if (!Array.isArray(discoveredModules) || discoveredModules.length === 0) {
     const declared = Array.isArray(projectConfig?.modules) ? projectConfig.modules : []
-    discoveredModules = declared.map(name => ({ name, status: 'declared' }))
+    discoveredModules = declared.map((name) => ({ name, status: 'declared' }))
   }
-  const allowList = discoveredModules.map(entry => entry.name)
+
+  const authStore = container.resolve('auth')
+  const userContext = typeof authStore.getUserContext === 'function'
+    ? authStore.getUserContext()
+    : { isAuthenticated: typeof authStore.isLoggedIn === 'function' ? authStore.isLoggedIn() : false }
+  const visibleModules = resolveWorldVisibility({
+    discovered: discoveredModules,
+    platformConfig: projectConfig,
+    userContext
+  })
+  const allowList = visibleModules.map((entry) => entry.name)
 
   return { discoveredModules, allowList }
 }
 
-// Phase C: registerAllowedModules （僅使用 container.register）
+function syncPlatformConfig(projectConfig) {
+  const platformConfigStore = container.resolve('platformConfig')
+  if (typeof platformConfigStore.setConfig === 'function') {
+    platformConfigStore.setConfig(projectConfig ?? null)
+  } else {
+    platformConfigStore.set({ config: projectConfig ?? null })
+  }
+}
+
 async function registerAllowedModules(projectConfig, allowList) {
   const registry = getProjectModuleRegistry(projectConfig?.name)
   if (!registry?.installModules) {
@@ -47,20 +72,16 @@ async function registerAllowedModules(projectConfig, allowList) {
   }
 
   const register = createRegister(container)
+  // registry 會替每個允許模組完成 store/routes/ui 註冊。
   await registry.installModules({ register, container }, { allowList })
 }
 
-// Phase D: initModules
 async function initModules() {
-  // 注意：
-  // 模組初始化目前在 installModules 階段執行。 // /modules/index.js
-  // 此階段僅作為保留掛點，用於未來：
-  // - 延遲初始化
-  // - 可重跑初始化
+  // 保留：模組初始化掛點。
 }
 
-// Phase E: enterRuntime
 async function enterRuntime(allowList) {
+  // 標記 runtime ready，並發布目前啟用模組清單給 UI/狀態層使用。
   const lifecycleStore = container.resolve('lifecycle')
   lifecycleStore.setPhase('ready')
 
@@ -68,14 +89,41 @@ async function enterRuntime(allowList) {
   moduleStore.setModules(allowList ?? [])
 }
 
-// Phase F: 進入運行時
-function exposeResetHook() {
-  // 此階段用途說明：
-  // - 提供世界（World）重置 / 倒帶的統一入口
-  // - 用於同一執行階段內的世界切換（例如：登出、SaaS 模式、多租戶切換、除錯工具）
-  //
-  // 設計說明：
-  // - 目前建議 Project 切換採用「不同網域」並整頁 reload 的方式，
-  //   瀏覽器本身即會清空 runtime，因此正常流程不會使用此 hook。
-  // - 此段刻意保留，作為未來同 runtime 世界重置的擴充掛點。
+export function exposeResetHook() {
+  const hook = () => resetWorld()
+  if (typeof window !== 'undefined') {
+    // 全域 reset hook：提供瀏覽器內診斷或 host 整合呼叫。
+    window.__MODUCORE_RESET_WORLD__ = hook
+  }
+  return hook
+}
+
+export async function resetWorld() {
+  // 重置順序：lifecycle -> module/platform/auth 狀態 -> container -> 重新 boot。
+  const lifecycleStore = container.resolve('lifecycle')
+  lifecycleStore.setPhase('booting')
+
+  const moduleStore = container.resolve('module')
+  if (typeof moduleStore.clearAll === 'function') {
+    moduleStore.clearAll()
+  } else {
+    moduleStore.clear()
+  }
+
+  const platformConfigStore = container.resolve('platformConfig')
+  if (typeof platformConfigStore.reset === 'function') {
+    platformConfigStore.reset()
+  } else {
+    platformConfigStore.clear()
+  }
+
+  const authStore = container.resolve('auth')
+  if (typeof authStore.resetUserContext === 'function') {
+    authStore.resetUserContext()
+  } else {
+    authStore.logout?.()
+  }
+
+  container.destroy()
+  await boot(lastBootContext)
 }

@@ -1,5 +1,5 @@
 //- src/app/stores/lifecycleStore.js
-import { createStore } from './_storeFactory.js'
+import { createStore } from '@/core'
 
 export function createLifecycleStore() {
   const store = createStore({

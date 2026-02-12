@@ -2,5 +2,6 @@
 export default {
   name: 'project-template',
   title: 'Project Template',
+  tenant_id: 'project-template',
   modules: ['welcome']
 }

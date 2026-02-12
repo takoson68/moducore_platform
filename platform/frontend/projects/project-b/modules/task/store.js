@@ -1,4 +1,4 @@
-﻿import { createStore } from "@/app/stores/_storeFactory.js";
+import { createStore } from "@/core";
 
 export function createTaskStore() {
   return createStore({

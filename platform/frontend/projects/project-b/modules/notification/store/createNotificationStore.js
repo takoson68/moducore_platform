@@ -1,4 +1,4 @@
-﻿import { createStore } from "@/app/stores/_storeFactory.js";
+import { createStore } from "@/core";
 import world from '@/world.js'
 import { attachNotificationCollector } from "../notificationCollector.js";
 

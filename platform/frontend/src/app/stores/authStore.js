@@ -1,5 +1,5 @@
 //- src/app/stores/authStore.js
-import { createStore } from './_storeFactory.js'
+import { createStore } from '@/core'
 
 export function createAuthStore() {
   const store = createStore({
@@ -20,6 +20,18 @@ export function createAuthStore() {
     store.set({ user: null })
   }
 
+  function getUserContext() {
+    const currentUser = store.get().user
+    return {
+      user: currentUser,
+      isAuthenticated: Boolean(currentUser)
+    }
+  }
+
+  function resetUserContext() {
+    logout()
+  }
+
   return {
     get: store.get,
     set: store.set,
@@ -27,6 +39,8 @@ export function createAuthStore() {
     isLoggedIn,
     login,
     logout,
+    getUserContext,
+    resetUserContext,
     clear: store.clear,
     loadFromStorage: store.loadFromStorage
   }
