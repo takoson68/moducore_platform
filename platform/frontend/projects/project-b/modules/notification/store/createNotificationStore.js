@@ -1,5 +1,4 @@
-import { createStore } from "@/core";
-import world from '@/world.js'
+﻿import world from '@/world.js'
 import { attachNotificationCollector } from "../notificationCollector.js";
 
 const normalize = (item) => {
@@ -17,7 +16,7 @@ const normalize = (item) => {
 let collectorAttached = false;
 
 export function createNotificationStore() {
-  const store = createStore({
+  const store = world.createStore({
     name: "notificationStore",
     storageKey: "notificationStore",
     defaultValue: {

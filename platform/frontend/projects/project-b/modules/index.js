@@ -1,5 +1,5 @@
 //- projects/project-b/modules/index.js
-import { registerUISlot } from '@app/uiRegistry.js'
+import world from '@/world.js'
 
 // 掃描同層模組目錄（每個模組需有 index.js）
 const modules = import.meta.glob('./*/index.js')
@@ -64,9 +64,9 @@ export async function installModules({ register }, { allowList = [] } = {}) {
       // 註冊 UI slot（支援單一或多個 descriptor）
       for (const [slotName, descriptor] of Object.entries(ui.slots)) {
         if (Array.isArray(descriptor)) {
-          descriptor.forEach(item => registerUISlot(slotName, item))
+          descriptor.forEach(item => world.registerUISlot(slotName, item))
         } else {
-          registerUISlot(slotName, descriptor)
+          world.registerUISlot(slotName, descriptor)
         }
       }
     }

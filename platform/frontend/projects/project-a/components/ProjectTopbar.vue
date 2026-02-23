@@ -7,7 +7,18 @@ import PlatformLoginPanel from './PlatformLoginPanel.vue'
 
 defineProps({
   projectConfig: Object
+  ,
+  canOpenSidebar: {
+    type: Boolean,
+    default: false
+  },
+  sidebarOpen: {
+    type: Boolean,
+    default: false
+  }
 })
+
+defineEmits(['toggle-sidebar'])
 
 const authStore = world.store("auth")
 const route = useRoute()
@@ -77,6 +88,17 @@ const moduleCount = computed(() => moduleStore.state.modules.length)
 
 <template lang="pug">
 header.topbar
+  button.mobile-menu-btn(
+    v-if="canOpenSidebar"
+    type="button"
+    :aria-expanded="String(sidebarOpen)"
+    aria-controls="project-a-sidebar"
+    aria-label="切換側欄"
+    @click="$emit('toggle-sidebar')"
+  )
+    span
+    span
+    span
   .brand
     .brand-title {{ projectConfig?.title ?? 'Project' }}
     .brand-sub Guest World Establishment · {{ phase }}
@@ -236,6 +258,26 @@ header.topbar
   align-items: center
   gap: 10px
 
+.mobile-menu-btn
+  display: none
+  width: 40px
+  height: 40px
+  border-radius: 10px
+  border: 1px solid #dbe4ff
+  background: var(--surface-muted)
+  padding: 0
+  align-items: center
+  justify-content: center
+  flex-direction: column
+  gap: 4px
+  cursor: pointer
+
+.mobile-menu-btn span
+  width: 16px
+  height: 2px
+  background: var(--text-main)
+  border-radius: 999px
+
 .badge
   padding: 6px 10px
   border-radius: 999px
@@ -244,4 +286,35 @@ header.topbar
   font-size: 12px
   margin-left: 6px
   color: var(--text-sub)
+
+@media (max-width: 960px)
+  .topbar
+    position: sticky
+    top: 0
+    right: 0
+    left: 0
+    padding: 12px 14px
+    height: auto
+    min-height: var(--project-a-topbar-height)
+    gap: 10px
+    flex-wrap: wrap
+
+  .mobile-menu-btn
+    display: inline-flex
+
+  .brand-title
+    font-size: 18px
+
+  .brand-sub
+    font-size: 11px
+
+  .topbar-nav
+    order: 3
+    flex: 1 0 100%
+    justify-content: flex-start
+    overflow-x: auto
+    padding-bottom: 4px
+
+  .topbar-actions
+    margin-left: auto
 </style>

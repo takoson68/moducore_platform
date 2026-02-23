@@ -6,8 +6,18 @@ import world from '@/world.js'
 import PlatformLoginPanel from './PlatformLoginPanel.vue'
 
 defineProps({
-  projectConfig: Object
+  projectConfig: Object,
+  canOpenSidebar: {
+    type: Boolean,
+    default: false,
+  },
+  sidebarOpen: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+defineEmits(['toggle-sidebar'])
 
 const route = useRoute()
 const authStore = world.store("auth")
@@ -72,6 +82,17 @@ const isItemActive = (item) => {
 
 <template lang="pug">
 header.topbar
+  button.mobile-menu-btn(
+    v-if="canOpenSidebar"
+    type="button"
+    :aria-expanded="String(sidebarOpen)"
+    aria-controls="protemp-sidebar"
+    aria-label="切換側欄"
+    @click="$emit('toggle-sidebar')"
+  )
+    span
+    span
+    span
   .brand
     .brand-title {{ projectConfig?.title ?? 'Project' }}
     .brand-sub Guest World Establishment
@@ -110,10 +131,15 @@ header.topbar
   align-items: center
   justify-content: space-between
   padding: 14px 24px
+  min-height: 64px
+  box-sizing: border-box
   border-bottom: 1px solid var(--border)
   background: var(--surface)
   gap: 16px
-  position: relative
+  position: fixed
+  top: 0
+  left: 0
+  right: 0
   z-index: 10000
 
 .topbar-nav
@@ -199,4 +225,62 @@ header.topbar
   display: flex
   align-items: center
   gap: 10px
+
+.mobile-menu-btn
+  display: none
+  width: 40px
+  height: 40px
+  border-radius: 10px
+  border: 1px solid var(--border)
+  background: var(--surface-muted)
+  padding: 0
+  align-items: center
+  justify-content: center
+  flex-direction: column
+  gap: 4px
+  cursor: pointer
+
+.mobile-menu-btn span
+  width: 16px
+  height: 2px
+  border-radius: 999px
+  background: #111827
+
+@media (max-width: 960px)
+  .topbar
+    left: 0
+    padding: 12px 14px
+    padding-left: 62px
+    min-height: 64px
+    gap: 10px
+    flex-wrap: nowrap
+
+  .mobile-menu-btn
+    display: inline-flex
+    position: absolute
+    left: 14px
+    top: 50%
+    transform: translateY(-50%)
+
+  .brand
+    min-width: 0
+    flex: 1 1 auto
+
+  .brand-title
+    font-size: 18px
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+  .brand-sub
+    font-size: 11px
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+  .topbar-nav
+    display: none
+
+  .topbar-actions
+    margin-left: auto
 </style>

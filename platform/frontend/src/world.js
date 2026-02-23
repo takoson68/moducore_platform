@@ -1,5 +1,7 @@
 import { registerStore, resolveStore, resolveService, listStores, listRegistry } from './app/container/index.js'
 import { coreStoreFactories } from './app/stores/index.js'
+import { createStore as createCoreStore } from './app/stores/_storeFactory.js'
+import { registerUISlot } from './app/uiRegistry.js'
 import { loadProjectConfig } from '../projects/loadProject.js'
 import { initApi, http, authApi } from './app/api/index.js'
 import { getApiMode } from './app/api/apiMode.js'
@@ -163,6 +165,20 @@ class World {
   router() {
     this._ensureStarted()
     return this._router
+  }
+
+  /**
+   * 專案層建立 store 的唯一入口（包覆核心 store factory）。
+   */
+  createStore(options) {
+    return createCoreStore(options)
+  }
+
+  /**
+   * 專案層註冊 UI slot 的唯一入口（包覆 UI registry）。
+   */
+  registerUISlot(slotName, descriptor) {
+    registerUISlot(slotName, descriptor)
   }
 }
 

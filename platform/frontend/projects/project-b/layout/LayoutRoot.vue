@@ -1,21 +1,54 @@
 <!-- projects/project-b/layout/LayoutRoot.vue -->
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import world from '@/world.js'
 import ProjectTopbar from '../components/ProjectTopbar.vue'
 import ProjectSidebar from '../components/ProjectSidebar.vue'
 
 const authStore = world.store("auth")
+const route = useRoute()
 const projectConfig = computed(() => world.projectConfig() || {})
 const isLoggedIn = computed(() => authStore.isLoggedIn())
+const mobileSidebarOpen = ref(false)
+
+function toggleMobileSidebar() {
+  if (!isLoggedIn.value) return
+  mobileSidebarOpen.value = !mobileSidebarOpen.value
+}
+
+function closeMobileSidebar() {
+  mobileSidebarOpen.value = false
+}
+
+watch(() => route.fullPath, closeMobileSidebar)
+watch(isLoggedIn, (next) => {
+  if (!next) closeMobileSidebar()
+})
 </script>
 
 <template lang="pug">
 .shell
   .bg-grid
-  ProjectTopbar(:project-config="projectConfig")
+  ProjectTopbar(
+    :project-config="projectConfig"
+    :can-open-sidebar="isLoggedIn"
+    :sidebar-open="mobileSidebarOpen"
+    @toggle-sidebar="toggleMobileSidebar"
+  )
   .main(:class="{ 'no-sidebar': !isLoggedIn }")
-    ProjectSidebar(v-if="isLoggedIn")
+    button.sidebar-overlay(
+      v-if="isLoggedIn && mobileSidebarOpen"
+      type="button"
+      aria-label="關閉側欄"
+      @click="closeMobileSidebar"
+    )
+    .sidebar-drawer(
+      v-if="isLoggedIn"
+      id="project-b-sidebar"
+      :class="{ 'is-open': mobileSidebarOpen }"
+    )
+      ProjectSidebar
     section.content
       RouterView
 </template>
@@ -60,7 +93,55 @@ const isLoggedIn = computed(() => authStore.isLoggedIn())
 .main.no-sidebar .content
   margin-left: 0
 
+.sidebar-drawer
+  display: contents
+
 @media (max-width: 960px)
+  .main
+    height: auto
+    min-height: 100vh
+    padding: 92px 14px 14px
+    gap: 0
+
+  .sidebar-overlay
+    position: fixed
+    inset: 0
+    z-index: 10021
+    border: 0
+    margin: 0
+    padding: 0
+    background: rgba(15, 23, 42, 0.42)
+    appearance: none
+
+  .sidebar-drawer
+    display: block
+    position: fixed
+    top: 0
+    left: 0
+    bottom: 0
+    width: min(88vw, 320px)
+    z-index: 10022
+    transform: translateX(-100%)
+    transition: transform 180ms ease
+    pointer-events: none
+
+  .sidebar-drawer.is-open
+    transform: translateX(0)
+    pointer-events: auto
+
+  .sidebar-drawer .sidebar
+    position: relative
+    left: 0
+    top: 0
+    bottom: 0
+    width: 100%
+    max-width: none
+    height: 100%
+    min-height: 100vh
+    border-radius: 0
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24)
+
   .content
     margin-left: 0
+    width: 100%
 </style>

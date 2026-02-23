@@ -1,7 +1,7 @@
-import { createStore } from "@/core";
+﻿import world from '@/world.js'
 
 export function createTaskStore() {
-  return createStore({
+  return world.createStore({
     name: "taskStore",
     storageKey: "taskStore",
     defaultValue: {

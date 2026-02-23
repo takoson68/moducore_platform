@@ -1,4 +1,4 @@
-import { createStore } from "@/core";
+import world from '@/world.js'
 import { mockVotes } from "./api/mockVotes.js";
 
 function normalizeVote(vote, fallback = {}) {
@@ -41,7 +41,7 @@ function normalizeList(list = []) {
 }
 
 export function createVoteStore() {
-  return createStore({
+  return world.createStore({
     name: "voteStore",
     storageKey: "voteStore",
     defaultValue: {

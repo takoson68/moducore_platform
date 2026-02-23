@@ -7,8 +7,18 @@ import PlatformLoginPanel from './PlatformLoginPanel.vue'
 import UiSlot from '@/components/UiSlot.vue'
 
 defineProps({
-  projectConfig: Object
+  projectConfig: Object,
+  canOpenSidebar: {
+    type: Boolean,
+    default: false,
+  },
+  sidebarOpen: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+defineEmits(['toggle-sidebar'])
 
 const route = useRoute()
 const authStore = world.store("auth")
@@ -73,6 +83,17 @@ const isItemActive = (item) => {
 
 <template lang="pug">
 header.topbar
+  button.mobile-menu-btn(
+    v-if="canOpenSidebar"
+    type="button"
+    :aria-expanded="String(sidebarOpen)"
+    aria-controls="project-b-sidebar"
+    aria-label="切換側欄"
+    @click="$emit('toggle-sidebar')"
+  )
+    span
+    span
+    span
   .brand
     RouterLink.brand-logo(to="/")
       img(src="/assets/icons/moducore.png" alt="ModuCore")
@@ -248,4 +269,77 @@ header.topbar
   display: flex
   align-items: center
   gap: 12px
+
+.mobile-menu-btn
+  display: none
+  width: 40px
+  height: 40px
+  border-radius: 10px
+  border: 1px solid rgba(15, 23, 42, 0.16)
+  background: rgba(255, 255, 255, 0.75)
+  padding: 0
+  align-items: center
+  justify-content: center
+  flex-direction: column
+  gap: 4px
+  cursor: pointer
+
+.mobile-menu-btn span
+  width: 16px
+  height: 2px
+  border-radius: 999px
+  background: #0f172a
+
+@media (max-width: 960px)
+  .topbar
+    position: fixed
+    top: 0
+    left: 0
+    right: 0
+    padding: 12px 14px
+    padding-left: 62px
+    gap: 10px
+    flex-wrap: nowrap
+    min-height: 72px
+
+  .mobile-menu-btn
+    display: inline-flex
+    position: absolute
+    left: 14px
+    top: 50%
+    transform: translateY(-50%)
+    z-index: 1
+
+  .brand-logo
+    width: 44px
+    height: 44px
+
+  .brand
+    min-width: 0
+    flex: 1 1 auto
+
+  .brand-text
+    min-width: 0
+
+  .brand-title
+    font-size: 18px
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+  .brand-sub
+    font-size: 11px
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+  .topbar-nav
+    display: none
+
+  .topbar-actions
+    margin-left: auto
+    gap: 8px
+
+  .pill
+    display: none
 </style>

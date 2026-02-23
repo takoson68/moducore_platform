@@ -1,5 +1,5 @@
 //- projects/project-a/modules/index.js
-import { registerUISlot } from '@app/uiRegistry.js'
+import world from '@/world.js'
 
 const modules = import.meta.glob('./*/index.js')
 
@@ -56,9 +56,9 @@ export async function installModules({ register }, { allowList = [] } = {}) {
     if (ui?.slots && typeof ui.slots === 'object') {
       for (const [slotName, descriptor] of Object.entries(ui.slots)) {
         if (Array.isArray(descriptor)) {
-          descriptor.forEach(item => registerUISlot(slotName, item))
+          descriptor.forEach(item => world.registerUISlot(slotName, item))
         } else {
-          registerUISlot(slotName, descriptor)
+          world.registerUISlot(slotName, descriptor)
         }
       }
     }

@@ -95,17 +95,36 @@ aside.sidebar
 
 <style lang="sass">
 .sidebar
+  --sidebar-border: rgba(30, 41, 59, 0.10)
+  --sidebar-border-strong: rgba(59, 130, 246, 0.35)
+  --sidebar-muted: rgba(255, 255, 255, 0.82)
+  --sidebar-hover: rgba(239, 246, 255, 0.95)
   display: grid
   gap: 12px
-  padding: 16px
-  border: 1px solid var(--border)
-  border-radius: 16px
-  background: var(--surface)
+  padding: 14px
+  border: 1px solid var(--sidebar-border)
+  border-radius: 20px
+  background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.92) 52%, rgba(239,246,255,0.92) 100%)
+  box-shadow: 0 20px 36px rgba(15, 23, 42, 0.10), 0 6px 14px rgba(59, 130, 246, 0.08)
+  backdrop-filter: blur(12px)
+  align-content: start
+  position: relative
+  overflow: hidden
+
+.sidebar::before
+  content: ''
+  position: absolute
+  inset: 0 auto 0 0
+  width: 4px
+  background: linear-gradient(180deg, #3b82f6 0%, #06b6d4 55%, #14b8a6 100%)
 
 .module-nav
   display: flex
   flex-direction: column
   gap: 10px
+  max-height: min(70vh, 640px)
+  overflow-y: auto
+  padding-right: 2px
 
 .sidebar-item
   display: flex
@@ -113,25 +132,32 @@ aside.sidebar
   gap: 8px
 
 .main-link
-  padding: 10px 14px
-  border-radius: 14px
-  border: 1px solid var(--border)
-  background: var(--surface-muted)
+  padding: 11px 14px
+  border-radius: 16px
+  border: 1px solid var(--sidebar-border)
+  background: var(--sidebar-muted)
   text-decoration: none
-  color: inherit
+  color: #0f172a
   font-size: 14px
   font-weight: 700
   position: relative
-  transition: transform 120ms ease, box-shadow 120ms ease
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease
+
+.main-link:hover
+  border-color: var(--sidebar-border-strong)
+  background: var(--sidebar-hover)
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08)
+  transform: translateY(-1px)
 
 .main-link.group-label
   cursor: default
   opacity: 0.7
 
 .main-link.is-active
-  border-color: #000
-  background: #000
+  border-color: rgba(37, 99, 235, 0.55)
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)
   color: #fff
+  box-shadow: 0 12px 20px rgba(37, 99, 235, 0.22)
 
 .submenu
   display: flex
@@ -151,18 +177,23 @@ aside.sidebar
   top: 2px
   width: 1px
   height: calc(100% - 4px)
-  background: rgba(0, 0, 0, 0.12)
+  background: rgba(15, 23, 42, 0.16)
 
 .sub-link
   padding: 8px 12px
   border-radius: 12px
-  border: 1px solid var(--border)
-  background: var(--surface-muted)
-  color: inherit
+  border: 1px solid rgba(15, 23, 42, 0.08)
+  background: rgba(255, 255, 255, 0.72)
+  color: #334155
   text-decoration: none
   font-size: 13px
   font-weight: 600
   position: relative
+  transition: border-color 120ms ease, background-color 120ms ease
+
+.sub-link:hover
+  border-color: rgba(59, 130, 246, 0.22)
+  background: rgba(255, 255, 255, 0.96)
 
 .sub-link::before
   content: ''
@@ -174,12 +205,19 @@ aside.sidebar
   background: rgba(0, 0, 0, 0.2)
 
 .sub-link.is-active
-  border-color: #000
-  background: #000
-  color: #fff
+  border-color: rgba(37, 99, 235, 0.45)
+  background: rgba(219, 234, 254, 0.95)
+  color: #1d4ed8
 
 .sidebar-item:hover .submenu,
 .sidebar-item.active .submenu
   max-height: 400px
   opacity: 1
+
+@media (max-width: 960px)
+  .sidebar
+    border-radius: 0
+    box-shadow: none
+    min-height: 100vh
+    padding-top: 76px
 </style>

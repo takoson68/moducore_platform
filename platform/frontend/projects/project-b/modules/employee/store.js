@@ -1,7 +1,7 @@
-import { createStore } from "@/core";
+import world from '@/world.js'
 
 export function createEmployeeStore() {
-  return createStore({
+  return world.createStore({
     name: "employeeStore",
     storageKey: "employeeStore",
     defaultValue: {
