@@ -1,4 +1,4 @@
-import { registerStore, resolveStore, resolveService, listStores, listRegistry } from './app/container/index.js'
+﻿import { registerStore, resolveStore, resolveService, listStores, listRegistry } from './app/container/index.js'
 import { coreStoreFactories } from './app/stores/index.js'
 import { createStore as createCoreStore } from './app/stores/_storeFactory.js'
 import { registerUISlot } from './app/uiRegistry.js'
@@ -27,6 +27,7 @@ class World {
     this._startPromise = null
 
     this._http = null
+    this._context = null
 
     this._router = null
     this._appProps = {}
@@ -49,6 +50,19 @@ class World {
       }
 
       const projectConfig = await loadProjectConfig()
+      const hasWindow = typeof window !== 'undefined'
+      const locationLike = hasWindow ? window.location : null
+      this._context = {
+        isServer: !hasWindow,
+        url: locationLike
+          ? `${locationLike.pathname || ''}${locationLike.search || ''}${locationLike.hash || ''}`
+          : '',
+        host: locationLike?.hostname || '',
+        headers: {},
+        initialState: null,
+        projectName: import.meta.env.VITE_PROJECT || projectConfig?.name || null
+      }
+
       initApi({
         // 以 VITE_PROJECT 作為 X-Project 來源，避免依賴網域判斷
         projectName: import.meta.env.VITE_PROJECT || projectConfig?.name
@@ -104,6 +118,16 @@ class World {
   apiMode() {
     this._ensureStarted()
     return getApiMode()
+  }
+
+  /**
+   * 取得唯讀的 runtime context 快照（供 Test / SSR / Security Audit 觀測使用）。
+   * 回傳值為 shallow copy 並以 Object.freeze() 凍結，避免外部修改 World 內部 context。
+   * 不會回傳原始 this._context 物件。
+   */
+  getContext() {
+    if (!this._context) return null
+    return Object.freeze({ ...this._context })
   }
 
   /**

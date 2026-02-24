@@ -1,4 +1,4 @@
-# new_engineering Index
+﻿# new_engineering Index
 
 本目錄為「工程規範生成前」之觀察與實驗空間。
 
@@ -121,6 +121,8 @@ Git 僅用於保存進度與歷史脈絡，
 - Title: modules/index.js 掃描邊界 | Path: conventions/C002_modules_glob.md | Type: convention | Status: candidate | Scope: platform | Evidence: notes/002_modules_glob.md
 - Title: @project/modules/index.js 入口引用邊界 | Path: conventions/C003_modules_index_imports.md | Type: convention | Status: candidate | Scope: platform | Evidence: notes/003_modules_index_imports.md
 - Title: Engineering Conventions Import | Path: conventions/C004_engineering_conventions_import.md | Type: convention | Status: candidate | Scope: platform | Evidence: notes/005_engineering_conventions_import.md
+- Title: AI Report Output Location | Path: conventions/C005_ai_report_output_location.md | Type: convention | Status: candidate | Scope: platform | Evidence: -
+- Title: Function Comment Requirement (Traditional Chinese) | Path: conventions/C006_function_comment_traditional_chinese.md | Type: convention | Status: candidate | Scope: platform | Evidence: -
 
 ---
 
@@ -128,6 +130,7 @@ Git 僅用於保存進度與歷史脈絡，
 
 - Title: Platform Project Boundary | Path: boundaries/B001_platform_project_boundary.md | Type: boundary | Status: active | Scope: platform | Evidence: conventions/C001_projects_structure.md
 - Title: Module Discovery Boundary | Path: boundaries/B002_module_discovery_boundary.md | Type: boundary | Status: active | Scope: platform | Evidence: conventions/C002_modules_glob.md, conventions/C003_modules_index_imports.md
+- Title: World-First Integration | Path: boundaries/B003_world_first_integration.md | Type: boundary | Status: active | Scope: platform | Evidence: -
 
 ---
 

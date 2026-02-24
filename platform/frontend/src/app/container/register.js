@@ -69,11 +69,41 @@ export function createRegister(container) {
         ...(Array.isArray(children) ? children : []),
         ...metaChildren
       ]
+      const hasChildren = combinedChildren.length > 0
       if (combinedChildren.length > 0) {
         list.push(...flattenRoutes(combinedChildren, fullPath))
       }
+      entry.__hasChildren = hasChildren
     })
     return list
+  }
+
+  // 依 route 型別分級缺少 component 的診斷訊息，降低合法結構的警告噪音
+  function classifyMissingComponentRoute(route, accessInfo) {
+    const hasComponent = Boolean(route?.component)
+    const hasRedirect = typeof route?.redirect !== 'undefined'
+    const hasChildren = route?.__hasChildren === true
+    const isDisabled = accessInfo?.isPublic !== true && accessInfo?.isAuth !== true
+
+    if (hasComponent) return null
+    if (hasRedirect) return 'redirect'
+    if (hasChildren) return 'group'
+    if (isDisabled) return 'disabled'
+    return 'warn'
+  }
+
+  // 合法無 component route 用 debug；只有可疑漏寫才用 warn
+  function logMissingComponentDiagnostic(route, category) {
+    if (!category) return
+    const path = route?.path || '(unknown)'
+    const message = `[Route][${category}] missing explicit component: ${path}`
+
+    if (category === 'warn') {
+      console.warn(message)
+      return
+    }
+
+    console.debug(message)
   }
 
   return {
@@ -92,10 +122,9 @@ export function createRegister(container) {
       const bucket = ensureRouteBucket()
       const flatRoutes = flattenRoutes(routes)
       const pushRoute = (route) => {
-        if (!route?.component) {
-          console.warn(`[Route] missing explicit component: ${route?.path || '(unknown)'}`)
-        }
         const { isPublic, isAuth } = validateAccessMeta(route.meta || {})
+        const category = classifyMissingComponentRoute(route, { isPublic, isAuth })
+        logMissingComponentDiagnostic(route, category)
         if (!isPublic && !isAuth) return // disabled route
         const target = isPublic ? bucket.public : bucket.auth
         target.push(route)
