@@ -1,4 +1,10 @@
-﻿# V2 平台 SSR-native 設計藍圖（World-first）
+# V2 平台 SSR-native 設計藍圖（World-first）
+
+Title: V2 平台 SSR-native 設計藍圖（World-first）
+Type: blueprint
+Status: draft
+Scope: platform
+Owner: architecture
 
 日期：2026-02-24  
 目標：在保留平台單純性與 World-first 架構哲學下，於下一版本從底層即天然支援 SSR（而非事後補丁）
@@ -38,6 +44,25 @@
 2. `activate()`：啟用 runtime（CSR mount / SSR app compose）
 3. `effects()`：browser-only effects（storage hydrate、事件、DOM hook）
 
+### 2.5 Pipeline 硬規則（禁止/允許事項）
+
+#### `prepare()` 禁止事項
+- 禁止碰 DOM（`document`、元素查詢、直接 UI 操作）
+- 禁止事件綁定（`addEventListener` / `dispatchEvent` / `CustomEvent`）
+- 禁止讀寫 `localStorage` / `sessionStorage`
+- 禁止直接讀 `window` / `location` 作為 runtime 判定來源
+- 禁止建立長生命週期 singleton 狀態（不得寫入 module-global mutable state）
+
+#### `effects()` 允許事項
+- 允許 storage hydrate（client-only）
+- 允許 DOM hook（title / scroll / focus 等）
+- 允許 event listener 綁定與解除
+- 允許 client-only UI 行為（例如 runtime reset hook 暴露）
+
+#### `activate()` 裁決
+- SSR：只允許 compose app / router ready，不得 mount DOM
+- CSR：負責 mount 與 router 啟動（不得重複初始化核心資源）
+
 ## 3. V2 架構骨架（建議）
 
 ### 3.1 Runtime Context（最小集合）
@@ -60,6 +85,25 @@
 - `exportSSRPayload()`
 - `restoreState(payload)`
 
+### 3.2.1 SSR Payload Schema（最小規格）
+建議 `SSRPayload` 最小欄位：
+- `version`（避免未來 schema 破壞）
+- `context`（可裁切；不得把敏感 headers 全量外送）
+- `project`（至少 `name`；可加 feature flags）
+- `routesBucket`（只含可序列化 route records 部分）
+- `registry`（必要時提供 module list / UI slot manifest）
+- `initialState`（可選；需明確來源：stores snapshot 或 domain state）
+
+硬規則：
+- payload 一律 **JSON-safe**
+- 禁止包含 function、class instance、router object、DOM object、response/request instance
+
+### 3.2.2 Data Fetching 契約（SSR/CSR 一致性）
+- `prepare()` 只允許呼叫 server-safe services（透過 `fetchAdapter`）
+- modules 若需要 SSR data：必須提供 `module.prepare(world)`（純資料、回傳 serializable）
+- CSR hydrate 後的資料狀態必須可比對 payload（避免跳畫面與二次不一致）
+- 若資料無法序列化，必須在契約層明確標示為 client-only data
+
 ### 3.3 Runtime Adapters（V2 需正式化）
 - `storageAdapter`: `get/set/remove`
 - `historyAdapter`: `push/replace/location`
@@ -68,6 +112,24 @@
 - `eventNotifier`: `routesUpdated` / `runtimeReset` 等（SSR 可 no-op）
 
 > 原則：Adapter 是能力來源切換，不是把流程搬進 adapter。
+
+### 3.4 Scope 裁決表（哪些必須 request-scope / 哪些允許 singleton）
+
+#### request-scope（SSR 併發必須）
+- `container instances`（含 store/service 實例）
+- `api runtime context`（`projectName` / `headers` / token）
+- `uiRegistry`（`slotMap` / `version`）
+- `router instance + history state`
+- `routesBucket`（模組 install 結果）
+
+#### singleton（允許）
+- `module manifests`（靜態描述：路由宣告、meta、權限規則）
+- `pure helpers`（例如 nav projection 純函式、schema/validator）
+- `compile-time config`（不含 runtime 可變欄位）
+
+裁決原則：
+- 只要資料會因 request / 使用者 / session / URL 改變，即不得用 module-global singleton 承載
+- 若屬靜態描述且不可變，才允許 singleton
 
 ## 4. V2 模組與狀態邊界（避免本次原型的補丁感）
 
@@ -89,6 +151,14 @@ V2 應避免以下模式成為主路徑：
 - 透過 `world` 或注入 service 取得 routes bucket/nav projection。
 - project modules 的 install state 應與 runtime scope 綁定，而非 process-global。
 
+### 4.3 Guard / Auth 一致性策略（避免 singleton world 滲透）
+- guard 不得直接 import default singleton `world`
+- guard 只依賴 world 注入的 `authContext` / `authPolicy`
+- SSR 模式策略（需明確選一種）：
+  - `public-only`：SSR 路徑略過 auth guard（僅渲染公共頁）
+  - `full-auth`：從 `headers/session` 建立 `authContext` 再跑 guard
+- 不允許 SSR 與 CSR guard 行為差異成為隱性規則；若不同，必須在設計文件中明示
+
 ## 5. V2 目錄與責任建議（World-first + SSR-native）
 
 ### 5.1 建議責任分層
@@ -101,6 +171,12 @@ V2 應避免以下模式成為主路徑：
 ### 5.2 V2 是否還保留 `world.js`
 - 可以保留 `world.js` 作為 façade（匯出 `createWorld`、default singleton、active runtime helpers）
 - 但內部實作建議分拆到 `src/world/*`，降低單檔密度
+
+### 5.3 命名與檔案落點裁決（避免 runtime bridge 散落）
+- V2 的唯一入口：`src/world/index.js`（匯出 `createWorld` + contract）
+- 若保留 `world.js`，僅作 façade，不承擔 runtime bridge 細節
+- runtime bridge 統一命名與落點：`src/runtime/*Provider.js`
+- 禁止把 provider/resolver 邏輯零散塞入 `container/api/router` 各檔，造成閱讀路徑分裂
 
 ## 6. V2 遷移策略（從現版 OOP 平台出發）
 
@@ -124,6 +200,11 @@ V2 應避免以下模式成為主路徑：
 - SSR/CSR 共享同一份接入契約
 
 ## 7. V2 驗收清單（設計完成時應成立）
+
+### 7.0 Scope 與邊界驗收（先於實作驗收）
+- request-scope / singleton 分類可對照 `3.4 Scope 裁決表` 明確檢查
+- pipeline 各段行為可對照 `2.5 Pipeline 硬規則` 判定是否越界
+- payload 結構可對照 `3.2.1 SSR Payload Schema` 驗證 JSON-safe 與欄位完整性
 
 ### 7.1 架構驗收
 - 新增 runtime 模式時，主要變更集中於 world + 少數 entry/provider 檔案。

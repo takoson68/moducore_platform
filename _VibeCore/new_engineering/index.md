@@ -115,6 +115,12 @@ Git 僅用於保存進度與歷史脈絡，
 
 ---
 
+## Blueprints
+
+- Title: V2 平台 SSR-native 設計藍圖（World-first） | Path: blueprints/V2平台SSR-native設計藍圖.md | Type: blueprint | Status: draft | Scope: platform | Evidence: B003_world_first_integration.md, boundaries/B004_runtime_scope_boundary.md, boundaries/B005_guard_auth_runtime_boundary.md, conventions/C007_pipeline_staging_rules.md, conventions/C008_ssr_payload_schema.md, conventions/C009_runtime_provider_naming_and_placement.md
+
+---
+
 ## Conventions
 
 - Title: Projects 子目錄結構邊界 | Path: conventions/C001_projects_structure.md | Type: convention | Status: candidate | Scope: platform | Evidence: notes/001_projects_structure.md
@@ -123,6 +129,9 @@ Git 僅用於保存進度與歷史脈絡，
 - Title: Engineering Conventions Import | Path: conventions/C004_engineering_conventions_import.md | Type: convention | Status: candidate | Scope: platform | Evidence: notes/005_engineering_conventions_import.md
 - Title: AI Report Output Location | Path: conventions/C005_ai_report_output_location.md | Type: convention | Status: candidate | Scope: platform | Evidence: -
 - Title: Function Comment Requirement (Traditional Chinese) | Path: conventions/C006_function_comment_traditional_chinese.md | Type: convention | Status: candidate | Scope: platform | Evidence: -
+- Title: Pipeline Staging Rules | Path: conventions/C007_pipeline_staging_rules.md | Type: convention | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
+- Title: SSR Payload Schema | Path: conventions/C008_ssr_payload_schema.md | Type: convention | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
+- Title: Runtime Provider Naming and Placement | Path: conventions/C009_runtime_provider_naming_and_placement.md | Type: convention | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
 
 ---
 
@@ -131,6 +140,8 @@ Git 僅用於保存進度與歷史脈絡，
 - Title: Platform Project Boundary | Path: boundaries/B001_platform_project_boundary.md | Type: boundary | Status: active | Scope: platform | Evidence: conventions/C001_projects_structure.md
 - Title: Module Discovery Boundary | Path: boundaries/B002_module_discovery_boundary.md | Type: boundary | Status: active | Scope: platform | Evidence: conventions/C002_modules_glob.md, conventions/C003_modules_index_imports.md
 - Title: World-First Integration | Path: boundaries/B003_world_first_integration.md | Type: boundary | Status: active | Scope: platform | Evidence: -
+- Title: Runtime Scope Boundary | Path: boundaries/B004_runtime_scope_boundary.md | Type: boundary | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
+- Title: Guard/Auth Runtime Boundary | Path: boundaries/B005_guard_auth_runtime_boundary.md | Type: boundary | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
 
 ---
 
