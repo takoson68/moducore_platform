@@ -29,6 +29,16 @@
 - notes/
   - 僅限於「閱讀與歸納」
   - 不得直接升級為規範
+- templates/DAILY_LOG_TEMPLATE.md
+  - Daily Evolution 輸出模板
+- templates/FRICTION_ITEM_TEMPLATE.md
+  - Friction item 記錄模板
+- templates/PROMOTION_PROPOSAL_TEMPLATE.md
+  - 升級請求模板（提案用）
+- evolution/DAILY_EVOLUTION.md
+  - Daily Evolution Task 規格（任務流程與輸出要求）
+- evolution/daily_log/
+  - Daily Evolution 輸出位置（log 記錄）
 
 ---
 
@@ -110,8 +120,10 @@ Git 僅用於保存進度與歷史脈絡，
 
 - Title: Convention Template | Path: templates/CONVENTION_TEMPLATE.md | Type: template | Status: - | Scope: platform | Evidence: notes/001_projects_structure.md, notes/002_modules_glob.md, notes/003_modules_index_imports.md, notes/004_boot_paths.md
 - Title: Daily Log Template | Path: templates/DAILY_LOG_TEMPLATE.md | Type: template | Status: - | Scope: platform | Evidence: notes/001_projects_structure.md, notes/002_modules_glob.md, notes/003_modules_index_imports.md, notes/004_boot_paths.md
+- Title: Friction Item Template | Path: templates/FRICTION_ITEM_TEMPLATE.md | Type: template | Status: - | Scope: platform | Evidence: evolution/DAILY_EVOLUTION.md, templates/DAILY_LOG_TEMPLATE.md
 - Title: Index Schema | Path: templates/INDEX_SCHEMA.md | Type: template | Status: - | Scope: platform | Evidence: notes/001_projects_structure.md, notes/002_modules_glob.md, notes/003_modules_index_imports.md, notes/004_boot_paths.md
 - Title: Promotion Template | Path: templates/PROMOTION_TEMPLATE.md | Type: template | Status: - | Scope: platform | Evidence: notes/001_projects_structure.md, notes/002_modules_glob.md, notes/003_modules_index_imports.md, notes/004_boot_paths.md
+- Title: Promotion Proposal Template | Path: templates/PROMOTION_PROPOSAL_TEMPLATE.md | Type: template | Status: - | Scope: platform | Evidence: evolution/DAILY_EVOLUTION.md, templates/DAILY_LOG_TEMPLATE.md
 
 ---
 
@@ -146,6 +158,9 @@ Git 僅用於保存進度與歷史脈絡，
 ---
 
 ## Evolution Logs
+
+- Title: Daily Evolution Task Spec | Path: evolution/DAILY_EVOLUTION.md | Type: task-spec | Status: active | Scope: platform | Evidence: -
+- Title: Daily Evolution Log Output Directory | Path: evolution/daily_log/ | Type: output-dir | Status: active | Scope: platform | Evidence: evolution/DAILY_EVOLUTION.md
 
 - Title: Daily Evolution Log 2026-02-06 | Path: evolution/daily_log/2026-02-06.md | Type: note | Status: - | Scope: platform | Evidence: -
 
