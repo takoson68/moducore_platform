@@ -1,67 +1,20 @@
-<script setup>
+﻿<script setup>
 import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import world from '@/world.js'
 import { useIdentity } from '@project/composables/useIdentity.js'
 import FloatingIdentityPanel from '@project/components/FloatingIdentityPanel.vue'
+import MiniCalendar from '@project/modules/calendar/widgets/MiniCalendar.vue'
+import QuickNote from '@project/components/widgets/QuickNote.vue'
 
 const router = useRouter()
 const route = useRoute()
 const projectTitle = computed(() => world.projectConfig()?.title || 'ModuDesk')
-const calendarModel = computed(() => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const monthIndex = now.getMonth()
-  const todayDate = now.getDate()
-
-  const firstDay = new Date(year, monthIndex, 1)
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
-  const daysInPrevMonth = new Date(year, monthIndex, 0).getDate()
-  const startOffset = (firstDay.getDay() + 6) % 7 // Monday-first
-
-  const cells = []
-
-  for (let i = 0; i < startOffset; i += 1) {
-    const day = daysInPrevMonth - startOffset + i + 1
-    cells.push({
-      key: `prev-${day}`,
-      label: day,
-      isMuted: true,
-      isToday: false
-    })
-  }
-
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    cells.push({
-      key: `curr-${day}`,
-      label: day,
-      isMuted: false,
-      isToday: day === todayDate
-    })
-  }
-
-  const remainder = cells.length % 7
-  const trailingCount = remainder === 0 ? 0 : 7 - remainder
-  for (let day = 1; day <= trailingCount; day += 1) {
-    cells.push({
-      key: `next-${day}`,
-      label: day,
-      isMuted: true,
-      isToday: false
-    })
-  }
-
-  return {
-    label: `${year}年${monthIndex + 1}月`,
-    cells
-  }
-})
 const {
   identity,
   isLoggedIn,
-  loading,
   error,
-  ensureHydrated
+  ensureHydrated,
 } = useIdentity()
 
 onMounted(() => {
@@ -77,15 +30,24 @@ watch(isLoggedIn, (next, prev) => {
 
 watch([isLoggedIn, () => route.path], ([loggedIn, path]) => {
   if (loggedIn) return
-  if (path === '/tasks') {
+  if (path === '/tasks' || path === '/calendar') {
     router.push('/')
   }
 })
 
 const navItems = computed(() => ([
   ...(isLoggedIn.value ? [] : [{ label: '首頁', path: '/' }]),
-  ...(isLoggedIn.value ? [{ label: '任務', path: '/tasks' }] : [])
+  ...(isLoggedIn.value ? [
+    { label: '任務', path: '/tasks' },
+    { label: '行事曆', path: '/calendar' },
+  ] : []),
 ]))
+const showMiniCalendar = computed(() => route.path !== '/calendar')
+const showSidePane = computed(() => route.path !== '/calendar')
+const showPromptStrip = computed(() => route.path !== '/calendar')
+const workspaceGridClass = computed(() => ({
+  'is-full': !showSidePane.value,
+}))
 </script>
 
 <template lang="pug">
@@ -114,39 +76,21 @@ const navItems = computed(() => ([
     .workspace
       header.shell-topbar
         .title-wrap
-          p.eyebrow 哈囉，{{ identity?.displayName || '歡迎使用 ModuDesk' }}
+          p.eyebrow 嗨，{{ identity?.displayName || '歡迎使用 ModuDesk' }}
           h1.title 今天想做些什麼？
         FloatingIdentityPanel
       p.banner-error(v-if="error") {{ error }}
-      .workspace-grid
+      .workspace-grid(:class="workspaceGridClass")
         .main-pane
-          .prompt-strip
+          .prompt-strip(v-if="showPromptStrip")
             .prompt-icon ✦
-            p.prompt-copy 問 AI／記錄待辦／整理今日節奏（Phase 1 先提供 UI 氛圍）
+            p.prompt-copy 問 AI / 記錄待辦 / 整理今日節奏（Phase 1 先提供 UI 氣氛）
             button.prompt-action(type="button" @click="router.push('/tasks')") 回到任務
           main.shell-main
             RouterView
-        aside.side-pane
-          .calendar-card
-            .calendar-head
-              .calendar-icon ☐
-              .calendar-copy
-                p.calendar-title 行事曆
-                p.calendar-sub 本月行程一覽
-              span.calendar-month {{ calendarModel.label }}
-            .calendar-grid
-              span.calendar-week(v-for="week in ['一','二','三','四','五','六','日']" :key="week") {{ week }}
-              span.calendar-day(
-                v-for="cell in calendarModel.cells"
-                :key="cell.key"
-                :class="{ 'is-muted': cell.isMuted, 'is-today': cell.isToday }"
-              ) {{ cell.label }}
-          .notes-card
-            h3.notes-title 今日摘要
-            p.notes-item(v-if="isLoggedIn") 已登入身份：{{ identity?.displayName }}
-            p.notes-item(v-else) 尚未登入，建議先使用右上登入元件建立身份。
-            p.notes-item Tasks 為 local-first，刷新後仍會保留。
-            p.notes-item 登出只清 identity，不清 task 資料。
+        aside.side-pane(v-if="showSidePane")
+          MiniCalendar(v-if="showMiniCalendar")
+          QuickNote
 </template>
 
 <style lang="sass">
@@ -186,8 +130,8 @@ const navItems = computed(() => ([
 .desktop-frame
   position: relative
   z-index: 1
-  margin: clamp(1rem, 3vw, 2.5rem)
-  min-height: calc(100vh - clamp(2rem, 6vw, 5rem))
+  margin: 2rem
+  height: calc(100dvh - 4rem)
   background: rgba(251, 252, 255, 0.74)
   border: 1px solid rgba(255, 255, 255, 0.5)
   border-radius: 1.5rem
@@ -335,9 +279,14 @@ const navItems = computed(() => ([
   gap: var(--space-4)
   padding: var(--space-3) var(--space-5) var(--space-5)
   min-height: 0
+  overflow: hidden
+
+.workspace-grid.is-full
+  grid-template-columns: minmax(0, 1fr)
 
 .main-pane
   min-width: 0
+  min-height: 0
   display: grid
   grid-template-rows: auto 1fr
   gap: var(--space-3)
@@ -376,13 +325,24 @@ const navItems = computed(() => ([
   cursor: pointer
 
 .shell-main
+  display: flex
+  flex-direction: column
   min-width: 0
+  min-height: 0
+  overflow: auto
+  padding-right: 0.25rem
+
+.shell-main > *
+  flex: 1 1 auto
   min-height: 0
 
 .side-pane
   display: grid
   align-content: start
   gap: var(--space-3)
+  min-height: 0
+  overflow: auto
+  padding-right: 0.25rem
 
 .calendar-card, .notes-card
   background: rgba(255, 255, 255, 0.8)
@@ -397,15 +357,6 @@ const navItems = computed(() => ([
   align-items: center
   gap: var(--space-2)
   margin-bottom: var(--space-3)
-
-.calendar-icon
-  width: 2rem
-  height: 2rem
-  border-radius: 0.8rem
-  display: grid
-  place-items: center
-  background: rgba(0, 0, 0, 0.04)
-  color: var(--text-soft)
 
 .calendar-copy
   display: grid
@@ -424,33 +375,6 @@ const navItems = computed(() => ([
 .calendar-month
   color: var(--text-soft)
   font-size: 0.8rem
-
-.calendar-grid
-  display: grid
-  grid-template-columns: repeat(7, minmax(0, 1fr))
-  gap: 0.35rem
-
-.calendar-week
-  text-align: center
-  color: var(--text-soft)
-  font-size: 0.75rem
-  padding-bottom: 0.15rem
-
-.calendar-day
-  height: 1.95rem
-  border-radius: 999px
-  display: grid
-  place-items: center
-  font-size: 0.8rem
-  color: #374055
-
-.calendar-day.is-muted
-  color: #b0b7c7
-
-.calendar-day.is-today
-  background: rgba(183, 155, 213, 0.28)
-  color: #5c4f7a
-  font-weight: 700
 
 .notes-title
   margin: 0 0 var(--space-2)
@@ -487,6 +411,10 @@ const navItems = computed(() => ([
     grid-template-columns: 1fr 1fr
 
 @media (max-width: 720px)
+  .desktop-frame
+    margin: 1rem
+    height: calc(100dvh - 2rem)
+
   .shell-topbar
     flex-direction: column
     align-items: flex-start
@@ -508,3 +436,4 @@ const navItems = computed(() => ([
   .side-pane
     grid-template-columns: 1fr
 </style>
+

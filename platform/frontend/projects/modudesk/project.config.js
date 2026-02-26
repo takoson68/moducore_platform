@@ -3,5 +3,5 @@ export default {
   name: 'modudesk',
   title: 'ModuDesk',
   tenant_id: 'modudesk',
-  modules: ['tasks']
+  modules: ['tasks', 'calendar']
 }

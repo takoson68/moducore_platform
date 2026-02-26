@@ -1,5 +1,5 @@
-<script setup>
-import AppShell from '../app/AppShell.vue'
+﻿<script setup>
+import AppShell from '../layout/AppShell.vue'
 </script>
 
 <template lang="pug">
@@ -8,4 +8,5 @@ AppShell
 
 <style lang="sass">
 </style>
+
 
