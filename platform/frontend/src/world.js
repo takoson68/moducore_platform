@@ -32,6 +32,33 @@ class World {
     this._router = null
     this._appProps = {}
     this._projectConfig = null
+
+    // 非 breaking 代理：支援 world.services.xxx()
+    // 等價於 world.service('xxx')，並保留未來擴充空間。
+    this.services = new Proxy({}, {
+      get: (_, prop) => {
+        if (typeof prop !== 'string') return undefined
+
+        return (...args) => {
+          let service
+          try {
+            service = this.service(prop)
+          } catch (error) {
+            throw new Error(`[World.services] service "${prop}" not found`, { cause: error })
+          }
+
+          if (typeof service === 'function') {
+            return service(...args)
+          }
+
+          if (args.length > 0) {
+            throw new Error(`[World.services] service "${prop}" is not callable`)
+          }
+
+          return service
+        }
+      }
+    })
   }
 
   /**

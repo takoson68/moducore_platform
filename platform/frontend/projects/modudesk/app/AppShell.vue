@@ -1,0 +1,510 @@
+<script setup>
+import { computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import world from '@/world.js'
+import { useIdentity } from '@project/composables/useIdentity.js'
+import FloatingIdentityPanel from '@project/components/FloatingIdentityPanel.vue'
+
+const router = useRouter()
+const route = useRoute()
+const projectTitle = computed(() => world.projectConfig()?.title || 'ModuDesk')
+const calendarModel = computed(() => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const monthIndex = now.getMonth()
+  const todayDate = now.getDate()
+
+  const firstDay = new Date(year, monthIndex, 1)
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
+  const daysInPrevMonth = new Date(year, monthIndex, 0).getDate()
+  const startOffset = (firstDay.getDay() + 6) % 7 // Monday-first
+
+  const cells = []
+
+  for (let i = 0; i < startOffset; i += 1) {
+    const day = daysInPrevMonth - startOffset + i + 1
+    cells.push({
+      key: `prev-${day}`,
+      label: day,
+      isMuted: true,
+      isToday: false
+    })
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    cells.push({
+      key: `curr-${day}`,
+      label: day,
+      isMuted: false,
+      isToday: day === todayDate
+    })
+  }
+
+  const remainder = cells.length % 7
+  const trailingCount = remainder === 0 ? 0 : 7 - remainder
+  for (let day = 1; day <= trailingCount; day += 1) {
+    cells.push({
+      key: `next-${day}`,
+      label: day,
+      isMuted: true,
+      isToday: false
+    })
+  }
+
+  return {
+    label: `${year}年${monthIndex + 1}月`,
+    cells
+  }
+})
+const {
+  identity,
+  isLoggedIn,
+  loading,
+  error,
+  ensureHydrated
+} = useIdentity()
+
+onMounted(() => {
+  ensureHydrated()
+})
+
+watch(isLoggedIn, (next, prev) => {
+  if (!next || prev === true) return
+  if (route.path === '/') {
+    router.push('/tasks')
+  }
+})
+
+watch([isLoggedIn, () => route.path], ([loggedIn, path]) => {
+  if (loggedIn) return
+  if (path === '/tasks') {
+    router.push('/')
+  }
+})
+
+const navItems = computed(() => ([
+  ...(isLoggedIn.value ? [] : [{ label: '首頁', path: '/' }]),
+  ...(isLoggedIn.value ? [{ label: '任務', path: '/tasks' }] : [])
+]))
+</script>
+
+<template lang="pug">
+.modudesk-shell
+  .wallpaper-blur
+  .desktop-frame
+    aside.left-rail
+      .brand-block
+        .brand-logo MD
+        .brand-meta
+          p.brand-name {{ projectTitle }}
+          p.brand-sub Local-first workspace
+      .profile-card
+        .avatar {{ (identity?.displayName || '訪').slice(0, 1) }}
+        .profile-copy
+          p.profile-name {{ identity?.displayName || '訪客模式' }}
+          p.profile-desc {{ isLoggedIn ? '已登入' : '未登入' }}
+      nav.side-nav(aria-label="ModuDesk navigation")
+        button.nav-item(
+          v-for="item in navItems"
+          :key="`${item.label}-${item.path}`"
+          type="button"
+          :class="{ 'is-active': route.path === item.path }"
+          @click="router.push(item.path)"
+        ) {{ item.label }}
+    .workspace
+      header.shell-topbar
+        .title-wrap
+          p.eyebrow 哈囉，{{ identity?.displayName || '歡迎使用 ModuDesk' }}
+          h1.title 今天想做些什麼？
+        FloatingIdentityPanel
+      p.banner-error(v-if="error") {{ error }}
+      .workspace-grid
+        .main-pane
+          .prompt-strip
+            .prompt-icon ✦
+            p.prompt-copy 問 AI／記錄待辦／整理今日節奏（Phase 1 先提供 UI 氛圍）
+            button.prompt-action(type="button" @click="router.push('/tasks')") 回到任務
+          main.shell-main
+            RouterView
+        aside.side-pane
+          .calendar-card
+            .calendar-head
+              .calendar-icon ☐
+              .calendar-copy
+                p.calendar-title 行事曆
+                p.calendar-sub 本月行程一覽
+              span.calendar-month {{ calendarModel.label }}
+            .calendar-grid
+              span.calendar-week(v-for="week in ['一','二','三','四','五','六','日']" :key="week") {{ week }}
+              span.calendar-day(
+                v-for="cell in calendarModel.cells"
+                :key="cell.key"
+                :class="{ 'is-muted': cell.isMuted, 'is-today': cell.isToday }"
+              ) {{ cell.label }}
+          .notes-card
+            h3.notes-title 今日摘要
+            p.notes-item(v-if="isLoggedIn") 已登入身份：{{ identity?.displayName }}
+            p.notes-item(v-else) 尚未登入，建議先使用右上登入元件建立身份。
+            p.notes-item Tasks 為 local-first，刷新後仍會保留。
+            p.notes-item 登出只清 identity，不清 task 資料。
+</template>
+
+<style lang="sass">
+.modudesk-shell
+  --space-1: 0.5rem
+  --space-2: 0.75rem
+  --space-3: 1rem
+  --space-4: 1.25rem
+  --space-5: 1.75rem
+  --space-6: 2.25rem
+  --radius-1: 0.75rem
+  --radius-2: 1rem
+  --radius-3: 1.25rem
+  --border-color: rgba(36, 42, 54, 0.08)
+  --surface: rgba(255, 255, 255, 0.72)
+  --surface-solid: #f6f7fb
+  --surface-card: rgba(255, 255, 255, 0.78)
+  --text-main: #1f2230
+  --text-soft: #6c7387
+  --accent: #b79bd5
+  --accent-strong: #9b79c7
+  --danger-bg: #fff1f0
+  --danger-text: #b42318
+  position: relative
+  min-height: 100vh
+  background: radial-gradient(circle at 12% 90%, rgba(96, 208, 255, 0.85), transparent 42%), radial-gradient(circle at 88% 84%, rgba(255, 88, 126, 0.75), transparent 38%), radial-gradient(circle at 50% 8%, rgba(255, 193, 181, 0.9), transparent 48%), linear-gradient(135deg, #b8c9f0 0%, #f6d0c3 48%, #f2e7d8 100%)
+  color: var(--text-main)
+  overflow: hidden
+
+.wallpaper-blur
+  position: absolute
+  inset: 0
+  backdrop-filter: blur(10px)
+  opacity: 0.35
+  pointer-events: none
+
+.desktop-frame
+  position: relative
+  z-index: 1
+  margin: clamp(1rem, 3vw, 2.5rem)
+  min-height: calc(100vh - clamp(2rem, 6vw, 5rem))
+  background: rgba(251, 252, 255, 0.74)
+  border: 1px solid rgba(255, 255, 255, 0.5)
+  border-radius: 1.5rem
+  box-shadow: 0 28px 80px rgba(45, 56, 88, 0.18), 0 6px 20px rgba(58, 62, 77, 0.12)
+  display: grid
+  grid-template-columns: 13.5rem minmax(0, 1fr)
+  overflow: hidden
+
+.left-rail
+  background: rgba(247, 248, 252, 0.88)
+  border-right: 1px solid rgba(35, 40, 52, 0.06)
+  padding: var(--space-4)
+  display: grid
+  align-content: start
+  gap: var(--space-4)
+
+.brand-block
+  display: flex
+  align-items: center
+  gap: var(--space-2)
+
+.brand-logo
+  width: 2rem
+  height: 2rem
+  border-radius: 0.75rem
+  display: grid
+  place-items: center
+  font-weight: 700
+  font-size: 0.75rem
+  color: #fff
+  background: linear-gradient(135deg, #ff8f6b, #e56363)
+
+.brand-meta
+  display: grid
+  gap: 0.125rem
+
+.brand-name
+  margin: 0
+  font-weight: 700
+  font-size: 0.95rem
+
+.brand-sub
+  margin: 0
+  font-size: 0.75rem
+  color: var(--text-soft)
+
+.profile-card
+  display: flex
+  align-items: center
+  gap: var(--space-2)
+  background: rgba(255, 255, 255, 0.9)
+  border: 1px solid var(--border-color)
+  border-radius: var(--radius-2)
+  padding: var(--space-2)
+
+.avatar
+  width: 2rem
+  height: 2rem
+  border-radius: 999px
+  display: grid
+  place-items: center
+  background: linear-gradient(135deg, #dbe4ff, #ffd9e4)
+  color: #4e4566
+  font-weight: 700
+
+.profile-copy
+  display: grid
+  gap: 0.125rem
+  min-width: 0
+
+.profile-name, .profile-desc
+  margin: 0
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.profile-name
+  font-size: 0.875rem
+  font-weight: 600
+
+.profile-desc
+  font-size: 0.75rem
+  color: var(--text-soft)
+
+.side-nav
+  display: grid
+  gap: 0.375rem
+
+.nav-item
+  border: 0
+  background: transparent
+  color: #454c5f
+  text-align: left
+  border-radius: 0.65rem
+  padding: 0.625rem 0.75rem
+  cursor: pointer
+  transition: background-color 120ms ease, color 120ms ease
+
+.nav-item:hover
+  background: rgba(183, 155, 213, 0.12)
+
+.nav-item.is-active
+  background: rgba(183, 155, 213, 0.2)
+  color: #3b3550
+  font-weight: 600
+
+.workspace
+  display: grid
+  grid-template-rows: auto auto 1fr
+  min-width: 0
+
+.shell-topbar
+  display: flex
+  justify-content: space-between
+  align-items: flex-start
+  gap: var(--space-3)
+  padding: var(--space-5) var(--space-5) var(--space-3)
+
+.title-wrap
+  display: grid
+  gap: 0.35rem
+
+.eyebrow
+  margin: 0
+  color: var(--text-soft)
+  font-size: 0.85rem
+  font-weight: 600
+
+.title
+  margin: 0
+  font-size: clamp(1.35rem, 1.6vw + 1rem, 2rem)
+  line-height: 1.15
+
+.banner-error
+  margin: 0 var(--space-5)
+  padding: var(--space-2) var(--space-3)
+  background: var(--danger-bg)
+  color: var(--danger-text)
+  border: 1px solid #f2c7c4
+  border-radius: var(--radius-1)
+
+.workspace-grid
+  display: grid
+  grid-template-columns: minmax(0, 1fr) 20rem
+  gap: var(--space-4)
+  padding: var(--space-3) var(--space-5) var(--space-5)
+  min-height: 0
+
+.main-pane
+  min-width: 0
+  display: grid
+  grid-template-rows: auto 1fr
+  gap: var(--space-3)
+
+.prompt-strip
+  display: grid
+  grid-template-columns: auto minmax(0, 1fr) auto
+  align-items: center
+  gap: var(--space-2)
+  padding: 0.85rem 1rem
+  background: rgba(255, 255, 255, 0.78)
+  border: 1px solid var(--border-color)
+  border-radius: var(--radius-2)
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6)
+
+.prompt-icon
+  width: 1.75rem
+  height: 1.75rem
+  border-radius: 0.65rem
+  display: grid
+  place-items: center
+  color: var(--accent-strong)
+  background: rgba(183, 155, 213, 0.12)
+
+.prompt-copy
+  margin: 0
+  color: var(--text-soft)
+  font-size: 0.9rem
+
+.prompt-action
+  border: 0
+  border-radius: 999px
+  background: rgba(183, 155, 213, 0.18)
+  color: #5c4f7a
+  padding: 0.45rem 0.75rem
+  cursor: pointer
+
+.shell-main
+  min-width: 0
+  min-height: 0
+
+.side-pane
+  display: grid
+  align-content: start
+  gap: var(--space-3)
+
+.calendar-card, .notes-card
+  background: rgba(255, 255, 255, 0.8)
+  border: 1px solid var(--border-color)
+  border-radius: var(--radius-3)
+  padding: var(--space-4)
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75)
+
+.calendar-head
+  display: grid
+  grid-template-columns: auto minmax(0, 1fr) auto
+  align-items: center
+  gap: var(--space-2)
+  margin-bottom: var(--space-3)
+
+.calendar-icon
+  width: 2rem
+  height: 2rem
+  border-radius: 0.8rem
+  display: grid
+  place-items: center
+  background: rgba(0, 0, 0, 0.04)
+  color: var(--text-soft)
+
+.calendar-copy
+  display: grid
+  gap: 0.15rem
+
+.calendar-title, .calendar-sub
+  margin: 0
+
+.calendar-title
+  font-weight: 700
+
+.calendar-sub
+  color: var(--text-soft)
+  font-size: 0.8rem
+
+.calendar-month
+  color: var(--text-soft)
+  font-size: 0.8rem
+
+.calendar-grid
+  display: grid
+  grid-template-columns: repeat(7, minmax(0, 1fr))
+  gap: 0.35rem
+
+.calendar-week
+  text-align: center
+  color: var(--text-soft)
+  font-size: 0.75rem
+  padding-bottom: 0.15rem
+
+.calendar-day
+  height: 1.95rem
+  border-radius: 999px
+  display: grid
+  place-items: center
+  font-size: 0.8rem
+  color: #374055
+
+.calendar-day.is-muted
+  color: #b0b7c7
+
+.calendar-day.is-today
+  background: rgba(183, 155, 213, 0.28)
+  color: #5c4f7a
+  font-weight: 700
+
+.notes-title
+  margin: 0 0 var(--space-2)
+  font-size: 1rem
+
+.notes-item
+  margin: 0
+  color: var(--text-soft)
+  font-size: 0.875rem
+  line-height: 1.5
+
+.notes-item + .notes-item
+  margin-top: 0.55rem
+
+@media (max-width: 1100px)
+  .desktop-frame
+    grid-template-columns: 1fr
+
+  .left-rail
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+    align-items: start
+    gap: var(--space-3)
+    border-right: 0
+    border-bottom: 1px solid rgba(35, 40, 52, 0.06)
+
+  .side-nav
+    grid-column: 1 / -1
+    grid-template-columns: repeat(3, minmax(0, 1fr))
+
+  .workspace-grid
+    grid-template-columns: 1fr
+
+  .side-pane
+    grid-template-columns: 1fr 1fr
+
+@media (max-width: 720px)
+  .shell-topbar
+    flex-direction: column
+    align-items: flex-start
+    padding: var(--space-4)
+
+  .workspace-grid
+    padding: var(--space-3) var(--space-4) var(--space-4)
+
+  .prompt-strip
+    grid-template-columns: 1fr
+    align-items: start
+
+  .left-rail
+    grid-template-columns: 1fr
+
+  .side-nav
+    grid-template-columns: 1fr
+
+  .side-pane
+    grid-template-columns: 1fr
+</style>

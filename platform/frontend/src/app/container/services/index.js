@@ -18,10 +18,13 @@
 
 import { resolveNavProjection } from './resolveNavProjection.js'
 import { createEventBus } from './eventBus.js'
+import { createStorageService } from './storageService.js'
 
 const eventBus = createEventBus()
+const storageService = createStorageService()
 
 export const services = {
   resolveNavProjection,
-  eventBus
+  eventBus,
+  storage: () => storageService
 }
