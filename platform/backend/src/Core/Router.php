@@ -20,7 +20,7 @@ final class Router
 
         $handler = $this->routes[$method][$path] ?? null;
         if ($handler === null) {
-            $response->json(['error' => 'Not Found'], 404);
+            $response->notFound('Route Not Found');
             return;
         }
 
@@ -28,7 +28,7 @@ final class Router
             [$class, $methodName] = explode('@', $handler, 2);
             $fqcn = 'App\\Controllers\\' . $class;
             if (!class_exists($fqcn) || !method_exists($fqcn, $methodName)) {
-                $response->json(['error' => 'Handler Not Found'], 500);
+                $response->internal('Handler Not Found');
                 return;
             }
             $instance = new $fqcn();

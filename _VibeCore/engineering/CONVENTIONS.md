@@ -60,3 +60,11 @@
 - 不確定需求或命令意涵時先問，避免推測。
 - 變更需對照既有規範與模組設計文件。
 - 若有重大更改或調整關鍵流程／函式，必須同步更新 `_VibeCore/core/CONTEXT.md` 或本檔。
+## Module Store Boundary
+- 模組狀態必須由模組自己的 `store.js` 持有，並透過 `setup.stores` 與 `register.store(...)` 註冊。
+- `services/` 可以建立，但其角色限定為 project-level 能力，例如 transport、API client、純資料轉換、與專案級協調入口。
+- `services/` 不得成為跨模組業務狀態中心，不得持有模組私有 state，不得形成 module-to-module 耦合鏈。
+- page / component 可以使用模組 store 與模組 service，但不得以 project-level service 取代 module store。
+- 不得為了快速串接而把多個模組的業務狀態集中到單一 project service；這會破壞模組可註冊、可卸載、可觀測的邊界。
+- 若某個 service 的存在會讓模組必須知道其他模組內部資料形狀、生命週期或狀態欄位，視為耦合，必須拒絕。
+- 若需求看起來必須突破此規則，必須先提出最小變更提案，不能直接改寫模組設計哲學。

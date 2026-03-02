@@ -10,8 +10,7 @@ final class HealthController
 {
     public function ping(Request $request, Response $response): void
     {
-        $response->json([
-            'ok' => true,
+        $response->ok([
             'time' => date('c'),
         ]);
     }

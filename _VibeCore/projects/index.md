@@ -210,6 +210,15 @@ Project 層本身：
 - `<project>/layout/`
 - `<project>/modules/`
 - `<project>/styles/`
+- `<project>/docs/`
+
+其中：
+
+- `docs/` 保留作為新 project 自身的 AI 文件放置目錄
+- 本目錄屬於 project instance 內部文件空間，不取代 `_VibeCore/` 的世界與工程治理文件
+- `docs/` 不得承載平台共用規格
+- 平台級、世界級、工程級規格一律只能存在於 `_VibeCore/`
+- `docs/` 僅可放置該 project 自身的 AI 文件、任務上下文與專案內部補充資料
 
 如需額外目錄，可新增，例如 `components/`、`services/`、`composables/`。
 

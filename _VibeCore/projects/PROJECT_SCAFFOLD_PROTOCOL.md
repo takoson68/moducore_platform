@@ -36,13 +36,14 @@
 3. 建立 `layout/`
 4. 建立 `modules/`
 5. 建立 `styles/`
-6. 依需求建立 `components/`、`services/`、`composables/`
+6. 建立 `docs/`
+7. 依需求建立 `components/`、`services/`、`composables/`
 
 只有在任務明確要求時，才另外建立：
 
-7. `index.md`
-8. `PROJECT_CONTEXT.md`
-9. `decisions/`
+8. `index.md`
+9. `PROJECT_CONTEXT.md`
+10. `decisions/`
 
 ---
 
@@ -54,6 +55,7 @@ projects/<project-name>/
   layout/
   modules/
   styles/
+  docs/
 ```
 
 常見擴充目錄：
@@ -64,6 +66,15 @@ projects/<project-name>/
   services/
   composables/
 ```
+
+`docs/` 的用途：
+
+- 放置該新 project 自身的 AI 文件
+- 放置專案級補充說明、AI 任務輸入或生成紀錄
+- 不得用來覆寫 `_VibeCore/` 的世界或工程裁決
+- 不得放置平台共用規格
+- 不得重新定義 world、engineering、projects 層規則
+- 若內容具平台共用性，必須回到 `_VibeCore/` 對應層級管理
 
 僅在明確要求專案文件時，才另外建立：
 
@@ -140,6 +151,7 @@ projects/<project-name>/
   - `description`
   - `scenario`
 - `layout/`、`modules/`、`styles/` 已建立
+- `docs/` 已建立
 - 模組入口與路由已與 `project.config.js` 一致
 - 已完成至少一種可驗證回報：
   - 結構驗證：確認 `@project` 解析所需檔案存在
@@ -183,7 +195,7 @@ projects/<project-name>/
 
 1. 建立標準工程骨架
 2. 建立 `project.config.js`
-3. 建立 `layout/`、`modules/`、`styles/`
+3. 建立 `layout/`、`modules/`、`styles/`、`docs/`
 4. 若需要，再補 `components/`、`services/`、`composables/`
 ```
 
@@ -212,3 +224,9 @@ export default {
 ```
 
 ---
+## Module State Rule
+- 若 project 採用 module 架構，模組必須保有自己的 `store.js` 作為業務狀態邊界。
+- `services/` 可建立，但只允許承載 project-level 內容，例如 API 呼叫、transport、純函式轉換、專案級協調入口。
+- `services/` 不得承載模組私有狀態，不得替代 module store，不得引入跨模組耦合。
+- `modules/index.js` 若支援模組安裝，必須同時處理 `setup.routes` 與 `setup.stores`。
+- 未明確授權前，不得把多個模組的狀態集中到 project-level service。
