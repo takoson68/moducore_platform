@@ -129,7 +129,7 @@ Git 僅用於保存進度與歷史脈絡，
 
 ## Blueprints
 
-- Title: V2 平台 SSR-native 設計藍圖（World-first） | Path: blueprints/V2平台SSR-native設計藍圖.md | Type: blueprint | Status: draft | Scope: platform | Evidence: B003_world_first_integration.md, boundaries/B004_runtime_scope_boundary.md, boundaries/B005_guard_auth_runtime_boundary.md, conventions/C007_pipeline_staging_rules.md, conventions/C008_ssr_payload_schema.md, conventions/C009_runtime_provider_naming_and_placement.md
+- Title: V2 平台 SSR-native 設計藍圖（World-first） | Path: blueprints/V2平台SSR-native設計藍圖.md | Type: blueprint | Status: draft | Scope: platform | Evidence: boundaries/B003_world_first_integration.md, boundaries/B004_runtime_scope_boundary.md, boundaries/B005_guard_auth_runtime_boundary.md, conventions/C007_pipeline_staging_rules.md, conventions/C008_ssr_payload_schema.md, conventions/C009_runtime_provider_naming_and_placement.md
 
 ---
 

@@ -49,6 +49,10 @@ RootIndex.md 不重複定義此類細節。
 
 禁止以任何其他文件、記憶或假設作為世界入口。
 
+補充導讀：
+- 在完成 `RootIndex.md` 所要求的導引後，若任務已進入目前程式碼庫的實作層，可接續閱讀 `AI_PROJECT_ENTRY.md`
+- `AI_PROJECT_ENTRY.md` 僅作為目前 repository 的實務導讀，不構成世界入口，也不覆蓋 world 規則
+
 
 ---
 

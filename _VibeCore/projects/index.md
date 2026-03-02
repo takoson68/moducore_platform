@@ -14,6 +14,14 @@
 `projects/` 不定義世界、不建構能力、不裁決工程規則，  
 僅作為「世界被使用一次」的具體結果承載層。
 
+補充說明：
+
+- 本層所定義的文件格式與模板，主要用途是 **未來新 project 的生成標準**
+- 新 project 預設生成的是 **工程骨架**
+- 新 project **預設不生成** `<project>/index.md`、`<project>/PROJECT_CONTEXT.md`、`<project>/decisions/`
+- 本層不要求對既有舊專案進行補寫、補齊或回填說明文件
+- 既有專案可作為觀察樣本，但不應因為缺少新格式文件，就被強制視為必須立即補件
+
 ---
 
 ## 1. 專案的本質定位
@@ -84,9 +92,81 @@
    - 與該專案相關的 domain data
    - 環境、限制或假設條件
 
+若新 project 預設不生成 Markdown 專案文件，
+則上述最低宣告必須至少收斂到 `project.config.js` 或等價的專案設定檔中。
+
+最低可落地欄位如下：
+
+- `name`
+- `title`
+- `tenant_id`
+- `modules`
+- `description`
+- `scenario`
+- `skills` 或 `capabilities`
+- `constraints` 或 `assumptions`
+
 ---
 
-## 5. Project 與產出的關係
+## 5. Project 文件管理方式（正式）
+
+`projects/` 採用 **index.md 導讀管理**。
+
+這代表：
+
+- `projects/index.md` 是本層唯一合法入口
+- `projects/` 下若新增具語意責任的子目錄，必須設置自己的 `index.md`
+- 若任務明確要求生成 project 文件，該 project 實例目錄才需要以自己的 `index.md` 作為入口
+- 若 project 未生成 `index.md`，則應以 `project.config.js` 與實際工程骨架作為該實例的最低理解入口
+- 不得在已生成 `index.md` 的情況下跳過 `index.md` 直接將個別文件視為該層定義來源
+
+本層正式工程文件如下：
+
+1. `PROJECT_AUTHORING_STANDARD.md`
+   - 定義所有 project 文件的固定寫法、章節與欄位
+2. `PROJECT_SCAFFOLD_PROTOCOL.md`
+   - 定義新 project 建立時的最低結構、檔案與建立流程
+3. `PROJECT_CONFIG_SCHEMA.md`
+   - 定義 `project.config.js` 的最低合法欄位與格式
+4. `PROJECT_GENERATION_PROMPT.md`
+   - 提供可直接交給 AI / Agent 使用的新 project 生成指令模板
+5. `templates/index.md`
+   - 管理本層所有可直接複用的 project 文件模板
+
+這些文件的用途是：
+
+- 定義之後建立新專案時應如何生成工程骨架
+- 提供 AI 與人類建立新專案時的共用結構思路
+- 降低新專案產出時的格式漂移
+
+這些文件的用途 **不是**：
+
+- 對既有專案全面回填文件
+- 強制要求所有歷史專案補齊同一批說明檔
+- 將 project 文件工程反向灌回已穩定運作的舊專案
+
+---
+
+## 6. 建議閱讀順序（本層）
+
+在進入任何 project 實例前，請依以下順序閱讀：
+
+1. `projects/index.md`
+2. `PROJECT_AUTHORING_STANDARD.md`
+3. `PROJECT_SCAFFOLD_PROTOCOL.md`
+4. `PROJECT_CONFIG_SCHEMA.md`
+5. `PROJECT_GENERATION_PROMPT.md`
+6. `templates/index.md`
+7. 目標 project 的工程骨架與 `project.config.js`
+
+若任務只是理解某現有專案，可在完成 1 至 4 後進入該專案。
+若任務是建立新專案，1 至 4 為必讀。
+若任務明確要求產生專案文件，才進一步套用模板。
+若未生成專案文件，則以 `project.config.js` 作為該 project 的最低宣告入口。
+
+---
+
+## 7. Project 與產出的關係
 Project 層本身：
 
 - 可以產生：
@@ -101,14 +181,16 @@ Project 層本身：
 
 ---
 
-## 6. 裁決聲明
+## 8. 裁決聲明
 - 本目錄 **不具任何裁決權**
 - 專案內容僅對自身專案有效
 - 專案結構與內容不得反向影響上層設計
+- 本目錄可定義 project 文件格式與實例層最低結構
+- 上述格式與結構僅限於 project instance layer，不得外推為 world 或 core 規則
 
 ---
 
-## 7. 當前狀態宣告
+## 9. 當前狀態宣告
 目前 `projects/` 處於：
 
 > **實例定義期（Instance Definition Phase）**
@@ -117,6 +199,59 @@ Project 層本身：
 - 可自由新增專案實例
 - 可反覆調整專案內部結構
 - 不得升級專案層權限或角色
+
+---
+
+## 10. 專案實例最低結構（固定）
+
+每個 **新建** project 至少應具備：
+
+- `<project>/project.config.js`
+- `<project>/layout/`
+- `<project>/modules/`
+- `<project>/styles/`
+
+如需額外目錄，可新增，例如 `components/`、`services/`、`composables/`。
+
+只有在任務明確要求時，才另外生成：
+
+- `<project>/index.md`
+- `<project>/PROJECT_CONTEXT.md`
+- `<project>/decisions/`
+
+上述規則適用於：
+
+- 新建立的 project instance
+- 明確指定要依新規格重建的 project
+
+上述規則預設 **不適用於**：
+
+- 歷史既有專案
+- 單純作為參考樣本的舊專案
+- 未被明確要求進行文件重構的現存 project
+
+---
+
+## 11. 專案文件固定原則
+
+為確保新專案具備一貫書寫方式：
+
+- 若有生成 project 文件，同類型文件必須沿用相同章節骨架
+- 若有生成專案入口文件，一律由 `index.md` 管理閱讀順序
+- 若有生成背景文件，專案背景、限制、目標一律集中於 `<project>/PROJECT_CONTEXT.md`
+- 若有生成決策文件，架構判斷與取捨一律記錄於 `decisions/`
+- 若模板與實際專案不一致，應先更新模板，再擴散到新專案
+- 若觀察到舊專案與模板不一致，應先視為「歷史現況」，不是立即補寫指令
+
+---
+
+## 12. Registry
+
+- `PROJECT_AUTHORING_STANDARD.md`
+- `PROJECT_SCAFFOLD_PROTOCOL.md`
+- `PROJECT_CONFIG_SCHEMA.md`
+- `PROJECT_GENERATION_PROMPT.md`
+- `templates/index.md`
 
 ---
 

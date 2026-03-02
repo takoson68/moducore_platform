@@ -4,7 +4,7 @@
 //---------------------------
 常用目錄單詞
 
-_VibeCore/   RootIndex.md    
+_VibeCore/   RootIndex.md  build
 
 platform/    frontend/    backend/   public/  
 

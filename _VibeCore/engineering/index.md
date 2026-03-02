@@ -124,7 +124,7 @@ Engineering 層用於約束「如何工作」，
 
 ## Rule 4：Decision Visibility（決策顯性化）
 
-本專案 **不設立獨立的 DECISIONS.md**。
+本專案 **不設立獨立的決策文件入口**。
 
 決策的正確歸屬如下：
 
