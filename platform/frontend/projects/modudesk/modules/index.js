@@ -1,7 +1,73 @@
 //- projects/modudesk/modules/index.js
 import world from '@/world.js'
+import projectConfig from '../project.config.js'
 
 const modules = import.meta.glob('./*/index.js')
+
+function isTaskEnabled() {
+  return projectConfig?.features?.task?.enabled === true
+}
+
+function isModuleEnabled(name) {
+  if (name === 'tasks') {
+    return isTaskEnabled()
+  }
+
+  return true
+}
+
+function createTaskDisabledRoutes() {
+  if (isTaskEnabled()) {
+    return []
+  }
+
+  return [
+    {
+      path: '/task',
+      name: 'modudesk-task-disabled',
+      redirect: '/404',
+      meta: {
+        access: {
+          public: true,
+          auth: true,
+        },
+      },
+    },
+    {
+      path: '/task/:pathMatch(.*)*',
+      name: 'modudesk-task-disabled-catchall',
+      redirect: '/404',
+      meta: {
+        access: {
+          public: true,
+          auth: true,
+        },
+      },
+    },
+    {
+      path: '/tasks',
+      name: 'modudesk-tasks-disabled',
+      redirect: '/404',
+      meta: {
+        access: {
+          public: true,
+          auth: true,
+        },
+      },
+    },
+    {
+      path: '/tasks/:pathMatch(.*)*',
+      name: 'modudesk-tasks-disabled-catchall',
+      redirect: '/404',
+      meta: {
+        access: {
+          public: true,
+          auth: true,
+        },
+      },
+    },
+  ]
+}
 
 export const moduleLoaders = Object.fromEntries(
   Object.entries(modules)
@@ -9,7 +75,7 @@ export const moduleLoaders = Object.fromEntries(
     .map(([path, loader]) => {
       const name = path.split('/')[1]
       return [name, loader]
-    })
+    }),
 )
 
 const loadedModules = new Map()
@@ -26,16 +92,21 @@ export async function loadModules() {
 }
 
 export function listModules() {
-  return Object.keys(moduleLoaders).map((name) => ({ name }))
+  return Object.keys(moduleLoaders)
+    .filter((name) => isModuleEnabled(name))
+    .map((name) => ({ name }))
 }
 
 export async function installModules({ register }, { allowList = [] } = {}) {
   const modulesMap = await loadModules()
   const allowSet = Array.isArray(allowList) ? new Set(allowList) : null
 
+  register.routes(createTaskDisabledRoutes())
+
   for (const [name, mod] of modulesMap.entries()) {
     if (!mod) continue
     if (allowSet && !allowSet.has(name)) continue
+    if (!isModuleEnabled(name)) continue
     if (installedModules.has(name)) continue
 
     const setup = mod.setup || {}
@@ -68,7 +139,6 @@ export async function installModules({ register }, { allowList = [] } = {}) {
 export function buildModuleRoutes() {
   const bucket = window.__MODULE_ROUTES__ || { all: [] }
   return {
-    routes: [...(bucket.all || [])]
+    routes: [...(bucket.all || [])],
   }
 }
-

@@ -1,15 +1,15 @@
 ﻿<script setup>
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import world from '@/world.js'
 import { useIdentity } from '@project/composables/useIdentity.js'
 import FloatingIdentityPanel from '@project/components/FloatingIdentityPanel.vue'
-import MiniCalendar from '@project/modules/calendar/widgets/MiniCalendar.vue'
-import QuickNote from '@project/components/widgets/QuickNote.vue'
 
 const router = useRouter()
 const route = useRoute()
 const projectTitle = computed(() => world.projectConfig()?.title || 'ModuDesk')
+const features = computed(() => world.projectConfig()?.features || {})
+const isTaskEnabled = computed(() => features.value?.task?.enabled === true)
 const {
   identity,
   isLoggedIn,
@@ -21,33 +21,12 @@ onMounted(() => {
   ensureHydrated()
 })
 
-watch(isLoggedIn, (next, prev) => {
-  if (!next || prev === true) return
-  if (route.path === '/') {
-    router.push('/tasks')
-  }
-})
-
-watch([isLoggedIn, () => route.path], ([loggedIn, path]) => {
-  if (loggedIn) return
-  if (path === '/tasks' || path === '/calendar') {
-    router.push('/')
-  }
-})
-
 const navItems = computed(() => ([
-  ...(isLoggedIn.value ? [] : [{ label: '首頁', path: '/' }]),
-  ...(isLoggedIn.value ? [
-    { label: '任務', path: '/tasks' },
-    { label: '行事曆', path: '/calendar' },
-  ] : []),
+  { label: 'Sticky Board', path: '/sticky' },
+  { label: '行事曆', path: '/calendar' },
+  ...(isTaskEnabled.value ? [{ label: '任務', path: '/tasks' }] : []),
 ]))
-const showMiniCalendar = computed(() => route.path !== '/calendar')
-const showSidePane = computed(() => route.path !== '/calendar')
-const showPromptStrip = computed(() => route.path !== '/calendar')
-const workspaceGridClass = computed(() => ({
-  'is-full': !showSidePane.value,
-}))
+const showPromptStrip = computed(() => route.path !== '/sticky')
 </script>
 
 <template lang="pug">
@@ -74,23 +53,20 @@ const workspaceGridClass = computed(() => ({
           @click="router.push(item.path)"
         ) {{ item.label }}
     .workspace
-      header.shell-topbar
+      //- header.shell-topbar
         .title-wrap
           p.eyebrow 嗨，{{ identity?.displayName || '歡迎使用 ModuDesk' }}
-          h1.title 今天想做些什麼？
+          h1.title Local-first 時間 / 空間操作台
         FloatingIdentityPanel
-      p.banner-error(v-if="error") {{ error }}
-      .workspace-grid(:class="workspaceGridClass")
-        .main-pane
-          .prompt-strip(v-if="showPromptStrip")
+      //- p.banner-error(v-if="error") {{ error }}
+      .workspace-grid
+        //- .main-pane
+          //- .prompt-strip(v-if="showPromptStrip")
             .prompt-icon ✦
-            p.prompt-copy 問 AI / 記錄待辦 / 整理今日節奏（Phase 1 先提供 UI 氣氛）
-            button.prompt-action(type="button" @click="router.push('/tasks')") 回到任務
+            p.prompt-copy 以 Sticky Board 佈局空間，以 Calendar 對照日期節奏。
+            button.prompt-action(type="button" @click="router.push('/sticky')") 前往 Sticky Board
           main.shell-main
-            RouterView
-        aside.side-pane(v-if="showSidePane")
-          MiniCalendar(v-if="showMiniCalendar")
-          QuickNote
+        RouterView
 </template>
 
 <style lang="sass">
@@ -275,14 +251,11 @@ const workspaceGridClass = computed(() => ({
 
 .workspace-grid
   display: grid
-  grid-template-columns: minmax(0, 1fr) 20rem
-  gap: var(--space-4)
+  grid-template-columns: minmax(0, 1fr)
+  gap: 0
   padding: var(--space-3) var(--space-5) var(--space-5)
   min-height: 0
   overflow: hidden
-
-.workspace-grid.is-full
-  grid-template-columns: minmax(0, 1fr)
 
 .main-pane
   min-width: 0
@@ -336,59 +309,6 @@ const workspaceGridClass = computed(() => ({
   flex: 1 1 auto
   min-height: 0
 
-.side-pane
-  display: grid
-  align-content: start
-  gap: var(--space-3)
-  min-height: 0
-  overflow: auto
-  padding-right: 0.25rem
-
-.calendar-card, .notes-card
-  background: rgba(255, 255, 255, 0.8)
-  border: 1px solid var(--border-color)
-  border-radius: var(--radius-3)
-  padding: var(--space-4)
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75)
-
-.calendar-head
-  display: grid
-  grid-template-columns: auto minmax(0, 1fr) auto
-  align-items: center
-  gap: var(--space-2)
-  margin-bottom: var(--space-3)
-
-.calendar-copy
-  display: grid
-  gap: 0.15rem
-
-.calendar-title, .calendar-sub
-  margin: 0
-
-.calendar-title
-  font-weight: 700
-
-.calendar-sub
-  color: var(--text-soft)
-  font-size: 0.8rem
-
-.calendar-month
-  color: var(--text-soft)
-  font-size: 0.8rem
-
-.notes-title
-  margin: 0 0 var(--space-2)
-  font-size: 1rem
-
-.notes-item
-  margin: 0
-  color: var(--text-soft)
-  font-size: 0.875rem
-  line-height: 1.5
-
-.notes-item + .notes-item
-  margin-top: 0.55rem
-
 @media (max-width: 1100px)
   .desktop-frame
     grid-template-columns: 1fr
@@ -402,13 +322,7 @@ const workspaceGridClass = computed(() => ({
 
   .side-nav
     grid-column: 1 / -1
-    grid-template-columns: repeat(3, minmax(0, 1fr))
-
-  .workspace-grid
-    grid-template-columns: 1fr
-
-  .side-pane
-    grid-template-columns: 1fr 1fr
+    grid-template-columns: repeat(2, minmax(0, 1fr))
 
 @media (max-width: 720px)
   .desktop-frame
@@ -432,8 +346,4 @@ const workspaceGridClass = computed(() => ({
 
   .side-nav
     grid-template-columns: 1fr
-
-  .side-pane
-    grid-template-columns: 1fr
 </style>
-

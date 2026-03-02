@@ -3,5 +3,10 @@ export default {
   name: 'modudesk',
   title: 'ModuDesk',
   tenant_id: 'modudesk',
-  modules: ['tasks', 'calendar']
+  modules: ['sticky-board', 'calendar', 'tasks'],
+  features: {
+    task: {
+      enabled: false,
+    },
+  },
 }

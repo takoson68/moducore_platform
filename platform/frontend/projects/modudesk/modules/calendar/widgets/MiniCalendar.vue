@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSelectedDate } from '@project/composables/context/dateContext.js'
-import { useTasks } from '@project/modules/tasks/composables/useTasks.js'
+import { useCalendarEvents } from '@project/composables/useCalendarEvents.js'
 import {
   addMonths,
   getMonthGrid,
@@ -10,12 +10,12 @@ import {
   parseYearMonthKey,
   todayStr,
   toYearMonthKey,
-} from '@project/modules/tasks/utils/date.js'
+} from '@project/utils/date.js'
 
 const router = useRouter()
 const route = useRoute()
 const { selectedDate, setSelectedDate } = useSelectedDate()
-const { load, getMonthPreview, getDayStatus } = useTasks()
+const { load, getMonthPreview } = useCalendarEvents()
 
 const monthCursor = ref(new Date(`${selectedDate.value}T00:00:00`))
 
@@ -35,8 +35,8 @@ const monthKey = computed(() => toYearMonthKey(monthCursor.value))
 const monthParts = computed(() => parseYearMonthKey(monthKey.value) || { year: 1970, month: 1 })
 const monthCells = computed(() => getMonthGrid(monthParts.value.year, monthParts.value.month))
 const monthLabel = computed(() => monthLabelFromKey(monthKey.value))
-const monthPreview = computed(() => getMonthPreview(monthKey.value))
 const weekLabels = ['一', '二', '三', '四', '五', '六', '日']
+const monthPreview = computed(() => getMonthPreview(monthKey.value))
 
 function goMonth(delta) {
   monthCursor.value = addMonths(monthCursor.value, delta)
@@ -51,7 +51,7 @@ function goToday() {
 async function handlePickDate(dateStr) {
   setSelectedDate(dateStr)
 
-  if (route.path === '/' || route.path === '/tasks' || route.path === '/calendar') {
+  if (route.path === '/' || route.path === '/sticky' || route.path === '/calendar') {
     return
   }
 
@@ -80,10 +80,6 @@ async function handlePickDate(dateStr) {
       @click="handlePickDate(cell.dateStr)"
     )
       span.day-number {{ cell.day }}
-      span.day-dots
-        span.day-dot.dot-overdue(v-if="getDayStatus(cell.dateStr).hasOverdue")
-        span.day-dot.dot-todo(v-if="!getDayStatus(cell.dateStr).hasOverdue && getDayStatus(cell.dateStr).hasTodo")
-        span.day-dot.dot-done(v-if="getDayStatus(cell.dateStr).hasDone")
       span.day-count(v-if="(monthPreview.get(cell.dateStr) || []).length > 0") {{ (monthPreview.get(cell.dateStr) || []).length }}
 </template>
 
@@ -155,36 +151,18 @@ async function handlePickDate(dateStr) {
   line-height: 1
   color: #374055
 
-.day-dots
-  display: inline-flex
-  gap: 0.14rem
-  min-height: 0.25rem
-
-.day-dot
-  width: 0.26rem
-  height: 0.26rem
-  border-radius: 999px
-
-.dot-overdue
-  background: #dd4d4d
-
-.dot-todo
-  background: #e5b446
-
-.dot-done
-  background: #52b383
-
 .day-count
   position: absolute
-  top: 0.15rem
-  right: 0.15rem
-  min-width: 0.7rem
-  height: 0.7rem
+  top: 0.1rem
+  right: 0.12rem
+  min-width: 0.9rem
+  height: 0.9rem
+  padding: 0 0.15rem
   border-radius: 999px
   display: grid
   place-items: center
   background: rgba(183, 155, 213, 0.18)
   color: #5e4f7f
-  font-size: 0.55rem
+  font-size: 0.58rem
   line-height: 1
 </style>

@@ -1,19 +1,21 @@
 ﻿<script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useSelectedDate } from '@project/composables/context/dateContext.js'
-import { useTasks } from '@project/modules/tasks/composables/useTasks.js'
+import { useCalendarEvents } from '@project/composables/useCalendarEvents.js'
 import {
   addMonths,
+  formatDateTimeInput,
+  formatDateTimeLabel,
   getMonthGrid,
   monthLabelFromKey,
+  normalizeDateTimeInput,
   parseYearMonthKey,
   todayStr,
+  toDayEnd,
+  toDayStart,
+  toMonthRange,
   toYearMonthKey,
-} from '@project/modules/tasks/utils/date.js'
-
-const newTitle = ref('')
-const newPriority = ref('normal')
-const localError = ref('')
+} from '@project/utils/date.js'
 
 const { selectedDate, setSelectedDate } = useSelectedDate()
 const {
@@ -21,17 +23,38 @@ const {
   error,
   loaded,
   load,
-  addTask,
-  toggleTask,
-  removeTask,
-  updateTaskPriority,
-  getTasksByDate,
-  splitTasksByDone,
-  getMonthPreview,
-  getDayStatus,
-} = useTasks()
+  createEvent,
+  updateEvent,
+  removeEvent,
+  listByRange,
+  getEventsByDate,
+  flushPendingSave,
+} = useCalendarEvents()
 
 const monthCursor = ref(new Date(`${selectedDate.value}T00:00:00`))
+const localError = ref('')
+const isEditorOpen = ref(false)
+const editingEventId = ref('')
+const eventForm = reactive(createEmptyForm())
+
+function createEmptyForm() {
+  const start = `${todayStr()}T09:00`
+  const end = `${todayStr()}T10:00`
+  return {
+    title: '',
+    startAt: start,
+    endAt: end,
+    notes: '',
+  }
+}
+
+function resetForm(dateStr = selectedDate.value) {
+  eventForm.title = ''
+  eventForm.startAt = `${dateStr}T09:00`
+  eventForm.endAt = `${dateStr}T10:00`
+  eventForm.notes = ''
+  editingEventId.value = ''
+}
 
 watch(selectedDate, (next) => {
   const parsed = new Date(`${next}T00:00:00`)
@@ -39,45 +62,115 @@ watch(selectedDate, (next) => {
   if (toYearMonthKey(parsed) !== toYearMonthKey(monthCursor.value)) {
     monthCursor.value = parsed
   }
+
+  if (!editingEventId.value) {
+    resetForm(next)
+  }
 })
 
 onMounted(async () => {
+  resetForm(selectedDate.value)
   await load().catch(() => {})
+})
+
+onBeforeUnmount(() => {
+  flushPendingSave().catch(() => {})
 })
 
 const monthKey = computed(() => toYearMonthKey(monthCursor.value))
 const monthParts = computed(() => parseYearMonthKey(monthKey.value) || { year: 1970, month: 1 })
 const monthLabel = computed(() => monthLabelFromKey(monthKey.value))
 const monthCells = computed(() => getMonthGrid(monthParts.value.year, monthParts.value.month))
-const monthPreview = computed(() => getMonthPreview(monthKey.value))
-
-const selectedDateTasks = computed(() => getTasksByDate(selectedDate.value))
-const selectedBuckets = computed(() => splitTasksByDone(selectedDateTasks.value))
-const selectedActiveTasks = computed(() => selectedBuckets.value.active)
-const selectedDoneTasks = computed(() => selectedBuckets.value.done)
+const weekdayLabel = computed(() => new Intl.DateTimeFormat('zh-TW', { weekday: 'long' }).format(new Date(`${selectedDate.value}T00:00:00`)))
+const selectedDateParts = computed(() => selectedDate.value.split('-'))
 const mergedError = computed(() => localError.value || error.value)
+const selectedDayEvents = computed(() => getEventsByDate(selectedDate.value))
+const monthRangeEvents = computed(() => {
+  const { start, end } = toMonthRange(monthCursor.value)
+  return listByRange({ startAt: start, endAt: end })
+})
+const monthPreview = computed(() => {
+  const bucket = new Map()
+  monthRangeEvents.value.forEach((event) => {
+    const dayKey = event.startAt.slice(0, 10)
+    const list = bucket.get(dayKey) || []
+    list.push(event)
+    bucket.set(dayKey, list)
+  })
+  return bucket
+})
 
-const stats = computed(() => ({
-  total: selectedDateTasks.value.length,
-  done: selectedDoneTasks.value.length,
-  active: selectedActiveTasks.value.length,
-}))
-
-function priorityClass(priority) {
-  return `priority-${priority || 'normal'}`
+function openCreateEditor(dateStr = selectedDate.value) {
+  localError.value = ''
+  isEditorOpen.value = true
+  editingEventId.value = ''
+  resetForm(dateStr)
 }
 
-function previewItemsForDate(dateStr) {
-  return (monthPreview.value.get(dateStr) || []).slice(0, 3)
+function openEditEditor(event) {
+  localError.value = ''
+  isEditorOpen.value = true
+  editingEventId.value = event.id
+  eventForm.title = event.title
+  eventForm.startAt = formatDateTimeInput(event.startAt)
+  eventForm.endAt = formatDateTimeInput(event.endAt)
+  eventForm.notes = event.notes || ''
 }
 
-function previewOverflowCount(dateStr) {
-  const count = (monthPreview.value.get(dateStr) || []).length
-  return count > 3 ? count - 3 : 0
+function closeEditor() {
+  isEditorOpen.value = false
+  resetForm(selectedDate.value)
 }
 
-function statusForDate(dateStr) {
-  return getDayStatus(dateStr)
+function buildPayload() {
+  const title = typeof eventForm.title === 'string' ? eventForm.title.trim() : ''
+  const startAt = normalizeDateTimeInput(eventForm.startAt)
+  const endAt = normalizeDateTimeInput(eventForm.endAt)
+
+  if (!title) {
+    throw new Error('事件標題不可為空')
+  }
+  if (!startAt || !endAt) {
+    throw new Error('請填寫開始與結束時間')
+  }
+  if (new Date(endAt).getTime() < new Date(startAt).getTime()) {
+    throw new Error('結束時間不得早於開始時間')
+  }
+
+  return {
+    title,
+    startAt,
+    endAt,
+    notes: typeof eventForm.notes === 'string' ? eventForm.notes.trim() : '',
+  }
+}
+
+async function handleSubmit() {
+  localError.value = ''
+  try {
+    const payload = buildPayload()
+    if (editingEventId.value) {
+      await updateEvent(editingEventId.value, payload)
+    } else {
+      await createEvent(payload)
+    }
+    setSelectedDate(payload.startAt.slice(0, 10))
+    closeEditor()
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : '儲存事件失敗'
+  }
+}
+
+async function handleRemove(id) {
+  localError.value = ''
+  try {
+    await removeEvent(id)
+    if (editingEventId.value === id) {
+      closeEditor()
+    }
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : '刪除事件失敗'
+  }
 }
 
 function goMonth(delta) {
@@ -94,46 +187,23 @@ function pickDate(dateStr) {
   setSelectedDate(dateStr)
 }
 
-async function handleAdd() {
-  localError.value = ''
-  try {
-    await addTask({
-      title: newTitle.value,
-      dueDate: selectedDate.value,
-      priority: newPriority.value,
-    })
-    newTitle.value = ''
-    newPriority.value = 'normal'
-  } catch (e) {
-    localError.value = e instanceof Error ? e.message : '新增失敗'
-  }
+function eventsForCell(dateStr) {
+  return monthPreview.value.get(dateStr) || []
 }
 
-async function handleToggle(id) {
-  localError.value = ''
-  try {
-    await toggleTask(id)
-  } catch (e) {
-    localError.value = e instanceof Error ? e.message : '切換失敗'
-  }
+function selectedDayRangeLabel() {
+  return `${selectedDateParts.value[0]} 年 ${selectedDateParts.value[1]} 月 ${selectedDateParts.value[2]} 日`
 }
 
-async function handleRemove(id) {
-  localError.value = ''
-  try {
-    await removeTask(id)
-  } catch (e) {
-    localError.value = e instanceof Error ? e.message : '刪除失敗'
-  }
+function startAtLabel(value) {
+  return formatDateTimeLabel(value)
 }
 
-async function handlePriorityChange(id, event) {
-  localError.value = ''
-  try {
-    await updateTaskPriority(id, event.target.value)
-  } catch (e) {
-    localError.value = e instanceof Error ? e.message : '更新優先級失敗'
-  }
+function dayRangeEvents() {
+  return listByRange({
+    startAt: toDayStart(`${selectedDate.value}T00:00:00`),
+    endAt: toDayEnd(`${selectedDate.value}T00:00:00`),
+  })
 }
 </script>
 
@@ -143,12 +213,13 @@ async function handlePriorityChange(id, event) {
     .calendar-header
       .header-title
         h2.page-title 行事曆
-        p.page-sub 以日期檢視任務與完成紀錄
+        p.page-sub 保留完整事件能力，Task UI 退場但 Calendar 事件管理維持可用。
       .header-actions
         button.ctl-btn(type="button" @click="goMonth(-1)") 上一月
         button.ctl-btn(type="button" @click="goToday") Today
         button.ctl-btn(type="button" @click="goMonth(1)") 下一月
         span.month-badge {{ monthLabel }}
+        button.add-btn(type="button" @click="openCreateEditor()") 新增事件
 
     .calendar-layout
       section.panel.month-panel
@@ -164,84 +235,70 @@ async function handlePriorityChange(id, event) {
           )
             .day-top
               span.day-num {{ cell.day }}
-              .status-dots
-                span.status-dot.dot-overdue(v-if="statusForDate(cell.dateStr).hasOverdue")
-                span.status-dot.dot-todo(v-if="statusForDate(cell.dateStr).hasTodo")
-                span.status-dot.dot-done(v-if="statusForDate(cell.dateStr).hasDone")
-            ul.preview-list(v-if="previewItemsForDate(cell.dateStr).length > 0")
-              li.preview-item(
-                v-for="task in previewItemsForDate(cell.dateStr)"
-                :key="task.id"
-                :class="priorityClass(task.priority)"
-              )
-                span.preview-bar
-                span.preview-text {{ task.title }}
-            p.preview-more(v-if="previewOverflowCount(cell.dateStr) > 0") +{{ previewOverflowCount(cell.dateStr) }}
+              span.day-pill(v-if="eventsForCell(cell.dateStr).length > 0") {{ eventsForCell(cell.dateStr).length }}
+            ul.preview-list(v-if="eventsForCell(cell.dateStr).length > 0")
+              li.preview-item(v-for="event in eventsForCell(cell.dateStr).slice(0, 2)" :key="event.id")
+                span.preview-text {{ event.title }}
+            p.preview-more(v-if="eventsForCell(cell.dateStr).length > 2") +{{ eventsForCell(cell.dateStr).length - 2 }}
 
       section.panel.day-panel
         .day-panel-head
           div
             h3.section-title {{ selectedDate }}
-            p.panel-desc 當天任務工作區（dueDate = selectedDate）
-          .day-stats
-            span.stat-pill total {{ stats.total }}
-            span.stat-pill active {{ stats.active }}
-            span.stat-pill done {{ stats.done }}
+            p.panel-desc {{ weekdayLabel }}，共 {{ dayRangeEvents().length }} 筆事件。
+          button.add-btn(type="button" @click="openCreateEditor(selectedDate)") 在此日新增
 
-        .day-composer
-          input.task-input(
-            v-model="newTitle"
-            type="text"
-            :disabled="loading"
-            placeholder="新增任務到選取日期..."
-            @keydown.enter.prevent="handleAdd"
-          )
-          select.priority-input(v-model="newPriority" :disabled="loading")
-            option(value="high") high
-            option(value="normal") normal
-            option(value="low") low
-          button.add-btn(type="button" :disabled="loading" @click="handleAdd") 新增
-
-        p.inline-error(v-if="mergedError") {{ mergedError }}
+        p.error(v-if="mergedError") {{ mergedError }}
 
         .day-scroll
           .day-list-block
-            h4.bucket-title 未完成
-            p.empty(v-if="loaded && selectedActiveTasks.length === 0") 此日期沒有未完成任務。
-            ul.day-task-list(v-else)
-              li.day-task(v-for="task in selectedActiveTasks" :key="task.id" :class="priorityClass(task.priority)")
-                label.day-task-check
-                  input(type="checkbox" :checked="task.done" :disabled="loading" @change="handleToggle(task.id)")
-                  span.day-task-title {{ task.title }}
-                .day-task-tools
-                  select.row-priority(
-                    :value="task.priority"
-                    :disabled="loading"
-                    @change="handlePriorityChange(task.id, $event)"
-                  )
-                    option(value="high") high
-                    option(value="normal") normal
-                    option(value="low") low
-                  button.row-btn(type="button" :disabled="loading" @click="handleRemove(task.id)") 刪除
+            h4.bucket-title 日期聚焦
+            p.focus-line {{ selectedDayRangeLabel() }}
+            p.empty(v-if="loaded && selectedDayEvents.length === 0") 這一天還沒有事件。
+            ul.event-list(v-else)
+              li.event-card(v-for="event in selectedDayEvents" :key="event.id")
+                .event-copy
+                  h4.event-title {{ event.title }}
+                  p.event-time {{ startAtLabel(event.startAt) }} - {{ startAtLabel(event.endAt) }}
+                  p.event-notes(v-if="event.notes") {{ event.notes }}
+                .event-actions
+                  button.event-btn(type="button" @click="openEditEditor(event)") 編輯
+                  button.event-btn.is-danger(type="button" @click="handleRemove(event.id)") 刪除
 
-          .day-list-block
-            h4.bucket-title 已完成
-            p.empty(v-if="loaded && selectedDoneTasks.length === 0") 此日期沒有已完成任務。
-            ul.day-task-list(v-else)
-              li.day-task.is-done(v-for="task in selectedDoneTasks" :key="task.id" :class="priorityClass(task.priority)")
-                label.day-task-check
-                  input(type="checkbox" :checked="task.done" :disabled="loading" @change="handleToggle(task.id)")
-                  span.day-task-title {{ task.title }}
-                .day-task-tools
-                  select.row-priority(
-                    :value="task.priority"
-                    :disabled="loading"
-                    @change="handlePriorityChange(task.id, $event)"
-                  )
-                    option(value="high") high
-                    option(value="normal") normal
-                    option(value="low") low
-                  button.row-btn(type="button" :disabled="loading" @click="handleRemove(task.id)") 刪除
+          //- .day-list-block
+          //-   h4.bucket-title 月事件總覽
+          //-   p.empty(v-if="loaded && monthRangeEvents.length === 0") 這個月份還沒有事件。
+          //-   ul.event-list(v-else)
+          //-     li.event-card(v-for="event in monthRangeEvents" :key="event.id")
+          //-       .event-copy
+          //-         h4.event-title {{ event.title }}
+          //-         p.event-time {{ startAtLabel(event.startAt) }} - {{ startAtLabel(event.endAt) }}
+          //-       .event-actions
+          //-         button.event-btn(type="button" @click="pickDate(event.startAt.slice(0, 10)); openEditEditor(event)") 管理
+
+  .event-modal(v-if="isEditorOpen")
+    .event-modal-backdrop(@click="closeEditor")
+    .event-modal-panel
+      .modal-head
+        h3.modal-title {{ editingEventId ? '編輯事件' : '新增事件' }}
+        button.close-btn(type="button" @click="closeEditor") 關閉
+      .modal-body
+        label.form-field
+          span.form-label 標題
+          input.form-input(v-model="eventForm.title" type="text" placeholder="輸入事件標題")
+        .form-grid
+          label.form-field
+            span.form-label 開始時間
+            input.form-input(v-model="eventForm.startAt" type="datetime-local")
+          label.form-field
+            span.form-label 結束時間
+            input.form-input(v-model="eventForm.endAt" type="datetime-local")
+        label.form-field
+          span.form-label 備註
+          textarea.form-textarea(v-model="eventForm.notes" placeholder="補充細節或地點")
+      .modal-actions
+        button.event-btn(type="button" @click="handleSubmit") {{ editingEventId ? '更新事件' : '建立事件' }}
+        button.event-btn(type="button" @click="closeEditor") 取消
 </template>
 
 <style lang="sass">
@@ -254,122 +311,124 @@ async function handlePriorityChange(id, event) {
   overflow: hidden
 
 .panel
-  background: rgba(255, 255, 255, 0.76)
-  border: 1px solid rgba(36, 42, 54, 0.08)
-  border-radius: 1rem
+  // background: rgba(255, 255, 255, 0.76)
+  // border: 1px solid rgba(36, 42, 54, 0.08)
+  // border-radius: 1rem
   padding: 1rem
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75)
 
 .calendar-board
-  display: flex
-  flex-direction: column
+  display: grid
+  grid-template-rows: auto minmax(0, 1fr)
   gap: 1rem
   min-height: 0
-  flex: 1 1 auto
-  overflow: hidden
+  height: 94%
 
 .calendar-header
   display: flex
   justify-content: space-between
-  align-items: flex-start
-  gap: 0.75rem
-  flex: 0 0 auto
+  align-items: center
+  gap: 1rem
+  flex-wrap: wrap
 
 .header-title
-  display: flex
-  flex-direction: column
+  display: grid
   gap: 0.2rem
 
 .page-title
   margin: 0
-  color: #242938
+  font-size: 1.45rem
 
 .page-sub
   margin: 0
-  color: #6c7387
-  font-size: 0.9rem
+  color: #727b8f
 
 .header-actions
   display: flex
+  align-items: center
+  gap: 0.65rem
   flex-wrap: wrap
-  justify-content: flex-end
-  gap: 0.45rem
 
-.ctl-btn
+.ctl-btn, .month-badge
+  border-radius: 999px
+  min-height: 2.15rem
+  padding: 0 0.85rem
   border: 1px solid rgba(36, 42, 54, 0.08)
   background: rgba(255, 255, 255, 0.88)
-  color: #46506a
-  border-radius: 999px
-  padding: 0.4rem 0.75rem
+  color: #445069
+
+.ctl-btn
   cursor: pointer
 
 .month-badge
-  display: inline-flex
-  align-items: center
+  display: inline-grid
+  place-items: center
+
+.add-btn
+  border: 0
   border-radius: 999px
-  padding: 0.4rem 0.75rem
-  background: rgba(183, 155, 213, 0.15)
-  color: #5e4f7f
-  font-size: 0.85rem
+  background: linear-gradient(135deg, #ff9a76, #e87063)
+  color: #fff
+  padding: 0.65rem 0.95rem
+  cursor: pointer
 
 .calendar-layout
-  display: flex
+  display: grid
+  grid-template-columns: minmax(0, 1.15fr) minmax(21rem, 0.85fr)
   gap: 1rem
-  align-items: stretch
   min-height: 0
-  flex: 1 1 auto
-  overflow: hidden
+  background: rgba(255, 255, 255, 0.76)
+  border: 1px solid rgba(36, 42, 54, 0.08)
+  border-radius: 1rem
+
+.month-panel, .day-panel
+  display: grid
+  gap: 0.9rem
+  min-height: 0
+  align-content: start
 
 .month-panel
-  display: flex
-  flex-direction: column
-  gap: 0.75rem
-  flex: 0 1 40%
-  min-width: 0
-  min-height: 0
+  grid-template-rows: auto 1fr
+  overflow: hidden
 
 .week-head
   display: grid
   grid-template-columns: repeat(7, minmax(0, 1fr))
-  gap: 0.35rem
-  flex: 0 0 auto
+  gap: 0.45rem
 
 .week-label
   text-align: center
-  color: #7b8398
-  font-size: 0.8rem
-  font-weight: 600
+  color: #7a8296
+  font-size: 0.76rem
 
 .month-grid
   display: grid
   grid-template-columns: repeat(7, minmax(0, 1fr))
-  gap: 0.35rem
-  flex: 0 0 auto
+  grid-template-rows: repeat(6, minmax(0, 1fr))
+  gap: 0.45rem
+  min-height: 0
+  overflow: hidden
 
 .day-cell
-  min-height: 8vh
-  max-height: 8vh
-  overflow: hidden
-  border: 1px solid rgba(36, 42, 54, 0.08)
-  background: rgba(255, 255, 255, 0.72)
+  border: 1px solid rgba(36, 42, 54, 0.05)
   border-radius: 0.9rem
-  padding: 0.35rem
-  display: flex
-  flex-direction: column
-  gap: 0.22rem
-  text-align: left
+  background: rgba(255, 255, 255, 0.82)
+  min-height: 4.75rem
+  height: 100%
+  padding: 0.65rem
   cursor: pointer
-  min-width: 0
+  display: grid
+  align-content: start
+  gap: 0.45rem
+  overflow: hidden
 
 .day-cell.is-muted
-  opacity: 0.5
+  opacity: 0.48
 
 .day-cell.is-today
   border-color: rgba(183, 155, 213, 0.5)
 
 .day-cell.is-selected
-  box-shadow: inset 0 0 0 1px rgba(183, 155, 213, 0.3)
-  background: rgba(183, 155, 213, 0.08)
+  background: rgba(183, 155, 213, 0.16)
 
 .day-top
   display: flex
@@ -378,293 +437,241 @@ async function handlePriorityChange(id, event) {
   gap: 0.35rem
 
 .day-num
-  color: #31384a
-  font-weight: 600
   font-size: 0.82rem
+  color: #3e465c
 
-.status-dots
-  display: inline-flex
-  gap: 0.18rem
-  align-items: center
-
-.status-dot
-  width: 0.35rem
-  height: 0.35rem
+.day-pill
   border-radius: 999px
-
-.dot-overdue
-  background: #df4a49
-
-.dot-todo
-  background: #e0b348
-
-.dot-done
-  background: #54b487
+  padding: 0.2rem 0.45rem
+  background: rgba(183, 155, 213, 0.18)
+  color: #584a77
+  font-size: 0.68rem
 
 .preview-list
   list-style: none
   margin: 0
   padding: 0
-  display: flex
-  flex-direction: column
-  gap: 0.2rem
+  display: grid
+  gap: 0.22rem
 
 .preview-item
-  display: flex
-  align-items: center
-  gap: 0.28rem
-  min-width: 0
-
-.preview-bar
-  width: 0.22rem
-  min-width: 0.22rem
-  height: 0.62rem
-  border-radius: 999px
-  background: #b59bda
-
-.preview-item.priority-high .preview-bar
-  background: #e35d6a
-
-.preview-item.priority-normal .preview-bar
-  background: #b59bda
-
-.preview-item.priority-low .preview-bar
-  background: #76b5a0
+  display: block
 
 .preview-text
-  flex: 1 1 auto
-  min-width: 0
-  color: #586076
-  font-size: 0.68rem
+  display: block
+  font-size: 0.72rem
+  color: #556077
   white-space: nowrap
   overflow: hidden
   text-overflow: ellipsis
 
 .preview-more
   margin: 0
-  color: #7b8398
-  font-size: 0.68rem
-
-.day-panel
-  display: flex
-  flex-direction: column
-  gap: 0.8rem
-  min-height: 0
-  flex: 1 1 60%
-  min-width: 0
-  overflow: hidden
-  height: 64vh
-  max-height: 64vh
+  font-size: 0.72rem
+  color: #748097
 
 .day-panel-head
   display: flex
-  flex-direction: column
-  gap: 0.45rem
-  flex: 0 0 auto
+  justify-content: space-between
+  align-items: center
+  gap: 0.75rem
 
 .section-title
   margin: 0
-  color: #242938
+  font-size: 1.1rem
 
 .panel-desc
-  margin: 0.15rem 0 0
-  color: #6c7387
-  font-size: 0.85rem
+  margin: 0.25rem 0 0
+  color: #6d7487
 
-.day-stats
-  display: flex
-  flex-wrap: wrap
-  gap: 0.35rem
-
-.stat-pill
-  display: inline-flex
-  align-items: center
-  gap: 0.25rem
-  min-height: 1.5rem
-  border-radius: 999px
-  padding: 0 0.5rem
-  color: #5f6679
-  background: rgba(36, 42, 54, 0.05)
-  font-size: 0.75rem
-
-.day-composer
-  display: flex
-  align-items: center
-  flex-wrap: wrap
-  gap: 0.45rem
-  flex: 0 0 auto
-
-.task-input
-  width: 100%
-  flex: 1 1 14rem
-  border: 1px solid rgba(36, 42, 54, 0.08)
-  background: rgba(255, 255, 255, 0.86)
-  border-radius: 0.8rem
-  padding: 0.65rem 0.8rem
-  font: inherit
-
-.priority-input, .row-priority
-  border: 1px solid rgba(36, 42, 54, 0.08)
-  background: rgba(255, 255, 255, 0.86)
-  color: #475068
-  border-radius: 0.8rem
-  padding: 0.4rem 0.55rem
-  font: inherit
-
-.priority-input
-  min-width: 5.8rem
-  flex: 0 0 auto
-
-.add-btn
-  border: 0
-  border-radius: 999px
-  background: linear-gradient(135deg, #c7b4e2, #b59bda)
-  color: #fff
-  padding: 0.5rem 0.85rem
-  cursor: pointer
-  flex: 0 0 auto
-
-.inline-error
+.error
   margin: 0
   color: #b42318
-  font-size: 0.85rem
-  flex: 0 0 auto
 
 .day-scroll
-  display: flex
-  flex-direction: column
-  gap: 0.8rem
-  flex: 1 1 auto
+  display: grid
+  gap: 0.9rem
   min-height: 0
-  overflow-y: auto
-  overflow-x: hidden
-  padding-right: 0.2rem
+  overflow: auto
 
 .day-list-block
-  display: flex
-  flex-direction: column
-  gap: 0.45rem
-  flex: 0 0 auto
+  display: grid
+  gap: 0.7rem
+  border-radius: 1rem
+  padding: 0.9rem
+  background: rgba(255, 255, 255, 0.72)
+  border: 1px solid rgba(36, 42, 54, 0.06)
 
 .bucket-title
   margin: 0
-  color: #2a3040
-  font-size: 0.95rem
+  font-size: 0.92rem
+  color: #48506a
+
+.focus-line
+  margin: 0
+  font-size: 1.05rem
+  color: #252c3f
 
 .empty
   margin: 0
-  color: #7a8193
-  font-size: 0.85rem
+  color: #7f8699
 
-.day-task-list
+.event-list
   list-style: none
   margin: 0
   padding: 0
-  display: flex
-  flex-direction: column
-  gap: 0.45rem
+  display: grid
+  gap: 0.65rem
 
-.day-task
-  border: 1px solid rgba(36, 42, 54, 0.06)
+.event-card
+  display: flex
+  justify-content: space-between
+  align-items: flex-start
+  gap: 0.75rem
+  border-radius: 0.9rem
+  padding: 0.75rem 0.8rem
   background: rgba(255, 255, 255, 0.82)
-  border-radius: 0.85rem
-  padding: 0.55rem 0.65rem
+  border: 1px solid rgba(36, 42, 54, 0.05)
+
+.event-copy
+  min-width: 0
+  display: grid
+  gap: 0.25rem
+
+.event-title
+  margin: 0
+  font-size: 0.96rem
+  color: #293145
+
+.event-time, .event-notes
+  margin: 0
+  color: #6b7489
+  font-size: 0.82rem
+
+.event-notes
+  white-space: pre-wrap
+
+.event-actions
+  display: inline-flex
+  gap: 0.45rem
+  flex-wrap: wrap
+
+.event-btn
+  border: 1px solid rgba(36, 42, 54, 0.08)
+  background: rgba(255, 255, 255, 0.88)
+  color: #42506a
+  border-radius: 999px
+  padding: 0.4rem 0.7rem
+  cursor: pointer
+
+.event-btn.is-danger
+  color: #b42318
+  border-color: rgba(180, 35, 24, 0.16)
+
+.event-modal
+  position: fixed
+  inset: 0
+  z-index: 60
+
+.event-modal-backdrop
+  position: absolute
+  inset: 0
+  background: rgba(22, 28, 41, 0.32)
+  backdrop-filter: blur(4px)
+
+.event-modal-panel
+  position: relative
+  z-index: 1
+  width: min(32rem, calc(100vw - 2rem))
+  margin: 8vh auto 0
+  border-radius: 1.15rem
+  background: rgba(252, 252, 255, 0.98)
+  border: 1px solid rgba(36, 42, 54, 0.08)
+  box-shadow: 0 28px 60px rgba(36, 42, 54, 0.18)
+  overflow: hidden
+
+.modal-head
   display: flex
   justify-content: space-between
   align-items: center
-  gap: 0.4rem
-  border-left: 4px solid #b59bda
+  gap: 1rem
+  padding: 1rem 1rem 0.75rem
 
-.day-task.priority-high
-  border-left-color: #e35d6a
+.modal-title
+  margin: 0
 
-.day-task.priority-normal
-  border-left-color: #b59bda
-
-.day-task.priority-low
-  border-left-color: #76b5a0
-
-.day-task.is-done .day-task-title
-  text-decoration: line-through
-  color: #81889a
-
-.day-task-check
-  display: flex
-  align-items: center
-  gap: 0.45rem
-  min-width: 0
-  flex: 1 1 auto
-
-.day-task-title
-  min-width: 0
-  white-space: nowrap
-  overflow: hidden
-  text-overflow: ellipsis
-
-.day-task-tools
-  display: inline-flex
-  align-items: center
-  gap: 0.35rem
-  flex: 0 0 auto
-
-.row-priority
-  min-width: 5.2rem
-  border-radius: 999px
-  padding: 0.25rem 0.5rem
-  font-size: 0.78rem
-
-.row-btn
-  border: 1px solid rgba(36, 42, 54, 0.08)
-  background: rgba(255, 255, 255, 0.86)
-  color: #475068
-  border-radius: 999px
-  padding: 0.35rem 0.55rem
+.close-btn
+  border: 0
+  background: transparent
+  color: #6c7489
   cursor: pointer
 
-@media (max-width: 1200px)
+.modal-body
+  display: grid
+  gap: 0.85rem
+  padding: 0 1rem 1rem
+
+.form-grid
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 0.75rem
+
+.form-field
+  display: grid
+  gap: 0.35rem
+
+.form-label
+  font-size: 0.78rem
+  color: #6b7489
+
+.form-input, .form-textarea
+  width: 100%
+  border: 1px solid rgba(36, 42, 54, 0.08)
+  border-radius: 0.85rem
+  background: rgba(255, 255, 255, 0.92)
+  color: #293145
+  padding: 0.75rem 0.85rem
+  font: inherit
+
+.form-textarea
+  min-height: 6.5rem
+  resize: vertical
+
+.modal-actions
+  display: flex
+  justify-content: flex-end
+  gap: 0.5rem
+  padding: 0 1rem 1rem
+
+@media (max-width: 900px)
   .calendar-layout
+    grid-template-columns: 1fr
+
+  .day-panel-head
     flex-direction: column
-    overflow: visible
+    align-items: flex-start
 
-  .month-panel, .day-panel
-    flex: 1 1 auto
-    min-height: auto
-
-  .day-panel
-    overflow: visible
-    height: auto
-    max-height: none
-
-  .day-scroll
-    overflow: visible
-    min-height: auto
-    padding-right: 0
-
-@media (max-width: 720px)
+@media (max-width: 640px)
   .calendar-header
-    flex-direction: column
+    align-items: flex-start
 
   .header-actions
-    justify-content: flex-start
+    width: 100%
+
+  .ctl-btn, .month-badge, .add-btn
+    flex: 1 1 calc(50% - 0.65rem)
+    justify-content: center
+
+  .month-grid
+    gap: 0.35rem
 
   .day-cell
-    min-height: 7vh
-    max-height: 7vh
+    padding: 0.5rem
+    min-height: 4rem
 
-  .day-composer
+  .form-grid
+    grid-template-columns: 1fr
+
+  .event-card
     flex-direction: column
-    align-items: stretch
-
-  .day-task
-    flex-direction: column
-    align-items: stretch
-
-  .day-task-tools
-    justify-content: flex-start
-    flex-wrap: wrap
-
-  .day-panel
-    height: 52vh
-    max-height: 52vh
 </style>
-

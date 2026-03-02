@@ -1,6 +1,6 @@
 //- projects/modudesk/app/context/dateContext.js
 import { computed, reactive, readonly } from 'vue'
-import { normalizeDueDate, todayStr } from '@project/modules/tasks/utils/date.js'
+import { normalizeDueDate, todayStr } from '@project/utils/date.js'
 
 const state = reactive({
   selectedDate: todayStr()
@@ -27,4 +27,3 @@ export function useSelectedDate() {
     setSelectedDate
   }
 }
-
