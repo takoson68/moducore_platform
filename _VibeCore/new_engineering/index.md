@@ -144,6 +144,10 @@ Git 僅用於保存進度與歷史脈絡，
 - Title: Pipeline Staging Rules | Path: conventions/C007_pipeline_staging_rules.md | Type: convention | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
 - Title: SSR Payload Schema | Path: conventions/C008_ssr_payload_schema.md | Type: convention | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
 - Title: Runtime Provider Naming and Placement | Path: conventions/C009_runtime_provider_naming_and_placement.md | Type: convention | Status: candidate | Scope: platform | Evidence: blueprints/V2平台SSR-native設計藍圖.md
+- Title: Project API Boundary Non-Pollution | Path: conventions/AA-WC-project-api-boundary-non-pollution.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-02.md
+- Title: Module Data Ownership | Path: conventions/AB-WC-module-data-ownership.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-02.md
+- Title: Project Auth Single Source Pattern | Path: conventions/AC-WC-project-auth-single-source-pattern.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-02.md
+- Title: Module Registry Boot Pipeline | Path: conventions/AD-WC-module-registry-boot-pipeline.md | Type: convention | Status: candidate | Scope: platform | Evidence: projects/project-b/modules/index.js, src/app/boot/boot.js
 
 ---
 
@@ -163,6 +167,7 @@ Git 僅用於保存進度與歷史脈絡，
 - Title: Daily Evolution Log Output Directory | Path: evolution/daily_log/ | Type: output-dir | Status: active | Scope: platform | Evidence: evolution/DAILY_EVOLUTION.md
 
 - Title: Daily Evolution Log 2026-02-06 | Path: evolution/daily_log/2026-02-06.md | Type: note | Status: - | Scope: platform | Evidence: -
+- Title: Daily Evolution Log 2026-03-02 | Path: evolution/daily_log/2026-03-02.md | Type: note | Status: - | Scope: platform | Evidence: conventions/AA-WC-project-api-boundary-non-pollution.md
 
 ---
 

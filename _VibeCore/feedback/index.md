@@ -16,8 +16,9 @@
 ## Reading Order
 
 1. KNOWN_ISSUES.md
-2. DISCUSSIONS.md
-3. ASSUMPTIONS.md
+2. RESOLVED_ISSUES.md
+3. DISCUSSIONS.md
+4. ASSUMPTIONS.md
 
 ---
 

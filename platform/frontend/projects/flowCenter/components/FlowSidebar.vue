@@ -3,44 +3,18 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
 import { useFlowCenterAuth } from '@project/services/flowCenterAuthService.js'
+import { filterAccessibleFlowRoutes } from '@project/services/flowCenterRouteAccess.js'
 
 const route = useRoute()
 const auth = useFlowCenterAuth()
-const projectConfig = computed(() => world.projectConfig() || {})
+const resolveNavProjection = world.service('resolveNavProjection')
 
-const moduleMetaMap = {
-  dashboard: { label: '儀表板', path: '/' },
-  leave: { label: '請假', path: '/leave' },
-  purchase: { label: '採購', path: '/purchase' },
-  announcement: { label: '公告', path: '/announcement' },
-  task: { label: '任務', path: '/task' },
-  approval: { label: '審核', path: '/approval' }
-}
-
-const navItems = computed(() =>
-  (projectConfig.value.modules || [])
-    .filter((name) => {
-      if (!auth.isLoggedIn.value) {
-        return name === 'dashboard' || name === 'announcement'
-      }
-
-      if (name === 'approval') {
-        return auth.role.value === 'manager'
-      }
-
-      if (name === 'purchase') {
-        return auth.role.value === 'employee' && auth.companyId.value !== 'company-b'
-      }
-
-      if (name === 'leave') {
-        return auth.role.value === 'employee'
-      }
-
-      return true
-    })
-    .map((name) => moduleMetaMap[name])
-    .filter(Boolean)
-)
+const navItems = computed(() => {
+  const bucket = window.__MODULE_ROUTES__ || { all: [] }
+  const accessibleRoutes = filterAccessibleFlowRoutes(bucket.all || [], auth.user.value)
+  const projection = resolveNavProjection(accessibleRoutes)
+  return projection.sidebar || []
+})
 
 function isActive(path) {
   if (path === '/') return route.path === '/'

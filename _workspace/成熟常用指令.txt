@@ -12,7 +12,7 @@ components/   router/    container/  stores/
 
 projects/    project-a/   modules/   layout/    
 
-_proTemp/    project-b/   services/  ModuDesk /
+_proTemp/    project-b/   services/  ModuDesk /  flowCenter/ 
 
 
 

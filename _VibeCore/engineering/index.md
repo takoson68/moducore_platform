@@ -221,6 +221,14 @@ Git 僅用於保存進度與歷史脈絡，
 
 - 工程慣例與約定（Conventions）
   → `_VibeCore/engineering/CONVENTIONS.md`
+- 新專案啟動清單（Checklist）
+  → `_VibeCore/engineering/NEW_PROJECT_CHECKLIST.md`
+- 專案骨架 Contract
+  → `_VibeCore/engineering/PROJECT_SCAFFOLD_CONTRACT.md`
+- 身份與 Access Contract
+  → `_VibeCore/engineering/IDENTITY_ACCESS_CONTRACT.md`
+- 模組樣板 Contract
+  → `_VibeCore/engineering/MODULE_TEMPLATE_CONTRACT.md`
 
 若附屬技術規範與 Engineering Index 發生衝突：
 

@@ -1,10 +1,14 @@
+import world from '@/world.js'
+
 const modules = import.meta.glob('./*/index.js')
 
 export const moduleLoaders = Object.fromEntries(
-  Object.entries(modules).map(([path, loader]) => {
-    const name = path.split('/')[1]
-    return [name, loader]
-  })
+  Object.entries(modules)
+    .filter(([path]) => !path.includes('/_archive/'))
+    .map(([path, loader]) => {
+      const name = path.split('/')[1]
+      return [name, loader]
+    })
 )
 
 const loadedModules = new Map()
@@ -47,6 +51,23 @@ export async function installModules({ register }, { allowList = [] } = {}) {
       register.routes(setup.routes)
     }
 
+    if (setup.ui?.slots && typeof setup.ui.slots === 'object') {
+      Object.entries(setup.ui.slots).forEach(([slotName, descriptor]) => {
+        if (Array.isArray(descriptor)) {
+          descriptor.forEach((item) => world.registerUISlot(slotName, item))
+        } else {
+          world.registerUISlot(slotName, descriptor)
+        }
+      })
+    }
+
     installedModules.add(name)
+  }
+}
+
+export function buildModuleRoutes() {
+  const bucket = window.__MODULE_ROUTES__ || { all: [] }
+  return {
+    routes: [...(bucket.all || [])]
   }
 }

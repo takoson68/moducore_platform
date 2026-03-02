@@ -1,5 +1,5 @@
 import world from '@/world.js'
-import { createPurchaseRecord, fetchPurchaseRecords } from './service.js'
+import { createPurchaseRecord, fetchPurchaseRecords, updatePurchaseRecord } from './service.js'
 
 const statusLabelMap = {
   draft: '草稿',
@@ -33,6 +33,19 @@ function normalizeRecord(record) {
   }
 }
 
+function createFormFromRecord(record) {
+  return {
+    itemName: record?.item_name || '',
+    amount: Number(record?.amount || 0),
+    purpose: record?.purpose || '',
+    vendor: record?.vendor_name || ''
+  }
+}
+
+function isEditableRecord(record) {
+  return ['draft', 'submitted'].includes(record?.status || '')
+}
+
 export function createPurchaseStore() {
   return world.createStore({
     name: 'flowCenterPurchaseStore',
@@ -42,6 +55,7 @@ export function createPurchaseStore() {
       error: '',
       records: [],
       selectedId: null,
+      editingId: null,
       form: createDefaultForm()
     },
     actions: {
@@ -53,13 +67,18 @@ export function createPurchaseStore() {
           error: '',
           records: [],
           selectedId: null,
+          editingId: null,
           form: createDefaultForm()
         })
       },
       selectRecord(store, id) {
+        const state = store.get()
+        const record = state.records.find((item) => item.id === id) || null
         store.set({
-          ...store.get(),
-          selectedId: id
+          ...state,
+          selectedId: id,
+          editingId: isEditableRecord(record) ? record.id : null,
+          form: record && isEditableRecord(record) ? createFormFromRecord(record) : state.form
         })
       },
       updateForm(store, patch = {}) {
@@ -73,8 +92,10 @@ export function createPurchaseStore() {
         })
       },
       clearForm(store) {
+        const state = store.get()
         store.set({
-          ...store.get(),
+          ...state,
+          editingId: null,
           form: createDefaultForm()
         })
       },
@@ -96,7 +117,8 @@ export function createPurchaseStore() {
             ...store.get(),
             loading: false,
             records,
-            selectedId: records[0]?.id || null
+            selectedId: records[0]?.id || null,
+            editingId: null
           })
         } catch (error) {
           store.set({
@@ -104,6 +126,7 @@ export function createPurchaseStore() {
             loading: false,
             records: [],
             selectedId: null,
+            editingId: null,
             error: error.message
           })
         }
@@ -119,13 +142,19 @@ export function createPurchaseStore() {
         })
 
         try {
-          await createPurchaseRecord({
+          const payload = {
             item_name: state.form.itemName,
             amount: Number(state.form.amount),
             purpose: state.form.purpose,
             vendor_name: state.form.vendor,
             status
-          })
+          }
+
+          if (state.editingId) {
+            await updatePurchaseRecord(state.editingId, payload)
+          } else {
+            await createPurchaseRecord(payload)
+          }
           store.clearForm()
           await store.load()
         } catch (error) {

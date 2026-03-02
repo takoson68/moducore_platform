@@ -2,7 +2,8 @@ import world from '@/world.js'
 import {
   createAnnouncementRecord,
   deleteAnnouncementRecord,
-  fetchAnnouncements
+  fetchAnnouncements,
+  updateAnnouncementRecord
 } from './service.js'
 
 function isLoggedIn() {
@@ -21,6 +22,14 @@ function createDefaultForm() {
   }
 }
 
+function createFormFromRecord(record) {
+  return {
+    title: record?.title || '',
+    content: record?.content || '',
+    publishNow: Boolean(record?.published_at)
+  }
+}
+
 export function createAnnouncementStore() {
   return world.createStore({
     name: 'flowCenterAnnouncementStore',
@@ -30,6 +39,7 @@ export function createAnnouncementStore() {
       error: '',
       records: [],
       selectedId: null,
+      editingId: null,
       form: createDefaultForm()
     },
     actions: {
@@ -41,13 +51,18 @@ export function createAnnouncementStore() {
           error: '',
           records: [],
           selectedId: null,
+          editingId: null,
           form: createDefaultForm()
         })
       },
       selectRecord(store, id) {
+        const state = store.get()
+        const record = state.records.find((item) => item.id === id) || null
         store.set({
-          ...store.get(),
-          selectedId: id
+          ...state,
+          selectedId: id,
+          editingId: record?.id || null,
+          form: record ? createFormFromRecord(record) : state.form
         })
       },
       updateForm(store, patch = {}) {
@@ -61,8 +76,10 @@ export function createAnnouncementStore() {
         })
       },
       clearForm(store) {
+        const state = store.get()
         store.set({
-          ...store.get(),
+          ...state,
+          editingId: null,
           form: createDefaultForm()
         })
       },
@@ -84,7 +101,8 @@ export function createAnnouncementStore() {
             ...store.get(),
             loading: false,
             records,
-            selectedId: records[0]?.id || null
+            selectedId: records[0]?.id || null,
+            editingId: null
           })
         } catch (error) {
           store.set({
@@ -92,11 +110,12 @@ export function createAnnouncementStore() {
             loading: false,
             records: [],
             selectedId: null,
+            editingId: null,
             error: error.message
           })
         }
       },
-      async create(store) {
+      async submit(store) {
         const state = store.get()
         if (state.saving || !isManager()) return
 
@@ -107,11 +126,17 @@ export function createAnnouncementStore() {
         })
 
         try {
-          await createAnnouncementRecord({
+          const payload = {
             title: state.form.title,
             content: state.form.content,
             publish_now: state.form.publishNow
-          })
+          }
+
+          if (state.editingId) {
+            await updateAnnouncementRecord(state.editingId, payload)
+          } else {
+            await createAnnouncementRecord(payload)
+          }
           store.clearForm()
           await store.load()
         } catch (error) {

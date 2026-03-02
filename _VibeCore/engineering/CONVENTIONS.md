@@ -40,6 +40,18 @@
 - 模組資料請放在各自的 `src/modules/<name>/api/`。
 - `src/api/client.js` 會自動帶 token 並攔截 401；改動需考量登出與路由流程。
 
+## 新專案 Auth 規範
+- 前端登入真相來源只能有一個：平台 `authStore`。
+- 專案層可包一層 auth service，但只能封裝 `world.authApi().login()`、`restoreSession()`、`logout()`，不得再建立第二份 project-local auth state 來決定是否登入。
+- UI 的 `isLoggedIn`、`role`、`company_id`、顯示名稱，一律從 `authStore.state.user` 或 `authStore.isLoggedIn()` 推導。
+- 若新專案需要額外身份欄位，應優先補後端 `/api/login` 與 `/api/session` payload，不得以前端額外打一條 project session API 來補出第二份登入真相。
+- project-specific session API 若存在，只能作為補充資料或後端 context 驗證，不得成為前端 auth gate。
+- 平台標準 auth pattern 必須包含：
+- `login / restoreSession / logout` 全部走 `world.authApi()`
+- auth UI 與 route guard 只依賴 `authStore`
+- 不允許 project-local auth truth 與 `authStore` 並存
+- 任何新專案若偏離此 pattern，必須先在工程紀錄中說明理由與風險，不能直接實作。
+
 ## 樣式規範
 - 主題切換唯一方式：
   - `document.documentElement.dataset.theme = 'dark'`（見 `frontend/src/styles/_樣式責任.md`）。
@@ -51,6 +63,12 @@
 ## 錯誤處理
 - 前端：避免在模組層直接攔截平台級錯誤；統一由 API client 或平台層處理。
 - 後端：統一使用 `Db.php` 進行 CRUD（見 `backend/使用手冊.md`）。
+
+## Issue 管理慣例
+- `KNOWN_ISSUES.md` 只保留仍在追蹤中的問題（`Open` / `Mitigated`）。
+- 問題一旦完成修正並確認關閉，必須自 `KNOWN_ISSUES.md` 移出。
+- 已關閉問題統一移至 `_VibeCore/feedback/RESOLVED_ISSUES.md` 保存歷史脈絡。
+- 不得讓已關閉 issue 長期滯留在 `KNOWN_ISSUES.md`，避免污染當前待處理列表。
 
 ## 效能與安全
 - 模組設計需可拔插，不假設一定存在。

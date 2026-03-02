@@ -39,6 +39,8 @@ const selectedRecord = computed(() =>
   state.records.find((item) => item.id === selectedId.value) || state.records[0] || null
 )
 
+const isEditing = computed(() => Boolean(state.editingId))
+
 function normalizeRecord(record) {
   return {
     ...record,
@@ -53,6 +55,10 @@ function loadLeave() {
 
 function submitLeave(status) {
   return leaveStore.submit(status)
+}
+
+function resetForm() {
+  return leaveStore.clearForm()
 }
 
 onMounted(loadLeave)
@@ -96,8 +102,8 @@ watch(() => [auth.isLoggedIn.value, auth.role.value].join(':'), loadLeave)
     .content-grid
       section.panel.flow-glass
         .panel-head
-          h3 新增請假單
-          span.panel-meta create
+          h3 {{ isEditing ? '編輯請假單' : '新增請假單' }}
+          span.panel-meta {{ isEditing ? 'update' : 'create' }}
         .form-grid
           label.field
             span.label 假別
@@ -120,8 +126,11 @@ watch(() => [auth.isLoggedIn.value, auth.role.value].join(':'), loadLeave)
             textarea(rows="4" v-model="leaveForm.reason")
         p.form-note(v-if="state.error") {{ state.error }}
         .form-actions
-          button.action-button(type="button" @click="submitLeave('draft')" :disabled="state.submitting") 儲存草稿
-          button.action-button.secondary(type="button" @click="submitLeave('submitted')" :disabled="state.submitting") 送出申請
+          button.action-button(type="button" @click="submitLeave('draft')" :disabled="state.submitting")
+            | {{ isEditing ? '更新草稿' : '儲存草稿' }}
+          button.action-button.secondary(type="button" @click="submitLeave('submitted')" :disabled="state.submitting")
+            | {{ isEditing ? '更新並送出' : '送出申請' }}
+          button.action-button.secondary(type="button" @click="resetForm" :disabled="state.submitting") 切換為新增
       section.panel.flow-glass
         .panel-head
           h3 請假清單

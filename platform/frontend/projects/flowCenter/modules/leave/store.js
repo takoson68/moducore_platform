@@ -1,5 +1,5 @@
 import world from '@/world.js'
-import { createLeaveRecord, fetchLeaveRecords } from './service.js'
+import { createLeaveRecord, fetchLeaveRecords, updateLeaveRecord } from './service.js'
 
 const leaveTypeLabelMap = {
   annual: '年假',
@@ -42,6 +42,20 @@ function normalizeRecord(record) {
   }
 }
 
+function createFormFromRecord(record) {
+  return {
+    leaveType: record?.leave_type || 'annual',
+    startDate: record?.start_date || '',
+    endDate: record?.end_date || '',
+    reason: record?.reason || '',
+    delegate: record?.delegate_name || ''
+  }
+}
+
+function isEditableRecord(record) {
+  return ['draft', 'submitted'].includes(record?.status || '')
+}
+
 export function createLeaveStore() {
   return world.createStore({
     name: 'flowCenterLeaveStore',
@@ -51,6 +65,7 @@ export function createLeaveStore() {
       error: '',
       records: [],
       selectedId: null,
+      editingId: null,
       form: createDefaultForm()
     },
     actions: {
@@ -62,13 +77,18 @@ export function createLeaveStore() {
           error: '',
           records: [],
           selectedId: null,
+          editingId: null,
           form: createDefaultForm()
         })
       },
       selectRecord(store, id) {
+        const state = store.get()
+        const record = state.records.find((item) => item.id === id) || null
         store.set({
-          ...store.get(),
-          selectedId: id
+          ...state,
+          selectedId: id,
+          editingId: isEditableRecord(record) ? record.id : null,
+          form: record && isEditableRecord(record) ? createFormFromRecord(record) : state.form
         })
       },
       updateForm(store, patch = {}) {
@@ -82,8 +102,10 @@ export function createLeaveStore() {
         })
       },
       clearForm(store) {
+        const state = store.get()
         store.set({
-          ...store.get(),
+          ...state,
+          editingId: null,
           form: createDefaultForm()
         })
       },
@@ -105,7 +127,8 @@ export function createLeaveStore() {
             ...store.get(),
             loading: false,
             records,
-            selectedId: records[0]?.id || null
+            selectedId: records[0]?.id || null,
+            editingId: null
           })
         } catch (error) {
           store.set({
@@ -113,6 +136,7 @@ export function createLeaveStore() {
             loading: false,
             records: [],
             selectedId: null,
+            editingId: null,
             error: error.message
           })
         }
@@ -128,14 +152,20 @@ export function createLeaveStore() {
         })
 
         try {
-          await createLeaveRecord({
+          const payload = {
             leave_type: state.form.leaveType,
             start_date: state.form.startDate,
             end_date: state.form.endDate,
             reason: state.form.reason,
             delegate_name: state.form.delegate,
             status
-          })
+          }
+
+          if (state.editingId) {
+            await updateLeaveRecord(state.editingId, payload)
+          } else {
+            await createLeaveRecord(payload)
+          }
           store.clearForm()
           await store.load()
         } catch (error) {

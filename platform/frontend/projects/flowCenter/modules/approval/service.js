@@ -1,4 +1,4 @@
-import { flowCenterApi } from '@project/services/flowCenterApi.js'
+import { approvalApi } from './api/approvalApi.js'
 
 function unwrap(result, fallbackMessage) {
   if (!result.ok) {
@@ -9,9 +9,9 @@ function unwrap(result, fallbackMessage) {
 }
 
 export async function fetchApprovalRecords() {
-  return unwrap(await flowCenterApi.get('/api/flowcenter/approval/pending'), '無法取得待審清單')
+  return unwrap(await approvalApi.listPending(), '無法取得待審清單')
 }
 
 export async function submitApprovalDecision(payload) {
-  return unwrap(await flowCenterApi.post('/api/flowcenter/approval/decide', payload), '無法送出審核決策')
+  return unwrap(await approvalApi.decide(payload), '無法送出審核決策')
 }

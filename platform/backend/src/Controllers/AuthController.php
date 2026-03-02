@@ -16,7 +16,22 @@ final class AuthController
             'username' => (string)$user['username'],
             'name' => (string)($user['name'] ?? $user['username']),
             'role' => (string)($user['role'] ?? ''),
+            'company_id' => (string)($user['company_id'] ?? ''),
         ];
+    }
+
+    private function resolveFlowCenterProfile(int $userId): ?array
+    {
+        $stmt = db()->prepare(
+            'SELECT role, company_id, display_name
+             FROM flowcenter_user_profiles
+             WHERE user_id = ? AND status = 1
+             LIMIT 1'
+        );
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
     }
 
     private function resolveTenantIds(string $project): array
@@ -64,6 +79,13 @@ final class AuthController
             }
         }
 
+        if ($project === 'flowCenter' || $project === 'flow_center') {
+            $profile = $this->resolveFlowCenterProfile($userId);
+            if ($profile && isset($profile['role'])) {
+                return (string)$profile['role'];
+            }
+        }
+
         return null;
     }
 
@@ -76,6 +98,26 @@ final class AuthController
             $row = $stmt->fetch();
             if ($row && isset($row['name'])) {
                 return (string)$row['name'];
+            }
+        }
+
+        if ($project === 'flowCenter' || $project === 'flow_center') {
+            $profile = $this->resolveFlowCenterProfile($userId);
+            if ($profile && isset($profile['display_name'])) {
+                return (string)$profile['display_name'];
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveEmployeeCompanyId(string $project, int $userId): ?string
+    {
+        $project = trim($project);
+        if ($project === 'flowCenter' || $project === 'flow_center') {
+            $profile = $this->resolveFlowCenterProfile($userId);
+            if ($profile && isset($profile['company_id'])) {
+                return (string)$profile['company_id'];
             }
         }
 
@@ -151,10 +193,11 @@ final class AuthController
         if ($user) {
             $role = $this->resolveEmployeeRole($project, (int)$user['id']);
             $name = $this->resolveEmployeeName($project, (int)$user['id']);
+            $companyId = $this->resolveEmployeeCompanyId($project, (int)$user['id']);
             $token = $this->createTokenForUser($user);
             $response->json([
                 'success' => true,
-                'user' => $this->buildUserPayload(array_merge($user, ['role' => $role, 'name' => $name])),
+                'user' => $this->buildUserPayload(array_merge($user, ['role' => $role, 'name' => $name, 'company_id' => $companyId])),
                 'token' => $token,
             ]);
             return;
@@ -201,11 +244,12 @@ final class AuthController
         $isLoggedIn = $user !== null;
         $role = $user ? $this->resolveEmployeeRole($project, (int)$user['id']) : null;
         $name = $user ? $this->resolveEmployeeName($project, (int)$user['id']) : null;
+        $companyId = $user ? $this->resolveEmployeeCompanyId($project, (int)$user['id']) : null;
 
         $response->json([
             'success' => true,
             'authenticated' => $isLoggedIn,
-            'user' => $isLoggedIn ? $this->buildUserPayload(array_merge($user, ['role' => $role, 'name' => $name])) : null,
+            'user' => $isLoggedIn ? $this->buildUserPayload(array_merge($user, ['role' => $role, 'name' => $name, 'company_id' => $companyId])) : null,
             'token' => $isLoggedIn ? $token : null,
         ]);
     }

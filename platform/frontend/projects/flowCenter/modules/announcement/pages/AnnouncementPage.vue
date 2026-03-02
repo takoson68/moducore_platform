@@ -24,16 +24,22 @@ const selectedRecord = computed(() =>
   state.records.find((item) => item.id === selectedId.value) || state.records[0] || null
 )
 
+const isEditing = computed(() => Boolean(state.editingId))
+
 function loadAnnouncements() {
   return announcementStore.load()
 }
 
-function createAnnouncement() {
-  return announcementStore.create()
+function submitAnnouncement() {
+  return announcementStore.submit()
 }
 
 function deleteAnnouncement() {
   return announcementStore.removeSelected()
+}
+
+function resetForm() {
+  return announcementStore.clearForm()
 }
 
 onMounted(loadAnnouncements)
@@ -69,7 +75,7 @@ watch(() => auth.isLoggedIn.value, loadAnnouncements)
     .content-grid
       section.panel.flow-glass
         .panel-head
-          h3 新增公告
+          h3 {{ isEditing ? '編輯公告' : '新增公告' }}
           span.panel-meta manager only
         .form-grid
           label.field.is-wide
@@ -87,9 +93,14 @@ watch(() => auth.isLoggedIn.value, loadAnnouncements)
         .form-actions
           button.action-button(
             type="button"
-            @click="createAnnouncement"
+            @click="submitAnnouncement"
             :disabled="auth.role.value !== 'manager' || state.saving"
-          ) 建立公告
+          ) {{ isEditing ? '更新公告' : '建立公告' }}
+          button.action-button.secondary(
+            type="button"
+            @click="resetForm"
+            :disabled="auth.role.value !== 'manager' || state.saving"
+          ) 切換為新增
           button.action-button.secondary(
             type="button"
             @click="deleteAnnouncement"

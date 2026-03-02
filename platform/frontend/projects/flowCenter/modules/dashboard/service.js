@@ -1,4 +1,4 @@
-import { flowCenterApi } from '@project/services/flowCenterApi.js'
+import { dashboardApi } from './api/dashboardApi.js'
 
 function unwrap(result, fallbackMessage) {
   if (!result.ok) {
@@ -9,8 +9,5 @@ function unwrap(result, fallbackMessage) {
 }
 
 export async function fetchDashboardSummary() {
-  return unwrap(
-    await flowCenterApi.get('/api/flowcenter/dashboard/summary'),
-    '無法取得儀表板摘要'
-  )
+  return unwrap(await dashboardApi.summary(), '無法取得儀表板摘要')
 }

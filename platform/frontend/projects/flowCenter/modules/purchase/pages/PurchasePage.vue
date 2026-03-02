@@ -34,6 +34,8 @@ const selectedRecord = computed(() =>
   state.records.find((item) => item.id === selectedId.value) || state.records[0] || null
 )
 
+const isEditing = computed(() => Boolean(state.editingId))
+
 function normalizeRecord(record) {
   return {
     ...record,
@@ -55,6 +57,10 @@ function loadPurchase() {
 
 function submitPurchase(status) {
   return purchaseStore.submit(status)
+}
+
+function resetForm() {
+  return purchaseStore.clearForm()
 }
 
 onMounted(loadPurchase)
@@ -103,8 +109,8 @@ watch(() => [auth.isLoggedIn.value, auth.role.value, auth.companyId.value].join(
     .content-grid
       section.panel.flow-glass
         .panel-head
-          h3 新增採購單
-          span.panel-meta create
+          h3 {{ isEditing ? '編輯採購單' : '新增採購單' }}
+          span.panel-meta {{ isEditing ? 'update' : 'create' }}
         .form-grid
           label.field
             span.label 採購項目
@@ -120,8 +126,11 @@ watch(() => [auth.isLoggedIn.value, auth.role.value, auth.companyId.value].join(
             textarea(rows="4" v-model="purchaseForm.purpose")
         p.form-note(v-if="state.error") {{ state.error }}
         .form-actions
-          button.action-button(type="button" @click="submitPurchase('draft')" :disabled="state.submitting") 儲存草稿
-          button.action-button.secondary(type="button" @click="submitPurchase('submitted')" :disabled="state.submitting") 送出申請
+          button.action-button(type="button" @click="submitPurchase('draft')" :disabled="state.submitting")
+            | {{ isEditing ? '更新草稿' : '儲存草稿' }}
+          button.action-button.secondary(type="button" @click="submitPurchase('submitted')" :disabled="state.submitting")
+            | {{ isEditing ? '更新並送出' : '送出申請' }}
+          button.action-button.secondary(type="button" @click="resetForm" :disabled="state.submitting") 切換為新增
       section.panel.flow-glass
         .panel-head
           h3 採購清單

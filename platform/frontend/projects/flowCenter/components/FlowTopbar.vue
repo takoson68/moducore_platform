@@ -4,28 +4,32 @@ import { useRoute } from 'vue-router'
 import world from '@/world.js'
 import FlowAuthCard from './FlowAuthCard.vue'
 import { useFlowCenterAuth } from '@project/services/flowCenterAuthService.js'
+import { filterAccessibleFlowRoutes } from '@project/services/flowCenterRouteAccess.js'
 
 const route = useRoute()
 const auth = useFlowCenterAuth()
 const projectConfig = computed(() => world.projectConfig() || {})
-
-const pageTitleMap = [
-  { match: (path) => path === '/', title: '個人儀表板' },
-  { match: (path) => path.startsWith('/leave'), title: '請假申請' },
-  { match: (path) => path.startsWith('/purchase'), title: '採購申請' },
-  { match: (path) => path.startsWith('/announcement'), title: '公告管理' },
-  { match: (path) => path.startsWith('/task'), title: '任務交辦' },
-  { match: (path) => path.startsWith('/approval'), title: '主管審核' }
-]
+const resolveNavProjection = world.service('resolveNavProjection')
 
 const pageTitle = computed(() => {
-  const matched = pageTitleMap.find((item) => item.match(route.path))
-  return matched?.title || '流程中心'
+  const matched = [...route.matched].reverse().find((item) => item.meta?.title)
+  return matched?.meta?.title || '流程中心'
 })
 
-const statusText = computed(() => {
-  if (!auth.isLoggedIn.value) return '尚未登入'
-  return `${auth.role.value} ｜ ${auth.companyId.value}`
+const pageDescription = computed(() => {
+  const matched = [...route.matched].reverse().find((item) => item.meta?.description)
+  return matched?.meta?.description || `${projectConfig.value.title || 'Flow Center'} 以登入身份決定資料與模組可見性`
+})
+
+const topbarItems = computed(() => {
+  const bucket = window.__MODULE_ROUTES__ || { all: [] }
+  const accessibleRoutes = filterAccessibleFlowRoutes(bucket.all || [], auth.user.value)
+  const projection = resolveNavProjection(accessibleRoutes)
+  return (projection.topbar || []).filter((item) => {
+    const routeRecord = accessibleRoutes.find((routeItem) => routeItem.path === item.path)
+    const topbarEntry = routeRecord?.meta?.nav?.find((entry) => entry?.area === 'topbar')
+    return topbarEntry?.display !== false
+  })
 })
 </script>
 
@@ -34,11 +38,15 @@ header.topbar
   .title-group
     p.eyebrow 企業流程中心
     h1.title {{ pageTitle }}
-    p.subtitle {{ projectConfig.title || 'Flow Center' }} 以登入身份決定資料與模組可見性
+    p.subtitle {{ pageDescription }}
+  nav.topbar-nav(v-if="topbarItems.length")
+    RouterLink.topbar-link(
+      v-for="item in topbarItems"
+      :key="item.path"
+      :to="item.path"
+      :class="{ 'is-active': route.path === item.path }"
+    ) {{ item.label }}
   .topbar-actions
-    .status.flow-glass
-      .status-label 目前系統狀態
-      .status-value {{ statusText }}
     FlowAuthCard
 </template>
 
@@ -77,32 +85,41 @@ header.topbar
   margin: 0
   color: rgba(63, 54, 79, 0.66)
 
+.topbar-nav
+  display: flex
+  gap: 10px
+  align-items: center
+  flex: 1
+  justify-content: center
+
+.topbar-link
+  text-decoration: none
+  padding: 8px 12px
+  border-radius: 999px
+  color: rgba(63, 54, 79, 0.72)
+  border: 1px solid rgba(90, 79, 116, 0.16)
+  background: rgba(255, 255, 255, 0.58)
+  font-size: 13px
+  font-weight: 700
+
+.topbar-link.is-active
+  background: #241b31
+  color: #fff
+  border-color: #241b31
+
 .topbar-actions
   display: grid
-  grid-template-columns: auto auto
   gap: 12px
   align-items: start
-
-.status
-  min-width: 210px
-  padding: 14px 16px
-  border-radius: 18px
-  display: grid
-  gap: 6px
-
-.status-label
-  font-size: 12px
-  color: rgba(90, 79, 116, 0.58)
-
-.status-value
-  font-size: 15px
-  font-weight: 700
-  color: #5f516f
 
 @media (max-width: 960px)
   .topbar
     padding: 18px 18px 10px
     flex-direction: column
+
+  .topbar-nav
+    justify-content: flex-start
+    flex-wrap: wrap
 
   .topbar-actions
     width: 100%
@@ -110,7 +127,4 @@ header.topbar
 
   .title
     font-size: 28px
-
-  .status
-    width: 100%
 </style>

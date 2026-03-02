@@ -1,4 +1,4 @@
-import { flowCenterApi } from '@project/services/flowCenterApi.js'
+import { leaveApi } from './api/leaveApi.js'
 
 function unwrap(result, fallbackMessage) {
   if (!result.ok) {
@@ -9,9 +9,13 @@ function unwrap(result, fallbackMessage) {
 }
 
 export async function fetchLeaveRecords() {
-  return unwrap(await flowCenterApi.get('/api/flowcenter/leave'), '無法取得請假資料')
+  return unwrap(await leaveApi.list(), '無法取得請假資料')
 }
 
 export async function createLeaveRecord(payload) {
-  return unwrap(await flowCenterApi.post('/api/flowcenter/leave', payload), '無法建立請假單')
+  return unwrap(await leaveApi.create(payload), '無法建立請假單')
+}
+
+export async function updateLeaveRecord(id, payload) {
+  return unwrap(await leaveApi.update(id, payload), '無法更新請假單')
 }

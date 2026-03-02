@@ -1,4 +1,4 @@
-import { flowCenterApi } from '@project/services/flowCenterApi.js'
+import { announcementApi } from './api/announcementApi.js'
 
 function unwrap(result, fallbackMessage) {
   if (!result.ok) {
@@ -9,16 +9,17 @@ function unwrap(result, fallbackMessage) {
 }
 
 export async function fetchAnnouncements() {
-  return unwrap(await flowCenterApi.get('/api/flowcenter/announcements'), '無法取得公告資料')
+  return unwrap(await announcementApi.list(), '無法取得公告資料')
 }
 
 export async function createAnnouncementRecord(payload) {
-  return unwrap(await flowCenterApi.post('/api/flowcenter/announcements', payload), '無法建立公告')
+  return unwrap(await announcementApi.create(payload), '無法建立公告')
+}
+
+export async function updateAnnouncementRecord(id, payload) {
+  return unwrap(await announcementApi.update(id, payload), '無法更新公告')
 }
 
 export async function deleteAnnouncementRecord(id) {
-  return unwrap(
-    await flowCenterApi.post('/api/flowcenter/announcements/delete', { id }),
-    '無法刪除公告'
-  )
+  return unwrap(await announcementApi.remove(id), '無法刪除公告')
 }

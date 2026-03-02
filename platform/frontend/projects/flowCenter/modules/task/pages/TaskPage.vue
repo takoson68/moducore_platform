@@ -37,6 +37,8 @@ const selectedRecord = computed(() =>
   state.records.find((item) => item.id === selectedId.value) || state.records[0] || null
 )
 
+const isEditing = computed(() => Boolean(state.editingId))
+
 function normalizeRecord(record) {
   return {
     ...record,
@@ -49,12 +51,16 @@ function loadTasks() {
   return taskStore.load()
 }
 
-function createTask() {
-  return taskStore.create()
+function submitTask() {
+  return taskStore.submit()
 }
 
 function deleteTask() {
   return taskStore.removeSelected()
+}
+
+function resetForm() {
+  return taskStore.clearForm()
 }
 
 onMounted(loadTasks)
@@ -93,8 +99,8 @@ watch(() => auth.isLoggedIn.value, loadTasks)
     .content-grid
       section.panel.flow-glass
         .panel-head
-          h3 新增任務
-          span.panel-meta create
+          h3 {{ isEditing ? '編輯任務' : '新增任務' }}
+          span.panel-meta {{ isEditing ? 'update' : 'create' }}
         .form-grid
           label.field.is-wide
             span.label 任務名稱
@@ -122,7 +128,10 @@ watch(() => auth.isLoggedIn.value, loadTasks)
             textarea(rows="5" v-model="form.description")
         p.form-note(v-if="state.error") {{ state.error }}
         .form-actions
-          button.action-button(type="button" @click="createTask" :disabled="state.saving") 建立任務
+          button.action-button(type="button" @click="submitTask" :disabled="state.saving")
+            | {{ isEditing ? '更新任務' : '建立任務' }}
+          button.action-button.secondary(type="button" @click="resetForm" :disabled="state.saving")
+            | 切換為新增
           button.action-button.secondary(type="button" @click="deleteTask" :disabled="!selectedRecord || state.saving") 刪除選取任務
       section.panel.flow-glass
         .panel-head
