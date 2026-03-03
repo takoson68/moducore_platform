@@ -5,6 +5,7 @@ import world from '@/world.js'
 
 const route = useRoute()
 const counterStore = world.store('dineCoreCounterStore')
+const state = computed(() => counterStore.state)
 const detail = computed(() => counterStore.state.detail)
 const cancelReason = ref('')
 const statusLabels = {
@@ -77,6 +78,8 @@ async function cancelOrder() {
 
 <template lang="pug">
 .desk-page(v-if="detail")
+  section.detail-list-card(v-if="state.error")
+    p.error-text {{ state.error }}
   section.scope-card
     p.eyebrow 櫃台模組
     h2 櫃台訂單明細
@@ -170,6 +173,10 @@ async function cancelOrder() {
   margin: 0
   color: #6f5b43
   line-height: 1.7
+
+.error-text
+  margin: 0
+  color: #a4432c
 
 .detail-grid
   margin-top: 16px

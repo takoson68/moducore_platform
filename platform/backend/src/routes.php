@@ -5,6 +5,23 @@ use App\Core\Router;
 
 /** @var Router $router */
 $router->add('GET', '/health', 'HealthController@ping');
+$router->add('GET', '/api/dinecore/entry-context', 'DineCoreGuestApiController@entryContext');
+$router->add('GET', '/api/dinecore/menu', 'DineCoreGuestApiController@menu');
+$router->add('GET', '/api/dinecore/carts', 'DineCoreGuestApiController@carts');
+$router->add('POST', '/api/dinecore/cart/add-item', 'DineCoreGuestApiController@addItem');
+$router->add('POST', '/api/dinecore/cart/change-item-quantity', 'DineCoreGuestApiController@changeItemQuantity');
+$router->add('POST', '/api/dinecore/cart/update-item', 'DineCoreGuestApiController@updateItem');
+$router->add('PATCH', '/api/dinecore/cart/update-item', 'DineCoreGuestApiController@updateItem');
+$router->add('GET', '/api/dinecore/checkout-summary', 'DineCoreGuestApiController@checkoutSummary');
+$router->add('GET', '/api/dinecore/checkout-success', 'DineCoreGuestApiController@checkoutSuccess');
+$router->add('POST', '/api/dinecore/checkout-submit', 'DineCoreGuestApiController@checkoutSubmit');
+$router->add('GET', '/api/dinecore/order-tracker', 'DineCoreGuestApiController@orderTracker');
+$router->add('GET', '/api/dinecore/staff/reports/summary', 'DineCoreStaffApiController@reportsSummary');
+$router->add('GET', '/api/dinecore/staff/reports/orders', 'DineCoreStaffApiController@reportsOrders');
+$router->add('GET', '/api/dinecore/staff/audit-close/summary', 'DineCoreStaffApiController@auditCloseSummary');
+$router->add('GET', '/api/dinecore/staff/audit-close/history', 'DineCoreStaffApiController@auditCloseHistory');
+$router->add('POST', '/api/dinecore/staff/audit-close/close', 'DineCoreStaffApiController@closeBusinessDate');
+$router->add('POST', '/api/dinecore/staff/audit-close/unlock', 'DineCoreStaffApiController@unlockBusinessDate');
 $router->add('GET', '/api/flowcenter/health', 'FlowCenterHealthController@status');
 $router->add('GET', '/api/flowcenter/session', 'FlowCenterSessionController@show');
 $router->add('GET', '/api/flowcenter/dashboard/summary', 'FlowCenterDashboardController@summary');

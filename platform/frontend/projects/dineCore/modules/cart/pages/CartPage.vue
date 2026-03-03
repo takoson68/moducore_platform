@@ -1,23 +1,91 @@
 <script setup>
-import { computed, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = world.store('dineCoreCartStore')
+const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
 const state = computed(() => cartStore.state)
+const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
+const POLL_INTERVAL_MS = 5000
+let pollTimer = null
 
-watchEffect(() => {
-  cartStore.load(tableCode.value)
-})
+async function refreshCart() {
+  if (!entryState.value.orderingSessionToken) return
 
-const activeCart = computed(() =>
-  state.value.carts.find(item => item.id === state.value.activeCartId) || null
+  await cartStore.load({
+    tableCode: tableCode.value,
+    orderingSessionToken: entryState.value.orderingSessionToken
+  })
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+function startPolling() {
+  stopPolling()
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    return
+  }
+
+  pollTimer = window.setInterval(() => {
+    refreshCart()
+  }, POLL_INTERVAL_MS)
+}
+
+function handleVisibilityChange() {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    stopPolling()
+    return
+  }
+
+  refreshCart()
+  startPolling()
+}
+
+watch(
+  [tableCode, () => entryState.value.orderingSessionToken],
+  async ([, orderingSessionToken]) => {
+    if (!orderingSessionToken) {
+      stopPolling()
+      return
+    }
+
+    await refreshCart()
+    startPolling()
+  },
+  { immediate: true }
 )
 
-const activeCartItems = computed(() => state.value.cartItemsByCartId[state.value.activeCartId] || [])
+onMounted(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
+})
+
+onBeforeUnmount(() => {
+  stopPolling()
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
+})
+
+const orderingCart = computed(() =>
+  state.value.carts.find(item => item.id === state.value.orderingCartId) || null
+)
+
+const viewingCart = computed(() =>
+  state.value.carts.find(item => item.id === state.value.viewingCartId) || null
+)
+
+const viewingCartItems = computed(() => state.value.cartItemsByCartId[state.value.viewingCartId] || [])
 
 const editorSelectedOptions = computed(() => {
   const editor = state.value.editor
@@ -41,7 +109,7 @@ const editorTotalPrice = computed(() => {
 async function changeQuantity(cartItemId, delta) {
   await cartStore.changeItemQuantity({
     tableCode: tableCode.value,
-    cartId: state.value.activeCartId,
+    cartId: state.value.viewingCartId,
     cartItemId,
     delta
   })
@@ -72,26 +140,34 @@ function goToConfirmOrder() {
     .mobile-hero-card__badge 合單準備
     h2.mobile-hero-card__title 顧客購物車
     p.mobile-hero-card__copy
-      | 每位顧客先整理自己的子購物車，確認品項、客製與備註後，再一起進入確認訂單頁面。
+      | 手機加點會固定加入 API 指定的顧客分組；這裡切換只影響查看與編輯，不會改變後續加點歸屬。
+    p.mobile-hero-card__copy(v-if="orderingCart")
+      | 目前這支手機的加點目標：{{ orderingCart.guestLabel }}
+
+  section.feature-card.is-error(v-if="state.errorMessage")
+    h3.feature-card__title 同步提醒
+    p.feature-card__copy {{ state.errorMessage }}
 
   section.cart-switcher
     button.cart-chip(
       v-for="cart in state.carts"
       :key="cart.id"
       type="button"
-      :class="{ 'is-active': state.activeCartId === cart.id }"
-      @click="cartStore.setActiveCart(cart.id)"
+      :class="{ 'is-active': state.viewingCartId === cart.id }"
+      @click="cartStore.setViewingCart(cart.id)"
     )
-      span.cart-chip__title {{ cart.guestLabel }}
+      span.cart-chip__title
+        | {{ cart.guestLabel }}
+        small.cart-chip__pin(v-if="state.orderingCartId === cart.id") 本機加點
       span.cart-chip__meta {{ `${cart.itemCount} 項` }}
 
   section.cart-summary-card
     .cart-summary-card__head
-      h3.cart-summary-card__title {{ activeCart?.guestLabel || '尚未選擇購物車' }}
+      h3.cart-summary-card__title {{ viewingCart?.guestLabel || '尚未選擇購物車' }}
       span.cart-summary-card__tag 子購物車
 
     .cart-item-list
-      article.cart-item(v-for="item in activeCartItems" :key="item.id")
+      article.cart-item(v-for="item in viewingCartItems" :key="item.id")
         .cart-item__main
           h4.cart-item__title {{ item.title }}
           p.cart-item__meta {{ item.note || '無備註' }}
@@ -106,8 +182,8 @@ function goToConfirmOrder() {
           button.cart-item__edit(type="button" @click="cartStore.openEditor(item)") 編輯
 
     .cart-summary-card__footer
-      p.cart-summary-card__copy(v-if="activeCart") {{ activeCart.note }}
-      strong.cart-summary-card__total {{ `小計 $${activeCart?.subtotal || 0}` }}
+      p.cart-summary-card__copy(v-if="viewingCart") {{ viewingCart.note }}
+      strong.cart-summary-card__total {{ `小計 $${viewingCart?.subtotal || 0}` }}
 
   section.bottom-action-card
     .bottom-action-card__meta
@@ -117,6 +193,8 @@ function goToConfirmOrder() {
 
   section.feature-card
     h3.feature-card__title 操作提醒
+    p.feature-card__copy(v-if="!state.errorMessage")
+      | 這個頁面會每 5 秒自動同步一次，避免同桌加點內容過期。
     ul.feature-list
       li 每位顧客可以先整理自己的品項，最後再一起合併送單。
       li 若要修改客製內容，可先在這裡編輯，送出後就會進入廚房流程。
@@ -220,10 +298,25 @@ function goToConfirmOrder() {
 
 .cart-chip__title
   font-weight: 700
+  display: flex
+  align-items: center
+  gap: 8px
+
+.cart-chip__pin
+  font-size: 11px
+  font-weight: 700
+  padding: 2px 6px
+  border-radius: 999px
+  background: rgba(121, 214, 207, 0.16)
+  color: #356d6e
 
 .cart-chip__meta
   font-size: 12px
   opacity: 0.82
+
+.cart-chip.is-active .cart-chip__pin
+  background: rgba(255, 255, 255, 0.22)
+  color: #fff
 
 .cart-summary-card,
 .feature-card

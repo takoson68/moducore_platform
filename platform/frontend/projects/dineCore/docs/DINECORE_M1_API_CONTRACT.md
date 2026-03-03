@@ -125,6 +125,7 @@ Milestone 1 建議錯誤碼：
 ### Q01 取得桌號入口上下文
 用途：
 - 供顧客掃碼進入時取得固定桌號狀態
+- 並建立或恢復這支手機在該桌目前未結單訂單下的匿名點餐身份
 
 Method:
 - `GET /api/dinecore/tables/{tableCode}/entry-context`
@@ -141,7 +142,14 @@ Response:
       "dine_mode": "dine_in",
       "status": "active",
       "is_ordering_enabled": true
-    }
+    },
+    "ordering_session_token": "gsess_01",
+    "ordering_cart_id": "cart_a",
+    "person_slot": 1,
+    "ordering_label": "1號顧客",
+    "order_id": "ord_01",
+    "order_no": "DC202603030001",
+    "order_status": "draft"
   }
 }
 ```
@@ -150,6 +158,12 @@ Response:
 - `world_absence` / `TABLE_NOT_FOUND`
 - `world_invisibility` / `TABLE_INACTIVE`
 - `world_rejection` / `ORDERING_DISABLED`
+
+規則補充：
+- 若 request 未帶 `ordering_session_token`，後端應視為第一次進來
+- 後端需先找這桌目前未結單訂單；若沒有，先建立新的訂單編號
+- 再於該訂單下建立新的匿名 ordering session
+- 若 request 已帶有效 token，後端應恢復同一個匿名身份
 
 ### Q02 取得菜單分類與品項
 用途：
@@ -237,6 +251,7 @@ Response:
 ### Q04 取得桌號下的子購物車清單
 用途：
 - 供顧客查看同桌多個子購物車摘要
+- 同時告知這支手機目前的匿名點餐身份
 
 Method:
 - `GET /api/dinecore/tables/{tableCode}/carts`
@@ -245,6 +260,10 @@ Response:
 ```json
 {
   "data": {
+    "ordering_session_token": "gsess_01",
+    "ordering_cart_id": "cart_a",
+    "person_slot": 1,
+    "ordering_label": "1號顧客",
     "carts": [
       {
         "id": "cart_a",
@@ -322,6 +341,31 @@ Response:
     "service_fee_amount": 10,
     "tax_amount": 10,
     "total_amount": 220
+  }
+}
+```
+
+### Q06-1 取得桌號入口上下文
+用途：
+- 供顧客端建立或恢復本機匿名點餐 session
+- 並掛入該桌目前未結單的訂單
+
+Method:
+- `GET /api/dinecore/tables/{tableCode}/entry-context`
+
+Response:
+```json
+{
+  "data": {
+    "table_code": "A01",
+    "table_name": "靠窗 1 號桌",
+    "ordering_session_token": "gsess_01",
+    "ordering_cart_id": "cart_a",
+    "person_slot": 1,
+    "ordering_label": "1號顧客",
+    "order_id": "ord_01",
+    "order_no": "DC202603030001",
+    "order_status": "pending"
   }
 }
 ```
@@ -530,6 +574,7 @@ Method:
 Request:
 ```json
 {
+  "ordering_session_token": "gsess_01",
   "menu_item_id": "item_beef_noodle",
   "quantity": 1,
   "note": "少辣",
@@ -557,6 +602,10 @@ Response:
 - `world_rejection` / `MENU_ITEM_SOLD_OUT`
 - `world_invisibility` / `MENU_ITEM_HIDDEN`
 - `world_absence` / `CART_NOT_FOUND`
+
+規則補充：
+- 正式後端應優先以 `ordering_session_token` 對應的 `cart_id` 決定寫入目標
+- 不可只依前端目前正在看的 cart 決定加點歸屬
 
 ### C03 更新子購物車品項
 用途：

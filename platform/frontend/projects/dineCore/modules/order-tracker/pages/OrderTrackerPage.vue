@@ -1,11 +1,13 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
 
 const route = useRoute()
 const trackerStore = world.store('dineCoreOrderTrackerStore')
+const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
 const state = computed(() => trackerStore.state)
+const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const statusLabels = {
   pending: '待處理',
   preparing: '製作中',
@@ -13,24 +15,65 @@ const statusLabels = {
   picked_up: '已取餐',
   cancelled: '已取消'
 }
-
-watchEffect(() => {
-  const orderId = String(route.params.orderId || 'demo-order')
-  trackerStore.load(orderId)
-})
-
+const POLL_INTERVAL_MS = 5000
 let refreshTimer = null
 
-onMounted(() => {
+async function refreshTracker() {
+  const orderId = String(route.params.orderId || 'demo-order')
+  await trackerStore.load({
+    orderId,
+    orderingSessionToken: entryState.value.orderingSessionToken
+  })
+}
+
+function stopPolling() {
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+function startPolling() {
+  stopPolling()
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    return
+  }
+
   refreshTimer = window.setInterval(() => {
-    const orderId = String(route.params.orderId || 'demo-order')
-    trackerStore.load(orderId)
-  }, 5000)
+    refreshTracker()
+  }, POLL_INTERVAL_MS)
+}
+
+function handleVisibilityChange() {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    stopPolling()
+    return
+  }
+
+  refreshTracker()
+  startPolling()
+}
+
+watch(
+  [() => route.params.orderId, () => entryState.value.orderingSessionToken],
+  async () => {
+    await refreshTracker()
+    startPolling()
+  },
+  { immediate: true }
+)
+
+
+onMounted(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 
 onBeforeUnmount(() => {
-  if (refreshTimer) {
-    window.clearInterval(refreshTimer)
+  stopPolling()
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
 })
 </script>
@@ -45,6 +88,10 @@ onBeforeUnmount(() => {
       h2.order-history-card__title {{ route.params.orderId || state.orderNo || '訂單' }}
       p.order-history-card__meta {{ `目前狀態 ${statusLabels[state.status] || state.status}` }}
       p.order-history-card__meta {{ `預估等待 ${state.estimatedWaitMinutes ?? '--'} 分鐘` }}
+
+  section.notice-card.is-error(v-if="state.errorMessage")
+    h3.notice-card__title 同步提醒
+    p.notice-card__copy {{ state.errorMessage }}
 
   section.progress-card
     h3.progress-card__title 訂單進度
@@ -95,11 +142,24 @@ onBeforeUnmount(() => {
   display: grid
   gap: 14px
 
-.order-history-card, .timeline-card, .progress-card, .history-card, .person-card
+.order-history-card, .timeline-card, .progress-card, .history-card, .person-card, .notice-card
   padding: 18px
   border-radius: 22px
   background: var(--dc-card)
   border: 1px solid var(--dc-border)
+
+.notice-card.is-error
+  border-color: rgba(206, 109, 89, 0.28)
+  background: linear-gradient(180deg, rgba(255, 244, 241, 0.98), rgba(255, 250, 248, 1))
+
+.notice-card__title
+  margin: 0 0 8px
+  color: #a84c3b
+
+.notice-card__copy
+  margin: 0
+  color: #7b544d
+  line-height: 1.7
 
 .order-history-card
   display: grid

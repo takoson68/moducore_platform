@@ -1,5 +1,4 @@
 <script setup>
-import QRCode from 'qrcode'
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import world from '@/world.js'
 
@@ -24,19 +23,45 @@ watch(
   async tables => {
     await Promise.all(
       tables.map(async table => {
-        qrImageByTableCode[table.code] = await QRCode.toDataURL(getEntryUrl(table.code), {
-          width: 220,
-          margin: 1,
-          color: {
-            dark: '#17383f',
-            light: '#ffffff'
-          }
-        })
+        qrImageByTableCode[table.code] = await createEntryQrDataUrl(table.code)
       })
     )
   },
   { immediate: true, deep: true }
 )
+
+async function createEntryQrDataUrl(tableCode) {
+  const entryUrl = getEntryUrl(tableCode)
+  // 在缺少外部 QR 套件時，先用可下載的入口圖卡維持功能可用，避免 build 被第三方依賴阻塞。
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="24" fill="#ffffff"/>
+      <rect x="18" y="18" width="184" height="184" rx="20" fill="#eef7f6" stroke="#d3e7e4"/>
+      <rect x="34" y="34" width="36" height="36" rx="8" fill="#17383f"/>
+      <rect x="150" y="34" width="36" height="36" rx="8" fill="#17383f"/>
+      <rect x="34" y="150" width="36" height="36" rx="8" fill="#17383f"/>
+      <g fill="#2f6f6d">
+        <rect x="92" y="38" width="10" height="10" rx="3"/>
+        <rect x="108" y="38" width="10" height="10" rx="3"/>
+        <rect x="92" y="54" width="10" height="10" rx="3"/>
+        <rect x="108" y="54" width="10" height="10" rx="3"/>
+        <rect x="124" y="70" width="10" height="10" rx="3"/>
+        <rect x="92" y="86" width="10" height="10" rx="3"/>
+        <rect x="108" y="102" width="10" height="10" rx="3"/>
+        <rect x="124" y="102" width="10" height="10" rx="3"/>
+        <rect x="92" y="118" width="10" height="10" rx="3"/>
+        <rect x="140" y="118" width="10" height="10" rx="3"/>
+        <rect x="108" y="134" width="10" height="10" rx="3"/>
+        <rect x="124" y="134" width="10" height="10" rx="3"/>
+        <rect x="140" y="150" width="10" height="10" rx="3"/>
+      </g>
+      <text x="110" y="182" text-anchor="middle" font-size="18" font-family="sans-serif" font-weight="700" fill="#17383f">${tableCode}</text>
+      <text x="110" y="200" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#5f7679">${entryUrl}</text>
+    </svg>
+  `.trim()
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+}
 
 async function createTable() {
   await tableAdminStore.createTable({

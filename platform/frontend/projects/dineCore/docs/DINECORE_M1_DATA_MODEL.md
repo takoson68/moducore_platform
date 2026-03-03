@@ -35,13 +35,14 @@ Milestone 1 先定義以下核心實體：
 3. `MenuItem`
 4. `MenuItemOptionGroup`
 5. `MenuItemOption`
-6. `GuestCart`
-7. `GuestCartItem`
-8. `Order`
-9. `OrderPerson`
-10. `OrderItem`
-11. `PaymentRecord`
-12. `OrderStatusTimeline`
+6. `GuestOrderingSession`
+7. `GuestCart`
+8. `GuestCartItem`
+9. `Order`
+10. `OrderPerson`
+11. `OrderItem`
+12. `PaymentRecord`
+13. `OrderStatusTimeline`
 
 ---
 
@@ -72,7 +73,8 @@ Milestone 1 先定義以下核心實體：
   - 是否允許接單
 
 備註：
-- Milestone 1 不做動態桌次 session，因此 `Table` 本身就是入口上下文
+- `Table` 仍是固定桌號入口上下文
+- 但為了讓同桌多支手機維持穩定點餐歸屬，Milestone 1 已補入匿名 `GuestOrderingSession`
 
 ### 3.2 `MenuCategory`
 用途：
@@ -138,9 +140,43 @@ Milestone 1 先定義以下核心實體：
 
 ---
 
-## 4. 子購物車模型
+## 4. 匿名點餐身份模型
 
-### 4.1 `GuestCart`
+### 4.1 `GuestOrderingSession`
+用途：
+- 表示某一支手機在某一桌內的匿名點餐身份
+
+建議欄位：
+- `id`
+- `table_id`
+- `session_token`
+- `order_id`
+- `order_no`
+- `person_slot`
+- `cart_id`
+- `display_label`
+- `status`
+- `created_at`
+- `last_seen_at`
+
+欄位說明：
+- `person_slot`
+  - 例如 `1`、`2`、`3`、`4`，並可持續遞增
+- `cart_id`
+  - 這支手機後續加點要寫入的子購物車
+- `display_label`
+  - 例如 `1號顧客`、`A 顧客`
+
+備註：
+- `GuestOrderingSession` 應綁在該桌目前未結單的訂單下
+- 連線順序只用來在該訂單下第一次分配 `person_slot`
+- 後續持續綁定必須靠 `session_token`
+
+---
+
+## 5. 子購物車模型
+
+### 5.1 `GuestCart`
 用途：
 - 表示同桌某一位匿名顧客的子購物車
 
@@ -159,9 +195,10 @@ Milestone 1 先定義以下核心實體：
   - `active` / `submitted` / `cancelled`
 
 備註：
-- 因為顧客匿名，`guest_label` 是按人分帳的最低識別依據
+- `guest_label` 是顯示用欄位，不應再作為本機身份分配的唯一依據
+- 本機加點歸屬應由 `GuestOrderingSession.cart_id` 決定
 
-### 4.2 `GuestCartItem`
+### 5.2 `GuestCartItem`
 用途：
 - 子購物車內的單筆品項
 
@@ -186,9 +223,9 @@ Milestone 1 先定義以下核心實體：
 
 ---
 
-## 5. 合單訂單模型
+## 6. 合單訂單模型
 
-### 5.1 `Order`
+### 6.1 `Order`
 用途：
 - 同桌多個子購物車合併後產生的正式訂單
 
@@ -213,14 +250,16 @@ Milestone 1 先定義以下核心實體：
 - `payment_status`
   - `unpaid` / `confirming` / `paid`
 
-### 5.2 `OrderPerson`
+### 6.2 `OrderPerson`
 用途：
 - 保存每位匿名顧客在該張訂單中的分帳歸屬
 
 建議欄位：
 - `id`
 - `order_id`
+- `person_slot`
 - `guest_label`
+- `display_label`
 - `cart_id_snapshot`
 - `person_subtotal`
 - `person_total`
@@ -228,7 +267,7 @@ Milestone 1 先定義以下核心實體：
 備註：
 - 因為分帳只按人，所以 `OrderPerson` 是必要模型
 
-### 5.3 `OrderItem`
+### 6.3 `OrderItem`
 用途：
 - 訂單中的單筆品項
 

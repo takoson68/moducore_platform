@@ -1,13 +1,17 @@
-import { mockApiRequest } from '@project/api/mockRequest.js'
+import {
+  getStaffSession,
+  loginStaffSession,
+  logoutStaffSession
+} from './api/staffAuthApi.js'
 
 export async function loadStaffSession() {
-  return mockApiRequest('staff-auth/session')
+  return getStaffSession()
 }
 
 export async function loginStaff(payload) {
-  return mockApiRequest('staff-auth/login', payload)
+  return loginStaffSession(payload)
 }
 
 export async function logoutStaff() {
-  return mockApiRequest('staff-auth/logout')
+  return logoutStaffSession()
 }

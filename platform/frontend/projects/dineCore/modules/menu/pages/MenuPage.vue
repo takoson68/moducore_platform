@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watchEffect } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
 
@@ -7,6 +7,7 @@ const route = useRoute()
 
 const menuStore = world.hasStore('dineCoreMenuStore') ? world.store('dineCoreMenuStore') : null
 const cartStore = world.hasStore('dineCoreCartStore') ? world.store('dineCoreCartStore') : null
+const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
 
 const state = computed(() => menuStore?.state || {
   categories: [],
@@ -14,20 +15,43 @@ const state = computed(() => menuStore?.state || {
   activeCategoryId: '',
   optionDraft: null
 })
+const cartState = computed(() => cartStore?.state || {
+  carts: [],
+  orderingCartId: '',
+  orderingSessionToken: ''
+})
+const entryState = computed(() => entryStore?.state || {
+  orderingSessionToken: ''
+})
 
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
 const hasCartCapability = computed(() => Boolean(cartStore))
 const hasMenuContent = computed(() => state.value.items.length > 0)
+const orderingCart = computed(() =>
+  cartState.value.carts.find(item => item.id === cartState.value.orderingCartId) || null
+)
 
-watchEffect(() => {
-  if (menuStore) {
-    menuStore.load(tableCode.value)
-  }
+watch(
+  [tableCode, () => entryState.value.orderingSessionToken],
+  async ([nextTableCode, orderingSessionToken]) => {
+    if (!orderingSessionToken) return
 
-  if (cartStore) {
-    cartStore.load(tableCode.value)
-  }
-})
+    if (menuStore) {
+      await menuStore.load({
+        tableCode: nextTableCode,
+        orderingSessionToken
+      })
+    }
+
+    if (cartStore) {
+      await cartStore.load({
+        tableCode: nextTableCode,
+        orderingSessionToken
+      })
+    }
+  },
+  { immediate: true }
+)
 
 const filteredItems = computed(() => {
   if (state.value.activeCategoryId === 'popular') {
@@ -89,7 +113,7 @@ async function confirmAddToCart() {
   const draft = state.value.optionDraft
   if (!draft || !cartStore || !menuStore) return
 
-  await cartStore.addMenuItemToActiveCart({
+  await cartStore.addMenuItemToOrderingCart({
     tableCode: tableCode.value,
     menuItemId: draft.menuItemId,
     customization: {
@@ -142,6 +166,8 @@ async function confirmAddToCart() {
 
   section.feature-card
     h3.feature-card__title 點餐提醒
+    p.feature-card__copy(v-if="orderingCart")
+      | 這支手機目前的加點會加入 {{ orderingCart.guestLabel }}。
     ul.feature-list
       li 點選商品可先確認加料、辣度、蔥花等客製選項，再加入購物車。
       li 送單前可於確認訂單頁再次檢查每位顧客的品項與備註。
@@ -351,6 +377,11 @@ async function confirmAddToCart() {
   z-index: 30
   display: grid
   align-items: end
+
+.feature-card__copy
+  margin: 0 0 10px
+  color: var(--dc-text-muted)
+  line-height: 1.7
 
 .option-sheet__backdrop
   position: absolute

@@ -1,0 +1,389 @@
+<script setup>
+import { computed, watch } from 'vue'
+import world from '@/world.js'
+import { buildReportsCsv } from '../service.js'
+
+const reportsStore = world.store('dineCoreReportsStore')
+const state = computed(() => reportsStore.state)
+
+const statusLabels = {
+  pending: '待處理',
+  preparing: '製作中',
+  ready: '可取餐',
+  picked_up: '已取餐',
+  cancelled: '已取消'
+}
+
+const paymentStatusLabels = {
+  unpaid: '未付款',
+  paid: '已付款'
+}
+
+const paymentMethodLabels = {
+  cash: '現金',
+  counter_card: '櫃台刷卡',
+  other: '其他',
+  unpaid: '未付款'
+}
+
+watch(
+  () => ({ ...state.value.filters }),
+  () => {
+    reportsStore.load()
+  },
+  { immediate: true, deep: true }
+)
+
+function downloadCsv() {
+  const csv = buildReportsCsv({
+    orderRows: state.value.orderRows,
+    summary: state.value.summary,
+    filters: state.value.filters
+  })
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = `dinecore-reports-${state.value.summary.businessDate || 'export'}.csv`
+  link.click()
+
+  URL.revokeObjectURL(url)
+}
+</script>
+
+<template lang="pug">
+.desk-page
+  section.panel-card
+    .panel-card__head
+      .panel-card__copy
+        p.eyebrow 營運報表
+        h2 門市營運查詢
+        p.lead 這裡集中顯示營收摘要、付款分布、品項排行與訂單查詢。頁面只讀取報表投影資料，不承擔櫃台操作。
+      button.ghost-button(type="button" :disabled="state.orderRows.length === 0" @click="downloadCsv()") 匯出 CSV
+
+  section.filter-grid
+    label.field-card
+      span.info-label 起始日期
+      input.field-input(
+        type="date"
+        :value="state.filters.dateFrom"
+        @input="reportsStore.setFilters({ dateFrom: $event.target.value })"
+      )
+    label.field-card
+      span.info-label 結束日期
+      input.field-input(
+        type="date"
+        :value="state.filters.dateTo"
+        @input="reportsStore.setFilters({ dateTo: $event.target.value })"
+      )
+    label.field-card
+      span.info-label 訂單狀態
+      select.field-input(
+        :value="state.filters.status"
+        @change="reportsStore.setFilters({ status: $event.target.value })"
+      )
+        option(value="all") 全部
+        option(value="pending") 待處理
+        option(value="preparing") 製作中
+        option(value="ready") 可取餐
+        option(value="picked_up") 已取餐
+        option(value="cancelled") 已取消
+    label.field-card
+      span.info-label 付款狀態
+      select.field-input(
+        :value="state.filters.paymentStatus"
+        @change="reportsStore.setFilters({ paymentStatus: $event.target.value })"
+      )
+        option(value="all") 全部
+        option(value="unpaid") 未付款
+        option(value="paid") 已付款
+    label.field-card
+      span.info-label 付款方式
+      select.field-input(
+        :value="state.filters.paymentMethod"
+        @change="reportsStore.setFilters({ paymentMethod: $event.target.value })"
+      )
+        option(value="all") 全部
+        option(value="cash") 現金
+        option(value="counter_card") 櫃台刷卡
+        option(value="other") 其他
+    label.field-card.field-card--wide
+      span.info-label 關鍵字
+      input.field-input(
+        type="text"
+        :value="state.filters.keyword"
+        placeholder="輸入訂單編號或桌號"
+        @input="reportsStore.setFilters({ keyword: $event.target.value })"
+      )
+    .filter-actions
+      button.ghost-button(type="button" @click="reportsStore.resetFilters()") 重設篩選
+      span.filter-hint(v-if="state.lastLoadedAt") {{ `最近更新 ${state.lastLoadedAt}` }}
+
+  section.loading-card(v-if="state.loading")
+    p 載入報表中...
+
+  section.error-card(v-else-if="state.error")
+    p {{ `報表載入失敗：${state.error}` }}
+
+  template(v-else)
+    section.stat-grid
+      article.info-card
+        span.info-label 營業日
+        strong.info-value {{ state.summary.businessDate || '未提供' }}
+      article.info-card
+        span.info-label 總營收
+        strong.info-value {{ `NT$ ${state.summary.grossSales}` }}
+      article.info-card
+        span.info-label 訂單數
+        strong.info-value {{ state.summary.orderCount }}
+      article.info-card
+        span.info-label 已付款
+        strong.info-value {{ `NT$ ${state.summary.paidAmount}` }}
+      article.info-card
+        span.info-label 未付款
+        strong.info-value {{ `NT$ ${state.summary.unpaidAmount}` }}
+      article.info-card
+        span.info-label 平均客單
+        strong.info-value {{ `NT$ ${state.summary.averageOrderValue}` }}
+
+    section.breakdown-grid
+      article.breakdown-card
+        h3.breakdown-card__title 訂單狀態分布
+        .breakdown-row(v-for="(label, key) in statusLabels" :key="key")
+          span {{ label }}
+          strong {{ state.statusBreakdown[key] || 0 }}
+      article.breakdown-card
+        h3.breakdown-card__title 付款方式分布
+        .breakdown-row(v-for="(label, key) in paymentMethodLabels" :key="key")
+          span {{ label }}
+          strong {{ state.paymentBreakdown[key] || 0 }}
+
+    section.rank-card(v-if="state.topItems.length > 0")
+      h3.rank-card__title 品項銷售排行
+      .rank-item(v-for="item in state.topItems" :key="item.itemId || item.itemName")
+        .rank-item__main
+          strong {{ item.itemName }}
+          span {{ `${item.quantity} 份` }}
+        strong.rank-item__value {{ `NT$ ${item.grossSales}` }}
+    section.empty-card(v-else)
+      p 目前沒有可顯示的品項排行資料。
+
+    section.table-card(v-if="state.orderRows.length > 0")
+      .table-card__head
+        h3.table-card__title 訂單明細
+        span.table-card__meta {{ `${state.orderRows.length} 筆` }}
+      .report-table
+        .report-table__head
+          span 訂單編號
+          span 桌號
+          span 訂單狀態
+          span 付款
+          span 建立時間
+          span 金額
+        .report-table__row(v-for="order in state.orderRows" :key="order.orderId")
+          strong {{ order.orderNo }}
+          span {{ order.tableCode }}
+          span {{ statusLabels[order.status] || order.status }}
+          span {{ `${paymentStatusLabels[order.paymentStatus] || order.paymentStatus} / ${paymentMethodLabels[order.paymentMethod] || order.paymentMethod}` }}
+          span {{ order.createdAt }}
+          strong {{ `NT$ ${order.totalAmount}` }}
+    section.empty-card(v-else)
+      p 目前沒有符合條件的訂單資料。
+</template>
+
+<style lang="sass">
+.desk-page
+  display: grid
+  gap: 18px
+
+.panel-card, .field-card, .info-card, .breakdown-card, .rank-card, .table-card, .loading-card, .error-card, .empty-card
+  padding: 22px
+  border-radius: 22px
+  background: rgba(255, 255, 255, 0.9)
+  border: 1px solid rgba(140, 90, 31, 0.12)
+
+.eyebrow
+  margin: 0 0 8px
+  color: #8c5a1f
+  font-size: 12px
+  font-weight: 700
+  letter-spacing: 0.08em
+  text-transform: uppercase
+
+.panel-card h2
+  margin: 0 0 10px
+
+.panel-card__head
+  display: flex
+  justify-content: space-between
+  align-items: flex-start
+  gap: 12px
+
+.panel-card__copy
+  display: grid
+
+.lead
+  margin: 0
+  color: #6f5b43
+  line-height: 1.7
+
+.filter-grid
+  display: grid
+  grid-template-columns: repeat(4, minmax(0, 1fr))
+  gap: 12px
+
+.field-card
+  display: grid
+  gap: 8px
+
+.field-card--wide
+  grid-column: span 2
+
+.info-label
+  color: #8c7b65
+  font-size: 13px
+
+.field-input
+  width: 100%
+  border: 0
+  border-radius: 14px
+  padding: 12px 14px
+  background: rgba(121, 214, 207, 0.12)
+  color: #2f2416
+
+.filter-actions
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  padding: 16px 4px 0
+
+.ghost-button
+  border: 0
+  border-radius: 999px
+  padding: 10px 14px
+  background: rgba(140, 90, 31, 0.1)
+  color: #8c5a1f
+  font-weight: 700
+  cursor: pointer
+
+.filter-hint
+  color: #7b8d90
+  font-size: 12px
+
+.stat-grid
+  display: grid
+  grid-template-columns: repeat(3, minmax(0, 1fr))
+  gap: 12px
+
+.info-card
+  display: grid
+  gap: 8px
+
+.info-value
+  color: #2f2416
+
+.breakdown-grid
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 12px
+
+.breakdown-card__title, .rank-card__title, .table-card__title
+  margin: 0 0 12px
+  color: #243a3e
+
+.breakdown-row
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+  padding: 10px 0
+  border-bottom: 1px solid rgba(91, 127, 130, 0.12)
+
+.breakdown-row:last-child
+  border-bottom: 0
+
+.rank-item
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+  padding: 12px 0
+  border-bottom: 1px solid rgba(91, 127, 130, 0.12)
+
+.rank-item:last-child
+  border-bottom: 0
+
+.rank-item__main
+  display: grid
+  gap: 4px
+
+.rank-item__main span
+  color: #7b8d90
+
+.rank-item__value
+  color: #287a76
+
+.table-card__head
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+  margin-bottom: 12px
+
+.table-card__meta
+  color: #7b8d90
+
+.report-table
+  display: grid
+  gap: 8px
+
+.report-table__head, .report-table__row
+  display: grid
+  grid-template-columns: 1.2fr 0.7fr 0.9fr 1.2fr 1fr 0.8fr
+  gap: 12px
+  align-items: center
+
+.report-table__head
+  color: #7b8d90
+  font-size: 12px
+  font-weight: 700
+  text-transform: uppercase
+
+.report-table__row
+  padding: 12px 0
+  border-top: 1px solid rgba(91, 127, 130, 0.12)
+  color: #31484c
+
+.loading-card, .error-card, .empty-card
+  color: #6f5b43
+
+@media (max-width: 1100px)
+  .filter-grid
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+
+  .field-card--wide
+    grid-column: span 1
+
+  .stat-grid
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+
+  .report-table__head, .report-table__row
+    grid-template-columns: repeat(3, minmax(0, 1fr))
+
+@media (max-width: 720px)
+  .filter-grid, .stat-grid, .breakdown-grid
+    grid-template-columns: 1fr
+
+  .filter-actions
+    flex-direction: column
+    align-items: flex-start
+
+  .report-table__head
+    display: none
+
+  .report-table__row
+    grid-template-columns: 1fr
+    gap: 6px
+</style>

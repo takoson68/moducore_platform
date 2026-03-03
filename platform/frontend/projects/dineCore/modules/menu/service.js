@@ -1,5 +1,5 @@
-import { mockApiRequest } from '@project/api/mockRequest.js'
+import { getMenuPayload } from './api/menuApi.js'
 
-export async function loadMenuPayload(tableCode) {
-  return mockApiRequest('menu/list', { tableCode })
+export async function loadMenuPayload(tableCode, orderingSessionToken = '') {
+  return getMenuPayload(tableCode, orderingSessionToken)
 }

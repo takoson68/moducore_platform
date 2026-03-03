@@ -1,19 +1,14 @@
 <script setup>
-import { computed, watchEffect } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
 
 const route = useRoute()
 const router = useRouter()
 const entryStore = world.store('dineCoreEntryStore')
+const state = computed(() => entryStore.state)
 
 const tableCode = computed(() => String(route.params.tableCode || 'A01').trim())
-
-watchEffect(() => {
-  entryStore.loadTableContext(tableCode.value)
-})
-
-const state = computed(() => entryStore.state)
 
 function goToMenu() {
   router.push(`/t/${tableCode.value}/menu`)
@@ -38,9 +33,13 @@ function goToMenu() {
     article.stat-soft-card
       span.stat-soft-card__label 桌號資訊
       strong.stat-soft-card__value {{ state.tableCode || `${tableCode} 桌` }}
+    article.stat-soft-card(v-if="state.orderingLabel")
+      span.stat-soft-card__label 本機身份
+      strong.stat-soft-card__value {{ state.orderingLabel }}
 
   section.feature-card
     h3.feature-card__title 開始點餐前會確認的事項
+    p.feature-card__error(v-if="state.errorMessage") {{ state.errorMessage }}
     .entry-stage
       .entry-stage__step
         span.entry-stage__index 1
@@ -98,7 +97,7 @@ function goToMenu() {
 
 .quick-stat-grid
   display: grid
-  grid-template-columns: repeat(3, minmax(0, 1fr))
+  grid-template-columns: repeat(4, minmax(0, 1fr))
   gap: 12px
 
 .stat-soft-card, .feature-card
@@ -122,6 +121,14 @@ function goToMenu() {
 .feature-card__title
   margin: 0 0 10px
   color: var(--dc-text)
+
+.feature-card__error
+  margin: 0 0 12px
+  padding: 12px 14px
+  border-radius: 14px
+  background: rgba(216, 111, 89, 0.1)
+  color: #9d4737
+  line-height: 1.6
 
 .entry-stage
   display: grid

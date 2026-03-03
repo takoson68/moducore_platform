@@ -5,6 +5,10 @@ import {
   waitForMock,
   writeMockState
 } from './mockRuntime.js'
+import {
+  getGuestOrderingSessionToken,
+  setGuestOrderingSessionToken
+} from './guestOrderingSession.js'
 
 function getCartBucket(state, tableCode) {
   ensureMockTable(state, tableCode)
@@ -17,6 +21,143 @@ function getCartBucket(state, tableCode) {
   }
 
   return state.cartsByTable[tableCode]
+}
+
+function getGuestOrderingSessionBucket(state, tableCode) {
+  ensureMockTable(state, tableCode)
+
+  if (!state.guestOrderingSessionsByTable[tableCode]) {
+    state.guestOrderingSessionsByTable[tableCode] = {}
+  }
+
+  return state.guestOrderingSessionsByTable[tableCode]
+}
+
+function getActiveOrderingBucket(state) {
+  if (!state.activeOrderingByTable) {
+    state.activeOrderingByTable = {}
+  }
+
+  return state.activeOrderingByTable
+}
+
+function buildGuestCartId(slot) {
+  return `guest-${String.fromCharCode(96 + Number(slot || 1))}`
+}
+
+function buildGuestDisplayLabel(slot) {
+  return `${slot}號顧客`
+}
+
+function isOrderSettled(order) {
+  if (!order) return true
+
+  return order.payment_status === 'paid' || order.order_status === 'cancelled'
+}
+
+function findOpenOrderForTable(state, tableCode) {
+  return state.orders.find(order => order.table_code === tableCode && !isOrderSettled(order)) || null
+}
+
+function ensureGuestCartForSlot(state, tableCode, slot) {
+  const bucket = getCartBucket(state, tableCode)
+  const cartId = buildGuestCartId(slot)
+  const existing = bucket.carts.find(cart => cart.id === cartId)
+
+  if (existing) {
+    existing.guest_label = existing.guest_label || buildGuestDisplayLabel(slot)
+    bucket.itemsByCartId[cartId] = bucket.itemsByCartId[cartId] || []
+    return existing
+  }
+
+  const created = {
+    id: cartId,
+    guest_label: buildGuestDisplayLabel(slot),
+    note: ''
+  }
+
+  bucket.carts.push(created)
+  bucket.itemsByCartId[cartId] = bucket.itemsByCartId[cartId] || []
+  return created
+}
+
+function getOrCreateActiveOrderingContext(state, tableCode) {
+  const bucket = getActiveOrderingBucket(state)
+  const current = bucket[tableCode]
+  const currentOrder = current
+    ? state.orders.find(order => order.id === current.order_id || order.order_no === current.order_no)
+    : null
+
+  if (current && (!currentOrder || !isOrderSettled(currentOrder))) {
+    return current
+  }
+
+  const openOrder = findOpenOrderForTable(state, tableCode)
+  if (openOrder) {
+    bucket[tableCode] = {
+      order_id: openOrder.id,
+      order_no: openOrder.order_no,
+      status: 'open',
+      created_at: openOrder.created_at
+    }
+    return bucket[tableCode]
+  }
+
+  const { id, orderNo } = createOrderIdentifiers(state)
+  bucket[tableCode] = {
+    order_id: id,
+    order_no: orderNo,
+    status: 'draft',
+    created_at: '2026-03-03 22:40:00'
+  }
+
+  return bucket[tableCode]
+}
+
+function createGuestOrderingSession(state, tableCode, orderingContext) {
+  const sessionBucket = getGuestOrderingSessionBucket(state, tableCode)
+  const activeSlots = Object.values(sessionBucket)
+    .filter(session => session.status !== 'expired')
+    .filter(session => session.order_id === orderingContext.order_id)
+    .map(session => Number(session.person_slot || 0))
+  const nextSlot = activeSlots.length > 0 ? Math.max(...activeSlots) + 1 : 1
+  const cart = ensureGuestCartForSlot(state, tableCode, nextSlot)
+  const token = `guest-session-${tableCode.toLowerCase()}-${state.nextIds.guestSession}`
+
+  state.nextIds.guestSession += 1
+
+  const session = {
+    id: token,
+    table_code: tableCode,
+    session_token: token,
+    order_id: orderingContext.order_id,
+    order_no: orderingContext.order_no,
+    person_slot: nextSlot,
+    cart_id: cart.id,
+    display_label: cart.guest_label || buildGuestDisplayLabel(nextSlot),
+    status: 'active',
+    created_at: '2026-03-03 22:40:00',
+    last_seen_at: '2026-03-03 22:40:00'
+  }
+
+  sessionBucket[token] = session
+  return session
+}
+
+function getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken) {
+  const orderingContext = getOrCreateActiveOrderingContext(state, tableCode)
+  const sessionBucket = getGuestOrderingSessionBucket(state, tableCode)
+  const safeToken = String(orderingSessionToken || '').trim()
+  const existing = safeToken ? sessionBucket[safeToken] : null
+
+  if (existing && existing.order_id === orderingContext.order_id) {
+    existing.last_seen_at = '2026-03-03 22:40:00'
+    existing.status = 'active'
+    ensureGuestCartForSlot(state, tableCode, existing.person_slot)
+    return existing
+  }
+
+  return createGuestOrderingSession(state, tableCode, orderingContext)
 }
 
 function findMenuItem(state, menuItemId) {
@@ -259,9 +400,11 @@ function summarizeCart(cart, items = []) {
   }
 }
 
-function buildCartPayload(state, tableCode) {
+function buildCartPayload(state, tableCode, orderingSession = null) {
   const bucket = getCartBucket(state, tableCode)
   const itemSchemasByMenuItemId = buildItemSchemasByMenuItemId(state)
+  const resolvedOrderingSession =
+    orderingSession || getOrCreateGuestOrderingSession(state, tableCode)
   const cartItemsByCartId = Object.fromEntries(
     Object.entries(bucket.itemsByCartId).map(([cartId, items]) => [
       cartId,
@@ -269,6 +412,7 @@ function buildCartPayload(state, tableCode) {
         const menuItem = state.items.find(entry => entry.id === item.menu_item_id)
         return {
           ...cloneMockValue(item),
+          cart_id: cartId,
           editSchema: menuItem ? buildCartItemEditSchema(menuItem, item) : null
         }
       })
@@ -276,6 +420,10 @@ function buildCartPayload(state, tableCode) {
   )
 
   return {
+    orderingSessionToken: resolvedOrderingSession.session_token,
+    orderingCartId: resolvedOrderingSession.cart_id,
+    personSlot: Number(resolvedOrderingSession.person_slot || 0),
+    orderingLabel: resolvedOrderingSession.display_label || '',
     carts: bucket.carts.map(cart => summarizeCart(cart, bucket.itemsByCartId[cart.id] || [])),
     cartItemsByCartId,
     itemSchemasByMenuItemId
@@ -284,6 +432,13 @@ function buildCartPayload(state, tableCode) {
 
 function buildCheckoutSummary(state, tableCode) {
   const bucket = getCartBucket(state, tableCode)
+  const orderingContext = getOrCreateActiveOrderingContext(state, tableCode)
+  const sessionByCartId = Object.values(getGuestOrderingSessionBucket(state, tableCode))
+    .filter(session => session.order_id === orderingContext.order_id)
+    .reduce((lookup, session) => {
+      lookup[session.cart_id] = session
+      return lookup
+    }, {})
   const persons = bucket.carts.map(cart => {
     const personItems = (bucket.itemsByCartId[cart.id] || []).map(item => ({
       id: item.id,
@@ -296,9 +451,11 @@ function buildCheckoutSummary(state, tableCode) {
     const summary = summarizeCart(cart, bucket.itemsByCartId[cart.id] || [])
     const personServiceFee = Math.round(summary.subtotal * 0.05)
     const personTax = Math.round(summary.subtotal * 0.025)
+    const session = sessionByCartId[cart.id]
 
     return {
       cartId: summary.id,
+      personSlot: Number(session?.person_slot || 0),
       guestLabel: summary.guestLabel,
       subtotal: summary.subtotal,
       total: summary.subtotal + personServiceFee + personTax,
@@ -376,6 +533,8 @@ function updateOrderRecord(state, orderId, updater) {
     throw new Error('ORDER_NOT_FOUND')
   }
 
+  assertBusinessDateUnlocked(state, getBusinessDate(order.created_at))
+
   updater(order)
   return order
 }
@@ -390,18 +549,147 @@ function appendTimeline(order, status, source, note) {
   })
 }
 
+function normalizePaymentMethod(order) {
+  if (order.payment_method) return order.payment_method
+  if (order.payment_status === 'paid') return 'cash'
+  return 'unpaid'
+}
+
+function getBusinessDate(dateTime = '') {
+  return String(dateTime || '').split(' ')[0] || ''
+}
+
+function createAuditCloseId(state) {
+  const nextId = String(state.nextIds.auditClose || 1).padStart(3, '0')
+  state.nextIds.auditClose = Number(nextId) + 1
+  return `audit-close-${nextId}`
+}
+
+function ensureStaffSession(state) {
+  if (!state.staffSession) {
+    throw new Error('STAFF_SESSION_REQUIRED')
+  }
+
+  return state.staffSession
+}
+
+function ensureManagerSession(state) {
+  const session = ensureStaffSession(state)
+  if (session.role !== 'manager') {
+    throw new Error('STAFF_ROLE_FORBIDDEN')
+  }
+
+  return session
+}
+
+function findClosingRecord(state, businessDate) {
+  return state.auditClosings?.[businessDate] || null
+}
+
+function isBusinessDateLocked(state, businessDate) {
+  return findClosingRecord(state, businessDate)?.status === 'closed'
+}
+
+function assertBusinessDateUnlocked(state, businessDate) {
+  if (isBusinessDateLocked(state, businessDate)) {
+    throw new Error('BUSINESS_DATE_LOCKED')
+  }
+}
+
+function buildAuditBlockingIssues(orders = []) {
+  const unpaidOrders = orders.filter(order => order.payment_status !== 'paid')
+  const unfinishedOrders = orders.filter(order =>
+    order.order_status === 'pending' ||
+    order.order_status === 'preparing' ||
+    order.order_status === 'ready'
+  )
+
+  return [
+    {
+      type: 'unpaid_orders',
+      label: '仍有未付款訂單',
+      count: unpaidOrders.length,
+      orderIds: unpaidOrders.map(order => order.id)
+    },
+    {
+      type: 'unfinished_orders',
+      label: '仍有未完成訂單',
+      count: unfinishedOrders.length,
+      orderIds: unfinishedOrders.map(order => order.id)
+    }
+  ].filter(issue => issue.count > 0)
+}
+
+function buildAuditSummary(state, businessDate) {
+  const selectedOrders = state.orders.filter(order => getBusinessDate(order.created_at) === businessDate)
+  const closing = findClosingRecord(state, businessDate)
+  const grossSales = selectedOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+  const paidAmount = selectedOrders
+    .filter(order => order.payment_status === 'paid')
+    .reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+  const unpaidAmount = selectedOrders
+    .filter(order => order.payment_status !== 'paid')
+    .reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+  const blockingIssues = buildAuditBlockingIssues(selectedOrders)
+
+  return {
+    closingSummary: {
+      businessDate,
+      grossSales,
+      paidAmount,
+      unpaidAmount,
+      orderCount: selectedOrders.length,
+      unfinishedOrderCount: selectedOrders.filter(order =>
+        order.order_status === 'pending' ||
+        order.order_status === 'preparing' ||
+        order.order_status === 'ready'
+      ).length,
+      closeStatus: closing?.status || 'open',
+      closedAt: closing?.closed_at || '',
+      closedBy: closing?.closed_by_name || ''
+    },
+    blockingIssues,
+    lockState: {
+      businessDate,
+      isLocked: closing?.status === 'closed',
+      lockedScopes: closing?.locked_scopes || []
+    }
+  }
+}
+
+function appendAuditHistory(state, payload = {}) {
+  state.auditHistory.unshift({
+    id: createAuditCloseId(state),
+    business_date: payload.businessDate,
+    action: payload.action,
+    actor_name: payload.actorName,
+    actor_role: payload.actorRole,
+    created_at: payload.createdAt || '2026-03-03 23:10:00',
+    reason: payload.reason || '',
+    reason_type: payload.reasonType || 'general',
+    affected_scopes: Array.isArray(payload.affectedScopes) ? payload.affectedScopes : [],
+    before_status: payload.beforeStatus || '',
+    after_status: payload.afterStatus || ''
+  })
+}
+
 const handlers = {
-  async 'entry/context'({ tableCode }) {
+  async 'entry/context'({ tableCode, orderingSessionToken }) {
     await waitForMock()
-    return readMockState(state => {
+    return writeMockState(state => {
       const table = ensureMockTable(state, tableCode)
-      const latestOrder = state.orders.find(order => order.table_code === tableCode)
+      const orderingContext = getOrCreateActiveOrderingContext(state, tableCode)
+      const orderingSession = getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
 
       return cloneMockValue({
         ...table,
-        latest_order_id: latestOrder?.id || '',
-        latest_order_no: latestOrder?.order_no || '',
-        latest_order_status: latestOrder?.order_status || ''
+        ordering_session_token: orderingSession.session_token,
+        ordering_cart_id: orderingSession.cart_id,
+        person_slot: Number(orderingSession.person_slot || 0),
+        ordering_label: orderingSession.display_label || '',
+        order_id: orderingContext.order_id || '',
+        order_no: orderingContext.order_no || '',
+        order_status: orderingContext.status || 'draft'
       })
     })
   },
@@ -451,11 +739,12 @@ const handlers = {
       }
     })
   },
-  async 'menu/list'({ tableCode }) {
+  async 'menu/list'({ tableCode, orderingSessionToken }) {
     await waitForMock()
 
     return readMockState(state => {
       ensureMockTable(state, tableCode)
+      getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
 
       return {
         categories: cloneMockValue(
@@ -483,27 +772,40 @@ const handlers = {
       }
     })
   },
-  async 'cart/get'({ tableCode }) {
+  async 'cart/get'({ tableCode, orderingSessionToken }) {
     await waitForMock()
 
-    return readMockState(state => buildCartPayload(state, tableCode))
+    return writeMockState(state => {
+      const orderingSession = getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
+      const payload = buildCartPayload(state, tableCode, orderingSession)
+
+      return {
+        ...payload,
+        orderingSessionToken: orderingSession.session_token,
+        orderingCartId: orderingSession.cart_id,
+        personSlot: Number(orderingSession.person_slot || 0),
+        orderingLabel: orderingSession.display_label || ''
+      }
+    })
   },
-  async 'cart/add-item'({ tableCode, cartId, menuItemId, customization }) {
+  async 'cart/add-item'({ tableCode, cartId, menuItemId, customization, orderingSessionToken }) {
     await waitForMock()
 
     return writeMockState(state => {
       const bucket = getCartBucket(state, tableCode)
+      const orderingSession = getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
       const menuItem = findMenuItem(state, menuItemId)
       const resolved = resolveCustomization(menuItem, customization)
       const nextId = `cart-item-${state.nextIds.cartItem}`
+      const targetCartId = orderingSession.cart_id || cartId
 
       state.nextIds.cartItem += 1
 
-      if (!bucket.itemsByCartId[cartId]) {
-        bucket.itemsByCartId[cartId] = []
+      if (!bucket.itemsByCartId[targetCartId]) {
+        bucket.itemsByCartId[targetCartId] = []
       }
 
-      bucket.itemsByCartId[cartId].push({
+      bucket.itemsByCartId[targetCartId].push({
         id: nextId,
         menu_item_id: menuItem.id,
         title: menuItem.name,
@@ -514,13 +816,20 @@ const handlers = {
         selected_option_ids: resolved.selectedOptionIds
       })
 
-      return buildCartPayload(state, tableCode)
+      return {
+        ...buildCartPayload(state, tableCode, orderingSession),
+        orderingSessionToken: orderingSession.session_token,
+        orderingCartId: orderingSession.cart_id,
+        personSlot: Number(orderingSession.person_slot || 0),
+        orderingLabel: orderingSession.display_label || ''
+      }
     })
   },
-  async 'cart/change-item-quantity'({ tableCode, cartId, cartItemId, delta }) {
+  async 'cart/change-item-quantity'({ tableCode, cartId, cartItemId, delta, orderingSessionToken }) {
     await waitForMock()
 
     return writeMockState(state => {
+      const orderingSession = getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
       const bucket = getCartBucket(state, tableCode)
       const items = bucket.itemsByCartId[cartId] || []
       const target = items.find(item => item.id === cartItemId)
@@ -532,13 +841,14 @@ const handlers = {
         }
       }
 
-      return buildCartPayload(state, tableCode)
+      return buildCartPayload(state, tableCode, orderingSession)
     })
   },
-  async 'cart/update-item'({ tableCode, cartId, cartItemId, customization }) {
+  async 'cart/update-item'({ tableCode, cartId, cartItemId, customization, orderingSessionToken }) {
     await waitForMock()
 
     return writeMockState(state => {
+      const orderingSession = getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
       const bucket = getCartBucket(state, tableCode)
       const items = bucket.itemsByCartId[cartId] || []
       const target = items.find(item => item.id === cartItemId)
@@ -555,48 +865,78 @@ const handlers = {
       target.options = resolved.options
       target.selected_option_ids = resolved.selectedOptionIds
 
-      return buildCartPayload(state, tableCode)
+      return buildCartPayload(state, tableCode, orderingSession)
     })
   },
-  async 'checkout/summary'({ tableCode }) {
+  async 'checkout/summary'({ tableCode, orderingSessionToken }) {
     await waitForMock()
-    return readMockState(state => buildCheckoutSummary(state, tableCode))
+    return readMockState(state => {
+      getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
+      return buildCheckoutSummary(state, tableCode)
+    })
   },
-  async 'checkout/submit'({ tableCode }) {
+  async 'checkout/submit'({ tableCode, orderingSessionToken }) {
     await waitForMock(180)
 
     return writeMockState(state => {
       ensureMockTable(state, tableCode)
+      getOrCreateGuestOrderingSession(state, tableCode, orderingSessionToken)
+      const orderingContext = getOrCreateActiveOrderingContext(state, tableCode)
       const summary = buildCheckoutSummary(state, tableCode)
-      const { id, orderNo } = createOrderIdentifiers(state)
       const now = '2026-03-03 22:30:00'
+      const existingOrder = state.orders.find(
+        order => order.id === orderingContext.order_id || order.order_no === orderingContext.order_no
+      )
 
-      state.orders.unshift({
-        id,
-        order_no: orderNo,
+      const nextPayload = {
+        id: orderingContext.order_id,
+        order_no: orderingContext.order_no,
         table_code: tableCode,
         order_status: 'pending',
         payment_status: 'unpaid',
+        payment_method: 'unpaid',
         estimated_wait_minutes: 18,
         subtotal_amount: summary.subtotal,
         service_fee_amount: summary.serviceFee,
         tax_amount: summary.tax,
         total_amount: summary.total,
-        created_at: now,
+        created_at: existingOrder?.created_at || orderingContext.created_at || now,
         persons: summary.persons.map(person => ({
           cart_id: person.cartId,
+          person_slot: Number(person.personSlot || 0),
           guest_label: person.guestLabel,
+          display_label: person.guestLabel,
           subtotal: person.subtotal,
           total: person.total
-        })),
-        timeline: [
-          { status: 'pending', changed_at: now, source: 'customer', note: '顧客已送出訂單' }
-        ]
-      })
+        }))
+      }
+
+      if (existingOrder) {
+        Object.assign(existingOrder, nextPayload)
+        existingOrder.timeline = Array.isArray(existingOrder.timeline) ? existingOrder.timeline : []
+        existingOrder.timeline.push({
+          status: 'pending',
+          changed_at: now,
+          source: 'customer',
+          note: '顧客已送出訂單'
+        })
+      } else {
+        state.orders.unshift({
+          ...nextPayload,
+          timeline: [
+            { status: 'pending', changed_at: now, source: 'customer', note: '顧客已送出訂單' }
+          ]
+        })
+      }
+
+      state.activeOrderingByTable[tableCode] = {
+        ...orderingContext,
+        status: 'open'
+      }
 
       return {
-        orderId: id,
-        orderNo
+        orderId: orderingContext.order_id,
+        orderNo: orderingContext.order_no
       }
     })
   },
@@ -614,7 +954,7 @@ const handlers = {
           orderNo: order.order_no,
           tableCode: order.table_code,
           status: order.order_status,
-          paymentMethod: '櫃台付款',
+          paymentMethod: normalizePaymentMethod(order),
           estimatedWaitMinutes: order.estimated_wait_minutes,
           persons: collectOrderPersons(state, order)
         })
@@ -740,8 +1080,19 @@ const handlers = {
     return writeMockState(state => {
       const order = updateOrderRecord(state, orderId, target => {
         target.payment_status = paymentStatus
+        target.payment_method = paymentStatus === 'paid' ? 'cash' : 'unpaid'
         appendTimeline(target, target.order_status, 'counter', `櫃台已將付款狀態更新為 ${paymentStatus}`)
       })
+
+      if (paymentStatus === 'paid') {
+        delete state.activeOrderingByTable?.[order.table_code]
+        const sessionBucket = getGuestOrderingSessionBucket(state, order.table_code)
+        Object.values(sessionBucket).forEach(session => {
+          if (session.order_id === order.id || session.order_no === order.order_no) {
+            session.status = 'expired'
+          }
+        })
+      }
 
       return {
         id: order.id,
@@ -841,6 +1192,231 @@ const handlers = {
           .slice(0, 5)
           .map(([name, quantity]) => ({ name, quantity }))
       })
+    })
+  },
+  async 'reports/summary'({ filters = {} }) {
+    await waitForMock()
+
+    return readMockState(state => {
+      const keyword = String(filters.keyword || '').trim().toLowerCase()
+      const status = filters.status || 'all'
+      const paymentStatus = filters.paymentStatus || 'all'
+      const paymentMethod = filters.paymentMethod || 'all'
+
+      const selectedOrders = state.orders
+        .filter(order => status === 'all' || order.order_status === status)
+        .filter(order => paymentStatus === 'all' || order.payment_status === paymentStatus)
+        .filter(order => paymentMethod === 'all' || normalizePaymentMethod(order) === paymentMethod)
+        .filter(order => {
+          if (!keyword) return true
+          return order.order_no.toLowerCase().includes(keyword) || order.table_code.toLowerCase().includes(keyword)
+        })
+
+      const grossSales = selectedOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+      const paidAmount = selectedOrders
+        .filter(order => order.payment_status === 'paid')
+        .reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+      const unpaidAmount = selectedOrders
+        .filter(order => order.payment_status !== 'paid')
+        .reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+      const statusBreakdown = {
+        pending: 0,
+        preparing: 0,
+        ready: 0,
+        picked_up: 0,
+        cancelled: 0
+      }
+      const paymentBreakdown = {
+        cash: 0,
+        counter_card: 0,
+        other: 0,
+        unpaid: 0
+      }
+      const itemCounter = new Map()
+
+      selectedOrders.forEach(order => {
+        statusBreakdown[order.order_status] = (statusBreakdown[order.order_status] || 0) + 1
+        const currentPaymentMethod = normalizePaymentMethod(order)
+        paymentBreakdown[currentPaymentMethod] = (paymentBreakdown[currentPaymentMethod] || 0) + 1
+
+        collectOrderItems(state, order).forEach(item => {
+          const current = itemCounter.get(item.title) || { quantity: 0, grossSales: 0 }
+          itemCounter.set(item.title, {
+            quantity: current.quantity + Number(item.quantity || 0),
+            grossSales: current.grossSales + Number(item.price || 0) * Number(item.quantity || 0)
+          })
+        })
+      })
+
+      return cloneMockValue({
+        summary: {
+          businessDate: '2026-03-03',
+          grossSales,
+          paidAmount,
+          unpaidAmount,
+          orderCount: selectedOrders.length,
+          completedOrderCount: selectedOrders.filter(order => order.order_status === 'picked_up').length,
+          cancelledOrderCount: selectedOrders.filter(order => order.order_status === 'cancelled').length,
+          averageOrderValue: selectedOrders.length ? Math.round(grossSales / selectedOrders.length) : 0
+        },
+        statusBreakdown,
+        paymentBreakdown,
+        topItems: [...itemCounter.entries()]
+          .sort((left, right) => right[1].quantity - left[1].quantity)
+          .slice(0, 5)
+          .map(([itemName, stats], index) => ({
+            itemId: `report-item-${index + 1}`,
+            itemName,
+            quantity: stats.quantity,
+            grossSales: stats.grossSales
+          }))
+      })
+    })
+  },
+  async 'reports/orders'({ filters = {} }) {
+    await waitForMock()
+
+    return readMockState(state => {
+      const keyword = String(filters.keyword || '').trim().toLowerCase()
+      const status = filters.status || 'all'
+      const paymentStatus = filters.paymentStatus || 'all'
+      const paymentMethod = filters.paymentMethod || 'all'
+
+      return cloneMockValue({
+        orders: state.orders
+          .filter(order => status === 'all' || order.order_status === status)
+          .filter(order => paymentStatus === 'all' || order.payment_status === paymentStatus)
+          .filter(order => paymentMethod === 'all' || normalizePaymentMethod(order) === paymentMethod)
+          .filter(order => {
+            if (!keyword) return true
+            return order.order_no.toLowerCase().includes(keyword) || order.table_code.toLowerCase().includes(keyword)
+          })
+          .map(order => ({
+            orderId: order.id,
+            orderNo: order.order_no,
+            tableCode: order.table_code,
+            createdAt: order.created_at,
+            status: order.order_status,
+            paymentStatus: order.payment_status,
+            paymentMethod: normalizePaymentMethod(order),
+            totalAmount: order.total_amount,
+            itemCount: collectOrderItems(state, order).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+            staffNoteSummary: order.timeline.at(-1)?.note || ''
+          }))
+      })
+    })
+  },
+  async 'audit-close/summary'({ businessDate = '2026-03-03' } = {}) {
+    await waitForMock()
+
+    return readMockState(state =>
+      cloneMockValue(buildAuditSummary(state, businessDate))
+    )
+  },
+  async 'audit-close/history'({ businessDate = '' } = {}) {
+    await waitForMock()
+
+    return readMockState(state =>
+      cloneMockValue({
+        history: state.auditHistory
+          .filter(entry => !businessDate || entry.business_date === businessDate)
+          .map(entry => ({
+            id: entry.id,
+            businessDate: entry.business_date,
+            action: entry.action,
+            actorName: entry.actor_name,
+            actorRole: entry.actor_role,
+            createdAt: entry.created_at,
+            reason: entry.reason,
+            reasonType: entry.reason_type,
+            affectedScopes: entry.affected_scopes || [],
+            beforeStatus: entry.before_status || '',
+            afterStatus: entry.after_status || ''
+          }))
+      })
+    )
+  },
+  async 'audit-close/close'({ businessDate = '2026-03-03', reason = '', reasonType = 'daily_close' } = {}) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const session = ensureManagerSession(state)
+      const summary = buildAuditSummary(state, businessDate)
+
+      if (summary.lockState.isLocked) {
+        throw new Error('BUSINESS_DATE_ALREADY_CLOSED')
+      }
+
+      if (summary.blockingIssues.length > 0) {
+        throw new Error('AUDIT_CLOSE_BLOCKED')
+      }
+
+      state.auditClosings[businessDate] = {
+        business_date: businessDate,
+        status: 'closed',
+        closed_at: '2026-03-03 23:10:00',
+        closed_by_name: session.name,
+        closed_by_role: session.role,
+        locked_scopes: ['orders', 'payments'],
+        close_reason: String(reason || '').trim()
+      }
+
+      appendAuditHistory(state, {
+        businessDate,
+        action: 'close',
+        actorName: session.name,
+        actorRole: session.role,
+        createdAt: '2026-03-03 23:10:00',
+        reason,
+        reasonType,
+        affectedScopes: ['orders', 'payments'],
+        beforeStatus: 'open',
+        afterStatus: 'closed'
+      })
+
+      return cloneMockValue(buildAuditSummary(state, businessDate))
+    })
+  },
+  async 'audit-close/unlock'({ businessDate = '2026-03-03', reason = '', reasonType = 'correction' } = {}) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const session = ensureManagerSession(state)
+      const safeReason = String(reason || '').trim()
+      const current = findClosingRecord(state, businessDate)
+
+      if (!current || current.status !== 'closed') {
+        throw new Error('BUSINESS_DATE_NOT_CLOSED')
+      }
+
+      if (!safeReason) {
+        throw new Error('UNLOCK_REASON_REQUIRED')
+      }
+
+      state.auditClosings[businessDate] = {
+        ...current,
+        status: 'reopened',
+        unlocked_at: '2026-03-03 23:20:00',
+        unlocked_by_name: session.name,
+        unlocked_by_role: session.role,
+        unlock_reason: safeReason,
+        locked_scopes: []
+      }
+
+      appendAuditHistory(state, {
+        businessDate,
+        action: 'unlock',
+        actorName: session.name,
+        actorRole: session.role,
+        createdAt: '2026-03-03 23:20:00',
+        reason: safeReason,
+        reasonType,
+        affectedScopes: ['orders', 'payments'],
+        beforeStatus: 'closed',
+        afterStatus: 'reopened'
+      })
+
+      return cloneMockValue(buildAuditSummary(state, businessDate))
     })
   },
   async 'menu-admin/items'() {
@@ -1459,5 +2035,25 @@ export async function mockApiRequest(endpoint, payload = {}) {
     throw new Error(`MOCK_ENDPOINT_NOT_FOUND: ${endpoint}`)
   }
 
-  return handler(payload)
+  const enrichedPayload = { ...payload }
+  const tableCode = String(enrichedPayload.tableCode || '').trim()
+  const storedToken =
+    enrichedPayload.orderingSessionToken ||
+    (tableCode ? getGuestOrderingSessionToken(tableCode) : '')
+
+  if (storedToken) {
+    enrichedPayload.orderingSessionToken = storedToken
+  }
+
+  const result = await handler(enrichedPayload)
+  const resultToken =
+    result?.orderingSessionToken ||
+    result?.ordering_session_token ||
+    enrichedPayload.orderingSessionToken
+
+  if (tableCode && resultToken) {
+    setGuestOrderingSessionToken(tableCode, resultToken)
+  }
+
+  return result
 }

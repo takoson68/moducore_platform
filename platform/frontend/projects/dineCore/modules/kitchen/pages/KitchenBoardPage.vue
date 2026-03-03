@@ -28,6 +28,9 @@ async function updateOrderStatus(orderId, orderStatus) {
     h2 廚房出餐看板
     p.lead 優先查看備註較多與客製較重的品項，避免廚房出餐判讀錯誤。
 
+  section.error-card(v-if="state.error")
+    p {{ state.error }}
+
   section.info-grid
     article.info-card
       span.info-label 看板狀態
@@ -63,7 +66,7 @@ async function updateOrderStatus(orderId, orderStatus) {
   display: grid
   gap: 18px
 
-.panel-card, .info-card, .board-card
+.panel-card, .info-card, .board-card, .error-card
   padding: 22px
   border-radius: 22px
   background: rgba(255, 255, 255, 0.88)
@@ -84,6 +87,9 @@ async function updateOrderStatus(orderId, orderStatus) {
   margin: 0
   color: #6f5b43
   line-height: 1.7
+
+.error-card
+  color: #a4432c
 
 .info-grid
   display: grid

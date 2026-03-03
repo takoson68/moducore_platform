@@ -1,6 +1,7 @@
 import world from '@/world.js'
 import {
   loadCheckoutSummary,
+  mapCheckoutError,
   submitCheckoutOrder
 } from './service.js'
 
@@ -19,6 +20,8 @@ export function createCheckoutStore() {
     name: 'dineCoreCheckoutStore',
     defaultValue: {
       submitting: false,
+      orderingSessionToken: '',
+      errorMessage: '',
       subtotal: 0,
       serviceFee: 0,
       tax: 0,
@@ -27,16 +30,28 @@ export function createCheckoutStore() {
       persons: []
     },
     actions: {
-      async load(store, tableCode) {
-        const payload = await loadCheckoutSummary(tableCode)
-        store.set({
-          ...store.get(),
-          subtotal: Number(payload.subtotal || 0),
-          serviceFee: Number(payload.serviceFee || 0),
-          tax: Number(payload.tax || 0),
-          total: Number(payload.total || 0),
-          persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : []
-        })
+      async load(store, input) {
+        const tableCode = typeof input === 'string' ? input : input?.tableCode
+        const orderingSessionToken =
+          typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
+        try {
+          const payload = await loadCheckoutSummary(tableCode, orderingSessionToken)
+          store.set({
+            ...store.get(),
+            errorMessage: '',
+            orderingSessionToken: orderingSessionToken || store.get().orderingSessionToken,
+            subtotal: Number(payload.subtotal || 0),
+            serviceFee: Number(payload.serviceFee || 0),
+            tax: Number(payload.tax || 0),
+            total: Number(payload.total || 0),
+            persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : []
+          })
+        } catch (error) {
+          store.set({
+            ...store.get(),
+            errorMessage: mapCheckoutError(error)
+          })
+        }
       },
       setSummary(store, payload = {}) {
         const state = store.get()
@@ -56,10 +71,26 @@ export function createCheckoutStore() {
           submitting: Boolean(submitting)
         })
       },
-      async submit(store, tableCode) {
+      async submit(store, input) {
+        const tableCode = typeof input === 'string' ? input : input?.tableCode
+        const orderingSessionToken =
+          typeof input === 'string'
+            ? store.get().orderingSessionToken
+            : String(input?.orderingSessionToken || store.get().orderingSessionToken || '')
         store.setSubmitting(true)
         try {
-          return await submitCheckoutOrder(tableCode)
+          const result = await submitCheckoutOrder(tableCode, orderingSessionToken)
+          store.set({
+            ...store.get(),
+            errorMessage: ''
+          })
+          return result
+        } catch (error) {
+          store.set({
+            ...store.get(),
+            errorMessage: mapCheckoutError(error)
+          })
+          throw error
         } finally {
           store.setSubmitting(false)
         }

@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'dinecore-mock-state-v4'
+const STORAGE_KEY = 'dinecore-mock-state-v6'
 
 function cloneValue(value) {
   return JSON.parse(JSON.stringify(value))
@@ -191,8 +191,8 @@ function createDefaultState() {
     cartsByTable: {
       A01: {
         carts: [
-          { id: 'guest-a', guest_label: 'A 顧客', note: '先點主餐' },
-          { id: 'guest-b', guest_label: 'B 顧客', note: '只喝飲料' }
+          { id: 'guest-a', guest_label: '1號顧客', note: '先點主餐' },
+          { id: 'guest-b', guest_label: '2號顧客', note: '只喝飲料' }
         ],
         itemsByCartId: {
           'guest-a': [
@@ -222,6 +222,17 @@ function createDefaultState() {
         }
       }
     },
+    guestOrderingSessionsByTable: {
+      A01: {}
+    },
+    activeOrderingByTable: {
+      A01: {
+        order_id: 'demo-order',
+        order_no: 'DC202603030001',
+        status: 'open',
+        created_at: '2026-03-03 22:16:00'
+      }
+    },
     orders: [
       {
         id: 'demo-order',
@@ -229,6 +240,7 @@ function createDefaultState() {
         table_code: 'A01',
         order_status: 'preparing',
         payment_status: 'unpaid',
+        payment_method: 'unpaid',
         estimated_wait_minutes: 15,
         subtotal_amount: 199,
         service_fee_amount: 10,
@@ -236,8 +248,22 @@ function createDefaultState() {
         total_amount: 214,
         created_at: '2026-03-03 22:16:00',
         persons: [
-          { cart_id: 'guest-a', guest_label: 'A 顧客', subtotal: 154, total: 166 },
-          { cart_id: 'guest-b', guest_label: 'B 顧客', subtotal: 45, total: 48 }
+          {
+            cart_id: 'guest-a',
+            person_slot: 1,
+            display_label: '1號顧客',
+            guest_label: '1號顧客',
+            subtotal: 154,
+            total: 166
+          },
+          {
+            cart_id: 'guest-b',
+            person_slot: 2,
+            display_label: '2號顧客',
+            guest_label: '2號顧客',
+            subtotal: 45,
+            total: 48
+          }
         ],
         timeline: [
           {
@@ -286,6 +312,8 @@ function createDefaultState() {
       }
     ],
     staffSession: null,
+    auditClosings: {},
+    auditHistory: [],
     nextIds: {
       cartItem: 3,
       order: 2,
@@ -293,7 +321,9 @@ function createDefaultState() {
       category: 1,
       table: 2,
       optionGroup: 1,
-      option: 1
+      option: 1,
+      auditClose: 1,
+      guestSession: 1
     }
   }
 }
@@ -308,9 +338,24 @@ function normalizeState(raw = {}) {
     categories: Array.isArray(raw.categories) ? raw.categories : defaults.categories,
     items: Array.isArray(raw.items) ? raw.items : defaults.items,
     cartsByTable: { ...defaults.cartsByTable, ...(raw.cartsByTable || {}) },
-    orders: Array.isArray(raw.orders) ? raw.orders : defaults.orders,
+    guestOrderingSessionsByTable: {
+      ...defaults.guestOrderingSessionsByTable,
+      ...(raw.guestOrderingSessionsByTable || {})
+    },
+    activeOrderingByTable: {
+      ...defaults.activeOrderingByTable,
+      ...(raw.activeOrderingByTable || {})
+    },
+    orders: Array.isArray(raw.orders)
+      ? raw.orders.map(order => ({
+          ...order,
+          payment_method: order.payment_method || (order.payment_status === 'paid' ? 'cash' : 'unpaid')
+        }))
+      : defaults.orders,
     staffUsers: Array.isArray(raw.staffUsers) ? raw.staffUsers : defaults.staffUsers,
     staffSession: raw.staffSession || defaults.staffSession,
+    auditClosings: { ...defaults.auditClosings, ...(raw.auditClosings || {}) },
+    auditHistory: Array.isArray(raw.auditHistory) ? raw.auditHistory : defaults.auditHistory,
     nextIds: { ...defaults.nextIds, ...(raw.nextIds || {}) }
   }
 }

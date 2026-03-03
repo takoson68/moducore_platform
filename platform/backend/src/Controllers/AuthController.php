@@ -34,6 +34,20 @@ final class AuthController
         return $row ?: null;
     }
 
+    private function resolveDineCoreProfile(int $userId): ?array
+    {
+        $stmt = db()->prepare(
+            'SELECT role, display_name
+             FROM dinecore_staff_profiles
+             WHERE user_id = ? AND status = 1
+             LIMIT 1'
+        );
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
     private function resolveTenantIds(string $project): array
     {
         $project = trim($project);
@@ -86,6 +100,13 @@ final class AuthController
             }
         }
 
+        if ($project === 'dineCore' || $project === 'dine_core') {
+            $profile = $this->resolveDineCoreProfile($userId);
+            if ($profile && isset($profile['role'])) {
+                return (string)$profile['role'];
+            }
+        }
+
         return null;
     }
 
@@ -103,6 +124,13 @@ final class AuthController
 
         if ($project === 'flowCenter' || $project === 'flow_center') {
             $profile = $this->resolveFlowCenterProfile($userId);
+            if ($profile && isset($profile['display_name'])) {
+                return (string)$profile['display_name'];
+            }
+        }
+
+        if ($project === 'dineCore' || $project === 'dine_core') {
+            $profile = $this->resolveDineCoreProfile($userId);
             if ($profile && isset($profile['display_name'])) {
                 return (string)$profile['display_name'];
             }

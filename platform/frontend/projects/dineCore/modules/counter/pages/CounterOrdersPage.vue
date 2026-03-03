@@ -55,6 +55,9 @@ async function markPaid(orderId) {
     h2 櫃台訂單工作台
     p.lead 在這裡快速過濾訂單、更新狀態，並進入明細查看客製內容與付款狀態。
 
+  section.error-card(v-if="state.error")
+    p {{ state.error }}
+
   section.filter-grid
     label.field-card
       span.info-label 桌號
@@ -116,7 +119,7 @@ async function markPaid(orderId) {
   display: grid
   gap: 18px
 
-.panel-card, .field-card, .order-card
+.panel-card, .field-card, .order-card, .error-card
   padding: 22px
   border-radius: 22px
   background: rgba(255, 255, 255, 0.88)
@@ -137,6 +140,9 @@ async function markPaid(orderId) {
   margin: 0
   color: #6f5b43
   line-height: 1.7
+
+.error-card
+  color: #a4432c
 
 .filter-grid
   display: grid

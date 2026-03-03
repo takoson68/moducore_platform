@@ -11,6 +11,8 @@
 - `counter`
 - `kitchen`
 - `dashboard`
+- `reports`
+- `audit-close`
 - `menu-admin`
 - `table-admin`
 - `staff-auth`
@@ -95,7 +97,23 @@
 - 依賴狀態：依賴 `staff-auth`
 - 目前狀態：已完成可操作版
 
-### 3.5 `menu-admin`
+### 3.5 `reports`
+- 角色：副店長 / 店長
+- 主要責任：營運報表、訂單查詢、付款方式分布、品項排行、CSV 匯出
+- 主要頁面：
+  - `/staff/manager/reports`
+- 依賴狀態：依賴 `staff-auth`；資料需經 API 邊界取得，不得直接依賴 `dashboard` 或 `counter` store
+- 目前狀態：第一版可用
+
+### 3.6 `audit-close`
+- 角色：店長
+- 主要責任：關帳、解鎖、鎖定規則、稽核留痕、異常提示、原因分類與狀態差異
+- 主要頁面：
+  - `/staff/manager/audit-close`
+- 依賴狀態：依賴 `staff-auth`；資料需經 API 邊界取得，不得直接依賴 `counter`、`dashboard` 或 `reports` store
+- 目前狀態：第一版可用
+
+### 3.7 `menu-admin`
 - 角色：副店長 / 店長
 - 主要責任：商品管理、圖片、價格、上下架、售完、客製規則
 - 主要頁面：
@@ -103,7 +121,7 @@
 - 依賴狀態：依賴 `staff-auth`
 - 目前狀態：已完成基礎管理版
 
-### 3.6 `table-admin`
+### 3.8 `table-admin`
 - 角色：櫃台 / 副店長 / 店長
 - 主要責任：桌號管理、入口連結、QR、接單控制、排序、刪除
 - 主要頁面：
@@ -170,12 +188,32 @@
 - 顧客端與商家端共享真相只經過 API 邊界交換
 
 ## 8. 尚未納入的模組
-- `reports`
-- `audit-close`
 - 正式 API adapter
 - 正式員工帳號管理
 
+## 8.1 已定義邊界、已建立第一版的模組
+
+### `reports`
+- 角色：副店長 / 店長
+- 主要責任：營運報表、訂單查詢、付款分布、品項排行
+- 預計主要頁面：
+  - `/staff/manager/reports`
+- 依賴狀態：依賴 `staff-auth`；資料需經 API 邊界取得，不得直接依賴 `dashboard` 或 `counter` store
+- 目前狀態：第一版可用
+- 邊界文件：
+  - [`DINECORE_REPORTS_BOUNDARY.md`](/Users/zhangyu/Desktop/moducore_platform/platform/frontend/projects/dineCore/docs/DINECORE_REPORTS_BOUNDARY.md)
+
+### `audit-close`
+- 角色：店長
+- 主要責任：關帳、解鎖、鎖定規則、稽核留痕
+- 預計主要頁面：
+  - `/staff/manager/audit-close`
+- 依賴狀態：依賴 `staff-auth`；資料需經 API 邊界取得，不得直接依賴 `counter`、`dashboard` 或 `reports` store
+- 目前狀態：第一版可用
+- 邊界文件：
+  - [`DINECORE_AUDIT_CLOSE_BOUNDARY.md`](/Users/zhangyu/Desktop/moducore_platform/platform/frontend/projects/dineCore/docs/DINECORE_AUDIT_CLOSE_BOUNDARY.md)
+
 ## 9. 下一步建議
-1. 補 `menu-admin` 的分類管理
-2. 規劃 `reports` 模組的資料需求
-3. 規劃 `audit-close` 模組的權限與流程邊界
+1. 補 `audit-close` 稽核細節與異常處理
+2. 細化 `reports` 匯出欄位與格式
+3. 補一份 mock flow 轉正式 API 的遷移說明

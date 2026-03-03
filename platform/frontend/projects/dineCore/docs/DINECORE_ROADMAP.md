@@ -5,7 +5,7 @@
 ## 1. 目前走到哪一步
 - 目前主階段：`Phase C`
 - 目前位置：顧客端主流程已打通，商家端核心工作台已打通，管理端已有商品管理與桌號管理
-- 目前判定：專案已經從「架構建立」走到「可操作 mock 營運閉環」
+- 目前判定：顧客端與管理端已跨入正式後端最小落地，專案正從「可操作 mock 閉環」走向「局部 real API 閉環」
 
 ## 2. 已完成里程碑
 
@@ -76,19 +76,23 @@
 ## 4. 下一步里程碑需求
 
 ### Milestone C1 報表模組 `reports`
-- 定義頁面邊界
-- 定義資料欄位
+- 已完成邊界文件：[`DINECORE_REPORTS_BOUNDARY.md`](/Users/zhangyu/Desktop/moducore_platform/platform/frontend/projects/dineCore/docs/DINECORE_REPORTS_BOUNDARY.md)
+- 已定義頁面邊界
+- 已定義資料欄位
 - 定義角色限制
+- 已建立第一版模組骨架與 mock API
 - 規劃每日營收摘要
 - 規劃訂單明細查詢
-- 規劃匯出能力
+- 已補第一版 CSV 匯出
 
 ### Milestone C2 關帳模組 `audit-close`
+- 已完成邊界文件：[`DINECORE_AUDIT_CLOSE_BOUNDARY.md`](/Users/zhangyu/Desktop/moducore_platform/platform/frontend/projects/dineCore/docs/DINECORE_AUDIT_CLOSE_BOUNDARY.md)
 - 定義流程
 - 定義角色限制
 - 定義店長解鎖規則
 - 規劃關帳後鎖定
 - 規劃稽核留痕
+- 已建立第一版模組骨架與 mock API
 
 ### Milestone C3 文件與舊檔清理
 - 清理舊文件亂碼
@@ -98,7 +102,13 @@
 ## 5. 後續版本里程碑
 
 ### Milestone D1 正式 API 遷移
-- 用正式 backend API 取代 mock runtime
+- 已補遷移說明：[`DINECORE_REAL_API_MIGRATION_NOTES.md`](/Users/zhangyu/Desktop/moducore_platform/platform/frontend/projects/dineCore/docs/DINECORE_REAL_API_MIGRATION_NOTES.md)
+- 顧客端匿名身份將以 `ordering session + person_slot` 落地
+- 已補後端交接文件：[`DINECORE_GUEST_ORDERING_SESSION_BACKEND_HANDOFF.md`](/Users/zhangyu/Desktop/moducore_platform/platform/frontend/projects/dineCore/docs/DINECORE_GUEST_ORDERING_SESSION_BACKEND_HANDOFF.md)
+- 顧客端正式 backend API 已完成第一版 schema / seed / controller / route
+- 顧客端模組已完成 real/mock 雙模 API adapter
+- `staff-auth / reports / audit-close` 正式 backend API 已完成第一版 schema / seed / controller / route
+- `staff-auth / reports / audit-close` 模組已完成 real/mock 雙模 API adapter
 - staff session 改為正式登入來源
 - 報表與關帳改用正式資料來源
 
@@ -108,7 +118,7 @@
 - 桌位位置與區域視覺化
 
 ## 6. 建議優先順序
-1. 先定 `reports` 模組邊界
-2. 再定 `audit-close` 模組邊界
-3. 再清理舊文件與補操作地圖
-4. 最後才開始正式 API 遷移規劃
+1. 先把最新 real mode build 發佈並做真實畫面驗證
+2. 再規劃 `counter / kitchen / dashboard` 的正式 API 遷移
+3. 視需要補 `reports` 後端匯出 endpoint
+4. 最後清理舊文件與補操作地圖

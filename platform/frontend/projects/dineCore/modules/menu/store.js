@@ -97,8 +97,11 @@ export function createMenuStore() {
       optionDraft: null
     },
     actions: {
-      async load(store, tableCode) {
-        const payload = await loadMenuPayload(tableCode)
+      async load(store, input) {
+        const tableCode = typeof input === 'string' ? input : input?.tableCode
+        const orderingSessionToken =
+          typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
+        const payload = await loadMenuPayload(tableCode, orderingSessionToken)
         store.set({
           ...store.get(),
           categories: payload.categories.map(category => createCategory(category.id, category.name)),

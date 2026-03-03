@@ -1,20 +1,86 @@
 <script setup>
-import { computed, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
 
 const route = useRoute()
 const router = useRouter()
 const checkoutStore = world.store('dineCoreCheckoutStore')
+const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
 const state = computed(() => checkoutStore.state)
+const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
+const POLL_INTERVAL_MS = 5000
+let pollTimer = null
 
-watchEffect(() => {
-  checkoutStore.load(tableCode.value)
+async function refreshCheckout() {
+  await checkoutStore.load({
+    tableCode: tableCode.value,
+    orderingSessionToken: entryState.value.orderingSessionToken
+  })
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+function startPolling() {
+  stopPolling()
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    return
+  }
+
+  pollTimer = window.setInterval(() => {
+    refreshCheckout()
+  }, POLL_INTERVAL_MS)
+}
+
+function handleVisibilityChange() {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    stopPolling()
+    return
+  }
+
+  refreshCheckout()
+  startPolling()
+}
+
+watch(
+  [tableCode, () => entryState.value.orderingSessionToken],
+  async ([, orderingSessionToken]) => {
+    if (!orderingSessionToken) {
+      stopPolling()
+      return
+    }
+
+    await refreshCheckout()
+    startPolling()
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
+})
+
+onBeforeUnmount(() => {
+  stopPolling()
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 
 async function submitOrder() {
-  const result = await checkoutStore.submit(tableCode.value)
+  stopPolling()
+  const result = await checkoutStore.submit({
+    tableCode: tableCode.value,
+    orderingSessionToken: entryState.value.orderingSessionToken
+  })
   router.push(`/t/${tableCode.value}/checkout/success/${result.orderId}`)
 }
 </script>
@@ -42,6 +108,10 @@ async function submitOrder() {
     button.bill-card__action(type="button" :disabled="state.submitting" @click="submitOrder")
       | {{ state.submitting ? '送單中...' : '送出訂單' }}
 
+  section.notice-card.is-error(v-if="state.errorMessage")
+    h3.notice-card__title 同步提醒
+    p.notice-card__copy {{ state.errorMessage }}
+
   section.person-card
     h3.person-card__title 合併後的子購物車明細
     .person-list
@@ -64,6 +134,7 @@ async function submitOrder() {
 
   section.notice-card
     h3.notice-card__title 送單說明
+    p.notice-card__copy 系統會每 5 秒同步一次整桌合單內容，避免資料過期。
     ul.notice-list
       li 系統不做線上付款，送出後由店家現場處理付款。
       li 送單後，店家就會看到這張合併後的正式訂單。

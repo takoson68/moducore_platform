@@ -1,5 +1,5 @@
 import world from '@/world.js'
-import { loadOrderTrackerPayload } from './service.js'
+import { loadOrderTrackerPayload, mapOrderTrackerError } from './service.js'
 
 function normalizePerson(person) {
   return {
@@ -15,6 +15,7 @@ export function createOrderTrackerStore() {
   return world.createStore({
     name: 'dineCoreOrderTrackerStore',
     defaultValue: {
+      errorMessage: '',
       orderNo: '',
       status: 'pending',
       estimatedWaitMinutes: null,
@@ -23,17 +24,25 @@ export function createOrderTrackerStore() {
       history: []
     },
     actions: {
-      async load(store, orderId) {
-        const payload = await loadOrderTrackerPayload(orderId)
-        store.set({
-          ...store.get(),
-          orderNo: payload.order.orderNo,
-          status: payload.order.status,
-          estimatedWaitMinutes: payload.order.estimatedWaitMinutes,
-          persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : [],
-          timeline: payload.timeline,
-          history: payload.history
-        })
+      async load(store, { orderId, orderingSessionToken = '' }) {
+        try {
+          const payload = await loadOrderTrackerPayload(orderId, orderingSessionToken)
+          store.set({
+            ...store.get(),
+            errorMessage: '',
+            orderNo: payload.order.orderNo,
+            status: payload.order.status,
+            estimatedWaitMinutes: payload.order.estimatedWaitMinutes,
+            persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : [],
+            timeline: payload.timeline,
+            history: payload.history
+          })
+        } catch (error) {
+          store.set({
+            ...store.get(),
+            errorMessage: mapOrderTrackerError(error)
+          })
+        }
       },
       setOrderSnapshot(store, payload = {}) {
         const state = store.get()

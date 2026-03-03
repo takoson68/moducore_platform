@@ -11,6 +11,8 @@ export default {
     'counter',
     'kitchen',
     'dashboard',
+    'reports',
+    'audit-close',
     'menu-admin',
     'table-admin',
     'staff-auth'

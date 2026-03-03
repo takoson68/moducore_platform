@@ -14,6 +14,8 @@
 - `counter`
 - `kitchen`
 - `dashboard`
+- `reports`
+- `audit-close`
 - `menu-admin`
 - `table-admin`
 - `staff-auth`
@@ -29,10 +31,12 @@
 | `cart` | 可用 | 子購物車、數量調整、客製與備註編輯 |
 | `checkout` | 可用 | 確認訂單、合單摘要、送出訂單、成功頁 |
 | `order-tracker` | 可用 | 訂單追蹤、時間線、歷史訂單摘要 |
-| `staff-auth` | 可用 | 商家端登入、session 載入、登出 |
+| `staff-auth` | 可用 | 商家端登入、session 載入、登出，已支援 real/mock 雙模 |
 | `counter` | 可用 | 櫃台訂單列表、明細、付款與狀態更新 |
 | `kitchen` | 可用 | 廚房看板、製作狀態更新、客製資訊顯示 |
 | `dashboard` | 可用 | 營運摘要、訂單狀態分布、付款分布 |
+| `reports` | 第一版可用 | 唯讀報表、付款分布、品項排行、訂單查詢、CSV 匯出，已支援 real/mock 雙模 |
+| `audit-close` | 第一版可用 | 關帳摘要、阻塞檢查、關帳 / 解鎖、歷史紀錄、原因分類、影響範圍、狀態差異，已支援 real/mock 雙模 |
 | `menu-admin` | 可用 | 商品新增、圖片、價格、上下架、售完、客製規則 |
 | `table-admin` | 可用 | 桌號管理、排序、刪除、暫停接單、固定入口、QR 下載 |
 
@@ -61,6 +65,8 @@
 | `/staff/counter/orders/:orderId` | 櫃台訂單明細 | `counter / deputy_manager / manager` | 可用 |
 | `/staff/kitchen/board` | 廚房看板 | `kitchen / deputy_manager / manager` | 可用 |
 | `/staff/manager/dashboard` | 營運總覽 | `deputy_manager / manager` | 可用 |
+| `/staff/manager/reports` | 營運報表 | `deputy_manager / manager` | 第一版可用 |
+| `/staff/manager/audit-close` | 關帳與稽核 | `manager` | 第一版可用 |
 | `/staff/manager/menu-items` | 商品管理 | `deputy_manager / manager` | 可用 |
 | `/staff/manager/tables` | 桌號管理 | `counter / deputy_manager / manager` | 可用 |
 
@@ -83,6 +89,13 @@
 
 ### 5.2 目前已支援的顧客端能力
 - 桌號上下文載入
+- 本機加點目標已可由 API 指定 `orderingCartId`
+- `ordering_session_token` 已完成「未結單訂單作用域」運作
+- 顧客端 `entry / menu / cart / checkout / order-tracker` 已具備 real/mock 雙模 API adapter
+- `dineCore` backend 已落地第一版顧客端主流程 API 與最小 schema / seed
+- staff 端 `staff-auth / reports / audit-close` 已具備 real/mock 雙模 API adapter
+- `dineCore` backend 已落地第一版 staff auth、報表與關帳 API
+- `cart / checkout` 已支援 5 秒 polling 與背景頁暫停
 - 菜單分類切換
 - 商品客製選項
 - 備註編輯
@@ -139,6 +152,8 @@
 - 櫃台訂單處理
 - 廚房狀態更新
 - 營運摘要
+- 營運報表
+- 關帳與稽核
 - 商品管理
 - 桌號管理
 - QR 下載
@@ -150,11 +165,9 @@
 - `menu-admin` 分類管理
 - `menu-admin` 商品分類排序
 - `table-admin` 列印版桌號 QR
-- `reports` 模組
-- `audit-close` 模組
-- 正式後端 API 對接
 - 關帳流程
-- 報表匯出
+- `counter / kitchen / dashboard` 正式後端 API 對接
+- `reports` 匯出專用後端 endpoint（若要改成後端直出檔案）
 
 ---
 
@@ -162,11 +175,11 @@
 
 若以功能完整度排序，下一步建議：
 
-1. `menu-admin` 分類管理
+1. guest ordering session 正式後端 API 落地
 2. `table-admin` 桌位列印版 QR / 列印樣式
-3. `reports` 第一版骨架
+3. `reports / audit-close` 正式 API 對接
 
 若以文件對齊排序，下一步建議：
 
-1. 用這份文件回寫 `DINECORE_PROGRESS_TRACKER.md`
-2. 用這份文件回寫 `DINECORE_MODULE_MAP.md`
+1. 確保 `reports` 邊界文件與 `ROADMAP / MODULE_MAP / PROGRESS_TRACKER` 一致
+2. 補 `audit-close` 邊界文件

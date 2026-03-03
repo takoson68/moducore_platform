@@ -78,6 +78,20 @@ const staffRouteRegistry = [
     roles: ['deputy_manager', 'manager']
   },
   {
+    key: 'reports',
+    label: '營運報表',
+    path: '/staff/manager/reports',
+    to: '/staff/manager/reports',
+    roles: ['deputy_manager', 'manager']
+  },
+  {
+    key: 'audit-close',
+    label: '關帳與稽核',
+    path: '/staff/manager/audit-close',
+    to: '/staff/manager/audit-close',
+    roles: ['manager']
+  },
+  {
     key: 'menu-admin',
     label: '商品管理',
     path: '/staff/manager/menu-items',
@@ -97,8 +111,12 @@ const isStaffRoute = computed(() => route.path.startsWith('/staff/'))
 const currentTableCode = computed(() => String(route.params.tableCode || 'A01'))
 const currentOrderId = computed(() => String(route.params.orderId || 'demo-order'))
 
-const cartState = computed(() => cartStore?.state || { carts: [] })
-const entryState = computed(() => entryStore?.state || { latestOrderId: '', latestOrderNo: '' })
+const cartState = computed(() => cartStore?.state || { carts: [], orderingSessionToken: '' })
+const entryState = computed(() => entryStore?.state || {
+  orderId: '',
+  orderNo: '',
+  orderingSessionToken: ''
+})
 const authState = computed(() => staffAuthStore?.state || {
   initialized: true,
   isSubmitting: false,
@@ -124,9 +142,9 @@ const cartItemCount = computed(() =>
   (cartState.value.carts || []).reduce((sum, cart) => sum + Number(cart.itemCount || 0), 0)
 )
 
-const latestOrderId = computed(() => String(entryState.value.latestOrderId || '').trim())
-const latestOrderNo = computed(() => String(entryState.value.latestOrderNo || '').trim())
-const hasLatestOrder = computed(() => Boolean(latestOrderId.value))
+const orderId = computed(() => String(entryState.value.orderId || '').trim())
+const orderNo = computed(() => String(entryState.value.orderNo || '').trim())
+const hasOrder = computed(() => Boolean(orderId.value))
 
 const guestNavItems = computed(() => {
   const items = []
@@ -152,9 +170,9 @@ const guestNavItems = computed(() => {
     items.push({
       key: 'tracker',
       label: '追單',
-      to: hasLatestOrder.value ? `/t/${currentTableCode.value}/order/${latestOrderId.value}` : '',
-      disabled: !hasLatestOrder.value,
-      hint: hasLatestOrder.value ? '' : '尚無可追蹤訂單'
+      to: hasOrder.value ? `/t/${currentTableCode.value}/order/${orderId.value}` : '',
+      disabled: !hasOrder.value,
+      hint: hasOrder.value ? '' : '尚無可追蹤訂單'
     })
   }
 
@@ -178,11 +196,11 @@ const staffNavItems = computed(() => {
 const devGuestLinks = computed(() =>
   guestRouteRegistry
     .filter(item => hasRoute(item.path))
-    .filter(item => !item.path.includes(':orderId') || hasLatestOrder.value)
+    .filter(item => !item.path.includes(':orderId') || hasOrder.value)
     .map(item => ({
       key: item.key,
       label: item.label,
-      to: item.to(currentTableCode.value, latestOrderId.value)
+      to: item.to(currentTableCode.value, orderId.value)
     }))
 )
 
@@ -196,17 +214,18 @@ const devStaffLinks = computed(() =>
     }))
 )
 
-watchEffect(() => {
-  if (isStaffRoute.value) return
+watch(
+  [() => isStaffRoute.value, () => currentTableCode.value],
+  async ([isStaff, tableCode]) => {
+    if (isStaff || !entryStore) return
 
-  if (cartStore && hasRoute('/t/:tableCode/cart')) {
-    cartStore.load(currentTableCode.value)
-  }
-
-  if (entryStore) {
-    entryStore.loadTableContext(currentTableCode.value)
-  }
-})
+    await entryStore.loadTableContext({
+      tableCode,
+      orderingSessionToken: entryState.value.orderingSessionToken
+    })
+  },
+  { immediate: true }
+)
 
 watchEffect(() => {
   if (staffAuthStore && !authState.value.initialized) {
@@ -217,9 +236,6 @@ watchEffect(() => {
 watch(
   () => route.fullPath,
   () => {
-    if (!isStaffRoute.value && cartStore && hasRoute('/t/:tableCode/cart')) {
-      cartStore.load(currentTableCode.value)
-    }
     devMenuOpen.value = false
   }
 )
@@ -348,7 +364,7 @@ function closeDevMenu() {
         .guest-shell__topbar-main
           strong.guest-shell__topbar-title 顧客點餐
           span.guest-shell__topbar-meta {{ `${currentTableCode} 桌` }}
-          span.guest-shell__topbar-meta(v-if="latestOrderNo") {{ `最近訂單 ${latestOrderNo}` }}
+          span.guest-shell__topbar-meta(v-if="orderNo") {{ `訂單 ${orderNo}` }}
         nav.guest-shell__nav(v-if="guestNavItems.length > 0")
           template(v-for="item in guestNavItems" :key="item.key")
             RouterLink.guest-shell__nav-item(

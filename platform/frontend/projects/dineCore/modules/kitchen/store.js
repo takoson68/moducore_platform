@@ -7,15 +7,24 @@ export function createKitchenStore() {
     defaultValue: {
       boardStatus: 'active',
       visibleStatuses: ['pending', 'preparing', 'ready'],
+      error: '',
       orders: []
     },
     actions: {
       async load(store) {
-        const orders = await loadKitchenOrders()
-        store.set({
-          ...store.get(),
-          orders
-        })
+        try {
+          const orders = await loadKitchenOrders()
+          store.set({
+            ...store.get(),
+            error: '',
+            orders
+          })
+        } catch (error) {
+          store.set({
+            ...store.get(),
+            error: error instanceof Error ? error.message : 'KITCHEN_LOAD_FAILED'
+          })
+        }
       },
       setVisibleStatuses(store, statuses = []) {
         store.set({
@@ -24,12 +33,20 @@ export function createKitchenStore() {
         })
       },
       async setOrderStatus(store, payload) {
-        await updateKitchenOrderStatus(payload.orderId, payload.orderStatus)
-        const orders = await loadKitchenOrders()
-        store.set({
-          ...store.get(),
-          orders
-        })
+        try {
+          await updateKitchenOrderStatus(payload.orderId, payload.orderStatus)
+          const orders = await loadKitchenOrders()
+          store.set({
+            ...store.get(),
+            error: '',
+            orders
+          })
+        } catch (error) {
+          store.set({
+            ...store.get(),
+            error: error instanceof Error ? error.message : 'KITCHEN_UPDATE_FAILED'
+          })
+        }
       }
     }
   })
