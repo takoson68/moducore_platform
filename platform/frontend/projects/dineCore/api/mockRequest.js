@@ -145,6 +145,7 @@ function buildDashboardMenuItems(state) {
   return state.items.map(item => ({
     id: item.id,
     title: item.name,
+    categoryId: item.category_id,
     categoryName: categoryNameById[item.category_id] || item.category_id,
     description: item.description || '',
     price: Number(item.base_price || 0),
@@ -168,10 +169,26 @@ function buildDashboardMenuItems(state) {
   }))
 }
 
+function buildMenuAdminCategories(state) {
+  return [...state.categories]
+    .sort((left, right) => Number(left.sort_order || 0) - Number(right.sort_order || 0))
+    .map(category => ({
+      id: category.id,
+      name: category.name,
+      sortOrder: Number(category.sort_order || 0)
+    }))
+}
+
 function createMenuItemId(state) {
   const nextId = String(state.nextIds.menuItem || 1).padStart(3, '0')
   state.nextIds.menuItem = Number(nextId) + 1
   return `custom-item-${nextId}`
+}
+
+function createCategoryId(state) {
+  const nextId = String(state.nextIds.category || 1).padStart(3, '0')
+  state.nextIds.category = Number(nextId) + 1
+  return `custom-category-${nextId}`
 }
 
 function createTableId(state) {
@@ -441,7 +458,11 @@ const handlers = {
       ensureMockTable(state, tableCode)
 
       return {
-        categories: cloneMockValue(state.categories),
+        categories: cloneMockValue(
+          [...state.categories].sort(
+            (left, right) => Number(left.sort_order || 0) - Number(right.sort_order || 0)
+          )
+        ),
         items: cloneMockValue(
           state.items
             .filter(item => !item.hidden)
@@ -827,13 +848,135 @@ const handlers = {
 
     return readMockState(state =>
       cloneMockValue({
-        categories: state.categories.map(category => ({
-          id: category.id,
-          name: category.name
-        })),
+        categories: buildMenuAdminCategories(state),
         items: buildDashboardMenuItems(state)
       })
     )
+  },
+  async 'menu-admin/create-category'({ name }) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const safeName = String(name || '').trim()
+      if (!safeName) {
+        throw new Error('MENU_CATEGORY_NAME_REQUIRED')
+      }
+
+      const exists = state.categories.some(
+        category => String(category.name || '').trim().toLowerCase() === safeName.toLowerCase()
+      )
+      if (exists) {
+        throw new Error('MENU_CATEGORY_ALREADY_EXISTS')
+      }
+
+      const sortOrder =
+        Math.max(0, ...state.categories.map(category => Number(category.sort_order || 0))) + 10
+
+      state.categories.push({
+        id: createCategoryId(state),
+        name: safeName,
+        sort_order: sortOrder
+      })
+
+      return cloneMockValue({
+        categories: buildMenuAdminCategories(state),
+        items: buildDashboardMenuItems(state)
+      })
+    })
+  },
+  async 'menu-admin/update-category'({ categoryId, name }) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const target = state.categories.find(category => category.id === categoryId)
+      if (!target) {
+        throw new Error('MENU_CATEGORY_NOT_FOUND')
+      }
+
+      const safeName = String(name || '').trim()
+      if (!safeName) {
+        throw new Error('MENU_CATEGORY_NAME_REQUIRED')
+      }
+
+      const exists = state.categories.some(
+        category =>
+          category.id !== categoryId &&
+          String(category.name || '').trim().toLowerCase() === safeName.toLowerCase()
+      )
+      if (exists) {
+        throw new Error('MENU_CATEGORY_ALREADY_EXISTS')
+      }
+
+      target.name = safeName
+
+      return cloneMockValue({
+        categories: buildMenuAdminCategories(state),
+        items: buildDashboardMenuItems(state)
+      })
+    })
+  },
+  async 'menu-admin/delete-category'({ categoryId }) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const target = state.categories.find(category => category.id === categoryId)
+      if (!target) {
+        throw new Error('MENU_CATEGORY_NOT_FOUND')
+      }
+
+      const inUse = state.items.some(item => item.category_id === categoryId)
+      if (inUse) {
+        throw new Error('MENU_CATEGORY_IN_USE')
+      }
+
+      state.categories = state.categories.filter(category => category.id !== categoryId)
+      state.categories
+        .sort((left, right) => Number(left.sort_order || 0) - Number(right.sort_order || 0))
+        .forEach((category, index) => {
+          category.sort_order = (index + 1) * 10
+        })
+
+      return cloneMockValue({
+        categories: buildMenuAdminCategories(state),
+        items: buildDashboardMenuItems(state)
+      })
+    })
+  },
+  async 'menu-admin/reorder-categories'({ categoryId, direction }) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const categories = [...state.categories].sort(
+        (left, right) => Number(left.sort_order || 0) - Number(right.sort_order || 0)
+      )
+      const currentIndex = categories.findIndex(category => category.id === categoryId)
+
+      if (currentIndex < 0) {
+        throw new Error('MENU_CATEGORY_NOT_FOUND')
+      }
+
+      const targetIndex =
+        direction === 'up' ? currentIndex - 1 : direction === 'down' ? currentIndex + 1 : currentIndex
+
+      if (targetIndex < 0 || targetIndex >= categories.length || targetIndex === currentIndex) {
+        return cloneMockValue({
+          categories: buildMenuAdminCategories(state),
+          items: buildDashboardMenuItems(state)
+        })
+      }
+
+      const [movedCategory] = categories.splice(currentIndex, 1)
+      categories.splice(targetIndex, 0, movedCategory)
+      categories.forEach((category, index) => {
+        category.sort_order = (index + 1) * 10
+      })
+      state.categories = categories
+
+      return cloneMockValue({
+        categories: buildMenuAdminCategories(state),
+        items: buildDashboardMenuItems(state)
+      })
+    })
   },
   async 'menu-admin/create-item'({ title, categoryId, price, description = '', imageUrl = '' }) {
     await waitForMock()
@@ -873,10 +1016,7 @@ const handlers = {
       })
 
       return cloneMockValue({
-        categories: state.categories.map(category => ({
-          id: category.id,
-          name: category.name
-        })),
+        categories: buildMenuAdminCategories(state),
         items: buildDashboardMenuItems(state)
       })
     })
@@ -934,6 +1074,27 @@ const handlers = {
       }
 
       target.image_url = String(imageUrl || '').trim()
+
+      return cloneMockValue({
+        item: buildDashboardMenuItems(state).find(item => item.id === itemId)
+      })
+    })
+  },
+  async 'menu-admin/update-item-category'({ itemId, categoryId }) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const target = state.items.find(item => item.id === itemId)
+      if (!target) {
+        throw new Error('MENU_ITEM_NOT_FOUND')
+      }
+
+      const safeCategoryId = String(categoryId || '').trim()
+      if (!state.categories.find(category => category.id === safeCategoryId)) {
+        throw new Error('MENU_CATEGORY_NOT_FOUND')
+      }
+
+      target.category_id = safeCategoryId
 
       return cloneMockValue({
         item: buildDashboardMenuItems(state).find(item => item.id === itemId)

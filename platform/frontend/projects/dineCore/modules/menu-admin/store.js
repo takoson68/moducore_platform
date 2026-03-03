@@ -2,11 +2,16 @@ import world from '@/world.js'
 import {
   addMenuAdminOption,
   addMenuAdminOptionGroup,
+  createMenuAdminCategory,
   createMenuAdminItem,
+  deleteMenuAdminCategory,
   deleteMenuAdminOption,
   deleteMenuAdminOptionGroup,
   loadMenuAdminItems,
+  reorderMenuAdminCategories,
+  updateMenuAdminCategory,
   updateMenuAdminDefaultOptions,
+  updateMenuAdminItemCategory,
   updateMenuAdminItemImage,
   updateMenuAdminItemPrice,
   updateMenuAdminItemStatus,
@@ -28,6 +33,38 @@ export function createMenuAdminStore() {
           ...store.get(),
           categories: payload.categories || [],
           items: payload.items || []
+        })
+      },
+      async createCategory(store, payload = {}) {
+        const nextState = await createMenuAdminCategory(payload)
+        store.set({
+          ...store.get(),
+          categories: nextState.categories || [],
+          items: nextState.items || []
+        })
+      },
+      async updateCategory(store, payload = {}) {
+        const nextState = await updateMenuAdminCategory(payload)
+        store.set({
+          ...store.get(),
+          categories: nextState.categories || [],
+          items: nextState.items || []
+        })
+      },
+      async deleteCategory(store, payload = {}) {
+        const nextState = await deleteMenuAdminCategory(payload)
+        store.set({
+          ...store.get(),
+          categories: nextState.categories || [],
+          items: nextState.items || []
+        })
+      },
+      async reorderCategories(store, payload = {}) {
+        const nextState = await reorderMenuAdminCategories(payload)
+        store.set({
+          ...store.get(),
+          categories: nextState.categories || [],
+          items: nextState.items || []
         })
       },
       async createItem(store, payload = {}) {
@@ -58,6 +95,15 @@ export function createMenuAdminStore() {
       },
       async updateItemImage(store, payload = {}) {
         const updated = await updateMenuAdminItemImage(payload)
+        const state = store.get()
+
+        store.set({
+          ...state,
+          items: state.items.map(item => (item.id === updated.item.id ? updated.item : item))
+        })
+      },
+      async updateItemCategory(store, payload = {}) {
+        const updated = await updateMenuAdminItemCategory(payload)
         const state = store.get()
 
         store.set({

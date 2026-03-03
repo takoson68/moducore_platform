@@ -535,10 +535,12 @@ function closeDevMenu() {
   gap: 12px
 
 .guest-shell__head
-  display: flex
-  justify-content: space-between
-  align-items: center
-  gap: 16px
+  display: grid
+  grid-template-columns: 1fr
+  align-items: start
+  gap: 14px
+  padding-top: 18px
+  padding-bottom: 14px
 
 .staff-shell__topbar-main,
 .guest-shell__topbar-main
@@ -548,6 +550,11 @@ function closeDevMenu() {
 
 .staff-shell__topbar-main
   justify-content: space-between
+
+.guest-shell__topbar-main
+  flex-wrap: wrap
+  align-items: center
+  gap: 8px 10px
 
 .staff-shell__brand
   display: grid
@@ -561,12 +568,24 @@ function closeDevMenu() {
   font-size: 18px
 
 .guest-shell__topbar-title
-  font-size: 16px
+  font-size: 18px
+  font-weight: 800
+  letter-spacing: 0.01em
 
 .staff-shell__meta,
 .guest-shell__topbar-meta
   color: #6e8083
   font-size: 13px
+
+.guest-shell__topbar-meta
+  display: inline-flex
+  align-items: center
+  min-height: 30px
+  padding: 0 12px
+  border-radius: 999px
+  background: rgba(121, 214, 207, 0.12)
+  color: #537174
+  font-weight: 700
 
 .staff-shell__logout
   margin-left: auto
@@ -583,6 +602,10 @@ function closeDevMenu() {
   display: flex
   flex-wrap: wrap
   gap: 10px
+
+.guest-shell__nav
+  justify-content: flex-start
+  align-items: center
 
 .staff-shell__nav-item,
 .guest-shell__nav-item
@@ -742,7 +765,15 @@ function closeDevMenu() {
 
 @media (max-width: 640px)
   .guest-shell__topbar-main
-    flex-wrap: wrap
+    gap: 8px
+
+  .guest-shell__head
+    grid-template-columns: 1fr
+    align-items: stretch
+    gap: 12px
+
+  .guest-shell__nav
+    justify-content: flex-start
 
   .staff-shell__topbar-main
     gap: 12px

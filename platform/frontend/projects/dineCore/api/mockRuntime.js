@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'dinecore-mock-state-v3'
+const STORAGE_KEY = 'dinecore-mock-state-v4'
 
 function cloneValue(value) {
   return JSON.parse(JSON.stringify(value))
@@ -54,6 +54,7 @@ function createDefaultState() {
         name: '經典海藻涼麵',
         description: '海藻麵搭配招牌醬汁與清爽配菜，適合夏季主打。',
         base_price: 154,
+        image_url: 'https://picsum.photos/seed/dinecore-seaweed-signature/960/960',
         sold_out: false,
         hidden: false,
         badge: '人氣推薦',
@@ -95,6 +96,7 @@ function createDefaultState() {
         name: '單點海藻涼麵',
         description: '單點版本，適合小份量或搭配飲品。',
         base_price: 99,
+        image_url: 'https://picsum.photos/seed/dinecore-seaweed-single/960/960',
         sold_out: false,
         hidden: false,
         badge: '',
@@ -118,6 +120,7 @@ function createDefaultState() {
         name: '嫩雞胸拌麵',
         description: '雞胸肉與特製醬汁搭配，份量飽足。',
         base_price: 203,
+        image_url: 'https://picsum.photos/seed/dinecore-chicken-noodle/960/960',
         sold_out: false,
         hidden: false,
         badge: '',
@@ -151,6 +154,7 @@ function createDefaultState() {
         name: '冬梅冰茶',
         description: '酸甜清爽，適合搭配涼麵。',
         base_price: 45,
+        image_url: 'https://picsum.photos/seed/dinecore-winter-plum-tea/960/960',
         sold_out: false,
         hidden: false,
         badge: '',
@@ -286,6 +290,7 @@ function createDefaultState() {
       cartItem: 3,
       order: 2,
       menuItem: 1,
+      category: 1,
       table: 2,
       optionGroup: 1,
       option: 1

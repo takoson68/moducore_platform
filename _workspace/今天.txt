@@ -97,20 +97,45 @@ staff-shell__head 身分切換這個先隱藏，既然已經做到這個就先�
 
 按照建議修正，並結束後再次健檢，覆蓋報告
 
+我發現!今天!!寫的工程規範好像都進入engineering/ 而不是new_engineering/ 這樣不對歐，我記得我工程規範是引入new_engineering/而不適engineering/這點請確認，並且修正到正確引入的位置
+
+必須將 今天 所有的修正都放到正確的地方 檔案必須移到正確的地方，不要跨目錄引用
+
+
+.guest-shell__head 美化排版
 
 我再考慮是否升級桌號管理，能夠自訂義空間顯示以及桌未放置的功能，但是這可能要使用SVG跟json去做，可能規畫到最後製作的功能或是2.0改版的功能
 你覺得這功能可實踐嗎?
 
 
 
-我發現!今天!!寫的工程規範好像都進入engineering/ 而不是new_engineering/ 這樣不對歐，我記得我工程規範是引入new_engineering/而不適engineering/這點請確認，並且修正到正確引入的位置
 
-必須將 今天 所有的修正都放到正確的地方 檔案必須移到正確的地方，不要跨目錄引用
+//--------------------------------------------------------
 
+• 你晚上換電腦後，可以直接貼這段給我：
+                                                                                                                                                            
+請先閱讀以下文件，接續 DineCore 專案目前進度後再開始工作：
 
-
-
-
+  1. platform/frontend/projects/dineCore/docs/DINECORE_CURRENT_STATE.md
+  2. platform/frontend/projects/dineCore/docs/DINECORE_PROGRESS_TRACKER.md                                                                                  
+  3. platform/frontend/projects/dineCore/docs/DINECORE_ROADMAP.md                                                                                           
+  4. platform/frontend/projects/dineCore/docs/DINECORE_MODULE_MAP.md                                                                                        
+                                                                                                                                                            
+  接著告訴我：                                                                                                                                              
+  - 目前專案走到哪一步                                                                                                                                      
+  - 下一步最合理的工作是什麼                                                                                                                                
+  - 是否有需要先注意的工程規範或模組邊界
+                                                                                                                                                            
+  補充原則：                                                                                                                                                
+  - DineCore 必須遵守 world/store/api 邊界                                                                                                                  
+  - 共享真相只能走 API 邊界                                                                                                                                 
+  - 不可使用 project-level business service                                                                                                                 
+  - LayoutRoot 必須是可降級容器                                                                                                                             
+  - 頁面有資料就畫，沒資料就不畫，不可因模組缺席報錯                                                                                                        
+                                                                                                                                                            
+  更短版可以用這句：                                                                                                                                        
+                                                                                                                                                            
+  請先讀 DineCore docs 內的 CURRENT_STATE、PROGRESS_TRACKER、ROADMAP、MODULE_MAP，整理目前進度並接續下一步。   
 
 
 

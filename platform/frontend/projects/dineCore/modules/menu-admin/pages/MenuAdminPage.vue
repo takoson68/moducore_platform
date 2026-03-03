@@ -15,6 +15,9 @@ const createForm = reactive({
   imageUrl: ''
 })
 
+const categoryCreateName = ref('')
+const categoryDraftNames = reactive({})
+const draftCategoryIds = reactive({})
 const draftPrices = reactive({})
 const draftImages = reactive({})
 const optionGroupCreateForms = reactive({})
@@ -32,14 +35,19 @@ watch(
     if (!createForm.categoryId && categories.length > 0) {
       createForm.categoryId = categories[0].id
     }
+
+    categories.forEach(category => {
+      categoryDraftNames[category.id] = category.name
+    })
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 )
 
 watch(
   () => state.value.items,
   items => {
     items.forEach(item => {
+      draftCategoryIds[item.id] = item.categoryId || draftCategoryIds[item.id] || ''
       draftPrices[item.id] = String(item.price)
       draftImages[item.id] = item.imageUrl || ''
 
@@ -52,7 +60,9 @@ watch(
       ;(item.optionGroups || []).forEach(group => {
         const groupKey = buildGroupKey(item.id, group.id)
         const optionIds = group.options.map(option => option.id)
-        const defaultOptionIds = (item.defaultOptionIds || []).filter(optionId => optionIds.includes(optionId))
+        const defaultOptionIds = (item.defaultOptionIds || []).filter(optionId =>
+          optionIds.includes(optionId)
+        )
 
         optionGroupEditForms[groupKey] = {
           label: group.label,
@@ -95,6 +105,37 @@ function readFileAsDataUrl(file) {
   })
 }
 
+async function runSafely(task) {
+  try {
+    await task()
+  } catch (error) {
+    const message = String(error?.message || '')
+
+    if (message === 'MENU_CATEGORY_IN_USE') {
+      window.alert('此分類仍有商品使用中，請先移動或處理商品後再刪除。')
+      return
+    }
+
+    if (message === 'MENU_CATEGORY_ALREADY_EXISTS') {
+      window.alert('分類名稱已存在，請改用其他名稱。')
+      return
+    }
+
+    if (message === 'MENU_CATEGORY_NAME_REQUIRED') {
+      window.alert('請輸入分類名稱。')
+      return
+    }
+
+    if (message === 'MENU_ITEM_TITLE_REQUIRED') {
+      window.alert('請輸入商品名稱。')
+      return
+    }
+
+    window.alert('操作失敗，請稍後再試。')
+    console.error(error)
+  }
+}
+
 function toggleCreatePanel() {
   createPanelOpen.value = !createPanelOpen.value
 }
@@ -115,83 +156,145 @@ async function handleItemImageChange(item, event) {
   const dataUrl = await readFileAsDataUrl(file)
   draftImages[item.id] = dataUrl
 
-  await menuAdminStore.updateItemImage({
-    itemId: item.id,
-    imageUrl: dataUrl
+  await runSafely(async () => {
+    await menuAdminStore.updateItemImage({
+      itemId: item.id,
+      imageUrl: dataUrl
+    })
+  })
+}
+
+async function createCategory() {
+  await runSafely(async () => {
+    await menuAdminStore.createCategory({
+      name: categoryCreateName.value
+    })
+    categoryCreateName.value = ''
+  })
+}
+
+async function saveCategory(category) {
+  await runSafely(async () => {
+    await menuAdminStore.updateCategory({
+      categoryId: category.id,
+      name: categoryDraftNames[category.id]
+    })
+  })
+}
+
+async function moveCategory(category, direction) {
+  await runSafely(async () => {
+    await menuAdminStore.reorderCategories({
+      categoryId: category.id,
+      direction
+    })
+  })
+}
+
+async function removeCategory(category) {
+  await runSafely(async () => {
+    await menuAdminStore.deleteCategory({
+      categoryId: category.id
+    })
+
+    if (createForm.categoryId === category.id) {
+      createForm.categoryId = state.value.categories[0]?.id || ''
+    }
   })
 }
 
 async function createItem() {
-  await menuAdminStore.createItem({
-    title: createForm.title,
-    categoryId: createForm.categoryId,
-    price: Number(createForm.price || 0),
-    description: createForm.description,
-    imageUrl: createForm.imageUrl
-  })
+  await runSafely(async () => {
+    await menuAdminStore.createItem({
+      title: createForm.title,
+      categoryId: createForm.categoryId,
+      price: Number(createForm.price || 0),
+      description: createForm.description,
+      imageUrl: createForm.imageUrl
+    })
 
-  createForm.title = ''
-  createForm.price = '0'
-  createForm.description = ''
-  createForm.imageUrl = ''
-  createPreviewUrl.value = ''
-  createPanelOpen.value = false
+    createForm.title = ''
+    createForm.price = '0'
+    createForm.description = ''
+    createForm.imageUrl = ''
+    createPreviewUrl.value = ''
+    createPanelOpen.value = false
+  })
 }
 
 async function savePrice(item) {
-  await menuAdminStore.updateItemPrice({
-    itemId: item.id,
-    price: Number(draftPrices[item.id] || item.price)
+  await runSafely(async () => {
+    await menuAdminStore.updateItemPrice({
+      itemId: item.id,
+      price: Number(draftPrices[item.id] || item.price)
+    })
+  })
+}
+
+async function saveItemCategory(item) {
+  await runSafely(async () => {
+    await menuAdminStore.updateItemCategory({
+      itemId: item.id,
+      categoryId: draftCategoryIds[item.id]
+    })
   })
 }
 
 async function updateItemStatus(item, patch) {
-  await menuAdminStore.updateItemStatus({
-    itemId: item.id,
-    soldOut: patch.soldOut,
-    hidden: patch.hidden
+  await runSafely(async () => {
+    await menuAdminStore.updateItemStatus({
+      itemId: item.id,
+      soldOut: patch.soldOut,
+      hidden: patch.hidden
+    })
   })
 }
 
 async function createOptionGroup(item) {
   const form = optionGroupCreateForms[item.id]
 
-  await menuAdminStore.addOptionGroup({
-    itemId: item.id,
-    label: form.label,
-    type: form.type,
-    required: Boolean(form.required)
-  })
+  await runSafely(async () => {
+    await menuAdminStore.addOptionGroup({
+      itemId: item.id,
+      label: form.label,
+      type: form.type,
+      required: Boolean(form.required)
+    })
 
-  optionGroupCreateForms[item.id] = {
-    label: '',
-    type: 'single',
-    required: true
-  }
+    optionGroupCreateForms[item.id] = {
+      label: '',
+      type: 'single',
+      required: true
+    }
+  })
 }
 
 async function saveOptionGroup(item, group) {
   const groupKey = buildGroupKey(item.id, group.id)
   const form = optionGroupEditForms[groupKey]
 
-  await menuAdminStore.updateOptionGroup({
-    itemId: item.id,
-    groupId: group.id,
-    label: form.label,
-    type: form.type,
-    required: Boolean(form.required)
-  })
+  await runSafely(async () => {
+    await menuAdminStore.updateOptionGroup({
+      itemId: item.id,
+      groupId: group.id,
+      label: form.label,
+      type: form.type,
+      required: Boolean(form.required)
+    })
 
-  await menuAdminStore.updateDefaultOptions({
-    itemId: item.id,
-    selectedOptionIds: collectDefaultOptionIds(item)
+    await menuAdminStore.updateDefaultOptions({
+      itemId: item.id,
+      selectedOptionIds: collectDefaultOptionIds(item)
+    })
   })
 }
 
 async function removeOptionGroup(item, group) {
-  await menuAdminStore.deleteOptionGroup({
-    itemId: item.id,
-    groupId: group.id
+  await runSafely(async () => {
+    await menuAdminStore.deleteOptionGroup({
+      itemId: item.id,
+      groupId: group.id
+    })
   })
 }
 
@@ -199,44 +302,52 @@ async function createOption(item, group) {
   const groupKey = buildGroupKey(item.id, group.id)
   const form = optionCreateForms[groupKey]
 
-  await menuAdminStore.addOption({
-    itemId: item.id,
-    groupId: group.id,
-    label: form.label,
-    priceDelta: Number(form.priceDelta || 0)
-  })
+  await runSafely(async () => {
+    await menuAdminStore.addOption({
+      itemId: item.id,
+      groupId: group.id,
+      label: form.label,
+      priceDelta: Number(form.priceDelta || 0)
+    })
 
-  optionCreateForms[groupKey] = {
-    label: '',
-    priceDelta: '0'
-  }
+    optionCreateForms[groupKey] = {
+      label: '',
+      priceDelta: '0'
+    }
+  })
 }
 
 async function saveOption(item, group, option) {
   const optionKey = buildOptionKey(item.id, group.id, option.id)
   const form = optionEditForms[optionKey]
 
-  await menuAdminStore.updateOption({
-    itemId: item.id,
-    groupId: group.id,
-    optionId: option.id,
-    label: form.label,
-    priceDelta: Number(form.priceDelta || 0)
+  await runSafely(async () => {
+    await menuAdminStore.updateOption({
+      itemId: item.id,
+      groupId: group.id,
+      optionId: option.id,
+      label: form.label,
+      priceDelta: Number(form.priceDelta || 0)
+    })
   })
 }
 
 async function removeOption(item, group, option) {
-  await menuAdminStore.deleteOption({
-    itemId: item.id,
-    groupId: group.id,
-    optionId: option.id
+  await runSafely(async () => {
+    await menuAdminStore.deleteOption({
+      itemId: item.id,
+      groupId: group.id,
+      optionId: option.id
+    })
   })
 }
 
 async function saveDefaultOptions(item) {
-  await menuAdminStore.updateDefaultOptions({
-    itemId: item.id,
-    selectedOptionIds: collectDefaultOptionIds(item)
+  await runSafely(async () => {
+    await menuAdminStore.updateDefaultOptions({
+      itemId: item.id,
+      selectedOptionIds: collectDefaultOptionIds(item)
+    })
   })
 }
 
@@ -245,7 +356,9 @@ function collectDefaultOptionIds(item) {
     const groupKey = buildGroupKey(item.id, group.id)
     const form = optionGroupEditForms[groupKey]
     const selectedOptionIds = Array.isArray(form?.defaultOptionIds) ? form.defaultOptionIds : []
-    const validOptionIds = group.options.map(option => option.id).filter(optionId => selectedOptionIds.includes(optionId))
+    const validOptionIds = group.options
+      .map(option => option.id)
+      .filter(optionId => selectedOptionIds.includes(optionId))
 
     if (form?.type === 'single') {
       return validOptionIds.slice(0, 1)
@@ -284,19 +397,46 @@ function toggleDefaultOption(item, group, optionId, checked) {
   section.menu-admin-card
     .menu-admin-card__head
       div
-        p.eyebrow 菜單管理
-        h2.menu-admin-card__title 商品與客製規則管理
+        p.eyebrow 分類管理
+        h2.menu-admin-card__title 菜單分類
+        p.menu-admin-card__lead 先把分類排好，商品新增與菜單顯示才會穩定。
+    .category-create
+      input.form-field__input(
+        v-model="categoryCreateName"
+        type="text"
+        placeholder="輸入新分類名稱"
+      )
+      button.action-chip(type="button" @click="createCategory()") 新增分類
+    .category-list
+      article.category-row(v-for="category in state.categories" :key="category.id")
+        .category-row__main
+          input.category-row__input(
+            v-model="categoryDraftNames[category.id]"
+            type="text"
+          )
+          span.category-row__meta 排序 {{ category.sortOrder }}
+        .category-row__actions
+          button.action-chip.is-muted(type="button" @click="moveCategory(category, 'up')") 上移
+          button.action-chip.is-muted(type="button" @click="moveCategory(category, 'down')") 下移
+          button.action-chip.is-muted(type="button" @click="saveCategory(category)") 儲存名稱
+          button.action-chip.is-danger(type="button" @click="removeCategory(category)") 刪除
+
+  section.menu-admin-card
+    .menu-admin-card__head
+      div
+        p.eyebrow 商品管理
+        h2.menu-admin-card__title 商品與客製規則
         p.menu-admin-card__lead
-          | 可在這裡新增商品、上傳圖片、調整售價、設定上下架，以及維護每個商品的客製規則與預設選項。
+          | 可管理商品圖片、價格、上下架、售完狀態，以及單選、多選、必選與預設值。
       button.create-button(type="button" @click="toggleCreatePanel()")
         | {{ createPanelOpen ? '收起新增表單' : '新增商品' }}
 
     form.create-panel(v-if="createPanelOpen" @submit.prevent="createItem()")
       label.form-field
         span.form-field__label 商品名稱
-        input.form-field__input(v-model="createForm.title" type="text" placeholder="例如：招牌海藻涼麵")
+        input.form-field__input(v-model="createForm.title" type="text" placeholder="例：招牌海藻涼麵")
       label.form-field
-        span.form-field__label 商品分類
+        span.form-field__label 所屬分類
         select.form-field__input(v-model="createForm.categoryId")
           option(v-for="category in state.categories" :key="category.id" :value="category.id") {{ category.name }}
       label.form-field
@@ -307,7 +447,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
         textarea.form-field__input.form-field__textarea(
           v-model="createForm.description"
           rows="3"
-          placeholder="簡短描述商品內容、口味或推薦搭配"
+          placeholder="簡短說明商品內容與特色"
         )
       label.form-field.form-field--wide
         span.form-field__label 商品圖片
@@ -315,13 +455,13 @@ function toggleDefaultOption(item, group, optionId, checked) {
       .create-preview(v-if="createPreviewUrl")
         img.create-preview__image(:src="createPreviewUrl" alt="商品預覽")
       .create-panel__actions
-        button.action-chip(type="submit") 建立並上架
+        button.action-chip(type="submit") 建立商品
 
   section.menu-admin-table
     article.menu-admin-row(v-for="item in state.items" :key="item.id")
       .menu-admin-row__image
         img.menu-admin-row__preview(v-if="draftImages[item.id]" :src="draftImages[item.id]" :alt="item.title")
-        .menu-admin-row__preview.is-empty(v-else) 尚未上傳圖片
+        .menu-admin-row__preview.is-empty(v-else) 尚未設定圖片
         label.upload-chip
           span 更換圖片
           input.upload-chip__input(type="file" accept="image/*" @change="handleItemImageChange(item, $event)")
@@ -333,9 +473,14 @@ function toggleDefaultOption(item, group, optionId, checked) {
         p.menu-admin-row__description(v-if="item.description") {{ item.description }}
         .menu-admin-row__meta
           label.price-editor
+            span.price-editor__label 分類
+            select.price-editor__input(v-model="draftCategoryIds[item.id]")
+              option(v-for="category in state.categories" :key="category.id" :value="category.id") {{ category.name }}
+            button.price-editor__save(type="button" @click="saveItemCategory(item)") 儲存分類
+          label.price-editor
             span.price-editor__label 售價
             input.price-editor__input(v-model="draftPrices[item.id]" type="number" min="0" step="1")
-            button.price-editor__save(type="button" @click="savePrice(item)") 儲存售價
+            button.price-editor__save(type="button" @click="savePrice(item)") 儲存價格
           span.menu-admin-row__status(
             :class="{ 'is-hidden': item.hidden, 'is-sold-out': item.soldOut && !item.hidden }"
           ) {{ item.hidden ? '已下架' : item.soldOut ? '已售完' : '上架中' }}
@@ -343,7 +488,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
         .customization-card
           .customization-card__head
             h3.customization-card__title 客製規則
-            p.customization-card__meta 建立選項群組、維護選項內容，並設定顧客開啟商品時的預設值。
+            p.customization-card__meta 建立選項群組、選項內容與預設值，供顧客端點餐時使用。
 
           .group-create
             label.form-field
@@ -351,7 +496,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
               input.form-field__input(
                 v-model="optionGroupCreateForms[item.id].label"
                 type="text"
-                placeholder="例如：辣度、加料、尺寸"
+                placeholder="例：麵量、辣度、加料"
               )
             label.form-field
               span.form-field__label 選擇方式
@@ -360,7 +505,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
                 option(value="multi") 多選
             label.form-field.group-create__check
               input(type="checkbox" v-model="optionGroupCreateForms[item.id].required")
-              span 必選
+              span 顧客必選
             button.action-chip(type="button" @click="createOptionGroup(item)") 新增群組
 
           .group-list(v-if="item.optionGroups && item.optionGroups.length > 0")
@@ -371,22 +516,23 @@ function toggleDefaultOption(item, group, optionId, checked) {
                     v-model="optionGroupEditForms[buildGroupKey(item.id, group.id)].label"
                     type="text"
                   )
-                  p.option-group-card__subtitle 預設值會直接影響顧客加入購物車時的初始選項。
+                  p.option-group-card__subtitle
+                    | 可調整名稱、類型與必選設定，再儲存回商品。
                 .option-group-card__actions
                   button.action-chip.is-muted(type="button" @click="saveOptionGroup(item, group)") 儲存群組
                   button.action-chip.is-danger(type="button" @click="removeOptionGroup(item, group)") 刪除群組
 
               .option-group-card__settings
                 label.form-field
-                  span.form-field__label 選擇方式
+                  span.form-field__label 類型
                   select.form-field__input(v-model="optionGroupEditForms[buildGroupKey(item.id, group.id)].type")
                     option(value="single") 單選
                     option(value="multi") 多選
                 label.form-field.option-group-card__required
-                  span.form-field__label 必填規則
+                  span.form-field__label 必選設定
                   .checkbox-line
                     input(type="checkbox" v-model="optionGroupEditForms[buildGroupKey(item.id, group.id)].required")
-                    span 顧客必須先選這組
+                    span 顧客必須選擇
 
               .option-defaults(v-if="group.options.length > 0")
                 h4.option-defaults__title 預設值
@@ -413,7 +559,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
                     min="0"
                     step="1"
                   )
-                  button.action-chip.is-muted(type="button" @click="saveOption(item, group, option)") 儲存選項
+                  button.action-chip.is-muted(type="button" @click="saveOption(item, group, option)") 儲存
                   button.action-chip.is-danger(type="button" @click="removeOption(item, group, option)") 刪除
 
               .option-create
@@ -431,8 +577,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
                 )
                 button.action-chip.is-muted(type="button" @click="createOption(item, group)") 新增選項
 
-            p.customization-card__empty(v-if="item.optionGroups.length === 0") 尚未建立客製規則，可先新增第一組。
-          p.customization-card__empty(v-else) 尚未建立客製規則，可先新增第一組。
+          p.customization-card__empty(v-else) 目前尚未設定任何客製群組。
 
       .menu-admin-row__actions
         button.action-chip(type="button" @click="updateItemStatus(item, { hidden: !item.hidden })")
@@ -479,6 +624,48 @@ function toggleDefaultOption(item, group, optionId, checked) {
   margin: 0
   color: #6e8083
   line-height: 1.6
+
+.category-create
+  display: grid
+  grid-template-columns: minmax(0, 1fr) auto
+  gap: 12px
+
+.category-list
+  display: grid
+  gap: 10px
+
+.category-row
+  display: grid
+  grid-template-columns: minmax(0, 1fr) auto
+  gap: 12px
+  align-items: center
+  padding: 14px 16px
+  border-radius: 16px
+  background: rgba(121, 214, 207, 0.08)
+  border: 1px solid rgba(109, 180, 177, 0.18)
+
+.category-row__main
+  display: grid
+  gap: 8px
+
+.category-row__input
+  width: 100%
+  border: 1px solid rgba(109, 180, 177, 0.24)
+  border-radius: 12px
+  padding: 10px 12px
+  font: inherit
+  color: #243a3e
+  background: #fff
+
+.category-row__meta
+  color: #6e8083
+  font-size: 12px
+
+.category-row__actions
+  display: flex
+  gap: 8px
+  flex-wrap: wrap
+  justify-content: end
 
 .create-button
   border: 0
@@ -845,6 +1032,8 @@ function toggleDefaultOption(item, group, optionId, checked) {
     justify-content: start
 
 @media (max-width: 960px)
+  .category-create,
+  .category-row,
   .create-panel,
   .group-create,
   .option-group-card__settings,
@@ -856,9 +1045,10 @@ function toggleDefaultOption(item, group, optionId, checked) {
     justify-content: start
 
   .option-group-card__head
-    grid-template-columns: 1fr
     display: grid
+    grid-template-columns: 1fr
 
-  .option-group-card__actions
+  .option-group-card__actions,
+  .category-row__actions
     justify-content: start
 </style>
