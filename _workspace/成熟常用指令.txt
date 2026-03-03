@@ -10,7 +10,7 @@ platform/    frontend/    backend/   public/
 
 components/   router/    container/  stores/ 
 
-projects/    project-a/   modules/   layout/    
+projects/    project-a/   modules/   layout/    dineCore/ 
 
 _proTemp/    project-b/   services/  ModuDesk /  flowCenter/ 
 

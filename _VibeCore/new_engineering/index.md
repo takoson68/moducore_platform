@@ -148,6 +148,9 @@ Git 僅用於保存進度與歷史脈絡，
 - Title: Module Data Ownership | Path: conventions/AB-WC-module-data-ownership.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-02.md
 - Title: Project Auth Single Source Pattern | Path: conventions/AC-WC-project-auth-single-source-pattern.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-02.md
 - Title: Module Registry Boot Pipeline | Path: conventions/AD-WC-module-registry-boot-pipeline.md | Type: convention | Status: candidate | Scope: platform | Evidence: projects/project-b/modules/index.js, src/app/boot/boot.js
+- Title: Layout And Route Resilience | Path: conventions/AE-WC-layout-route-resilience.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-03.md
+- Title: Project Services Hard Boundary | Path: conventions/AF-WC-project-services-hard-boundary.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-03.md
+- Title: Store And API Boundary | Path: conventions/AG-WC-store-and-api-boundary.md | Type: convention | Status: candidate | Scope: platform | Evidence: evolution/daily_log/2026-03-03.md
 
 ---
 
@@ -168,6 +171,7 @@ Git 僅用於保存進度與歷史脈絡，
 
 - Title: Daily Evolution Log 2026-02-06 | Path: evolution/daily_log/2026-02-06.md | Type: note | Status: - | Scope: platform | Evidence: -
 - Title: Daily Evolution Log 2026-03-02 | Path: evolution/daily_log/2026-03-02.md | Type: note | Status: - | Scope: platform | Evidence: conventions/AA-WC-project-api-boundary-non-pollution.md
+- Title: Daily Evolution Log 2026-03-03 | Path: evolution/daily_log/2026-03-03.md | Type: note | Status: - | Scope: platform | Evidence: conventions/AE-WC-layout-route-resilience.md
 
 ---
 
@@ -200,7 +204,8 @@ Git 僅用於保存進度與歷史脈絡，
    - route 必須顯式 component
    - 保留 meta.access 與 meta.nav
 3) 工具引用規範：
-   - createStore 一律 `import { createStore } from "@/core"`
+   - store 一律使用 `world.createStore(...)`
+   - 若範例與 `_VibeCore/engineering/MODULE_TEMPLATE_CONTRACT.md` 衝突，以 engineering 契約為準
    - 禁止直接 import `@/app/*` 底層工具
 4) 世界對齊：
    - 若要啟用模組，更新 `projects/<project-name>/project.config.js` 的 modules 清單

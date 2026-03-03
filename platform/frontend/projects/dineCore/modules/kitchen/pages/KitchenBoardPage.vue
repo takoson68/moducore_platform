@@ -1,0 +1,205 @@
+<script setup>
+import { computed, watchEffect } from 'vue'
+import world from '@/world.js'
+
+const kitchenStore = world.store('dineCoreKitchenStore')
+const state = computed(() => kitchenStore.state)
+const statusLabels = {
+  pending: '待處理',
+  preparing: '製作中',
+  ready: '可取餐',
+  picked_up: '已取餐',
+  cancelled: '已取消'
+}
+
+watchEffect(() => {
+  kitchenStore.load()
+})
+
+async function updateOrderStatus(orderId, orderStatus) {
+  await kitchenStore.setOrderStatus({ orderId, orderStatus })
+}
+</script>
+
+<template lang="pug">
+.desk-page
+  section.panel-card
+    p.eyebrow 廚房模組
+    h2 廚房出餐看板
+    p.lead 優先查看備註較多與客製較重的品項，避免廚房出餐判讀錯誤。
+
+  section.info-grid
+    article.info-card
+      span.info-label 看板狀態
+      strong.info-value {{ state.boardStatus }}
+    article.info-card
+      span.info-label 顯示狀態
+      strong.info-value {{ state.visibleStatuses.map(status => statusLabels[status] || status).join(' / ') }}
+
+  section.board-grid
+    article.board-card(v-for="order in state.orders" :key="order.id")
+      .board-card__head
+        strong.board-card__title {{ order.orderNo }}
+        span.board-card__wait {{ order.waitLabel }}
+      p.board-card__meta {{ `桌號 ${order.tableCode} | ${statusLabels[order.orderStatus] || order.orderStatus}` }}
+
+      .board-card__items
+        .board-item(v-for="item in order.items" :key="item.id")
+          .board-item__top
+            strong.board-item__title {{ item.title }}
+            span.board-item__qty {{ `x${item.quantity}` }}
+          p.board-item__note(v-if="item.note") {{ item.note }}
+          .board-item__options(v-if="item.options?.length")
+            span.board-item__option(v-for="option in item.options" :key="option") {{ option }}
+
+      .board-card__actions
+        button.board-action(type="button" :disabled="order.orderStatus === 'preparing'" @click="updateOrderStatus(order.id, 'preparing')") 製作中
+        button.board-action(type="button" :disabled="order.orderStatus === 'ready'" @click="updateOrderStatus(order.id, 'ready')") 可取餐
+        button.board-action(type="button" :disabled="order.orderStatus === 'picked_up'" @click="updateOrderStatus(order.id, 'picked_up')") 已取餐
+</template>
+
+<style lang="sass">
+.desk-page
+  display: grid
+  gap: 18px
+
+.panel-card, .info-card, .board-card
+  padding: 22px
+  border-radius: 22px
+  background: rgba(255, 255, 255, 0.88)
+  border: 1px solid rgba(140, 90, 31, 0.12)
+
+.eyebrow
+  margin: 0 0 8px
+  color: #8c5a1f
+  font-size: 12px
+  font-weight: 700
+  letter-spacing: 0.08em
+  text-transform: uppercase
+
+.panel-card h2
+  margin: 0 0 10px
+
+.lead
+  margin: 0
+  color: #6f5b43
+  line-height: 1.7
+
+.info-grid
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 12px
+
+.info-card
+  display: grid
+  gap: 8px
+
+.info-label
+  color: #8c7b65
+  font-size: 13px
+
+.info-value
+  color: #2f2416
+
+.board-grid
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 14px
+
+.board-card
+  display: grid
+  gap: 12px
+
+.board-card__head
+  display: flex
+  justify-content: space-between
+  gap: 12px
+  align-items: center
+
+.board-card__title
+  color: #243a3e
+
+.board-card__wait
+  padding: 6px 10px
+  border-radius: 999px
+  background: rgba(255, 196, 113, 0.18)
+  color: #a55a11
+  font-size: 12px
+  font-weight: 700
+
+.board-card__meta
+  margin: 0
+  color: #7b8d90
+
+.board-card__items
+  display: grid
+  gap: 10px
+
+.board-item
+  padding: 14px
+  border-radius: 16px
+  background: rgba(121, 214, 207, 0.1)
+  display: grid
+  gap: 8px
+
+.board-item__top
+  display: flex
+  justify-content: space-between
+  align-items: start
+  gap: 12px
+
+.board-item__title
+  color: #243a3e
+
+.board-item__qty
+  color: #2d6f6d
+  font-size: 13px
+  font-weight: 700
+
+.board-item__note
+  margin: 0
+  padding: 10px 12px
+  border-radius: 12px
+  background: rgba(255, 214, 102, 0.22)
+  color: #7b5316
+  line-height: 1.6
+  font-weight: 700
+
+.board-item__options
+  display: flex
+  flex-wrap: wrap
+  gap: 8px
+
+.board-item__option
+  padding: 5px 9px
+  border-radius: 999px
+  background: rgba(255, 255, 255, 0.82)
+  color: #2d6f6d
+  font-size: 12px
+  font-weight: 700
+
+.board-card__actions
+  display: flex
+  flex-wrap: wrap
+  gap: 8px
+
+.board-action
+  border: 0
+  border-radius: 999px
+  padding: 8px 12px
+  background: rgba(121, 214, 207, 0.16)
+  color: #2d6f6d
+  font-weight: 700
+  cursor: pointer
+
+.board-action:disabled
+  opacity: 0.45
+  cursor: default
+
+@media (max-width: 640px)
+  .info-grid
+    grid-template-columns: 1fr
+
+  .board-grid
+    grid-template-columns: 1fr
+</style>
