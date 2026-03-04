@@ -485,6 +485,7 @@ function goToConfirmOrder() {
   position: absolute
   inset: 0
   background: rgba(16, 29, 34, 0.42)
+  backdrop-filter: blur(5px)
 
 .option-sheet__panel
   position: absolute

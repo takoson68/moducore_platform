@@ -397,7 +397,8 @@ async function confirmAddToCart() {
   position: absolute
   inset: 0
   background: rgba(16, 33, 37, 0.42)
-
+  backdrop-filter: blur(5px)
+  
 .option-sheet__panel
   position: relative
   display: grid
