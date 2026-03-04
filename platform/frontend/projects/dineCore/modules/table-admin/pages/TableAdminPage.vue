@@ -127,7 +127,7 @@ function downloadQrImage(table) {
 
   const link = document.createElement('a')
   link.href = dataUrl
-  link.download = `dinecore-table-${table.code}.png`
+  link.download = `dinecore-table-${table.code}.svg`
   link.click()
 }
 </script>

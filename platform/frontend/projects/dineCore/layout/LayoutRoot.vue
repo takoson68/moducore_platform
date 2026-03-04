@@ -17,6 +17,7 @@ function hasRoute(path) {
 const cartStore = safeStore('dineCoreCartStore')
 const entryStore = safeStore('dineCoreEntryStore')
 const staffAuthStore = safeStore('dineCoreStaffAuthStore')
+const menuStore = safeStore('dineCoreMenuStore')
 
 const loginForm = reactive({
   account: 'manager',
@@ -178,6 +179,11 @@ const guestNavItems = computed(() => {
 
   return items
 })
+
+const isMenuRoute = computed(() => route.path.endsWith('/menu'))
+const menuCategories = computed(() => menuStore?.state?.categories || [])
+const activeMenuCategoryId = computed(() => menuStore?.state?.activeCategoryId || '')
+const showCategoryRow = computed(() => isMenuRoute.value && menuCategories.value.length > 0)
 
 const staffNavItems = computed(() => {
   if (!staffSession.value) return []
@@ -377,6 +383,14 @@ function closeDevMenu() {
             span.guest-shell__nav-item.is-disabled(v-else :title="item.hint")
               span {{ item.label }}
               small.guest-shell__nav-hint(v-if="item.hint") {{ item.hint }}
+        section.category-row.guest-shell__category-row(v-if="showCategoryRow")
+          button.category-chip(
+            v-for="category in menuCategories"
+            :key="category.id"
+            type="button"
+            :class="{ 'is-active': activeMenuCategoryId === category.id }"
+            @click="menuStore && menuStore.setActiveCategory(category.id)"
+          ) {{ category.name }}
 
       main.guest-shell__body
         RouterView
@@ -665,6 +679,14 @@ function closeDevMenu() {
   justify-content: flex-start
   align-items: center
 
+.guest-shell__category-anchor
+  position: relative
+  width: 100%
+  min-height: 60px
+  display: block
+  margin: 0
+  padding: 0
+
 .staff-shell__nav-item,
 .guest-shell__nav-item
   padding: 9px 13px
@@ -899,4 +921,15 @@ function closeDevMenu() {
   .dev-menu-toggle
     right: 16px
     bottom: 16px
+
+.guest-shell__category-row
+  margin: 0
+  padding-top: 6px
+
+.guest-shell__category-row .category-chip
+  font-size: 14px
+  padding: 8px 10px
+  border-radius: 0
+  border-bottom-width: 2px
+  border-bottom-style: solid
 </style>

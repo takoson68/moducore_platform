@@ -133,14 +133,7 @@ async function confirmAddToCart() {
 
 <template lang="pug">
 .mobile-page
-  section.category-row(v-if="state.categories.length > 0")
-    button.category-chip(
-      v-for="category in state.categories"
-      :key="category.id"
-      type="button"
-      :class="{ 'is-active': state.activeCategoryId === category.id }"
-      @click="menuStore && menuStore.setActiveCategory(category.id)"
-    ) {{ category.name }}
+  section.menu-grid(v-if="hasMenuContent")
 
   section.menu-grid(v-if="hasMenuContent")
     article.menu-card(
@@ -227,24 +220,36 @@ async function confirmAddToCart() {
   gap: 14px
 
 .category-row
-  display: flex
-  flex-wrap: wrap
+  display: inline-flex
+  width: 100%
+  flex-wrap: nowrap
   gap: 10px
-  overflow-x: auto
-  padding-bottom: 2px
+  overflow: auto
+  -webkit-overflow-scrolling: touch
+  padding-bottom: 4px
+  border-bottom: 1px solid rgba(109, 180, 177, 0.18)
+
+.category-row::after
+  content: ''
+  flex: 0 0 12px
 
 .category-chip
   border: 0
   border-radius: 999px
-  padding: 10px 14px
-  background: rgba(255, 255, 255, 0.8)
+  padding: 8px 12px
+  background: transparent
   color: #5f7477
   cursor: pointer
+  font-weight: 600
+  font-size: 14px
+  line-height: 1
   white-space: nowrap
+  border-bottom: 2px solid transparent
+  transition: color 0.2s ease, border-bottom-color 0.2s ease
 
 .category-chip.is-active
-  background: linear-gradient(135deg, var(--dc-mint-1) 0%, var(--dc-mint-2) 100%)
-  color: #fff
+  color: var(--dc-mint-2)
+  border-bottom-color: var(--dc-mint-2)
 
 .menu-grid
   display: grid
