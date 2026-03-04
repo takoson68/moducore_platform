@@ -86,6 +86,7 @@ export function createMenuStore() {
     name: 'dineCoreMenuStore',
     defaultValue: {
       activeCategoryId: 'popular',
+      errorMessage: '',
       categories: [
         createCategory('popular', '人氣推薦'),
         createCategory('main', '主餐'),
@@ -101,12 +102,22 @@ export function createMenuStore() {
         const tableCode = typeof input === 'string' ? input : input?.tableCode
         const orderingSessionToken =
           typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
-        const payload = await loadMenuPayload(tableCode, orderingSessionToken)
-        store.set({
-          ...store.get(),
-          categories: payload.categories.map(category => createCategory(category.id, category.name)),
-          items: payload.items.map(createItem)
-        })
+        try {
+          const payload = await loadMenuPayload(tableCode, orderingSessionToken)
+          store.set({
+            ...store.get(),
+            errorMessage: '',
+            categories: payload.categories.map(category => createCategory(category.id, category.name)),
+            items: payload.items.map(createItem)
+          })
+        } catch (error) {
+          store.set({
+            ...store.get(),
+            errorMessage: error instanceof Error ? error.message : 'MENU_LOAD_FAILED',
+            items: []
+          })
+          throw error
+        }
       },
       setActiveCategory(store, categoryId) {
         store.set({

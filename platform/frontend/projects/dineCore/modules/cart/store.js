@@ -48,6 +48,10 @@ function normalizePayload(payload) {
     orderingCartId: payload.orderingCartId || '',
     orderingLabel: payload.orderingLabel || '',
     personSlot: Number(payload.personSlot || 0),
+    currentBatchId: payload.currentBatchId || '',
+    currentBatchNo: Number(payload.currentBatchNo || 0),
+    currentBatchStatus: payload.currentBatchStatus || '',
+    participantCount: Number(payload.participantCount || 0),
     carts: Array.isArray(payload.carts) ? payload.carts : [],
     cartItemsByCartId: payload.cartItemsByCartId || {},
     itemSchemasByMenuItemId: Object.fromEntries(
@@ -91,6 +95,10 @@ export function createCartStore() {
       orderingCartId: '',
       orderingLabel: '',
       personSlot: 0,
+      currentBatchId: '',
+      currentBatchNo: 0,
+      currentBatchStatus: '',
+      participantCount: 0,
       viewingCartId: '',
       carts: [],
       cartItemsByCartId: {},
@@ -107,12 +115,16 @@ export function createCartStore() {
           const payload = normalizePayload(
             await loadCartPayload(tableCode, orderingSessionToken)
           )
+        const batchChanged =
+          current.currentBatchId &&
+          payload.currentBatchId &&
+          current.currentBatchId !== payload.currentBatchId
         const availableCartIds = payload.carts.map(cart => cart.id)
         const orderingCartId = availableCartIds.includes(payload.orderingCartId)
           ? payload.orderingCartId
           : payload.carts[0]?.id || ''
         const viewingCartId = availableCartIds.includes(current.viewingCartId)
-          ? current.viewingCartId
+          ? (batchChanged ? orderingCartId : current.viewingCartId)
           : orderingCartId
 
         store.set({
@@ -121,7 +133,8 @@ export function createCartStore() {
           errorMessage: '',
           orderingSessionToken: payload.orderingSessionToken || current.orderingSessionToken,
           orderingCartId,
-          viewingCartId
+          viewingCartId,
+          editor: batchChanged ? createDefaultEditor() : current.editor
         })
         } catch (error) {
           store.set({

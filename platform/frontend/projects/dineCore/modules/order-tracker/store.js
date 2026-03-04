@@ -11,6 +11,20 @@ function normalizePerson(person) {
   }
 }
 
+function normalizeBatch(batch) {
+  return {
+    id: Number(batch.id || 0),
+    batchNo: Number(batch.batchNo || 0),
+    status: batch.status || 'draft',
+    sourceSessionToken: batch.sourceSessionToken || '',
+    submittedAt: batch.submittedAt || null,
+    lockedAt: batch.lockedAt || null,
+    itemCount: Number(batch.itemCount || 0),
+    subtotal: Number(batch.subtotal || 0),
+    persons: Array.isArray(batch.persons) ? batch.persons.map(normalizePerson) : []
+  }
+}
+
 export function createOrderTrackerStore() {
   return world.createStore({
     name: 'dineCoreOrderTrackerStore',
@@ -20,6 +34,7 @@ export function createOrderTrackerStore() {
       status: 'pending',
       estimatedWaitMinutes: null,
       persons: [],
+      batches: [],
       timeline: [],
       history: []
     },
@@ -34,6 +49,7 @@ export function createOrderTrackerStore() {
             status: payload.order.status,
             estimatedWaitMinutes: payload.order.estimatedWaitMinutes,
             persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : [],
+            batches: Array.isArray(payload.batches) ? payload.batches.map(normalizeBatch) : [],
             timeline: payload.timeline,
             history: payload.history
           })
@@ -52,6 +68,7 @@ export function createOrderTrackerStore() {
           status: payload.status || state.status,
           estimatedWaitMinutes: payload.estimatedWaitMinutes ?? state.estimatedWaitMinutes,
           persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : state.persons,
+          batches: Array.isArray(payload.batches) ? payload.batches.map(normalizeBatch) : state.batches,
           timeline: Array.isArray(payload.timeline) ? payload.timeline : state.timeline,
           history: Array.isArray(payload.history) ? payload.history : state.history
         })

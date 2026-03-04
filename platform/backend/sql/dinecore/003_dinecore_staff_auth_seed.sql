@@ -9,7 +9,7 @@ ON DUPLICATE KEY UPDATE
   status = VALUES(status);
 
 INSERT INTO dinecore_staff_profiles (user_id, role, display_name, status)
-SELECT id, 'manager', '店長', 1
+SELECT id, 'manager', '管理者', 1
 FROM users
 WHERE tenant_id = 'dineCore' AND username = 'manager'
 ON DUPLICATE KEY UPDATE

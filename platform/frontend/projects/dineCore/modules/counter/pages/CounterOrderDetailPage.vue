@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watchEffect } from 'vue'
+import { computed, ref, watchEffect, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
 
@@ -8,8 +8,11 @@ const counterStore = world.store('dineCoreCounterStore')
 const state = computed(() => counterStore.state)
 const detail = computed(() => counterStore.state.detail)
 const cancelReason = ref('')
+
 const statusLabels = {
-  pending: '待處理',
+  draft: '草稿',
+  pending: '待送出',
+  submitted: '已送出',
   preparing: '製作中',
   ready: '可取餐',
   picked_up: '已取餐',
@@ -18,26 +21,44 @@ const statusLabels = {
   paid: '已付款'
 }
 
-const groupedItems = computed(() => {
-  const items = detail.value?.items || []
-  return items.reduce((groups, item) => {
-    const guestLabel = item.guestLabel || 'Unknown'
-    if (!groups[guestLabel]) {
-      groups[guestLabel] = []
-    }
-    groups[guestLabel].push(item)
-    return groups
-  }, {})
-})
+let pollTimer = null
+
+function currentOrderId() {
+  return String(route.params.orderId || '')
+}
+
+function startPolling() {
+  stopPolling()
+  pollTimer = window.setInterval(() => {
+    const orderId = currentOrderId()
+    if (!orderId) return
+    counterStore.loadDetail(orderId)
+  }, 5000)
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
 
 watchEffect(() => {
-  const orderId = String(route.params.orderId || '')
+  const orderId = currentOrderId()
   if (!orderId) return
   counterStore.loadDetail(orderId)
 })
 
+onMounted(() => {
+  startPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
+})
+
 async function updateOrderStatus(event) {
-  const orderId = String(route.params.orderId || '')
+  const orderId = currentOrderId()
   if (!orderId) return
   await counterStore.setOrderStatus({
     orderId,
@@ -46,7 +67,7 @@ async function updateOrderStatus(event) {
 }
 
 async function updatePaymentStatus(event) {
-  const orderId = String(route.params.orderId || '')
+  const orderId = currentOrderId()
   if (!orderId) return
   await counterStore.setPaymentStatus({
     orderId,
@@ -55,23 +76,23 @@ async function updatePaymentStatus(event) {
 }
 
 async function markPickedUp() {
-  const orderId = String(route.params.orderId || '')
+  const orderId = currentOrderId()
   if (!orderId) return
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'picked_up',
-    note: '顧客已於櫃台取餐'
+    note: '櫃台已確認本桌完成取餐'
   })
 }
 
 async function cancelOrder() {
-  const orderId = String(route.params.orderId || '')
+  const orderId = currentOrderId()
   if (!orderId) return
-  const reason = cancelReason.value.trim() || '櫃台取消'
+  const reason = cancelReason.value.trim() || '櫃台取消此筆訂單'
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'cancelled',
-    note: `訂單已取消：${reason}`
+    note: `訂單取消：${reason}`
   })
 }
 </script>
@@ -80,9 +101,10 @@ async function cancelOrder() {
 .desk-page(v-if="detail")
   section.detail-list-card(v-if="state.error")
     p.error-text {{ state.error }}
+
   section.scope-card
-    p.eyebrow 櫃台模組
-    h2 櫃台訂單明細
+    p.eyebrow Counter Detail
+    h2 訂單明細
     p.lead {{ detail.order.orderNo }}
     .detail-grid
       article.detail-card
@@ -95,13 +117,14 @@ async function cancelOrder() {
         span.detail-label 付款狀態
         strong.detail-value {{ statusLabels[detail.order.paymentStatus] || detail.order.paymentStatus }}
       article.detail-card
-        span.detail-label 總額
+        span.detail-label 訂單總額
         strong.detail-value {{ `NT$ ${detail.order.totalAmount}` }}
     .detail-actions
       label.action-field
         span.action-label 更新訂單狀態
         select.action-input(:value="detail.order.orderStatus" @change="updateOrderStatus")
-          option(value="pending") 待處理
+          option(value="pending") 待送出
+          option(value="submitted") 已送出
           option(value="preparing") 製作中
           option(value="ready") 可取餐
           option(value="picked_up") 已取餐
@@ -118,28 +141,34 @@ async function cancelOrder() {
         button.quick-action.is-danger(type="button" @click="cancelOrder" :disabled="detail.order.orderStatus === 'cancelled'") 取消訂單
 
   section.detail-list-card
-    h3.detail-list-card__title 各人金額
-    .list-row(v-for="person in detail.persons" :key="person.guestLabel")
+    h3.detail-list-card__title 顧客小計
+    .list-row(v-for="person in detail.persons" :key="person.cartId || person.guestLabel")
       span {{ person.guestLabel }}
       strong {{ `NT$ ${person.total}` }}
 
   section.detail-list-card
-    h3.detail-list-card__title 客製內容摘要
-    .guest-block(v-for="(items, guestLabel) in groupedItems" :key="guestLabel")
-      .guest-block__head
-        strong.guest-block__title {{ guestLabel }}
-        span.guest-block__meta {{ `${items.length} 項` }}
-      article.item-card(v-for="item in items" :key="item.id")
-        .item-card__head
-          strong.item-card__title {{ item.title }}
-          span.item-card__qty {{ `x${item.quantity}` }}
-        p.item-card__note(v-if="item.note") {{ item.note }}
-        .item-card__options(v-if="item.options?.length")
-          span.item-card__option(v-for="option in item.options" :key="option") {{ option }}
-        strong.item-card__price {{ `NT$ ${item.price}` }}
+    h3.detail-list-card__title 批次明細
+    .batch-block(v-for="batch in detail.batches" :key="batch.id")
+      .batch-block__head
+        strong.batch-block__title {{ `第 ${batch.batchNo} 批` }}
+        span.batch-block__meta {{ statusLabels[batch.status] || batch.status }}
+      p.batch-block__info(v-if="batch.submittedAt") {{ `送單時間：${batch.submittedAt}` }}
+      p.batch-block__info {{ `${batch.itemCount} 件 / NT$ ${batch.subtotal}` }}
+      .guest-block(v-for="person in batch.persons" :key="`${batch.id}-${person.cartId}`")
+        .guest-block__head
+          strong.guest-block__title {{ person.guestLabel }}
+          span.guest-block__meta {{ `NT$ ${person.subtotal}` }}
+        article.item-card(v-for="item in person.items" :key="`${batch.id}-${item.id}`")
+          .item-card__head
+            strong.item-card__title {{ item.title }}
+            span.item-card__qty {{ `x${item.quantity}` }}
+          p.item-card__note(v-if="item.note") {{ item.note }}
+          .item-card__options(v-if="item.options?.length")
+            span.item-card__option(v-for="option in item.options" :key="option") {{ option }}
+          strong.item-card__price {{ `NT$ ${item.price}` }}
 
   section.detail-list-card
-    h3.detail-list-card__title 時間線
+    h3.detail-list-card__title 狀態時間軸
     .timeline-row(v-for="item in detail.timeline" :key="`${item.status}-${item.changed_at}`")
       .timeline-row__main
         strong {{ statusLabels[item.status] || item.status }}
@@ -266,58 +295,53 @@ async function cancelOrder() {
 .list-row:last-child, .timeline-row:last-child
   border-bottom: 0
 
-.guest-block
+.batch-block
   display: grid
   gap: 12px
   padding: 18px 0
   border-bottom: 1px solid rgba(91, 127, 130, 0.12)
 
-.guest-block:last-child
+.batch-block:last-child
   border-bottom: 0
-  padding-bottom: 0
 
-.guest-block__head
+.batch-block__head, .guest-block__head, .item-card__head, .timeline-row__main
   display: flex
   justify-content: space-between
-  align-items: center
   gap: 12px
+  align-items: center
 
-.guest-block__title
+.batch-block__info
+  margin: 0
+  color: #7b8d90
+
+.guest-block
+  display: grid
+  gap: 10px
+  padding: 14px
+  border-radius: 18px
+  background: rgba(121, 214, 207, 0.08)
+
+.guest-block__title, .item-card__title, .batch-block__title
   color: #243a3e
 
-.guest-block__meta
-  color: #7b8d90
-  font-size: 13px
+.guest-block__meta, .batch-block__meta
+  color: #2d6f6d
+  font-weight: 700
 
 .item-card
-  padding: 16px
-  border-radius: 18px
-  background: linear-gradient(180deg, #ffffff 0%, #f5faf9 100%)
   display: grid
   gap: 8px
+  padding: 14px
+  border-radius: 16px
+  background: rgba(255, 255, 255, 0.82)
 
-.item-card__head
-  display: flex
-  justify-content: space-between
-  align-items: center
-  gap: 12px
-
-.item-card__title
-  color: #243a3e
-
-.item-card__qty
-  color: #7b8d90
-  font-size: 13px
+.item-card__qty, .item-card__price
+  color: #2d6f6d
   font-weight: 700
 
 .item-card__note
   margin: 0
-  padding: 10px 12px
-  border-radius: 12px
-  background: rgba(255, 214, 102, 0.18)
-  color: #7b5316
-  line-height: 1.6
-  font-weight: 700
+  color: #6f5b43
 
 .item-card__options
   display: flex
@@ -325,36 +349,35 @@ async function cancelOrder() {
   gap: 8px
 
 .item-card__option
-  padding: 6px 10px
+  padding: 4px 8px
   border-radius: 999px
-  background: rgba(121, 214, 207, 0.14)
+  background: rgba(121, 214, 207, 0.16)
   color: #2d6f6d
   font-size: 12px
   font-weight: 700
 
-.item-card__price
-  color: #243a3e
-
 .timeline-row__main
-  display: grid
-  gap: 4px
+  flex-direction: column
+  align-items: flex-start
 
 .timeline-row__main p
-  margin: 0
-  color: #7b8d90
-  line-height: 1.6
+  margin: 4px 0 0
+  color: #6f7f82
 
 @media (max-width: 960px)
   .detail-grid
     grid-template-columns: repeat(2, minmax(0, 1fr))
 
-  .detail-actions, .quick-actions
+  .detail-actions
     grid-template-columns: 1fr
 
-  .cancel-box
+  .quick-actions
     grid-template-columns: 1fr
 
 @media (max-width: 640px)
   .detail-grid
+    grid-template-columns: 1fr
+
+  .cancel-box
     grid-template-columns: 1fr
 </style>

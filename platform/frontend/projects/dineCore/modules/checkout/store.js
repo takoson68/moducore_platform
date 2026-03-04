@@ -22,6 +22,10 @@ export function createCheckoutStore() {
       submitting: false,
       orderingSessionToken: '',
       errorMessage: '',
+      currentBatchId: '',
+      currentBatchNo: 0,
+      currentBatchStatus: '',
+      itemCount: 0,
       subtotal: 0,
       serviceFee: 0,
       tax: 0,
@@ -40,6 +44,10 @@ export function createCheckoutStore() {
             ...store.get(),
             errorMessage: '',
             orderingSessionToken: orderingSessionToken || store.get().orderingSessionToken,
+            currentBatchId: payload.currentBatchId || '',
+            currentBatchNo: Number(payload.currentBatchNo || 0),
+            currentBatchStatus: payload.currentBatchStatus || '',
+            itemCount: Number(payload.itemCount || 0),
             subtotal: Number(payload.subtotal || 0),
             serviceFee: Number(payload.serviceFee || 0),
             tax: Number(payload.tax || 0),
@@ -57,6 +65,10 @@ export function createCheckoutStore() {
         const state = store.get()
         store.set({
           ...state,
+          currentBatchId: payload.currentBatchId || state.currentBatchId,
+          currentBatchNo: payload.currentBatchNo ?? state.currentBatchNo,
+          currentBatchStatus: payload.currentBatchStatus || state.currentBatchStatus,
+          itemCount: payload.itemCount ?? state.itemCount,
           subtotal: payload.subtotal ?? state.subtotal,
           serviceFee: payload.serviceFee ?? state.serviceFee,
           tax: payload.tax ?? state.tax,
@@ -82,7 +94,16 @@ export function createCheckoutStore() {
           const result = await submitCheckoutOrder(tableCode, orderingSessionToken)
           store.set({
             ...store.get(),
-            errorMessage: ''
+            errorMessage: '',
+            currentBatchId: result.nextBatchId || store.get().currentBatchId,
+            currentBatchNo: Number(result.nextBatchNo || store.get().currentBatchNo || 0),
+            currentBatchStatus: 'draft',
+            itemCount: 0,
+            subtotal: 0,
+            serviceFee: 0,
+            tax: 0,
+            total: 0,
+            persons: []
           })
           return result
         } catch (error) {

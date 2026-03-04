@@ -5,9 +5,13 @@ import {
   submitAuditUnlock
 } from './service.js'
 
+function todayText() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 function createDefaultState() {
   return {
-    selectedDate: '2026-03-03',
+    selectedDate: todayText(),
     loading: false,
     error: '',
     closeActionLoading: false,

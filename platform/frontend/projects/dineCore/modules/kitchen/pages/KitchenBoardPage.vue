@@ -1,32 +1,55 @@
 <script setup>
-import { computed, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import world from '@/world.js'
 
 const kitchenStore = world.store('dineCoreKitchenStore')
 const state = computed(() => kitchenStore.state)
+
 const statusLabels = {
-  pending: '待處理',
+  pending: '待送出',
+  submitted: '已送出',
   preparing: '製作中',
   ready: '可取餐',
   picked_up: '已取餐',
   cancelled: '已取消'
 }
 
-watchEffect(() => {
+let pollTimer = null
+
+function startPolling() {
+  stopPolling()
+  pollTimer = window.setInterval(() => {
+    kitchenStore.load()
+  }, 5000)
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+onMounted(() => {
   kitchenStore.load()
+  startPolling()
 })
 
-async function updateOrderStatus(orderId, orderStatus) {
-  await kitchenStore.setOrderStatus({ orderId, orderStatus })
+onUnmounted(() => {
+  stopPolling()
+})
+
+async function updateOrderStatus(batchId, orderStatus) {
+  await kitchenStore.setOrderStatus({ orderId: batchId, orderStatus })
 }
 </script>
 
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow 廚房模組
-    h2 廚房出餐看板
-    p.lead 優先查看備註較多與客製較重的品項，避免廚房出餐判讀錯誤。
+    p.eyebrow Kitchen
+    h2 廚房看板
+    p.lead 即時查看已送出的批次，確認桌號、批次內容與目前製作狀態。
 
   section.error-card(v-if="state.error")
     p {{ state.error }}
@@ -39,10 +62,10 @@ async function updateOrderStatus(orderId, orderStatus) {
       span.info-label 顯示狀態
       strong.info-value {{ state.visibleStatuses.map(status => statusLabels[status] || status).join(' / ') }}
 
-  section.board-grid
+  section.board-grid(v-if="state.orders.length > 0")
     article.board-card(v-for="order in state.orders" :key="order.id")
       .board-card__head
-        strong.board-card__title {{ order.orderNo }}
+        strong.board-card__title {{ `${order.orderNo} / 第 ${order.batchNo} 批` }}
         span.board-card__wait {{ order.waitLabel }}
       p.board-card__meta {{ `桌號 ${order.tableCode} | ${statusLabels[order.orderStatus] || order.orderStatus}` }}
 
@@ -56,9 +79,13 @@ async function updateOrderStatus(orderId, orderStatus) {
             span.board-item__option(v-for="option in item.options" :key="option") {{ option }}
 
       .board-card__actions
-        button.board-action(type="button" :disabled="order.orderStatus === 'preparing'" @click="updateOrderStatus(order.id, 'preparing')") 製作中
-        button.board-action(type="button" :disabled="order.orderStatus === 'ready'" @click="updateOrderStatus(order.id, 'ready')") 可取餐
-        button.board-action(type="button" :disabled="order.orderStatus === 'picked_up'" @click="updateOrderStatus(order.id, 'picked_up')") 已取餐
+        button.board-action(type="button" :disabled="order.orderStatus === 'preparing'" @click="updateOrderStatus(order.id, 'preparing')") 標記製作中
+        button.board-action(type="button" :disabled="order.orderStatus === 'ready'" @click="updateOrderStatus(order.id, 'ready')") 標記可取餐
+        button.board-action(type="button" :disabled="order.orderStatus === 'picked_up'" @click="updateOrderStatus(order.id, 'picked_up')") 標記已取餐
+
+  section.empty-card(v-else)
+    p.empty-card__title 目前沒有待處理批次
+    p.empty-card__text 新送出的批次會在 5 秒內自動出現在這裡。
 </template>
 
 <style lang="sass">
@@ -66,7 +93,7 @@ async function updateOrderStatus(orderId, orderStatus) {
   display: grid
   gap: 18px
 
-.panel-card, .info-card, .board-card, .error-card
+.panel-card, .info-card, .board-card, .error-card, .empty-card
   padding: 22px
   border-radius: 22px
   background: rgba(255, 255, 255, 0.88)
@@ -202,10 +229,26 @@ async function updateOrderStatus(orderId, orderStatus) {
   opacity: 0.45
   cursor: default
 
-@media (max-width: 640px)
-  .info-grid
+.empty-card
+  display: grid
+  gap: 6px
+
+.empty-card__title
+  margin: 0
+  color: #243a3e
+  font-size: 18px
+  font-weight: 800
+
+.empty-card__text
+  margin: 0
+  color: #6f7f82
+  line-height: 1.6
+
+@media (max-width: 960px)
+  .board-grid
     grid-template-columns: 1fr
 
-  .board-grid
+@media (max-width: 640px)
+  .info-grid
     grid-template-columns: 1fr
 </style>

@@ -22,7 +22,7 @@ final class DineCoreGuestApiController
                 return;
             }
 
-            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), true);
             $order = $this->findOrderById((int)$session['order_id']);
             if ($order === null) {
                 $response->notFound('Order not found');
@@ -48,7 +48,7 @@ final class DineCoreGuestApiController
                 return;
             }
 
-            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $rows = db()->query(
                 'SELECT id, category_id, name, description, base_price, image_url, sold_out, hidden, badge, tone, tags_json, default_note, default_option_ids_json, option_groups_json
                  FROM dinecore_menu_items
@@ -92,7 +92,7 @@ final class DineCoreGuestApiController
             if ($table === null) {
                 return;
             }
-            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $response->ok($this->buildCartPayload($tableCode, $session));
         } catch (Throwable $error) {
             $this->handleThrowable($response, $error);
@@ -117,7 +117,7 @@ final class DineCoreGuestApiController
             if ($table === null) {
                 return;
             }
-            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $menuItem = $this->findMenuItem($menuItemId);
             if ($menuItem === null || (int)$menuItem['hidden'] === 1) {
                 $response->notFound('Menu item not found');
@@ -130,14 +130,16 @@ final class DineCoreGuestApiController
 
             $customization = is_array($request->body['customization'] ?? null) ? $request->body['customization'] : [];
             $resolved = $this->resolveCustomization($menuItem, $customization);
+            $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
 
             $stmt = db()->prepare(
                 'INSERT INTO dinecore_cart_items
-                    (order_id, table_code, cart_id, menu_item_id, title, quantity, price, note, options_json, selected_option_ids_json)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                    (order_id, batch_id, table_code, cart_id, menu_item_id, title, quantity, price, note, options_json, selected_option_ids_json)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 (int)$session['order_id'],
+                (int)$batch['id'],
                 $tableCode,
                 (string)$session['cart_id'],
                 $menuItemId,
@@ -176,8 +178,9 @@ final class DineCoreGuestApiController
             if ($table === null) {
                 return;
             }
-            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
-            $item = $this->findCartItem((int)$session['order_id'], $cartId, $cartItemId);
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
+            $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
+            $item = $this->findCartItem((int)$session['order_id'], (int)$batch['id'], $cartId, $cartItemId);
             if ($item === null) {
                 $response->notFound('Cart item not found');
                 return;
@@ -185,15 +188,15 @@ final class DineCoreGuestApiController
 
             $nextQuantity = (int)$item['quantity'] + $delta;
             if ($nextQuantity <= 0) {
-                $stmt = db()->prepare('DELETE FROM dinecore_cart_items WHERE id = ? AND order_id = ?');
-                $stmt->execute([$cartItemId, (int)$session['order_id']]);
+                $stmt = db()->prepare('DELETE FROM dinecore_cart_items WHERE id = ? AND order_id = ? AND batch_id = ?');
+                $stmt->execute([$cartItemId, (int)$session['order_id'], (int)$batch['id']]);
             } else {
                 $stmt = db()->prepare(
                     'UPDATE dinecore_cart_items
                      SET quantity = ?, updated_at = NOW()
-                     WHERE id = ? AND order_id = ?'
+                     WHERE id = ? AND order_id = ? AND batch_id = ?'
                 );
-                $stmt->execute([$nextQuantity, $cartItemId, (int)$session['order_id']]);
+                $stmt->execute([$nextQuantity, $cartItemId, (int)$session['order_id'], (int)$batch['id']]);
             }
 
             $response->ok($this->buildCartPayload($tableCode, $session));
@@ -221,8 +224,9 @@ final class DineCoreGuestApiController
             if ($table === null) {
                 return;
             }
-            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
-            $item = $this->findCartItem((int)$session['order_id'], $cartId, $cartItemId);
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
+            $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
+            $item = $this->findCartItem((int)$session['order_id'], (int)$batch['id'], $cartId, $cartItemId);
             if ($item === null) {
                 $response->notFound('Cart item not found');
                 return;
@@ -240,7 +244,7 @@ final class DineCoreGuestApiController
             $stmt = db()->prepare(
                 'UPDATE dinecore_cart_items
                  SET price = ?, note = ?, options_json = ?, selected_option_ids_json = ?, updated_at = NOW()
-                 WHERE id = ? AND order_id = ?'
+                 WHERE id = ? AND order_id = ? AND batch_id = ?'
             );
             $stmt->execute([
                 (int)$resolved['price'],
@@ -249,6 +253,7 @@ final class DineCoreGuestApiController
                 json_encode($resolved['selectedOptionIds'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 $cartItemId,
                 (int)$session['order_id'],
+                (int)$batch['id'],
             ]);
 
             $response->ok($this->buildCartPayload($tableCode, $session));
@@ -269,8 +274,8 @@ final class DineCoreGuestApiController
             if ($table === null) {
                 return;
             }
-            $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
-            $response->ok($this->buildCheckoutSummary($tableCode));
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
+            $response->ok($this->buildCheckoutSummary($tableCode, $session));
         } catch (Throwable $error) {
             $this->handleThrowable($response, $error);
         }
@@ -317,13 +322,32 @@ final class DineCoreGuestApiController
             if ($table === null) {
                 return;
             }
-            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request));
-            $summary = $this->buildCheckoutSummary($tableCode);
+            $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $order = $this->findOrderById((int)$session['order_id']);
             if ($order === null) {
                 $response->notFound('Order not found');
                 return;
             }
+            $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
+            $summary = $this->buildCheckoutSummary($tableCode, $session);
+            if ((int)$summary['itemCount'] <= 0) {
+                $response->validation('Draft batch is empty');
+                return;
+            }
+
+            $batchStmt = db()->prepare(
+                'UPDATE dinecore_order_batches
+                 SET status = ?, source_session_token = ?, submitted_at = NOW(), locked_at = NOW(), updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $batchStmt->execute([
+                'submitted',
+                (string)$session['session_token'],
+                (int)$batch['id'],
+            ]);
+
+            $nextBatch = $this->createNextDraftBatchForOrder((int)$session['order_id']);
+            $submittedTotal = $this->buildSubmittedTotals((int)$session['order_id']);
 
             $stmt = db()->prepare(
                 'UPDATE dinecore_orders
@@ -335,10 +359,10 @@ final class DineCoreGuestApiController
                 'unpaid',
                 'unpaid',
                 18,
-                (int)$summary['subtotal'],
-                (int)$summary['serviceFee'],
-                (int)$summary['tax'],
-                (int)$summary['total'],
+                (int)$submittedTotal['subtotal'],
+                (int)$submittedTotal['serviceFee'],
+                (int)$submittedTotal['tax'],
+                (int)$submittedTotal['total'],
                 (int)$session['order_id'],
             ]);
 
@@ -356,6 +380,10 @@ final class DineCoreGuestApiController
             $response->ok([
                 'orderId' => (int)$session['order_id'],
                 'orderNo' => (string)$order['order_no'],
+                'submittedBatchId' => (int)$batch['id'],
+                'submittedBatchNo' => (int)$batch['batch_no'],
+                'nextBatchId' => (int)$nextBatch['id'],
+                'nextBatchNo' => (int)$nextBatch['batch_no'],
             ]);
         } catch (Throwable $error) {
             $this->handleThrowable($response, $error);
@@ -404,6 +432,7 @@ final class DineCoreGuestApiController
                     'estimatedWaitMinutes' => $order['estimated_wait_minutes'] !== null ? (int)$order['estimated_wait_minutes'] : null,
                 ],
                 'persons' => $this->collectOrderPersons($orderId),
+                'batches' => $this->buildBatchSummaries($orderId),
                 'timeline' => array_map(fn (array $row) => [
                     'status' => (string)$row['status'],
                     'source' => (string)$row['source'],
@@ -480,6 +509,8 @@ final class DineCoreGuestApiController
 
     private function buildEntryContextPayload(array $table, array $session, array $order): array
     {
+        $batch = $this->resolveDraftBatchForOrder((int)$order['id']);
+
         return array_merge($this->normalizeTable($table), [
             'ordering_session_token' => (string)$session['session_token'],
             'ordering_cart_id' => (string)$session['cart_id'],
@@ -488,6 +519,9 @@ final class DineCoreGuestApiController
             'order_id' => (int)$order['id'],
             'order_no' => (string)$order['order_no'],
             'order_status' => (string)$order['order_status'],
+            'current_batch_id' => (int)$batch['id'],
+            'current_batch_no' => (int)$batch['batch_no'],
+            'current_batch_status' => (string)$batch['status'],
         ]);
     }
 
@@ -504,7 +538,7 @@ final class DineCoreGuestApiController
         ];
     }
 
-    private function resolveOrderingSession(string $tableCode, string $sessionToken): array
+    private function resolveOrderingSession(string $tableCode, string $sessionToken, bool $allowCreate): array
     {
         $openOrder = $this->findOpenOrderForTable($tableCode);
         if ($sessionToken !== '') {
@@ -529,6 +563,10 @@ final class DineCoreGuestApiController
                 );
                 $stmt->execute(['expired', (int)$session['id']]);
             }
+        }
+
+        if (!$allowCreate) {
+            throw new \RuntimeException('ORDERING_SESSION_REQUIRED');
         }
 
         $order = $openOrder ?? $this->createOpenOrder($tableCode);
@@ -611,6 +649,8 @@ final class DineCoreGuestApiController
         ]);
 
         $id = (int)db()->lastInsertId();
+        $this->createInitialBatchForOrder($id);
+
         return $this->findOrderById($id) ?? [
             'id' => $id,
             'order_no' => $orderNo,
@@ -638,6 +678,107 @@ final class DineCoreGuestApiController
         $total = (int)($stmt->fetch()['total'] ?? 0);
 
         return sprintf('DC%s%04d', $datePrefix, $total + 1);
+    }
+
+    private function resolveCurrentBatchForOrder(int $orderId): array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, order_id, batch_no, status, source_session_token, submitted_at, locked_at, created_at, updated_at
+             FROM dinecore_order_batches
+             WHERE order_id = ?
+             ORDER BY batch_no DESC, id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$orderId]);
+        $row = $stmt->fetch();
+        if ($row) {
+            return $row;
+        }
+
+        return $this->createBatchForOrder($orderId, 1, 'draft');
+    }
+
+    private function resolveDraftBatchForOrder(int $orderId): array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, order_id, batch_no, status, source_session_token, submitted_at, locked_at, created_at, updated_at
+             FROM dinecore_order_batches
+             WHERE order_id = ? AND status = ?
+             ORDER BY batch_no DESC, id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$orderId, 'draft']);
+        $row = $stmt->fetch();
+        if ($row) {
+            return $row;
+        }
+
+        return $this->createNextDraftBatchForOrder($orderId);
+    }
+
+    private function createInitialBatchForOrder(int $orderId): array
+    {
+        return $this->createBatchForOrder($orderId, 1, 'draft');
+    }
+
+    private function createNextDraftBatchForOrder(int $orderId): array
+    {
+        $stmt = db()->prepare(
+            'SELECT COALESCE(MAX(batch_no), 0) AS max_batch_no
+             FROM dinecore_order_batches
+             WHERE order_id = ?'
+        );
+        $stmt->execute([$orderId]);
+        $nextBatchNo = ((int)($stmt->fetch()['max_batch_no'] ?? 0)) + 1;
+
+        return $this->createBatchForOrder($orderId, $nextBatchNo, 'draft');
+    }
+
+    private function createBatchForOrder(int $orderId, int $batchNo, string $status): array
+    {
+        $stmt = db()->prepare(
+            'INSERT INTO dinecore_order_batches
+                (order_id, batch_no, status, source_session_token, submitted_at, locked_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())'
+        );
+        $stmt->execute([
+            $orderId,
+            $batchNo,
+            $status,
+            null,
+            null,
+            null,
+        ]);
+
+        $id = (int)db()->lastInsertId();
+
+        return $this->findBatchById($id) ?? [
+            'id' => $id,
+            'order_id' => $orderId,
+            'batch_no' => $batchNo,
+            'status' => $status,
+            'source_session_token' => null,
+            'submitted_at' => null,
+            'locked_at' => null,
+        ];
+    }
+
+    private function findBatchById(int $batchId): ?array
+    {
+        if ($batchId <= 0) {
+            return null;
+        }
+
+        $stmt = db()->prepare(
+            'SELECT id, order_id, batch_no, status, source_session_token, submitted_at, locked_at, created_at, updated_at
+             FROM dinecore_order_batches
+             WHERE id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$batchId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
     }
 
     private function nextPersonSlot(int $orderId): int
@@ -722,9 +863,17 @@ final class DineCoreGuestApiController
     {
         $lookup = [];
         foreach ($optionGroups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+
             $groupId = (string)($group['id'] ?? '');
             $groupType = (string)($group['type'] ?? 'single');
             foreach (($group['options'] ?? []) as $option) {
+                if (!is_array($option)) {
+                    continue;
+                }
+
                 $lookup[(string)($option['id'] ?? '')] = [
                     'id' => (string)($option['id'] ?? ''),
                     'label' => (string)($option['label'] ?? ''),
@@ -745,6 +894,10 @@ final class DineCoreGuestApiController
         $byGroup = [];
 
         foreach ($optionGroups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+
             $byGroup[(string)($group['id'] ?? '')] = [];
         }
 
@@ -763,6 +916,10 @@ final class DineCoreGuestApiController
         }
 
         foreach ($optionGroups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+
             $groupId = (string)($group['id'] ?? '');
             $groupType = (string)($group['type'] ?? 'single');
             $options = is_array($group['options'] ?? null) ? $group['options'] : [];
@@ -787,6 +944,7 @@ final class DineCoreGuestApiController
     private function buildCartPayload(string $tableCode, array $orderingSession): array
     {
         $orderId = (int)$orderingSession['order_id'];
+        $batch = $this->resolveDraftBatchForOrder($orderId);
         $sessions = $this->listSessionsForOrder($orderId, true);
         $cartItemsByCartId = [];
         $itemSchemasByMenuItemId = $this->buildItemSchemasByMenuItemId();
@@ -794,10 +952,10 @@ final class DineCoreGuestApiController
         $stmt = db()->prepare(
             'SELECT id, cart_id, menu_item_id, title, quantity, price, note, options_json, selected_option_ids_json
              FROM dinecore_cart_items
-             WHERE order_id = ?
+             WHERE order_id = ? AND batch_id = ?
              ORDER BY id ASC'
         );
-        $stmt->execute([$orderId]);
+        $stmt->execute([$orderId, (int)$batch['id']]);
         $itemRows = $stmt->fetchAll() ?: [];
 
         foreach ($itemRows as $itemRow) {
@@ -818,6 +976,15 @@ final class DineCoreGuestApiController
             ];
         }
 
+        $visibleSessions = array_values(array_filter(
+            $sessions,
+            fn (array $session) => $this->shouldExposeSessionInCartPayload(
+                $session,
+                $cartItemsByCartId[(string)$session['cart_id']] ?? [],
+                (string)$orderingSession['cart_id']
+            )
+        ));
+
         $carts = array_map(function (array $session) use ($cartItemsByCartId): array {
             $items = $cartItemsByCartId[(string)$session['cart_id']] ?? [];
             $subtotal = array_reduce(
@@ -834,13 +1001,17 @@ final class DineCoreGuestApiController
                 'itemCount' => $itemCount,
                 'subtotal' => $subtotal,
             ];
-        }, $sessions);
+        }, $visibleSessions);
 
         return [
             'orderingSessionToken' => (string)$orderingSession['session_token'],
             'orderingCartId' => (string)$orderingSession['cart_id'],
             'orderingLabel' => (string)$orderingSession['display_label'],
             'personSlot' => (int)$orderingSession['person_slot'],
+            'currentBatchId' => (int)$batch['id'],
+            'currentBatchNo' => (int)$batch['batch_no'],
+            'currentBatchStatus' => (string)$batch['status'],
+            'participantCount' => count($sessions),
             'carts' => $carts,
             'cartItemsByCartId' => $cartItemsByCartId,
             'itemSchemasByMenuItemId' => $itemSchemasByMenuItemId,
@@ -865,7 +1036,10 @@ final class DineCoreGuestApiController
 
     private function buildMenuItemSchema(array $menuItem): array
     {
-        $optionGroups = $this->decodeJsonArray($menuItem['option_groups_json'] ?? '[]');
+        $optionGroups = array_values(array_filter(
+            $this->decodeJsonArray($menuItem['option_groups_json'] ?? '[]'),
+            fn ($group) => is_array($group)
+        ));
 
         return [
             'id' => (string)$menuItem['id'],
@@ -882,7 +1056,10 @@ final class DineCoreGuestApiController
                     'id' => (string)($option['id'] ?? ''),
                     'label' => (string)($option['label'] ?? ''),
                     'priceDelta' => (int)($option['price_delta'] ?? 0),
-                ], is_array($group['options'] ?? null) ? $group['options'] : []),
+                ], array_values(array_filter(
+                    is_array($group['options'] ?? null) ? $group['options'] : [],
+                    fn ($option) => is_array($option)
+                ))),
             ], $optionGroups),
         ];
     }
@@ -896,44 +1073,33 @@ final class DineCoreGuestApiController
         return $schema;
     }
 
-    private function buildCheckoutSummary(string $tableCode): array
+    private function buildCheckoutSummary(string $tableCode, array $orderingSession): array
     {
         $order = $this->findOpenOrderForTable($tableCode);
         if ($order === null) {
             throw new \RuntimeException('ORDER_NOT_FOUND');
         }
 
-        return $this->buildCheckoutSummaryForOrder($order);
+        $batch = $this->resolveDraftBatchForOrder((int)$orderingSession['order_id']);
+
+        return $this->buildCheckoutSummaryForBatch($order, $batch);
     }
 
-    private function buildCheckoutSummaryForOrder(array $order): array
+    private function buildCheckoutSummaryForBatch(array $order, array $batch): array
     {
         $orderId = (int)$order['id'];
+        $batchId = (int)$batch['id'];
 
         $sessions = $this->listSessionsForOrder($orderId, false);
-        $stmt = db()->prepare(
-            'SELECT id, cart_id, title, quantity, price, note, options_json
-             FROM dinecore_cart_items
-             WHERE order_id = ?
-             ORDER BY id ASC'
-        );
-        $stmt->execute([$orderId]);
-        $itemsByCartId = [];
-        foreach ($stmt->fetchAll() ?: [] as $row) {
-            $itemsByCartId[(string)$row['cart_id']][] = [
-                'id' => (int)$row['id'],
-                'title' => (string)$row['title'],
-                'quantity' => (int)$row['quantity'],
-                'price' => (int)$row['price'],
-                'note' => (string)($row['note'] ?? ''),
-                'options' => $this->decodeJsonArray($row['options_json'] ?? '[]'),
-            ];
-        }
+        $itemsByCartId = $this->listCartItemsByCartId($orderId, $batchId);
 
         $persons = [];
         foreach ($sessions as $session) {
             $cartId = (string)$session['cart_id'];
             $items = $itemsByCartId[$cartId] ?? [];
+            if (!$this->shouldExposeSessionInSummaryPayload($session, $items)) {
+                continue;
+            }
             $subtotal = array_reduce($items, fn ($sum, array $item) => $sum + ((int)$item['price'] * (int)$item['quantity']), 0);
             $serviceFee = (int)round($subtotal * 0.05);
             $tax = (int)round($subtotal * 0.025);
@@ -951,17 +1117,102 @@ final class DineCoreGuestApiController
         $serviceFee = (int)round($subtotal * 0.05);
         $tax = (int)round($subtotal * 0.025);
 
+        $itemCount = array_reduce(
+            $persons,
+            fn ($sum, array $person) => $sum + array_reduce(
+                $person['items'],
+                fn ($itemSum, array $item) => $itemSum + (int)$item['quantity'],
+                0
+            ),
+            0
+        );
+
         return [
+            'currentBatchId' => $batchId,
+            'currentBatchNo' => (int)$batch['batch_no'],
+            'currentBatchStatus' => (string)$batch['status'],
+            'itemCount' => $itemCount,
             'subtotal' => $subtotal,
             'serviceFee' => $serviceFee,
             'tax' => $tax,
             'total' => $subtotal + $serviceFee + $tax,
+            'participantCount' => count($sessions),
             'persons' => $persons,
             'paymentMethods' => [
                 ['id' => 'cash', 'label' => '櫃台現金付款', 'description' => '由櫃台人工確認現金收款。'],
                 ['id' => 'counter-card', 'label' => '櫃台刷卡付款', 'description' => '由店員協助完成刷卡付款。'],
             ],
         ];
+    }
+
+    private function buildSubmittedTotals(int $orderId): array
+    {
+        $stmt = db()->prepare(
+            'SELECT ci.quantity, ci.price
+             FROM dinecore_cart_items ci
+             INNER JOIN dinecore_order_batches b
+               ON b.id = ci.batch_id
+             WHERE ci.order_id = ?
+               AND b.status <> ?'
+        );
+        $stmt->execute([$orderId, 'draft']);
+        $rows = $stmt->fetchAll() ?: [];
+
+        $subtotal = array_reduce(
+            $rows,
+            fn ($sum, array $row) => $sum + ((int)$row['price'] * (int)$row['quantity']),
+            0
+        );
+        $serviceFee = (int)round($subtotal * 0.05);
+        $tax = (int)round($subtotal * 0.025);
+
+        return [
+            'subtotal' => $subtotal,
+            'serviceFee' => $serviceFee,
+            'tax' => $tax,
+            'total' => $subtotal + $serviceFee + $tax,
+        ];
+    }
+
+    private function listCartItemsByCartId(int $orderId, ?int $batchId = null): array
+    {
+        $sql = 'SELECT id, cart_id, title, quantity, price, note, options_json
+                FROM dinecore_cart_items
+                WHERE order_id = ?';
+        $params = [$orderId];
+
+        if ($batchId !== null) {
+            $sql .= ' AND batch_id = ?';
+            $params[] = $batchId;
+        }
+
+        $sql .= ' ORDER BY id ASC';
+        $stmt = db()->prepare($sql);
+        $stmt->execute($params);
+
+        $itemsByCartId = [];
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            $itemsByCartId[(string)$row['cart_id']][] = [
+                'id' => (int)$row['id'],
+                'title' => (string)$row['title'],
+                'quantity' => (int)$row['quantity'],
+                'price' => (int)$row['price'],
+                'note' => (string)($row['note'] ?? ''),
+                'options' => $this->decodeJsonArray($row['options_json'] ?? '[]'),
+            ];
+        }
+
+        return $itemsByCartId;
+    }
+
+    private function shouldExposeSessionInCartPayload(array $session, array $items, string $currentCartId): bool
+    {
+        return true;
+    }
+
+    private function shouldExposeSessionInSummaryPayload(array $session, array $items): bool
+    {
+        return count($items) > 0;
     }
 
     private function listSessionsForOrder(int $orderId, bool $activeOnly): array
@@ -982,24 +1233,100 @@ final class DineCoreGuestApiController
 
     private function collectOrderPersons(int $orderId): array
     {
-        $order = $this->findOrderById($orderId);
-        if ($order === null) {
-            return [];
+        $sessions = $this->listSessionsForOrder($orderId, false);
+        $itemsByCartId = $this->listCartItemsByCartId($orderId, null);
+        $persons = [];
+
+        foreach ($sessions as $session) {
+            $cartId = (string)$session['cart_id'];
+            $items = $itemsByCartId[$cartId] ?? [];
+            if (!$this->shouldExposeSessionInSummaryPayload($session, $items)) {
+                continue;
+            }
+
+            $subtotal = array_reduce($items, fn ($sum, array $item) => $sum + ((int)$item['price'] * (int)$item['quantity']), 0);
+            $serviceFee = (int)round($subtotal * 0.05);
+            $tax = (int)round($subtotal * 0.025);
+            $persons[] = [
+                'cartId' => $cartId,
+                'personSlot' => (int)$session['person_slot'],
+                'guestLabel' => (string)$session['display_label'],
+                'subtotal' => $subtotal,
+                'total' => $subtotal + $serviceFee + $tax,
+                'items' => $items,
+            ];
         }
 
-        $summary = $this->buildCheckoutSummaryForOrder($order);
-        return $summary['persons'];
+        return $persons;
     }
 
-    private function findCartItem(int $orderId, string $cartId, int $cartItemId): ?array
+    private function buildBatchSummaries(int $orderId): array
+    {
+        $sessions = $this->listSessionsForOrder($orderId, false);
+        $stmt = db()->prepare(
+            'SELECT id, batch_no, status, source_session_token, submitted_at, locked_at, created_at, updated_at
+             FROM dinecore_order_batches
+             WHERE order_id = ?
+             ORDER BY batch_no ASC, id ASC'
+        );
+        $stmt->execute([$orderId]);
+        $batches = $stmt->fetchAll() ?: [];
+
+        return array_map(function (array $batch) use ($orderId, $sessions): array {
+            $itemsByCartId = $this->listCartItemsByCartId($orderId, (int)$batch['id']);
+            $persons = [];
+
+            foreach ($sessions as $session) {
+                $cartId = (string)$session['cart_id'];
+                $items = $itemsByCartId[$cartId] ?? [];
+                if (!$this->shouldExposeSessionInSummaryPayload($session, $items)) {
+                    continue;
+                }
+
+                $subtotal = array_reduce($items, fn ($sum, array $item) => $sum + ((int)$item['price'] * (int)$item['quantity']), 0);
+                $persons[] = [
+                    'cartId' => $cartId,
+                    'personSlot' => (int)$session['person_slot'],
+                    'guestLabel' => (string)$session['display_label'],
+                    'subtotal' => $subtotal,
+                    'items' => $items,
+                ];
+            }
+
+            $subtotal = array_reduce($persons, fn ($sum, array $person) => $sum + (int)$person['subtotal'], 0);
+            $itemCount = array_reduce(
+                $persons,
+                fn ($sum, array $person) => $sum + array_reduce(
+                    $person['items'],
+                    fn ($itemSum, array $item) => $itemSum + (int)$item['quantity'],
+                    0
+                ),
+                0
+            );
+
+            return [
+                'id' => (int)$batch['id'],
+                'batchNo' => (int)$batch['batch_no'],
+                'status' => (string)$batch['status'],
+                'sourceSessionToken' => (string)($batch['source_session_token'] ?? ''),
+                'submittedAt' => $batch['submitted_at'] !== null ? (string)$batch['submitted_at'] : null,
+                'lockedAt' => $batch['locked_at'] !== null ? (string)$batch['locked_at'] : null,
+                'itemCount' => $itemCount,
+                'subtotal' => $subtotal,
+                'persons' => $persons,
+            ];
+        }, $batches);
+    }
+
+    private function findCartItem(int $orderId, int $batchId, string $cartId, int $cartItemId): ?array
     {
         $stmt = db()->prepare(
-            'SELECT id, order_id, cart_id, menu_item_id, quantity, note, price, options_json, selected_option_ids_json
+            'SELECT id, order_id, batch_id, cart_id, menu_item_id, quantity, note, price, options_json, selected_option_ids_json
              FROM dinecore_cart_items
-             WHERE id = ? AND order_id = ? AND cart_id = ?
+             WHERE id = ? AND order_id = ? AND batch_id = ? AND cart_id = ?
              LIMIT 1'
         );
-        $stmt->execute([$cartItemId, $orderId, $cartId]);
+        $stmt->execute([$cartItemId, $orderId, $batchId, $cartId]);
         $row = $stmt->fetch();
 
         return $row ?: null;
@@ -1041,6 +1368,11 @@ final class DineCoreGuestApiController
         $code = $error->getMessage();
         if ($code === 'ORDER_NOT_FOUND') {
             $response->notFound('Order not found');
+            return;
+        }
+
+        if ($code === 'ORDERING_SESSION_REQUIRED') {
+            $response->error('ORDERING_SESSION_REQUIRED', 'Ordering session required', 409);
             return;
         }
 

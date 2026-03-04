@@ -7,13 +7,16 @@ const route = useRoute()
 const router = useRouter()
 const checkoutStore = world.store('dineCoreCheckoutStore')
 const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
+
 const state = computed(() => checkoutStore.state)
 const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
-const POLL_INTERVAL_MS = 5000
+const pollIntervalMs = 5000
 let pollTimer = null
 
 async function refreshCheckout() {
+  if (!entryState.value.orderingSessionToken) return
+
   await checkoutStore.load({
     tableCode: tableCode.value,
     orderingSessionToken: entryState.value.orderingSessionToken
@@ -21,10 +24,9 @@ async function refreshCheckout() {
 }
 
 function stopPolling() {
-  if (pollTimer) {
-    window.clearInterval(pollTimer)
-    pollTimer = null
-  }
+  if (!pollTimer) return
+  window.clearInterval(pollTimer)
+  pollTimer = null
 }
 
 function startPolling() {
@@ -35,7 +37,7 @@ function startPolling() {
 
   pollTimer = window.setInterval(() => {
     refreshCheckout()
-  }, POLL_INTERVAL_MS)
+  }, pollIntervalMs)
 }
 
 function handleVisibilityChange() {
@@ -76,6 +78,10 @@ onBeforeUnmount(() => {
 })
 
 async function submitOrder() {
+  if (state.value.itemCount <= 0 || state.value.submitting) {
+    return
+  }
+
   stopPolling()
   const result = await checkoutStore.submit({
     tableCode: tableCode.value,
@@ -89,12 +95,15 @@ async function submitOrder() {
 .mobile-page
   section.bill-card
     .bill-card__head
-      p.bill-card__eyebrow 合併確認
-      h2.bill-card__title 確認訂單
-      p.bill-card__copy
-        | 這一步會把同桌各子購物車合併成一張正式訂單。確認內容正確後，直接送出給店家即可。
+      p.bill-card__eyebrow 結帳確認
+      h2.bill-card__title 合併訂單
+      p.bill-card__copy(v-if="state.currentBatchNo > 0") {{ `目前要送出第 ${state.currentBatchNo} 批` }}
+      p.bill-card__copy 系統會將目前批次內所有顧客的品項一起送出。送出後，後續加點會進入新的草稿批次。
     .bill-row
-      span.bill-row__label 餐點小計
+      span.bill-row__label 品項數
+      strong.bill-row__value {{ state.itemCount }}
+    .bill-row
+      span.bill-row__label 小計
       strong.bill-row__value {{ state.subtotal }}
     .bill-row
       span.bill-row__label 服務費
@@ -103,17 +112,21 @@ async function submitOrder() {
       span.bill-row__label 稅額
       strong.bill-row__value {{ state.tax }}
     .bill-row.is-total
-      span.bill-row__label 訂單總額
+      span.bill-row__label 總計
       strong.bill-row__value {{ state.total }}
-    button.bill-card__action(type="button" :disabled="state.submitting" @click="submitOrder")
-      | {{ state.submitting ? '送單中...' : '送出訂單' }}
+    button.bill-card__action(type="button" :disabled="state.submitting || state.itemCount <= 0" @click="submitOrder")
+      | {{ state.submitting ? '處理中...' : '送出訂單' }}
 
   section.notice-card.is-error(v-if="state.errorMessage")
-    h3.notice-card__title 同步提醒
+    h3.notice-card__title 發生問題
     p.notice-card__copy {{ state.errorMessage }}
 
+  section.notice-card(v-else-if="state.itemCount <= 0")
+    h3.notice-card__title 目前沒有可送出的品項
+    p.notice-card__copy 只要這一批沒有任何商品，系統就不會建立訂單。請先回菜單或購物車加入品項。
+
   section.person-card
-    h3.person-card__title 合併後的子購物車明細
+    h3.person-card__title 本批次明細
     .person-list
       article.person-panel(v-for="person in state.persons" :key="person.cartId")
         .person-panel__head
@@ -121,7 +134,6 @@ async function submitOrder() {
             strong.person-panel__title {{ person.guestLabel }}
             span.person-panel__meta {{ `小計 $${person.subtotal}` }}
           strong.person-panel__total {{ `$${person.total}` }}
-
         .person-panel__items
           article.person-item(v-for="item in person.items" :key="item.id")
             .person-item__head
@@ -133,12 +145,8 @@ async function submitOrder() {
             strong.person-item__price {{ `$${item.price}` }}
 
   section.notice-card
-    h3.notice-card__title 送單說明
-    p.notice-card__copy 系統會每 5 秒同步一次整桌合單內容，避免資料過期。
-    ul.notice-list
-      li 系統不做線上付款，送出後由店家現場處理付款。
-      li 送單後，店家就會看到這張合併後的正式訂單。
-      li 若仍要修改內容，請在送出前回到購物車調整。
+    h3.notice-card__title 同步提示
+    p.notice-card__copy 系統每 5 秒同步一次。若其他顧客先送出，這裡會自動切到新的草稿批次。
 </template>
 
 <style lang="sass">
@@ -158,13 +166,12 @@ async function submitOrder() {
   display: grid
   gap: 14px
 
-.bill-card__copy
-  margin: 0
-  color: var(--dc-text-muted)
-  line-height: 1.7
+.bill-card__head
+  display: grid
+  gap: 8px
 
 .bill-card__eyebrow
-  margin: 0 0 4px
+  margin: 0
   color: #72c8c4
   font-size: 12px
   font-weight: 700
@@ -174,6 +181,11 @@ async function submitOrder() {
 .bill-card__title
   margin: 0
   color: var(--dc-text)
+
+.bill-card__copy
+  margin: 0
+  color: var(--dc-text-muted)
+  line-height: 1.7
 
 .bill-row
   display: flex
@@ -207,10 +219,25 @@ async function submitOrder() {
   font-weight: 700
   cursor: pointer
 
+.bill-card__action:disabled
+  opacity: 1
+  background: #cfd8d6
+  color: #7a8784
+  cursor: not-allowed
+
 .person-card__title,
 .notice-card__title
   margin: 0 0 12px
   color: var(--dc-text)
+
+.notice-card__copy
+  margin: 0
+  color: var(--dc-text-muted)
+  line-height: 1.7
+
+.notice-card.is-error
+  border-color: rgba(220, 104, 89, 0.32)
+  background: rgba(255, 237, 232, 0.9)
 
 .person-list
   display: grid
@@ -271,7 +298,6 @@ async function submitOrder() {
 .person-item__note
   margin: 0
   color: var(--dc-text-muted)
-  line-height: 1.6
 
 .person-item__options
   display: flex
@@ -289,10 +315,4 @@ async function submitOrder() {
 .person-item__price
   color: #21373b
   font-size: 16px
-
-.notice-list
-  margin: 0
-  padding-left: 18px
-  color: #53686c
-  line-height: 1.8
 </style>

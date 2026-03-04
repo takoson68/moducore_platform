@@ -1,4 +1,8 @@
 import world from '@/world.js'
+import {
+  getGuestOrderingSessionToken,
+  setGuestOrderingSessionToken
+} from '@project/api/guestOrderingSession.js'
 import { loadEntryContext, mapEntryError } from './service.js'
 
 export function createEntryStore() {
@@ -18,7 +22,10 @@ export function createEntryStore() {
       orderingLabel: '',
       orderId: '',
       orderNo: '',
-      orderStatus: ''
+      orderStatus: '',
+      currentBatchId: '',
+      currentBatchNo: 0,
+      currentBatchStatus: ''
     },
     actions: {
       setLoading(store, loading) {
@@ -29,11 +36,14 @@ export function createEntryStore() {
       },
       async loadTableContext(store, input) {
         const tableCode = typeof input === 'string' ? input : input?.tableCode
-        const orderingSessionToken =
+        const requestedOrderingSessionToken =
           typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
+        const orderingSessionToken =
+          requestedOrderingSessionToken || getGuestOrderingSessionToken(tableCode)
         store.setLoading(true)
         try {
           const payload = await loadEntryContext(tableCode, orderingSessionToken)
+          setGuestOrderingSessionToken(payload.code || tableCode, payload.ordering_session_token || '')
           store.set({
             ...store.get(),
             loading: false,
@@ -49,7 +59,10 @@ export function createEntryStore() {
             orderingLabel: payload.ordering_label || '',
             orderId: payload.order_id || '',
             orderNo: payload.order_no || '',
-            orderStatus: payload.order_status || ''
+            orderStatus: payload.order_status || '',
+            currentBatchId: payload.current_batch_id || '',
+            currentBatchNo: Number(payload.current_batch_no || 0),
+            currentBatchStatus: payload.current_batch_status || ''
           })
         } catch (error) {
           store.set({
@@ -61,19 +74,27 @@ export function createEntryStore() {
       },
       setTableContext(store, payload = {}) {
         const state = store.get()
+        const nextTableCode = payload.tableCode || state.tableCode
+        const nextOrderingSessionToken = payload.orderingSessionToken || state.orderingSessionToken
+
+        setGuestOrderingSessionToken(nextTableCode, nextOrderingSessionToken)
+
         store.set({
           ...state,
-          tableCode: payload.tableCode || state.tableCode,
+          tableCode: nextTableCode,
           tableName: payload.tableName || state.tableName,
           dineMode: payload.dineMode || state.dineMode,
           tableStatus: payload.tableStatus || state.tableStatus,
-          orderingSessionToken: payload.orderingSessionToken || state.orderingSessionToken,
+          orderingSessionToken: nextOrderingSessionToken,
           orderingCartId: payload.orderingCartId || state.orderingCartId,
           personSlot: payload.personSlot ?? state.personSlot,
           orderingLabel: payload.orderingLabel || state.orderingLabel,
           orderId: payload.orderId || state.orderId,
           orderNo: payload.orderNo || state.orderNo,
           orderStatus: payload.orderStatus || state.orderStatus,
+          currentBatchId: payload.currentBatchId || state.currentBatchId,
+          currentBatchNo: payload.currentBatchNo ?? state.currentBatchNo,
+          currentBatchStatus: payload.currentBatchStatus || state.currentBatchStatus,
           orderingEnabled: typeof payload.orderingEnabled === 'boolean'
             ? payload.orderingEnabled
             : state.orderingEnabled

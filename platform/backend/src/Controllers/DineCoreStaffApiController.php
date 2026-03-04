@@ -9,6 +9,389 @@ use Throwable;
 
 final class DineCoreStaffApiController
 {
+    public function staffTables(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'kitchen', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $stmt = db()->query(
+                'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled
+                 FROM dinecore_tables
+                 ORDER BY code ASC, id ASC'
+            );
+
+            $tables = array_map(fn (array $table): array => [
+                'id' => (int)$table['id'],
+                'code' => (string)$table['code'],
+                'name' => (string)$table['name'],
+                'areaName' => (string)$table['area_name'],
+                'dineMode' => (string)$table['dine_mode'],
+                'status' => (string)$table['status'],
+                'orderingEnabled' => (int)$table['is_ordering_enabled'] === 1,
+            ], $stmt->fetchAll() ?: []);
+
+            $response->ok($tables);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Staff tables failed');
+        }
+    }
+
+    public function counterOrders(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $tableCode = trim((string)($request->query['table_code'] ?? ''));
+            $orderNo = trim((string)($request->query['order_no'] ?? ''));
+            $orderStatus = trim((string)($request->query['order_status'] ?? 'all'));
+            $paymentStatus = trim((string)($request->query['payment_status'] ?? 'all'));
+
+            $sql = 'SELECT id, order_no, table_code, order_status, payment_status, payment_method, total_amount, created_at
+                    FROM dinecore_orders
+                    WHERE EXISTS (
+                        SELECT 1
+                        FROM dinecore_order_batches b
+                        WHERE b.order_id = dinecore_orders.id
+                          AND b.status <> "draft"
+                    )';
+            $params = [];
+
+            if ($tableCode !== '') {
+                $sql .= ' AND table_code LIKE ?';
+                $params[] = '%' . $tableCode . '%';
+            }
+            if ($orderNo !== '') {
+                $sql .= ' AND order_no LIKE ?';
+                $params[] = '%' . $orderNo . '%';
+            }
+            if ($orderStatus !== '' && $orderStatus !== 'all') {
+                $sql .= ' AND order_status = ?';
+                $params[] = $orderStatus;
+            }
+            if ($paymentStatus !== '' && $paymentStatus !== 'all') {
+                $sql .= ' AND payment_status = ?';
+                $params[] = $paymentStatus;
+            }
+
+            $sql .= ' ORDER BY created_at DESC, id DESC';
+            $stmt = db()->prepare($sql);
+            $stmt->execute($params);
+            $orders = $stmt->fetchAll() ?: [];
+
+            $response->ok(array_map(function (array $order): array {
+                $batches = $this->listOrderBatches((int)$order['id']);
+                $activeSessions = $this->listSessionsForOrder((int)$order['id'], true);
+                $visibleBatches = array_values(array_filter(
+                    $batches,
+                    fn (array $batch): bool => (string)$batch['status'] !== 'draft'
+                ));
+                $latestBatch = $visibleBatches !== [] ? $visibleBatches[array_key_last($visibleBatches)] : null;
+
+                return [
+                    'id' => (int)$order['id'],
+                    'orderNo' => (string)$order['order_no'],
+                    'tableCode' => (string)$order['table_code'],
+                    'orderStatus' => (string)$order['order_status'],
+                    'paymentStatus' => (string)$order['payment_status'],
+                    'paymentMethod' => (string)$order['payment_method'],
+                    'totalAmount' => (int)$order['total_amount'],
+                    'guestCount' => count($activeSessions),
+                    'createdAt' => (string)$order['created_at'],
+                    'batchCount' => count($visibleBatches),
+                    'latestBatchNo' => $latestBatch ? (int)$latestBatch['batch_no'] : 0,
+                    'latestBatchStatus' => $latestBatch ? (string)$latestBatch['status'] : '',
+                ];
+            }, $orders));
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter orders failed');
+        }
+    }
+
+    public function counterOrderDetail(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $orderId = (int)($request->query['order_id'] ?? 0);
+        if ($orderId <= 0) {
+            $response->validation('ORDER_ID_REQUIRED');
+            return;
+        }
+
+        try {
+            $order = $this->findOrderById($orderId);
+            if ($order === null) {
+                $response->notFound('ORDER_NOT_FOUND');
+                return;
+            }
+
+            $timeline = $this->loadOrderTimeline($orderId);
+            $batches = $this->buildBatchDetails($orderId);
+            $persons = $this->buildOrderPersons($orderId);
+            $items = [];
+            foreach ($batches as $batch) {
+                foreach ($batch['persons'] as $person) {
+                    foreach ($person['items'] as $item) {
+                        $items[] = array_merge($item, [
+                            'guestLabel' => $person['guestLabel'],
+                            'batchNo' => $batch['batchNo'],
+                            'batchStatus' => $batch['status'],
+                        ]);
+                    }
+                }
+            }
+
+            $response->ok([
+                'order' => [
+                    'id' => (int)$order['id'],
+                    'orderNo' => (string)$order['order_no'],
+                    'tableCode' => (string)$order['table_code'],
+                    'orderStatus' => (string)$order['order_status'],
+                    'paymentStatus' => (string)$order['payment_status'],
+                    'paymentMethod' => (string)$order['payment_method'],
+                    'subtotalAmount' => (int)$order['subtotal_amount'],
+                    'serviceFeeAmount' => (int)$order['service_fee_amount'],
+                    'taxAmount' => (int)$order['tax_amount'],
+                    'totalAmount' => (int)$order['total_amount'],
+                    'createdAt' => (string)$order['created_at'],
+                ],
+                'persons' => $persons,
+                'items' => $items,
+                'batches' => $batches,
+                'timeline' => $timeline,
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter order detail failed');
+        }
+    }
+
+    public function counterUpdateOrderStatus(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $orderId = (int)($request->body['orderId'] ?? $request->body['order_id'] ?? 0);
+        $orderStatus = trim((string)($request->body['orderStatus'] ?? $request->body['order_status'] ?? ''));
+        $note = trim((string)($request->body['note'] ?? ''));
+        $batchId = (int)($request->body['batchId'] ?? $request->body['batch_id'] ?? 0);
+
+        if ($orderId <= 0 || $orderStatus === '') {
+            $response->validation('ORDER_STATUS_REQUIRED');
+            return;
+        }
+
+        try {
+            if ($this->isBusinessDateLockedForOrder($orderId)) {
+                $response->error('BUSINESS_DATE_LOCKED', 'Business date locked', 409);
+                return;
+            }
+
+            $order = $this->findOrderById($orderId);
+            if ($order === null) {
+                $response->notFound('ORDER_NOT_FOUND');
+                return;
+            }
+
+            if ($batchId > 0) {
+                $stmt = db()->prepare(
+                    'UPDATE dinecore_order_batches
+                     SET status = ?, updated_at = NOW()
+                     WHERE id = ? AND order_id = ?'
+                );
+                $stmt->execute([$orderStatus, $batchId, $orderId]);
+                $this->syncOrderStatusFromBatches($orderId);
+            } else {
+                $stmt = db()->prepare(
+                    'UPDATE dinecore_orders
+                     SET order_status = ?, updated_at = NOW()
+                     WHERE id = ?'
+                );
+                $stmt->execute([$orderStatus, $orderId]);
+            }
+
+            $timeline = db()->prepare(
+                'INSERT INTO dinecore_order_timeline (order_id, status, source, note, changed_at)
+                 VALUES (?, ?, ?, ?, NOW())'
+            );
+            $timeline->execute([
+                $orderId,
+                $orderStatus,
+                'counter',
+                $note !== '' ? $note : sprintf('櫃台已更新狀態為 %s', $orderStatus),
+            ]);
+
+            $response->ok([
+                'id' => $orderId,
+                'orderStatus' => $orderStatus,
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter order status update failed');
+        }
+    }
+
+    public function counterUpdatePaymentStatus(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $orderId = (int)($request->body['orderId'] ?? $request->body['order_id'] ?? 0);
+        $paymentStatus = trim((string)($request->body['paymentStatus'] ?? $request->body['payment_status'] ?? ''));
+        if ($orderId <= 0 || $paymentStatus === '') {
+            $response->validation('PAYMENT_STATUS_REQUIRED');
+            return;
+        }
+
+        try {
+            if ($this->isBusinessDateLockedForOrder($orderId)) {
+                $response->error('BUSINESS_DATE_LOCKED', 'Business date locked', 409);
+                return;
+            }
+
+            $order = $this->findOrderById($orderId);
+            if ($order === null) {
+                $response->notFound('ORDER_NOT_FOUND');
+                return;
+            }
+
+            $paymentMethod = $paymentStatus === 'paid' ? 'cash' : 'unpaid';
+            $stmt = db()->prepare(
+                'UPDATE dinecore_orders
+                 SET payment_status = ?, payment_method = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([$paymentStatus, $paymentMethod, $orderId]);
+
+            $sessionStatus = $paymentStatus === 'paid' ? 'expired' : 'active';
+            $sessionStmt = db()->prepare(
+                'UPDATE dinecore_guest_sessions
+                 SET status = ?, last_seen_at = NOW()
+                 WHERE order_id = ?'
+            );
+            $sessionStmt->execute([$sessionStatus, $orderId]);
+
+            $timeline = db()->prepare(
+                'INSERT INTO dinecore_order_timeline (order_id, status, source, note, changed_at)
+                 VALUES (?, ?, ?, ?, NOW())'
+            );
+            $timeline->execute([
+                $orderId,
+                (string)$order['order_status'],
+                'counter',
+                sprintf('櫃台已更新付款狀態為 %s', $paymentStatus),
+            ]);
+
+            $response->ok([
+                'id' => $orderId,
+                'paymentStatus' => $paymentStatus,
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter payment update failed');
+        }
+    }
+
+    public function kitchenOrders(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['kitchen', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $stmt = db()->query(
+                'SELECT b.id, b.order_id, b.batch_no, b.status, b.submitted_at,
+                        o.order_no, o.table_code, o.estimated_wait_minutes, o.created_at
+                 FROM dinecore_order_batches b
+                 INNER JOIN dinecore_orders o ON o.id = b.order_id
+                 WHERE b.status IN ("pending", "submitted", "preparing", "ready")
+                 ORDER BY COALESCE(b.submitted_at, o.created_at) ASC, b.id ASC'
+            );
+            $rows = $stmt->fetchAll() ?: [];
+
+            $response->ok(array_map(function (array $row): array {
+                $items = $this->listBatchItems((int)$row['order_id'], (int)$row['id']);
+                return [
+                    'id' => (int)$row['id'],
+                    'orderId' => (int)$row['order_id'],
+                    'orderNo' => (string)$row['order_no'],
+                    'tableCode' => (string)$row['table_code'],
+                    'orderStatus' => (string)$row['status'],
+                    'batchNo' => (int)$row['batch_no'],
+                    'createdAt' => (string)($row['submitted_at'] ?? $row['created_at']),
+                    'waitLabel' => sprintf('%d min', (int)($row['estimated_wait_minutes'] ?? 0)),
+                    'items' => $items,
+                ];
+            }, $rows));
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Kitchen orders failed');
+        }
+    }
+
+    public function kitchenUpdateOrderStatus(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['kitchen', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $batchId = (int)($request->body['batchId'] ?? $request->body['batch_id'] ?? $request->body['orderId'] ?? $request->body['order_id'] ?? 0);
+        $orderStatus = trim((string)($request->body['orderStatus'] ?? $request->body['order_status'] ?? ''));
+        if ($batchId <= 0 || $orderStatus === '') {
+            $response->validation('KITCHEN_STATUS_REQUIRED');
+            return;
+        }
+
+        try {
+            $batch = $this->findBatchById($batchId);
+            if ($batch === null) {
+                $response->notFound('ORDER_NOT_FOUND');
+                return;
+            }
+
+            if ($this->isBusinessDateLockedForOrder((int)$batch['order_id'])) {
+                $response->error('BUSINESS_DATE_LOCKED', 'Business date locked', 409);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'UPDATE dinecore_order_batches
+                 SET status = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([$orderStatus, $batchId]);
+            $this->syncOrderStatusFromBatches((int)$batch['order_id']);
+
+            $timeline = db()->prepare(
+                'INSERT INTO dinecore_order_timeline (order_id, status, source, note, changed_at)
+                 VALUES (?, ?, ?, ?, NOW())'
+            );
+            $timeline->execute([
+                (int)$batch['order_id'],
+                $orderStatus,
+                'kitchen',
+                sprintf('廚房已更新第 %d 批狀態為 %s', (int)$batch['batch_no'], $orderStatus),
+            ]);
+
+            $response->ok([
+                'id' => $batchId,
+                'orderStatus' => $orderStatus,
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Kitchen order status update failed');
+        }
+    }
+
     public function reportsSummary(Request $request, Response $response): void
     {
         $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
@@ -53,7 +436,7 @@ final class DineCoreStaffApiController
 
         try {
             $businessDate = $this->resolveBusinessDate($request);
-            $response->ok($this->buildAuditSummaryPayload($businessDate));
+            $response->ok($this->buildAuditSummaryPayloadV2($businessDate));
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Audit summary failed');
         }
@@ -109,7 +492,7 @@ final class DineCoreStaffApiController
         $reasonType = trim((string)($request->body['reason_type'] ?? $request->body['reasonType'] ?? 'daily_close'));
 
         try {
-            $summary = $this->buildAuditSummaryPayload($businessDate);
+            $summary = $this->buildAuditSummaryPayloadV2($businessDate);
             if (($summary['lockState']['isLocked'] ?? false) === true) {
                 $response->error('BUSINESS_DATE_ALREADY_CLOSED', 'Business date already closed', 409);
                 return;
@@ -281,7 +664,12 @@ final class DineCoreStaffApiController
     {
         $sql = 'SELECT id, order_no, table_code, created_at, order_status, payment_status, payment_method, total_amount
                 FROM dinecore_orders
-                WHERE 1 = 1';
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM dinecore_order_batches b
+                    WHERE b.order_id = dinecore_orders.id
+                      AND b.status <> "draft"
+                )';
         $params = [];
 
         if ($filters['date_from'] !== '') {
@@ -360,6 +748,8 @@ final class DineCoreStaffApiController
             'SELECT ci.menu_item_id, ci.title AS item_name, SUM(ci.quantity) AS quantity, SUM(ci.quantity * ci.price) AS gross_sales
              FROM dinecore_cart_items ci
              JOIN dinecore_orders o ON o.id = ci.order_id
+             JOIN dinecore_order_batches b ON b.id = ci.batch_id
+             WHERE b.status <> "draft"
              GROUP BY ci.menu_item_id, ci.title
              ORDER BY quantity DESC, gross_sales DESC
              LIMIT 5'
@@ -391,8 +781,10 @@ final class DineCoreStaffApiController
     {
         $itemCountStmt = db()->prepare(
             'SELECT COALESCE(SUM(quantity), 0) AS total_items
-             FROM dinecore_cart_items
-             WHERE order_id = ?'
+             FROM dinecore_cart_items ci
+             JOIN dinecore_order_batches b ON b.id = ci.batch_id
+             WHERE ci.order_id = ?
+               AND b.status <> "draft"'
         );
         $itemCountStmt->execute([(int)$order['id']]);
         $itemCount = (int)($itemCountStmt->fetch()['total_items'] ?? 0);
@@ -437,6 +829,68 @@ final class DineCoreStaffApiController
             'SELECT id, order_no, order_status, payment_status, total_amount
              FROM dinecore_orders
              WHERE DATE(created_at) = ?'
+        );
+        $stmt->execute([$businessDate]);
+        $orders = $stmt->fetchAll() ?: [];
+
+        $grossSales = array_reduce($orders, fn ($sum, array $order) => $sum + (int)$order['total_amount'], 0);
+        $paidAmount = array_reduce($orders, fn ($sum, array $order) => $sum + ((string)$order['payment_status'] === 'paid' ? (int)$order['total_amount'] : 0), 0);
+        $unpaidOrders = array_values(array_filter($orders, fn (array $order) => (string)$order['payment_status'] !== 'paid'));
+        $unfinishedOrders = array_values(array_filter($orders, fn (array $order) => !in_array((string)$order['order_status'], ['picked_up', 'cancelled'], true)));
+        $closing = $this->findClosingByDate($businessDate);
+        $isLocked = $closing !== null && (string)$closing['status'] === 'closed';
+
+        $blockingIssues = [];
+        if ($unpaidOrders !== []) {
+            $blockingIssues[] = [
+                'type' => 'unpaid_orders',
+                'label' => '仍有未付款訂單',
+                'count' => count($unpaidOrders),
+                'orderIds' => array_map(fn (array $order) => (int)$order['id'], $unpaidOrders),
+            ];
+        }
+        if ($unfinishedOrders !== []) {
+            $blockingIssues[] = [
+                'type' => 'unfinished_orders',
+                'label' => '仍有未完成訂單',
+                'count' => count($unfinishedOrders),
+                'orderIds' => array_map(fn (array $order) => (int)$order['id'], $unfinishedOrders),
+            ];
+        }
+
+        return [
+            'closingSummary' => [
+                'businessDate' => $businessDate,
+                'grossSales' => $grossSales,
+                'paidAmount' => $paidAmount,
+                'unpaidAmount' => $grossSales - $paidAmount,
+                'orderCount' => count($orders),
+                'unfinishedOrderCount' => count($unfinishedOrders),
+                'closeStatus' => $isLocked ? 'closed' : (($closing && (string)$closing['status'] === 'reopened') ? 'reopened' : 'open'),
+                'closedAt' => (string)($closing['closed_at'] ?? ''),
+                'closedBy' => $this->resolveClosingUserName($closing),
+            ],
+            'blockingIssues' => $blockingIssues,
+            'lockState' => [
+                'businessDate' => $businessDate,
+                'isLocked' => $isLocked,
+                'lockedScopes' => $this->decodeJsonArray($closing['locked_scopes_json'] ?? '[]'),
+            ],
+        ];
+    }
+
+    private function buildAuditSummaryPayloadV2(string $businessDate): array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, order_no, order_status, payment_status, total_amount
+             FROM dinecore_orders
+             WHERE DATE(created_at) = ?
+               AND EXISTS (
+                   SELECT 1
+                   FROM dinecore_order_batches b
+                   WHERE b.order_id = dinecore_orders.id
+                     AND b.status <> "draft"
+               )'
         );
         $stmt->execute([$businessDate]);
         $orders = $stmt->fetchAll() ?: [];
@@ -536,6 +990,258 @@ final class DineCoreStaffApiController
         );
         $stmt->execute([(int)$closing['closed_by_user_id']]);
         return (string)($stmt->fetch()['display_name'] ?? '');
+    }
+
+    private function findOrderById(int $orderId): ?array
+    {
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        $stmt = db()->prepare(
+            'SELECT id, order_no, table_code, order_status, payment_status, payment_method, estimated_wait_minutes,
+                    subtotal_amount, service_fee_amount, tax_amount, total_amount, created_at, updated_at
+             FROM dinecore_orders
+             WHERE id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$orderId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
+    private function findBatchById(int $batchId): ?array
+    {
+        if ($batchId <= 0) {
+            return null;
+        }
+
+        $stmt = db()->prepare(
+            'SELECT id, order_id, batch_no, status, source_session_token, submitted_at, locked_at, created_at, updated_at
+             FROM dinecore_order_batches
+             WHERE id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$batchId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
+    private function listOrderBatches(int $orderId): array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, order_id, batch_no, status, source_session_token, submitted_at, locked_at, created_at, updated_at
+             FROM dinecore_order_batches
+             WHERE order_id = ?
+             ORDER BY batch_no ASC, id ASC'
+        );
+        $stmt->execute([$orderId]);
+        return $stmt->fetchAll() ?: [];
+    }
+
+    private function listSessionsForOrder(int $orderId, bool $activeOnly): array
+    {
+        $sql = 'SELECT id, session_token, table_code, order_id, person_slot, cart_id, display_label, status
+                FROM dinecore_guest_sessions
+                WHERE order_id = ?';
+        if ($activeOnly) {
+            $sql .= ' AND status <> ?';
+        }
+        $sql .= ' ORDER BY person_slot ASC, id ASC';
+
+        $stmt = db()->prepare($sql);
+        $stmt->execute($activeOnly ? [$orderId, 'expired'] : [$orderId]);
+
+        return $stmt->fetchAll() ?: [];
+    }
+
+    private function listCartItemsByCartId(int $orderId, ?int $batchId = null): array
+    {
+        $sql = 'SELECT id, cart_id, title, quantity, price, note, options_json
+                FROM dinecore_cart_items
+                WHERE order_id = ?';
+        $params = [$orderId];
+
+        if ($batchId !== null) {
+            $sql .= ' AND batch_id = ?';
+            $params[] = $batchId;
+        }
+
+        $sql .= ' ORDER BY id ASC';
+        $stmt = db()->prepare($sql);
+        $stmt->execute($params);
+
+        $itemsByCartId = [];
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            $itemsByCartId[(string)$row['cart_id']][] = [
+                'id' => (int)$row['id'],
+                'title' => (string)$row['title'],
+                'quantity' => (int)$row['quantity'],
+                'price' => (int)$row['price'],
+                'note' => (string)($row['note'] ?? ''),
+                'options' => $this->decodeJsonArray($row['options_json'] ?? '[]'),
+            ];
+        }
+
+        return $itemsByCartId;
+    }
+
+    private function buildOrderPersons(int $orderId): array
+    {
+        $sessions = $this->listSessionsForOrder($orderId, false);
+        $itemsByCartId = $this->listCartItemsByCartId($orderId, null);
+        $persons = [];
+
+        foreach ($sessions as $session) {
+            $cartId = (string)$session['cart_id'];
+            $items = $itemsByCartId[$cartId] ?? [];
+            if ($items === []) {
+                continue;
+            }
+
+            $subtotal = array_reduce($items, fn ($sum, array $item) => $sum + ((int)$item['price'] * (int)$item['quantity']), 0);
+            $serviceFee = (int)round($subtotal * 0.05);
+            $tax = (int)round($subtotal * 0.025);
+            $persons[] = [
+                'cartId' => $cartId,
+                'guestLabel' => (string)$session['display_label'],
+                'subtotal' => $subtotal,
+                'total' => $subtotal + $serviceFee + $tax,
+            ];
+        }
+
+        return $persons;
+    }
+
+    private function buildBatchDetails(int $orderId): array
+    {
+        $sessions = $this->listSessionsForOrder($orderId, false);
+        $visibleBatches = array_values(array_filter(
+            $this->listOrderBatches($orderId),
+            fn (array $batch): bool => (string)$batch['status'] !== 'draft'
+        ));
+
+        return array_map(function (array $batch) use ($orderId, $sessions): array {
+            $itemsByCartId = $this->listCartItemsByCartId($orderId, (int)$batch['id']);
+            $persons = [];
+
+            foreach ($sessions as $session) {
+                $cartId = (string)$session['cart_id'];
+                $items = $itemsByCartId[$cartId] ?? [];
+                if ($items === []) {
+                    continue;
+                }
+
+                $subtotal = array_reduce($items, fn ($sum, array $item) => $sum + ((int)$item['price'] * (int)$item['quantity']), 0);
+                $persons[] = [
+                    'cartId' => $cartId,
+                    'guestLabel' => (string)$session['display_label'],
+                    'subtotal' => $subtotal,
+                    'items' => $items,
+                ];
+            }
+
+            $subtotal = array_reduce($persons, fn ($sum, array $person) => $sum + (int)$person['subtotal'], 0);
+            $itemCount = array_reduce(
+                $persons,
+                fn ($sum, array $person) => $sum + array_reduce(
+                    $person['items'],
+                    fn ($itemSum, array $item) => $itemSum + (int)$item['quantity'],
+                    0
+                ),
+                0
+            );
+
+            return [
+                'id' => (int)$batch['id'],
+                'batchNo' => (int)$batch['batch_no'],
+                'status' => (string)$batch['status'],
+                'submittedAt' => $batch['submitted_at'] !== null ? (string)$batch['submitted_at'] : null,
+                'lockedAt' => $batch['locked_at'] !== null ? (string)$batch['locked_at'] : null,
+                'itemCount' => $itemCount,
+                'subtotal' => $subtotal,
+                'persons' => $persons,
+            ];
+        }, $visibleBatches);
+    }
+
+    private function loadOrderTimeline(int $orderId): array
+    {
+        $stmt = db()->prepare(
+            'SELECT status, source, note, changed_at
+             FROM dinecore_order_timeline
+             WHERE order_id = ?
+             ORDER BY changed_at ASC, id ASC'
+        );
+        $stmt->execute([$orderId]);
+
+        return array_map(fn (array $row) => [
+            'status' => (string)$row['status'],
+            'source' => (string)$row['source'],
+            'note' => (string)$row['note'],
+            'changed_at' => (string)$row['changed_at'],
+        ], $stmt->fetchAll() ?: []);
+    }
+
+    private function listBatchItems(int $orderId, int $batchId): array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, title, quantity, note, options_json
+             FROM dinecore_cart_items
+             WHERE order_id = ? AND batch_id = ?
+             ORDER BY id ASC'
+        );
+        $stmt->execute([$orderId, $batchId]);
+
+        return array_map(fn (array $row) => [
+            'id' => (int)$row['id'],
+            'title' => (string)$row['title'],
+            'quantity' => (int)$row['quantity'],
+            'note' => (string)($row['note'] ?? ''),
+            'options' => $this->decodeJsonArray($row['options_json'] ?? '[]'),
+        ], $stmt->fetchAll() ?: []);
+    }
+
+    private function syncOrderStatusFromBatches(int $orderId): void
+    {
+        $stmt = db()->prepare(
+            'SELECT status
+             FROM dinecore_order_batches
+             WHERE order_id = ? AND status <> ?
+             ORDER BY batch_no DESC, id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$orderId, 'draft']);
+        $status = (string)($stmt->fetch()['status'] ?? 'draft');
+        if ($status === 'submitted') {
+            $status = 'pending';
+        }
+
+        $update = db()->prepare(
+            'UPDATE dinecore_orders
+             SET order_status = ?, updated_at = NOW()
+             WHERE id = ?'
+        );
+        $update->execute([$status, $orderId]);
+    }
+
+    private function isBusinessDateLockedForOrder(int $orderId): bool
+    {
+        $order = $this->findOrderById($orderId);
+        if ($order === null) {
+            return false;
+        }
+
+        $stmt = db()->prepare(
+            'SELECT status
+             FROM dinecore_business_closings
+             WHERE business_date = DATE(?) 
+             LIMIT 1'
+        );
+        $stmt->execute([(string)$order['created_at']]);
+        return (string)($stmt->fetch()['status'] ?? '') === 'closed';
     }
 
     private function decodeJsonArray(mixed $raw): array

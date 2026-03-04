@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import world from '@/world.js'
 
@@ -7,13 +7,50 @@ const counterStore = world.store('dineCoreCounterStore')
 const state = computed(() => counterStore.state)
 
 const statusLabels = {
-  pending: '待處理',
+  draft: '草稿',
+  pending: '待送出',
+  submitted: '已送出',
   preparing: '製作中',
   ready: '可取餐',
   picked_up: '已取餐',
   cancelled: '已取消',
   unpaid: '未付款',
   paid: '已付款'
+}
+
+const tableOptions = computed(() => {
+  const codes = new Set()
+
+  for (const table of state.value.tables || []) {
+    const code = String(table?.code || '').trim()
+    if (code) codes.add(code)
+  }
+
+  for (const order of state.value.orders || []) {
+    const code = String(order?.tableCode || '').trim()
+    if (code) codes.add(code)
+  }
+
+  const currentCode = String(state.value.filters.tableCode || '').trim()
+  if (currentCode) codes.add(currentCode)
+
+  return [''].concat(Array.from(codes).sort((a, b) => a.localeCompare(b)))
+})
+
+let pollTimer = null
+
+function startPolling() {
+  stopPolling()
+  pollTimer = window.setInterval(() => {
+    counterStore.load()
+  }, 5000)
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = null
+  }
 }
 
 watch(
@@ -24,11 +61,19 @@ watch(
   { immediate: true, deep: true }
 )
 
+onMounted(() => {
+  startPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
+})
+
 async function markPreparing(orderId) {
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'preparing',
-    note: '櫃台已將訂單標記為製作中'
+    note: '櫃台已確認訂單並通知開始製作'
   })
 }
 
@@ -36,7 +81,7 @@ async function markReady(orderId) {
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'ready',
-    note: '櫃台已將訂單標記為可取餐'
+    note: '櫃台已確認本批次可取餐'
   })
 }
 
@@ -51,9 +96,9 @@ async function markPaid(orderId) {
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow 櫃台模組
-    h2 櫃台訂單工作台
-    p.lead 在這裡快速過濾訂單、更新狀態，並進入明細查看客製內容與付款狀態。
+    p.eyebrow Counter
+    h2 櫃台訂單總覽
+    p.lead 查看目前已送出的訂單，快速確認桌號、共桌人數、最新批次狀態與付款狀態。
 
   section.error-card(v-if="state.error")
     p {{ state.error }}
@@ -61,11 +106,12 @@ async function markPaid(orderId) {
   section.filter-grid
     label.field-card
       span.info-label 桌號
-      input.field-input(
-        type="text"
+      select.field-input(
         :value="state.filters.tableCode"
-        @input="counterStore.setFilters({ tableCode: $event.target.value })"
+        @change="counterStore.setFilters({ tableCode: $event.target.value })"
       )
+        option(value="") 全部桌號
+        option(v-for="tableCode in tableOptions.filter(code => code !== '')" :key="tableCode" :value="tableCode") {{ tableCode }}
     label.field-card
       span.info-label 訂單編號
       input.field-input(
@@ -80,7 +126,8 @@ async function markPaid(orderId) {
         @change="counterStore.setFilters({ orderStatus: $event.target.value })"
       )
         option(value="all") 全部
-        option(value="pending") 待處理
+        option(value="pending") 待送出
+        option(value="submitted") 已送出
         option(value="preparing") 製作中
         option(value="ready") 可取餐
         option(value="picked_up") 已取餐
@@ -95,23 +142,30 @@ async function markPaid(orderId) {
         option(value="unpaid") 未付款
         option(value="paid") 已付款
 
-  section.order-grid
+  section.order-grid(v-if="state.orders.length > 0")
     article.order-card(v-for="order in state.orders" :key="order.id")
       .order-card__head
         strong.order-card__title {{ order.orderNo }}
         span.order-card__badge(:class="`is-${order.orderStatus}`") {{ statusLabels[order.orderStatus] || order.orderStatus }}
       .order-card__meta
         span {{ `桌號 ${order.tableCode}` }}
-        span {{ `${order.guestCount} 人` }}
+        span {{ `${order.guestCount} 位顧客` }}
       .order-card__meta
-        span {{ `付款 ${statusLabels[order.paymentStatus] || order.paymentStatus}` }}
+        span {{ `最新批次：第 ${order.latestBatchNo || 0} 批 / ${statusLabels[order.latestBatchStatus] || order.latestBatchStatus || '無資料'}` }}
+        span {{ `批次數 ${order.batchCount || 0}` }}
+      .order-card__meta
+        span {{ `付款：${statusLabels[order.paymentStatus] || order.paymentStatus}` }}
         strong {{ `NT$ ${order.totalAmount}` }}
       p.order-card__time {{ order.createdAt }}
       .order-card__actions
-        button.quick-action(type="button" :disabled="order.orderStatus === 'preparing'" @click="markPreparing(order.id)") 製作中
-        button.quick-action(type="button" :disabled="order.orderStatus === 'ready'" @click="markReady(order.id)") 可取餐
-        button.quick-action(type="button" :disabled="order.paymentStatus === 'paid'" @click="markPaid(order.id)") 已付款
-        RouterLink.detail-link(:to="`/staff/counter/orders/${order.id}`") 詳情
+        button.quick-action(type="button" :disabled="order.orderStatus === 'preparing'" @click="markPreparing(order.id)") 標記製作中
+        button.quick-action(type="button" :disabled="order.orderStatus === 'ready'" @click="markReady(order.id)") 標記可取餐
+        button.quick-action(type="button" :disabled="order.paymentStatus === 'paid'" @click="markPaid(order.id)") 標記已付款
+        RouterLink.detail-link(:to="`/staff/counter/orders/${order.id}`") 查看明細
+
+  section.empty-card(v-else)
+    p.empty-card__title 目前沒有可顯示的訂單
+    p.empty-card__text 只有已送出的有效訂單會出現在這裡，空草稿或未完成資料不會列入櫃台總覽。
 </template>
 
 <style lang="sass">
@@ -119,7 +173,7 @@ async function markPaid(orderId) {
   display: grid
   gap: 18px
 
-.panel-card, .field-card, .order-card, .error-card
+.panel-card, .field-card, .order-card, .error-card, .empty-card
   padding: 22px
   border-radius: 22px
   background: rgba(255, 255, 255, 0.88)
@@ -173,7 +227,6 @@ async function markPaid(orderId) {
 .order-card
   display: grid
   gap: 10px
-  color: inherit
 
 .order-card__head, .order-card__meta
   display: flex
@@ -192,7 +245,7 @@ async function markPaid(orderId) {
   font-size: 12px
   font-weight: 700
 
-.order-card__badge.is-pending
+.order-card__badge.is-pending, .order-card__badge.is-submitted
   background: rgba(255, 196, 113, 0.18)
   color: #a55a11
 
@@ -200,7 +253,7 @@ async function markPaid(orderId) {
   background: rgba(121, 214, 207, 0.16)
   color: #287a76
 
-.order-card__badge.is-ready
+.order-card__badge.is-ready, .order-card__badge.is-picked_up
   background: rgba(45, 199, 98, 0.14)
   color: #18834a
 
@@ -210,6 +263,7 @@ async function markPaid(orderId) {
 
 .order-card__meta
   color: #647a7d
+  font-size: 14px
 
 .order-card__time
   margin: 0
@@ -238,6 +292,21 @@ async function markPaid(orderId) {
 .detail-link
   background: rgba(140, 90, 31, 0.1)
   color: #8c5a1f
+
+.empty-card
+  display: grid
+  gap: 6px
+
+.empty-card__title
+  margin: 0
+  color: #21393d
+  font-size: 18px
+  font-weight: 800
+
+.empty-card__text
+  margin: 0
+  color: #6f7f82
+  line-height: 1.6
 
 @media (max-width: 960px)
   .filter-grid

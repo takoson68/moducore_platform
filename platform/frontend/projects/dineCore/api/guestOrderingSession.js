@@ -10,7 +10,7 @@ export function getGuestOrderingSessionToken(tableCode) {
   }
 
   try {
-    return String(window.sessionStorage.getItem(buildStorageKey(tableCode)) || '')
+    return String(window.localStorage.getItem(buildStorageKey(tableCode)) || '')
   } catch {
     return ''
   }
@@ -24,12 +24,12 @@ export function setGuestOrderingSessionToken(tableCode, token) {
   try {
     const storageKey = buildStorageKey(tableCode)
     if (!token) {
-      window.sessionStorage.removeItem(storageKey)
+      window.localStorage.removeItem(storageKey)
       return
     }
 
-    window.sessionStorage.setItem(storageKey, String(token))
+    window.localStorage.setItem(storageKey, String(token))
   } catch {
-    // ignore sessionStorage failures in mock mode
+    // ignore browser storage failures in mock mode
   }
 }

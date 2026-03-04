@@ -1,30 +1,15 @@
 <script setup>
 import { computed, watch } from 'vue'
 import world from '@/world.js'
-import { buildReportsCsv } from '../service.js'
+import {
+  buildReportsCsv,
+  reportPaymentMethodLabels,
+  reportPaymentStatusLabels,
+  reportStatusLabels
+} from '../service.js'
 
 const reportsStore = world.store('dineCoreReportsStore')
 const state = computed(() => reportsStore.state)
-
-const statusLabels = {
-  pending: '待處理',
-  preparing: '製作中',
-  ready: '可取餐',
-  picked_up: '已取餐',
-  cancelled: '已取消'
-}
-
-const paymentStatusLabels = {
-  unpaid: '未付款',
-  paid: '已付款'
-}
-
-const paymentMethodLabels = {
-  cash: '現金',
-  counter_card: '櫃台刷卡',
-  other: '其他',
-  unpaid: '未付款'
-}
 
 watch(
   () => ({ ...state.value.filters }),
@@ -57,14 +42,14 @@ function downloadCsv() {
   section.panel-card
     .panel-card__head
       .panel-card__copy
-        p.eyebrow 營運報表
-        h2 門市營運查詢
-        p.lead 這裡集中顯示營收摘要、付款分布、品項排行與訂單查詢。頁面只讀取報表投影資料，不承擔櫃台操作。
+        p.eyebrow Reports
+        h2 營運報表
+        p.lead 可依日期、訂單狀態與付款條件過濾主單資料，並匯出 CSV 供後續對帳或管理分析。
       button.ghost-button(type="button" :disabled="state.orderRows.length === 0" @click="downloadCsv()") 匯出 CSV
 
   section.filter-grid
     label.field-card
-      span.info-label 起始日期
+      span.info-label 開始日期
       input.field-input(
         type="date"
         :value="state.filters.dateFrom"
@@ -85,7 +70,7 @@ function downloadCsv() {
       )
         option(value="all") 全部
         option(value="pending") 待處理
-        option(value="preparing") 製作中
+        option(value="preparing") 備餐中
         option(value="ready") 可取餐
         option(value="picked_up") 已取餐
         option(value="cancelled") 已取消
@@ -113,15 +98,15 @@ function downloadCsv() {
       input.field-input(
         type="text"
         :value="state.filters.keyword"
-        placeholder="輸入訂單編號或桌號"
+        placeholder="可搜尋訂單編號或桌號"
         @input="reportsStore.setFilters({ keyword: $event.target.value })"
       )
     .filter-actions
-      button.ghost-button(type="button" @click="reportsStore.resetFilters()") 重設篩選
-      span.filter-hint(v-if="state.lastLoadedAt") {{ `最近更新 ${state.lastLoadedAt}` }}
+      button.ghost-button(type="button" @click="reportsStore.resetFilters()") 重設條件
+      span.filter-hint(v-if="state.lastLoadedAt") {{ `最後更新：${state.lastLoadedAt}` }}
 
   section.loading-card(v-if="state.loading")
-    p 載入報表中...
+    p 正在載入報表資料...
 
   section.error-card(v-else-if="state.error")
     p {{ `報表載入失敗：${state.error}` }}
@@ -130,44 +115,44 @@ function downloadCsv() {
     section.stat-grid
       article.info-card
         span.info-label 營業日
-        strong.info-value {{ state.summary.businessDate || '未提供' }}
+        strong.info-value {{ state.summary.businessDate || '未指定' }}
       article.info-card
         span.info-label 總營收
         strong.info-value {{ `NT$ ${state.summary.grossSales}` }}
       article.info-card
-        span.info-label 訂單數
+        span.info-label 主單數
         strong.info-value {{ state.summary.orderCount }}
       article.info-card
-        span.info-label 已付款
+        span.info-label 已付款金額
         strong.info-value {{ `NT$ ${state.summary.paidAmount}` }}
       article.info-card
-        span.info-label 未付款
+        span.info-label 未付款金額
         strong.info-value {{ `NT$ ${state.summary.unpaidAmount}` }}
       article.info-card
-        span.info-label 平均客單
+        span.info-label 平均客單價
         strong.info-value {{ `NT$ ${state.summary.averageOrderValue}` }}
 
     section.breakdown-grid
       article.breakdown-card
         h3.breakdown-card__title 訂單狀態分布
-        .breakdown-row(v-for="(label, key) in statusLabels" :key="key")
+        .breakdown-row(v-for="(label, key) in reportStatusLabels" :key="key")
           span {{ label }}
           strong {{ state.statusBreakdown[key] || 0 }}
       article.breakdown-card
         h3.breakdown-card__title 付款方式分布
-        .breakdown-row(v-for="(label, key) in paymentMethodLabels" :key="key")
+        .breakdown-row(v-for="(label, key) in reportPaymentMethodLabels" :key="key")
           span {{ label }}
           strong {{ state.paymentBreakdown[key] || 0 }}
 
     section.rank-card(v-if="state.topItems.length > 0")
-      h3.rank-card__title 品項銷售排行
+      h3.rank-card__title 熱門品項
       .rank-item(v-for="item in state.topItems" :key="item.itemId || item.itemName")
         .rank-item__main
           strong {{ item.itemName }}
           span {{ `${item.quantity} 份` }}
         strong.rank-item__value {{ `NT$ ${item.grossSales}` }}
     section.empty-card(v-else)
-      p 目前沒有可顯示的品項排行資料。
+      p 目前沒有符合條件的熱門品項資料。
 
     section.table-card(v-if="state.orderRows.length > 0")
       .table-card__head
@@ -178,18 +163,18 @@ function downloadCsv() {
           span 訂單編號
           span 桌號
           span 訂單狀態
-          span 付款
+          span 付款資訊
           span 建立時間
-          span 金額
+          span 總金額
         .report-table__row(v-for="order in state.orderRows" :key="order.orderId")
           strong {{ order.orderNo }}
           span {{ order.tableCode }}
-          span {{ statusLabels[order.status] || order.status }}
-          span {{ `${paymentStatusLabels[order.paymentStatus] || order.paymentStatus} / ${paymentMethodLabels[order.paymentMethod] || order.paymentMethod}` }}
+          span {{ reportStatusLabels[order.status] || order.status }}
+          span {{ `${reportPaymentStatusLabels[order.paymentStatus] || order.paymentStatus} / ${reportPaymentMethodLabels[order.paymentMethod] || order.paymentMethod}` }}
           span {{ order.createdAt }}
           strong {{ `NT$ ${order.totalAmount}` }}
     section.empty-card(v-else)
-      p 目前沒有符合條件的訂單資料。
+      p 目前沒有符合條件的報表主單資料。
 </template>
 
 <style lang="sass">
@@ -267,6 +252,10 @@ function downloadCsv() {
   color: #8c5a1f
   font-weight: 700
   cursor: pointer
+
+.ghost-button:disabled
+  opacity: 0.45
+  cursor: default
 
 .filter-hint
   color: #7b8d90
@@ -364,26 +353,21 @@ function downloadCsv() {
     grid-template-columns: repeat(2, minmax(0, 1fr))
 
   .field-card--wide
-    grid-column: span 1
+    grid-column: span 2
 
-  .stat-grid
-    grid-template-columns: repeat(2, minmax(0, 1fr))
+  .stat-grid, .breakdown-grid
+    grid-template-columns: 1fr
 
   .report-table__head, .report-table__row
-    grid-template-columns: repeat(3, minmax(0, 1fr))
+    grid-template-columns: repeat(2, minmax(0, 1fr))
 
-@media (max-width: 720px)
-  .filter-grid, .stat-grid, .breakdown-grid
+@media (max-width: 640px)
+  .filter-grid
     grid-template-columns: 1fr
 
-  .filter-actions
-    flex-direction: column
-    align-items: flex-start
+  .field-card--wide
+    grid-column: span 1
 
-  .report-table__head
-    display: none
-
-  .report-table__row
-    grid-template-columns: 1fr
-    gap: 6px
+  .panel-card__head, .filter-actions
+    display: grid
 </style>

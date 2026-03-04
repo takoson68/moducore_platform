@@ -1,5 +1,6 @@
 import world from '@/world.js'
 import {
+  loadCounterTables,
   loadCounterOrderDetail,
   loadCounterOrders,
   updateCounterOrderStatus,
@@ -17,6 +18,7 @@ export function createCounterStore() {
         paymentStatus: 'all'
       },
       error: '',
+      tables: [],
       orders: [],
       selectedOrderId: null,
       detail: null
@@ -25,10 +27,14 @@ export function createCounterStore() {
       async load(store) {
         const state = store.get()
         try {
-          const orders = await loadCounterOrders(state.filters)
+          const [tables, orders] = await Promise.all([
+            loadCounterTables(),
+            loadCounterOrders(state.filters)
+          ])
           store.set({
             ...state,
             error: '',
+            tables,
             orders
           })
         } catch (error) {

@@ -3,7 +3,7 @@ export const routes = [
     path: '/staff/counter/orders',
     component: () => import('./pages/CounterOrdersPage.vue'),
     meta: {
-      title: '櫃台訂單列表',
+      title: '櫃台訂單總覽',
       staffRoles: ['counter', 'deputy_manager', 'manager'],
       access: {
         public: true,

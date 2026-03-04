@@ -13,6 +13,7 @@ const state = computed(() => menuStore?.state || {
   categories: [],
   items: [],
   activeCategoryId: '',
+  errorMessage: '',
   optionDraft: null
 })
 const cartState = computed(() => cartStore?.state || {
@@ -36,18 +37,22 @@ watch(
   async ([nextTableCode, orderingSessionToken]) => {
     if (!orderingSessionToken) return
 
-    if (menuStore) {
-      await menuStore.load({
-        tableCode: nextTableCode,
-        orderingSessionToken
-      })
-    }
+    try {
+      if (menuStore) {
+        await menuStore.load({
+          tableCode: nextTableCode,
+          orderingSessionToken
+        })
+      }
 
-    if (cartStore) {
-      await cartStore.load({
-        tableCode: nextTableCode,
-        orderingSessionToken
-      })
+      if (cartStore) {
+        await cartStore.load({
+          tableCode: nextTableCode,
+          orderingSessionToken
+        })
+      }
+    } catch (error) {
+      console.error('[dineCore/menu] 載入菜單失敗', error)
     }
   },
   { immediate: true }

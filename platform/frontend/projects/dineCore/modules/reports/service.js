@@ -2,7 +2,7 @@ import { loadReportOrders, loadReportsSummary } from './api/reportsApi.js'
 
 const reportStatusLabels = {
   pending: '待處理',
-  preparing: '製作中',
+  preparing: '備餐中',
   ready: '可取餐',
   picked_up: '已取餐',
   cancelled: '已取消'
@@ -96,18 +96,18 @@ function normalizeFilterLabel(key, value) {
 export function buildReportsCsv({ orderRows = [], summary = {}, filters = {} } = {}) {
   const metaRows = [
     ['報表名稱', 'DineCore 營運報表匯出'],
-    ['營業日', summary.businessDate || '未提供'],
-    ['起始日期', normalizeFilterLabel('dateFrom', filters.dateFrom || '')],
+    ['營業日', summary.businessDate || '未指定'],
+    ['開始日期', normalizeFilterLabel('dateFrom', filters.dateFrom || '')],
     ['結束日期', normalizeFilterLabel('dateTo', filters.dateTo || '')],
-    ['訂單狀態篩選', normalizeFilterLabel('status', filters.status || 'all')],
-    ['付款狀態篩選', normalizeFilterLabel('paymentStatus', filters.paymentStatus || 'all')],
-    ['付款方式篩選', normalizeFilterLabel('paymentMethod', filters.paymentMethod || 'all')],
+    ['訂單狀態', normalizeFilterLabel('status', filters.status || 'all')],
+    ['付款狀態', normalizeFilterLabel('paymentStatus', filters.paymentStatus || 'all')],
+    ['付款方式', normalizeFilterLabel('paymentMethod', filters.paymentMethod || 'all')],
     ['關鍵字', normalizeFilterLabel('keyword', filters.keyword || '')],
     ['總營收', summary.grossSales ?? 0],
     ['已付款金額', summary.paidAmount ?? 0],
     ['未付款金額', summary.unpaidAmount ?? 0],
     ['訂單數', summary.orderCount ?? 0],
-    ['平均客單', summary.averageOrderValue ?? 0],
+    ['平均客單價', summary.averageOrderValue ?? 0],
     []
   ]
 
@@ -118,9 +118,9 @@ export function buildReportsCsv({ orderRows = [], summary = {}, filters = {} } =
     '訂單狀態',
     '付款狀態',
     '付款方式',
-    '金額',
+    '總金額',
     '品項數',
-    '備註摘要'
+    '最新備註'
   ]
 
   const rows = Array.isArray(orderRows)
@@ -141,3 +141,5 @@ export function buildReportsCsv({ orderRows = [], summary = {}, filters = {} } =
     .map(row => row.map(escapeCsvValue).join(','))
     .join('\n')
 }
+
+export { reportStatusLabels, reportPaymentStatusLabels, reportPaymentMethodLabels }

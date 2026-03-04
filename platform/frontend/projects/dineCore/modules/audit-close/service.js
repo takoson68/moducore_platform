@@ -10,23 +10,23 @@ function translateAuditCloseError(error) {
 
   switch (code) {
     case 'STAFF_SESSION_REQUIRED':
-      return '請先登入員工帳號後再操作關帳。'
+      return '請先登入管理者帳號再執行關帳。'
     case 'STAFF_ROLE_FORBIDDEN':
-      return '目前帳號沒有執行關帳或解鎖的權限。'
+      return '目前帳號沒有關帳權限。'
     case 'AUDIT_CLOSE_BLOCKED':
-      return '目前仍有阻塞項目，請先完成未付款或未完成訂單。'
+      return '目前仍有未完成或未付款訂單，無法關帳。'
     case 'BUSINESS_DATE_ALREADY_CLOSED':
-      return '這個營業日已經關帳，不可重複執行。'
+      return '該營業日已經關帳。'
     case 'BUSINESS_DATE_NOT_CLOSED':
-      return '這個營業日目前尚未關帳，無法解鎖。'
+      return '該營業日尚未關帳，無法解鎖。'
     case 'UNLOCK_REASON_REQUIRED':
-      return '解鎖營業日前必須填寫解鎖原因。'
+      return '解鎖營業日必須填寫原因。'
     case 'AUDIT_CLOSE_LOAD_FAILED':
-      return '關帳資料載入失敗，請稍後再試。'
+      return '關帳資料載入失敗。'
     case 'AUDIT_CLOSE_SUBMIT_FAILED':
-      return '關帳失敗，請稍後再試。'
+      return '關帳失敗。'
     case 'AUDIT_CLOSE_UNLOCK_FAILED':
-      return '解鎖失敗，請稍後再試。'
+      return '解鎖失敗。'
     default:
       return code || '關帳流程發生未預期錯誤。'
   }

@@ -63,6 +63,24 @@ CREATE TABLE IF NOT EXISTS dinecore_orders (
     ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS dinecore_order_batches (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_id INT UNSIGNED NOT NULL,
+  batch_no INT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'draft',
+  source_session_token VARCHAR(128) NULL,
+  submitted_at DATETIME NULL,
+  locked_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY ux_dinecore_order_batches_order_batch_no (order_id, batch_no),
+  INDEX idx_dinecore_order_batches_order_status (order_id, status),
+  CONSTRAINT fk_dinecore_order_batches_order
+    FOREIGN KEY (order_id) REFERENCES dinecore_orders(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS dinecore_guest_sessions (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   session_token VARCHAR(128) NOT NULL UNIQUE,
@@ -89,6 +107,7 @@ CREATE TABLE IF NOT EXISTS dinecore_guest_sessions (
 CREATE TABLE IF NOT EXISTS dinecore_cart_items (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   order_id INT UNSIGNED NOT NULL,
+  batch_id INT UNSIGNED NOT NULL,
   table_code VARCHAR(32) NOT NULL,
   cart_id VARCHAR(64) NOT NULL,
   menu_item_id VARCHAR(128) NOT NULL,
@@ -100,9 +119,14 @@ CREATE TABLE IF NOT EXISTS dinecore_cart_items (
   selected_option_ids_json LONGTEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_dinecore_cart_items_batch_cart (batch_id, cart_id),
   INDEX idx_dinecore_cart_items_order_cart (order_id, cart_id),
   CONSTRAINT fk_dinecore_cart_items_order
     FOREIGN KEY (order_id) REFERENCES dinecore_orders(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_dinecore_cart_items_batch
+    FOREIGN KEY (batch_id) REFERENCES dinecore_order_batches(id)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT fk_dinecore_cart_items_table

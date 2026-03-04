@@ -12,23 +12,23 @@ const form = reactive({
 })
 
 const statusLabelMap = {
-  open: '未關帳',
+  open: '開放中',
   closed: '已關帳',
   reopened: '已解鎖'
 }
 
 const scopeLabelMap = {
-  orders: '訂單狀態',
-  payments: '付款狀態'
+  orders: '訂單',
+  payments: '付款'
 }
 
 const reasonTypeLabelMap = {
-  daily_close: '正常日結',
-  shift_handover: '交班結束',
+  daily_close: '日結關帳',
+  shift_handover: '交班結轉',
   correction: '資料修正',
-  dispute: '帳務爭議',
-  manual_override: '管理者覆核',
-  general: '一般備註'
+  dispute: '爭議處理',
+  manual_override: '人工覆寫',
+  general: '一般原因'
 }
 
 watch(
@@ -61,9 +61,9 @@ async function submitUnlock() {
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow 關帳與稽核
-    h2 營業日關帳控制台
-    p.lead 這裡負責營業日關帳、鎖定與解鎖紀錄。關帳後，該營業日的訂單狀態與付款狀態調整應被 API 阻擋。
+    p.eyebrow Audit Close
+    h2 營業日關帳
+    p.lead 管理者可檢查當日訂單、付款與鎖定狀態，確認無阻塞後再執行關帳；必要時也可留下原因進行解鎖。
 
   section.filter-card
     label.field-card
@@ -73,10 +73,10 @@ async function submitUnlock() {
         :value="state.selectedDate"
         @input="auditCloseStore.setSelectedDate($event.target.value)"
       )
-    span.filter-meta(v-if="state.lastLoadedAt") {{ `最近更新 ${state.lastLoadedAt}` }}
+    span.filter-meta(v-if="state.lastLoadedAt") {{ `最後更新：${state.lastLoadedAt}` }}
 
   section.loading-card(v-if="state.loading")
-    p 載入關帳資料中...
+    p 正在載入關帳資料...
 
   section.error-card(v-else-if="state.error && !state.closingSummary.businessDate")
     p {{ `關帳資料載入失敗：${state.error}` }}
@@ -90,10 +90,10 @@ async function submitUnlock() {
         span.info-label 狀態
         strong.info-value {{ statusLabelMap[state.closingSummary.closeStatus] || state.closingSummary.closeStatus }}
       article.info-card
-        span.info-label 訂單數
+        span.info-label 主單數
         strong.info-value {{ state.closingSummary.orderCount }}
       article.info-card
-        span.info-label 未完成訂單
+        span.info-label 未完成單數
         strong.info-value {{ state.closingSummary.unfinishedOrderCount }}
       article.info-card
         span.info-label 總營收
@@ -106,42 +106,42 @@ async function submitUnlock() {
         strong.info-value {{ `NT$ ${state.closingSummary.unpaidAmount}` }}
       article.info-card
         span.info-label 鎖定範圍
-        strong.info-value {{ state.lockState.lockedScopes.length > 0 ? state.lockState.lockedScopes.map(scope => scopeLabelMap[scope] || scope).join(' / ') : '目前未鎖定' }}
+        strong.info-value {{ state.lockState.lockedScopes.length > 0 ? state.lockState.lockedScopes.map(scope => scopeLabelMap[scope] || scope).join(' / ') : '尚未鎖定' }}
 
     section.status-card
       p.status-card__line(v-if="state.lockState.isLocked")
-        strong 目前狀態：
-        | {{ ` ${state.selectedDate} 已關帳，訂單與付款修改會被 API 拒絕。` }}
+        strong 已關帳：
+        | {{ ` ${state.selectedDate} 已鎖定訂單與付款資料。` }}
       p.status-card__line(v-else-if="state.closingSummary.closeStatus === 'reopened'")
-        strong 目前狀態：
-        |  這個營業日已被解鎖，可進行必要修正，但應保留稽核紀錄。
+        strong 已解鎖：
+        |  目前營業日已重新開放，可進行修正後再次關帳。
       p.status-card__line(v-else)
-        strong 目前狀態：
-        |  這個營業日仍可編輯，若要結束作業可在完成檢查後執行關帳。
+        strong 可關帳：
+        |  目前營業日尚未鎖定，請確認沒有阻塞項目後再執行關帳。
 
     section.issue-card(v-if="state.blockingIssues.length > 0")
-      h3.issue-card__title 關帳阻塞項目
+      h3.issue-card__title 阻塞項目
       .issue-row(v-for="issue in state.blockingIssues" :key="issue.type")
         .issue-row__main
           strong {{ issue.label }}
           span {{ `${issue.count} 筆` }}
         small.issue-row__meta {{ issue.orderIds.join(', ') }}
     section.empty-card(v-else)
-      p 目前沒有阻塞項目，可以執行關帳。
+      p 目前沒有阻塞項目，可以進入關帳流程。
 
     section.action-grid
       article.action-card
         h3.action-card__title 執行關帳
-        p.action-card__lead 當阻塞項目為 0 時，店長可將目前營業日標記為已關帳並鎖定修改。
+        p.action-card__lead 只有在阻塞項目為 0 且尚未鎖定時可進行關帳。若有特殊情況，可留下原因說明。
         label.action-field
-          span.info-label 原因分類
+          span.info-label 原因類型
           select.field-input(v-model="form.closeReasonType")
-            option(value="daily_close") 正常日結
-            option(value="shift_handover") 交班結束
-            option(value="manual_override") 管理者覆核
+            option(value="daily_close") 日結關帳
+            option(value="shift_handover") 交班結轉
+            option(value="manual_override") 人工覆寫
         textarea.action-textarea(
           v-model="form.closeReason"
-          placeholder="可填寫關帳備註（非必填）"
+          placeholder="可補充關帳背景或交接說明"
         )
         button.action-button(
           type="button"
@@ -151,16 +151,16 @@ async function submitUnlock() {
 
       article.action-card
         h3.action-card__title 解鎖營業日
-        p.action-card__lead 已關帳資料若需修正，只能由店長解鎖，且必須填寫原因。
+        p.action-card__lead 只有已關帳狀態才可解鎖。解鎖必須填寫原因，避免後續無法追溯。
         label.action-field
-          span.info-label 原因分類
+          span.info-label 原因類型
           select.field-input(v-model="form.unlockReasonType")
             option(value="correction") 資料修正
-            option(value="dispute") 帳務爭議
-            option(value="manual_override") 管理者覆核
+            option(value="dispute") 爭議處理
+            option(value="manual_override") 人工覆寫
         textarea.action-textarea(
           v-model="form.unlockReason"
-          placeholder="請填寫解鎖原因"
+          placeholder="請描述為何需要重新開放該營業日"
         )
         button.action-button.is-secondary(
           type="button"
@@ -170,20 +170,20 @@ async function submitUnlock() {
 
     section.history-card(v-if="state.closeHistory.length > 0")
       .history-card__head
-        h3.history-card__title 關帳歷史
+        h3.history-card__title 關帳歷程
         span.history-card__meta {{ `${state.closeHistory.length} 筆` }}
       .history-row(v-for="entry in state.closeHistory" :key="entry.id")
         .history-row__main
           strong {{ entry.action === 'close' ? '關帳' : '解鎖' }}
-          span {{ `${entry.actorName}｜${entry.actorRole}` }}
+          span {{ `${entry.actorName} / ${entry.actorRole}` }}
           small.history-row__reason-type {{ reasonTypeLabelMap[entry.reasonType] || entry.reasonType }}
         .history-row__meta
           span {{ entry.createdAt }}
-          small(v-if="entry.affectedScopes.length > 0") {{ `影響：${entry.affectedScopes.map(scope => scopeLabelMap[scope] || scope).join(' / ')}` }}
+          small(v-if="entry.affectedScopes.length > 0") {{ `影響範圍：${entry.affectedScopes.map(scope => scopeLabelMap[scope] || scope).join(' / ')}` }}
           small(v-if="entry.beforeStatus || entry.afterStatus") {{ `狀態：${statusLabelMap[entry.beforeStatus] || entry.beforeStatus} -> ${statusLabelMap[entry.afterStatus] || entry.afterStatus}` }}
           small {{ entry.reason || '無備註' }}
     section.empty-card(v-else)
-      p 目前尚無關帳歷史。
+      p 目前沒有關帳歷程。
 </template>
 
 <style lang="sass">

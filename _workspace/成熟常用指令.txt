@@ -8,11 +8,17 @@ _VibeCore/   RootIndex.md  build  moducore_platform
 
 platform/    frontend/    backend/   public/  
 
-components/   router/    container/  stores/ 
+components/   router/    container/  stores/   _workspace/
 
 projects/    project-a/   modules/   layout/    dineCore/ 
 
 _proTemp/    project-b/   services/  ModuDesk /  flowCenter/ 
+
+moducore_platform/
+
+
+
+
 
 
 

@@ -275,7 +275,7 @@ function closeDevMenu() {
 .dine-root(:class="{ 'is-staff': isStaffRoute }")
   template(v-if="isStaffRoute")
     .staff-shell(v-if="isStaffAuthenticated || !staffAuthStore")
-      header.staff-shell__head
+      aside.staff-shell__head
         .staff-shell__topbar-main
           .staff-shell__brand
             strong.staff-shell__title DineCore 商家工作台
@@ -420,10 +420,18 @@ function closeDevMenu() {
 .guest-shell,
 .staff-shell
   min-height: 100vh
-  padding: 26px
   display: grid
-  grid-template-rows: auto 1fr
   gap: 18px
+
+.guest-shell
+  padding: 26px
+  grid-template-rows: auto 1fr
+
+.staff-shell
+  grid-template-columns: 260px minmax(0, 1fr)
+  gap: 0
+  align-items: stretch
+  background: #eef4f6
 
 .staff-auth-full
   min-height: 100vh
@@ -539,24 +547,34 @@ function closeDevMenu() {
   position: sticky
   top: 0
   z-index: 20
-  width: calc(100% + 52px)
-  margin: -26px -26px 0
-  padding: 14px 26px 12px
-  background: rgba(240, 251, 248, 0.94)
   backdrop-filter: blur(10px)
-  border-bottom: 1px solid rgba(109, 180, 177, 0.18)
 
 .staff-shell__head
   display: grid
-  gap: 12px
+  gap: 18px
+  width: 100%
+  margin: 0
+  padding: 52px 18px 24px
+  background: #15242c
+  color: #f3f7f8
+  border: 0
+  border-radius: 0
+  min-height: 100vh
+  align-content: start
+  box-sizing: border-box
 
 .guest-shell__head
+  background: rgba(240, 251, 248, 0.94)
+  width: calc(100% + 52px)
+  margin: -26px -26px 0
+  padding: 14px 26px 12px
   display: grid
   grid-template-columns: 1fr
   align-items: start
   gap: 14px
   padding-top: 18px
   padding-bottom: 14px
+  border-bottom: 1px solid rgba(109, 180, 177, 0.18)
 
 .staff-shell__topbar-main,
 .guest-shell__topbar-main
@@ -565,7 +583,9 @@ function closeDevMenu() {
   gap: 10px
 
 .staff-shell__topbar-main
-  justify-content: space-between
+  flex-direction: column
+  align-items: flex-start
+  gap: 10px
 
 .guest-shell__topbar-main
   flex-wrap: wrap
@@ -574,14 +594,17 @@ function closeDevMenu() {
 
 .staff-shell__brand
   display: grid
-  gap: 4px
+  gap: 6px
 
 .staff-shell__title,
 .guest-shell__topbar-title
   color: #21393d
 
 .staff-shell__title
-  font-size: 18px
+  color: #f4f8f9
+  font-size: 20px
+  font-weight: 800
+  letter-spacing: 0.01em
 
 .guest-shell__topbar-title
   font-size: 18px
@@ -592,6 +615,10 @@ function closeDevMenu() {
 .guest-shell__topbar-meta
   color: #6e8083
   font-size: 13px
+
+.staff-shell__meta
+  color: rgba(233, 242, 245, 0.72)
+  line-height: 1.5
 
 .guest-shell__topbar-meta
   display: inline-flex
@@ -604,20 +631,35 @@ function closeDevMenu() {
   font-weight: 700
 
 .staff-shell__logout
-  margin-left: auto
-  border: 0
+  position: fixed
+  top: 12px
+  right: 16px
+  z-index: 30
+  border: 1px solid rgba(21, 36, 44, 0.12)
   border-radius: 999px
-  padding: 10px 14px
-  background: rgba(121, 214, 207, 0.14)
-  color: #2d6f6d
-  font-weight: 700
+  padding: 7px 11px
+  background: rgba(255, 255, 255, 0.94)
+  color: #1c3138
+  font-size: 12px
+  font-weight: 800
+  line-height: 1
   cursor: pointer
+  box-shadow: 0 12px 24px rgba(21, 36, 44, 0.12)
+
+.staff-shell__logout:hover
+  background: #ffffff
+  color: #fff
+  color: #15242c
 
 .staff-shell__nav,
 .guest-shell__nav
   display: flex
   flex-wrap: wrap
   gap: 10px
+
+.staff-shell__nav
+  flex-direction: column
+  flex-wrap: nowrap
 
 .guest-shell__nav
   justify-content: flex-start
@@ -637,10 +679,30 @@ function closeDevMenu() {
   align-items: center
   gap: 8px
 
+.staff-shell__nav-item
+  width: 100%
+  min-height: 50px
+  padding: 12px 14px
+  border-radius: 0
+  justify-content: flex-start
+  background: transparent
+  color: rgba(233, 242, 245, 0.74)
+  border: 0
+  border-left: 3px solid transparent
+
+.staff-shell__nav-item:hover
+  background: rgba(255, 255, 255, 0.06)
+  color: #ffffff
+
 .staff-shell__nav-item.is-active,
 .guest-shell__nav-item.is-active
   background: linear-gradient(135deg, #7cd6cf 0%, #62c9c3 100%)
   color: #fff
+
+.staff-shell__nav-item.is-active
+  border-left-color: #7cd6cf
+  background: rgba(124, 214, 207, 0.18)
+  color: #f5fbfb
 
 .guest-shell__nav-item.is-disabled
   opacity: 0.52
@@ -673,6 +735,19 @@ function closeDevMenu() {
   width: min(1120px, 100%)
   margin: 0 auto
   padding-top: 6px
+
+.staff-shell__content
+  min-width: 0
+  display: grid
+  grid-template-rows: auto 1fr
+  gap: 14px
+
+.staff-shell__body
+  width: 100%
+  min-width: 0
+  margin: 0
+  padding: 56px 28px 28px 24px
+  box-sizing: border-box
 
 .staff-shell__body,
 .guest-shell__body
@@ -773,11 +848,31 @@ function closeDevMenu() {
   .staff-shell
     padding: 16px
 
-  .guest-shell__head,
-  .staff-shell__head
+  .staff-shell
+    padding: 0
+
+  .guest-shell
+    padding: 16px
+
+  .guest-shell__head
     width: calc(100% + 32px)
     margin: -16px -16px 0
     padding: 12px 16px 10px
+
+  .staff-shell__logout
+    top: 10px
+    right: 10px
+
+@media (max-width: 768px)
+  .staff-shell
+    grid-template-columns: 1fr
+
+  .staff-shell__head
+    min-height: auto
+    padding: 48px 16px 16px
+
+  .staff-shell__body
+    padding: 52px 16px 24px
 
 @media (max-width: 640px)
   .guest-shell__topbar-main
@@ -792,7 +887,7 @@ function closeDevMenu() {
     justify-content: flex-start
 
   .staff-shell__topbar-main
-    gap: 12px
+    gap: 8px
 
   .staff-auth-full,
   .staff-auth-mask
