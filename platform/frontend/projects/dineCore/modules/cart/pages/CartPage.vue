@@ -89,6 +89,11 @@ const viewingCartItems = computed(() => state.value.cartItemsByCartId[state.valu
 const hasCheckoutItems = computed(() =>
   state.value.carts.some(cart => Number(cart.itemCount || 0) > 0)
 )
+const submittedBatchCount = computed(() => Math.max(Number(state.value.currentBatchNo || 0) - 1, 0))
+const currentBatchLabel = computed(() => {
+  const batchNo = Number(state.value.currentBatchNo || 0)
+  return batchNo > 0 ? `第 ${batchNo} 批餐點` : '本批餐點'
+})
 
 const editorSelectedOptions = computed(() => {
   const editor = state.value.editor
@@ -118,6 +123,13 @@ async function changeQuantity(cartItemId, delta) {
   })
 }
 
+async function removeItem(cartItemId, quantity) {
+  const safeQuantity = Number(quantity || 0)
+  if (safeQuantity <= 0) return
+
+  await changeQuantity(cartItemId, -safeQuantity)
+}
+
 function hasEditorOption(groupId, optionId) {
   const editor = state.value.editor
   if (!editor) return false
@@ -142,8 +154,9 @@ function goToConfirmOrder() {
 .mobile-page
   section.mobile-hero-card.is-compact
     .mobile-hero-card__badge 購物車
-    h2.mobile-hero-card__title 顧客購物車
-    p.mobile-hero-card__copy(v-if="state.currentBatchNo > 0") {{ `目前為第 ${state.currentBatchNo} 批` }}
+    h2.mobile-hero-card__title {{ currentBatchLabel }}
+    p.mobile-hero-card__copy(v-if="state.currentBatchNo > 0") {{ `你現在編輯的是第 ${state.currentBatchNo} 批，送出後這一批就會鎖定。` }}
+    p.mobile-hero-card__copy(v-if="submittedBatchCount > 0") {{ `前面已送出 ${submittedBatchCount} 批，新的加點不會混進上一批。` }}
     p.mobile-hero-card__copy(v-if="orderingCart") {{ `本機顧客身份：${orderingCart.guestLabel}` }}
     p.mobile-hero-card__copy 系統會持續同步共桌點餐狀態；若其他顧客先送單，這裡會自動切到新的空白批次。
 
@@ -165,13 +178,14 @@ function goToConfirmOrder() {
 
   section.cart-summary-card
     .cart-summary-card__head
-      h3.cart-summary-card__title {{ viewingCart?.guestLabel || '尚未選擇顧客購物車' }}
+      h3.cart-summary-card__title {{ viewingCart?.guestLabel || '尚未選擇共桌購物車' }}
       span.cart-summary-card__tag {{ state.currentBatchStatus || 'draft' }}
 
     .cart-empty(v-if="viewingCartItems.length === 0")
       p.cart-empty__text 這位顧客在目前批次還沒有品項。
     .cart-item-list(v-else)
       article.cart-item(v-for="item in viewingCartItems" :key="item.id")
+        button.cart-item__remove(type="button" @click="removeItem(item.id, item.quantity)") 取消
         .cart-item__main
           h4.cart-item__title {{ item.title }}
           p.cart-item__meta {{ item.note || '無備註' }}
@@ -190,13 +204,14 @@ function goToConfirmOrder() {
 
   section.bottom-action-card
     .bottom-action-card__meta
-      span.bottom-action-card__label 目前共桌狀態
-      strong.bottom-action-card__value {{ `${state.participantCount} 位顧客可合併送單` }}
-    button.bottom-action-card__button(type="button" :disabled="!hasCheckoutItems" @click="goToConfirmOrder") 合併訂單
+      span.bottom-action-card__label 正在共桌點餐
+      strong.bottom-action-card__value {{ `${state.participantCount} 位顧客可一起送出這一批` }}
+      p.bottom-action-card__hint 進入下一步後，你會先確認這一批餐點；送出後系統會自動開啟下一批加點。
+    button.bottom-action-card__button(type="button" :disabled="!hasCheckoutItems" @click="goToConfirmOrder") 確認本批餐點
 
   section.feature-card
-    h3.feature-card__title 同步提示
-    p.feature-card__copy 系統每 5 秒檢查一次。如果其他顧客先送單，這裡會自動切到新的空白批次。
+    h3.feature-card__title 批次提醒
+    p.feature-card__copy 系統每 5 秒檢查一次。如果其他顧客先送單，這裡會自動切到新的空白批次，避免新的加點混進已送出的餐點。
 
   section.option-sheet(v-if="state.editor")
     .option-sheet__backdrop(@click="cartStore.closeEditor()")
@@ -372,6 +387,7 @@ function goToConfirmOrder() {
   display: flex
   justify-content: space-between
   gap: 16px
+  position: relative
 
 .cart-item__main
   display: grid
@@ -434,6 +450,19 @@ function goToConfirmOrder() {
   font-weight: 700
   cursor: pointer
 
+.cart-item__remove
+  position: absolute
+  top: 14px
+  right: 14px
+  border: 0
+  border-radius: 999px
+  padding: 8px 12px
+  background: rgba(220, 104, 89, 0.14)
+  color: #a44b3d
+  font-size: 12px
+  font-weight: 700
+  cursor: pointer
+
 .cart-summary-card__footer
   display: flex
   justify-content: flex-end
@@ -460,6 +489,11 @@ function goToConfirmOrder() {
   color: #20373b
   font-size: 18px
   font-weight: 700
+
+.bottom-action-card__hint
+  margin: 0
+  color: var(--dc-text-muted)
+  line-height: 1.6
 
 .bottom-action-card__button
   border: 0

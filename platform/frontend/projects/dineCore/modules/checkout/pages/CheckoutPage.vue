@@ -11,6 +11,7 @@ const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreE
 const state = computed(() => checkoutStore.state)
 const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
+const submittedBatchCount = computed(() => Math.max(Number(state.value.currentBatchNo || 0) - 1, 0))
 const pollIntervalMs = 5000
 let pollTimer = null
 
@@ -87,7 +88,17 @@ async function submitOrder() {
     tableCode: tableCode.value,
     orderingSessionToken: entryState.value.orderingSessionToken
   })
-  router.push(`/t/${tableCode.value}/checkout/success/${result.orderId}`)
+  router.push({
+    path: `/t/${tableCode.value}/checkout/success/${result.orderId}`,
+    query: {
+      submittedBatchNo: String(result.submittedBatchNo || ''),
+      nextBatchNo: String(result.nextBatchNo || '')
+    }
+  })
+}
+
+function goBackToCart() {
+  router.push(`/t/${tableCode.value}/cart`)
 }
 </script>
 
@@ -96,9 +107,11 @@ async function submitOrder() {
   section.bill-card
     .bill-card__head
       p.bill-card__eyebrow 結帳確認
-      h2.bill-card__title 合併訂單
+      h2.bill-card__title 確認本批餐點
       p.bill-card__copy(v-if="state.currentBatchNo > 0") {{ `目前要送出第 ${state.currentBatchNo} 批` }}
-      p.bill-card__copy 系統會將目前批次內所有顧客的品項一起送出。送出後，後續加點會進入新的草稿批次。
+      p.bill-card__copy 系統會將目前批次內所有顧客的品項一起送出。送出後，這一批會立即鎖定。
+      p.bill-card__copy(v-if="submittedBatchCount > 0") {{ `前面已送出 ${submittedBatchCount} 批，這次送出不會回頭改動之前的餐點。` }}
+      p.bill-card__copy 送出後如果還要加點，系統會自動建立新的草稿批次供你繼續操作。
     .bill-row
       span.bill-row__label 品項數
       strong.bill-row__value {{ state.itemCount }}
@@ -114,8 +127,10 @@ async function submitOrder() {
     .bill-row.is-total
       span.bill-row__label 總計
       strong.bill-row__value {{ state.total }}
-    button.bill-card__action(type="button" :disabled="state.submitting || state.itemCount <= 0" @click="submitOrder")
-      | {{ state.submitting ? '處理中...' : '送出訂單' }}
+    .bill-card__actions
+      button.bill-card__back(type="button" :disabled="state.submitting" @click="goBackToCart") 返回上一步
+      button.bill-card__action(type="button" :disabled="state.submitting || state.itemCount <= 0" @click="submitOrder")
+        | {{ state.submitting ? '處理中...' : '送出訂單' }}
 
   section.notice-card.is-error(v-if="state.errorMessage")
     h3.notice-card__title 發生問題
@@ -223,6 +238,26 @@ async function submitOrder() {
   opacity: 1
   background: #cfd8d6
   color: #7a8784
+  cursor: not-allowed
+
+.bill-card__actions
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 12px
+
+.bill-card__back
+  border: 1px solid rgba(98, 145, 148, 0.22)
+  border-radius: 16px
+  padding: 16px
+  background: #fff
+  color: #31585d
+  font-size: 16px
+  font-weight: 700
+  cursor: pointer
+
+.bill-card__back:disabled
+  background: #f4f7f6
+  color: #9aa8a5
   cursor: not-allowed
 
 .person-card__title,

@@ -18,9 +18,9 @@ DineCore 已完成下列主流程：
 |---|---|---|
 | `entry` | 可用 | 進桌後建立或接續顧客 session |
 | `menu` | 可用 | 讀取真實菜單與加購流程 |
-| `cart` | 可用 | 輪詢共桌狀態、顯示目前 draft batch |
-| `checkout` | 可用 | 送單後切到下一個 draft batch |
-| `order-tracker` | 可用 | 顯示批次歷史與狀態 |
+| `cart` | 可用 | 已補強批次提示與顧客導向文案 |
+| `checkout` | 可用 | 送單後切到下一個 draft batch，成功頁可顯示本批摘要 |
+| `order-tracker` | 可用 | 顯示批次歷史、最近送出批次與可續點狀態 |
 | `staff-auth` | 可用 | 真實登入 / session 邏輯已接上 |
 | `counter` | 可用 | 可查看主單與批次明細、更新付款與訂單狀態 |
 | `kitchen` | 可用 | 以批次卡片為單位接單與更新狀態 |
@@ -38,6 +38,9 @@ DineCore 已完成下列主流程：
 - `dinecore_cart_items` 已掛上 `batch_id`
 - `checkout-submit` 會將當前批次轉為 `submitted`
 - 送單後自動建立下一個 `draft batch`
+- 購物車主按鈕已改為 `確認本批餐點`
+- 送單成功頁已改為顯示本批送單資訊與下一批提示
+- 追單頁已區分已送出批次與可繼續加點的草稿批次
 - `counter / kitchen` API 已能回傳批次資訊
 - `paid -> unpaid` 時，guest session 狀態會正確從 `expired` 恢復為 `active`
 

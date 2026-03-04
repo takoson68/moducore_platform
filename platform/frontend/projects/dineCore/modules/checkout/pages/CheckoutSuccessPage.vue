@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, watchEffect } from 'vue'
+import { computed, reactive, watchEffect } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { loadCheckoutSuccessSummary } from '../service.js'
 
@@ -15,32 +15,63 @@ const statusLabels = {
 
 const summary = reactive({
   orderId: String(route.params.orderId || 'demo-order'),
+  orderNo: '',
   tableCode: 'A01',
   status: 'pending',
+  paymentMethod: '現場付款',
   estimatedWaitMinutes: 15,
-  persons: []
+  persons: [],
+  batches: [],
+  latestSubmittedBatch: null
 })
 
+const submittedBatchNo = computed(() => Number(route.query.submittedBatchNo || 0))
+const nextBatchNo = computed(() => Number(route.query.nextBatchNo || 0))
+const latestBatch = computed(() => {
+  if (summary.latestSubmittedBatch) return summary.latestSubmittedBatch
+  if (!Array.isArray(summary.batches)) return null
+
+  const submitted = summary.batches.filter(batch => batch.status !== 'draft')
+  return submitted.length > 0 ? submitted[submitted.length - 1] : null
+})
+const latestBatchPersonCount = computed(() => Array.isArray(latestBatch.value?.persons) ? latestBatch.value.persons.length : 0)
+
 watchEffect(async () => {
-  const payload = await loadCheckoutSuccessSummary(String(route.params.orderId || 'demo-order'))
+  const payload = await loadCheckoutSuccessSummary(
+    String(route.params.orderId || 'demo-order'),
+    submittedBatchNo.value
+  )
   summary.orderId = payload.orderId
+  summary.orderNo = payload.orderNo || ''
   summary.tableCode = payload.tableCode
   summary.status = payload.status
+  summary.paymentMethod = payload.paymentMethod || '現場付款'
   summary.estimatedWaitMinutes = payload.estimatedWaitMinutes
   summary.persons = Array.isArray(payload.persons) ? payload.persons : []
+  summary.batches = Array.isArray(payload.batches) ? payload.batches : []
+  summary.latestSubmittedBatch = payload.latestSubmittedBatch || null
 })
 </script>
 
 <template lang="pug">
 .mobile-page
   section.success-card
-    .success-card__badge 已送出訂單
-    h2.success-card__title 訂單已成功送出
+    .success-card__badge 本批已送出
+    h2.success-card__title {{ latestBatch?.batchNo ? `第 ${latestBatch.batchNo} 批已成功送出` : '本批餐點已成功送出' }}
     p.success-card__copy
-      | 店家已收到這張合併後的正式訂單，接下來可前往追單頁查看製作進度。
-    p.success-card__order {{ `訂單編號：${summary.orderId}` }}
+      | 店家已收到這一批餐點，接下來可前往追單頁查看製作進度；若還要加點，系統會自動開啟下一批。
+    p.success-card__order {{ `訂單編號：${summary.orderNo || summary.orderId}` }}
 
   section.summary-card
+    .summary-card__row(v-if="latestBatch?.batchNo")
+      span.summary-card__label 送出批次
+      strong.summary-card__value {{ `第 ${latestBatch.batchNo} 批` }}
+    .summary-card__row(v-if="latestBatch")
+      span.summary-card__label 本批品項
+      strong.summary-card__value {{ `${latestBatch.itemCount || 0} 項` }}
+    .summary-card__row(v-if="latestBatch")
+      span.summary-card__label 本批金額
+      strong.summary-card__value {{ `$${latestBatch.subtotal || 0}` }}
     .summary-card__row
       span.summary-card__label 桌號
       strong.summary-card__value {{ summary.tableCode }}
@@ -52,12 +83,17 @@ watchEffect(async () => {
       strong.summary-card__value {{ `${summary.estimatedWaitMinutes} 分鐘` }}
     .summary-card__row
       span.summary-card__label 付款方式
-      strong.summary-card__value 現場付款
+      strong.summary-card__value {{ summary.paymentMethod === 'onsite' ? '現場付款' : summary.paymentMethod }}
+    .summary-card__row(v-if="latestBatchPersonCount > 0")
+      span.summary-card__label 本批參與
+      strong.summary-card__value {{ `${latestBatchPersonCount} 位顧客` }}
 
   section.person-card
-    h3.person-card__title 本次送單內容
+    h3.person-card__title 本批送單內容
+    p.person-card__intro(v-if="latestBatch") {{ `以下為第 ${latestBatch.batchNo} 批實際送出的餐點內容。` }}
+    p.person-card__intro(v-else) 目前顯示這次送單的餐點內容。
     .person-list
-      article.person-panel(v-for="person in summary.persons" :key="person.cartId")
+      article.person-panel(v-for="person in latestBatch?.persons || []" :key="person.cartId")
         .person-panel__head
           .person-panel__title-block
             strong.person-panel__title {{ person.guestLabel }}
@@ -71,19 +107,20 @@ watchEffect(async () => {
             p.person-item__note(v-if="item.note") {{ item.note }}
             .person-item__options(v-if="item.options?.length")
               span.person-item__option(v-for="option in item.options" :key="option") {{ option }}
+      p.person-card__empty(v-if="(latestBatch?.persons || []).length === 0") 目前沒有可顯示的本批餐點明細。
 
   section.next-card
     h3.next-card__title 下一步
     .next-card__list
       .next-card__item
         strong 1. 店家接單
-        p 店家會在櫃台與廚房端收到這張正式訂單。
+        p 店家會在櫃台與廚房端收到這一批正式訂單。
       .next-card__item
-        strong 2. 現場付款
-        p 本系統不做線上金流，付款由店家現場處理。
+        strong 2. 繼續加點
+        p {{ nextBatchNo > 0 ? `如果還要加點，系統已幫你開啟第 ${nextBatchNo} 批。` : '如果還要加點，返回菜單後系統會自動幫你開啟下一批。' }}
       .next-card__item
         strong 3. 查看進度
-        p 可前往追單頁持續查看訂單狀態與時間線。
+        p 可前往追單頁持續查看各批次狀態、等待時間與時間線。
 
   section.action-bar
     RouterLink.action-bar__ghost(:to="`/t/${summary.tableCode}/menu`") 返回菜單
@@ -153,6 +190,12 @@ watchEffect(async () => {
 .next-card__title
   margin: 0 0 12px
   color: var(--dc-text)
+
+.person-card__intro,
+.person-card__empty
+  margin: 0 0 12px
+  color: var(--dc-text-muted)
+  line-height: 1.7
 
 .person-list,
 .next-card__list

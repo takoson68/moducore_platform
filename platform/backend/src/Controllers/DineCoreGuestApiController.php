@@ -284,6 +284,7 @@ final class DineCoreGuestApiController
     public function checkoutSuccess(Request $request, Response $response): void
     {
         $orderId = (int)($request->query['orderId'] ?? $request->query['order_id'] ?? 0);
+        $submittedBatchNo = (int)($request->query['submittedBatchNo'] ?? $request->query['submitted_batch_no'] ?? 0);
         if ($orderId <= 0) {
             $response->validation('缺少訂單編號');
             return;
@@ -296,6 +297,9 @@ final class DineCoreGuestApiController
                 return;
             }
 
+            $batches = $this->buildBatchSummaries((int)$order['id']);
+            $latestSubmittedBatch = $this->resolveCheckoutSuccessBatch($batches, $submittedBatchNo);
+
             $response->ok([
                 'orderId' => (int)$order['id'],
                 'orderNo' => (string)$order['order_no'],
@@ -304,6 +308,8 @@ final class DineCoreGuestApiController
                 'paymentMethod' => (string)$order['payment_method'],
                 'estimatedWaitMinutes' => $order['estimated_wait_minutes'] !== null ? (int)$order['estimated_wait_minutes'] : null,
                 'persons' => $this->collectOrderPersons((int)$order['id']),
+                'batches' => $batches,
+                'latestSubmittedBatch' => $latestSubmittedBatch,
             ]);
         } catch (Throwable $error) {
             $this->handleThrowable($response, $error);
@@ -1316,6 +1322,28 @@ final class DineCoreGuestApiController
                 'persons' => $persons,
             ];
         }, $batches);
+    }
+
+    private function resolveCheckoutSuccessBatch(array $batches, int $submittedBatchNo): ?array
+    {
+        if ($submittedBatchNo > 0) {
+            foreach ($batches as $batch) {
+                if ((int)($batch['batchNo'] ?? 0) === $submittedBatchNo) {
+                    return $batch;
+                }
+            }
+        }
+
+        $submittedBatches = array_values(array_filter(
+            $batches,
+            fn (array $batch): bool => (string)($batch['status'] ?? '') !== 'draft'
+        ));
+
+        if ($submittedBatches === []) {
+            return null;
+        }
+
+        return $submittedBatches[array_key_last($submittedBatches)];
     }
 
     private function findCartItem(int $orderId, int $batchId, string $cartId, int $cartItemId): ?array

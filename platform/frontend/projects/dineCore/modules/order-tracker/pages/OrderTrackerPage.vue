@@ -80,6 +80,16 @@ onBeforeUnmount(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
 })
+
+const submittedBatches = computed(() =>
+  (Array.isArray(state.value.batches) ? state.value.batches : []).filter(batch => batch.status !== 'draft')
+)
+const latestSubmittedBatch = computed(() =>
+  submittedBatches.value.length > 0 ? submittedBatches.value[submittedBatches.value.length - 1] : null
+)
+const canContinueOrdering = computed(() =>
+  (Array.isArray(state.value.batches) ? state.value.batches : []).some(batch => batch.status === 'draft')
+)
 </script>
 
 <template lang="pug">
@@ -89,6 +99,8 @@ onBeforeUnmount(() => {
     h2.order-card__title {{ state.orderNo || route.params.orderId || '訂單' }}
     p.order-card__meta {{ `目前狀態：${statusLabels[state.status] || state.status}` }}
     p.order-card__meta {{ `預估等待：${state.estimatedWaitMinutes ?? '--'} 分鐘` }}
+    p.order-card__meta(v-if="latestSubmittedBatch") {{ `最近送出：第 ${latestSubmittedBatch.batchNo} 批，共 ${latestSubmittedBatch.itemCount} 項。` }}
+    p.order-card__meta(v-if="canContinueOrdering") 系統已保留新的草稿批次，還可以繼續加點。
 
   section.notice-card.is-error(v-if="state.errorMessage")
     h3.notice-card__title 發生問題
@@ -96,6 +108,8 @@ onBeforeUnmount(() => {
 
   section.batch-card
     h3.batch-card__title 批次進度
+    p.batch-card__intro(v-if="submittedBatches.length > 0") {{ `目前共有 ${submittedBatches.length} 批已送出，店家會依各批次分開處理。` }}
+    p.batch-card__intro(v-else) 送單後，這裡會顯示各批次的處理進度。
     .batch-list
       article.batch-item(v-for="batch in state.batches" :key="batch.id")
         .batch-item__head
@@ -106,6 +120,7 @@ onBeforeUnmount(() => {
         p.batch-item__time(v-if="batch.submittedAt") {{ `送出時間：${batch.submittedAt}` }}
         p.batch-item__time(v-else) 尚未送出
         p.batch-item__count {{ `${batch.itemCount} 項品項` }}
+        p.batch-item__draft(v-if="batch.status === 'draft'") 這是目前可繼續加點的草稿批次。
         .batch-item__persons(v-if="batch.persons.length > 0")
           article.batch-person(v-for="person in batch.persons" :key="`${batch.id}-${person.cartId}`")
             .batch-person__head
@@ -116,6 +131,7 @@ onBeforeUnmount(() => {
 
   section.person-card
     h3.person-card__title 全單彙總
+    p.person-card__intro 這裡會保留整張桌單的所有顧客與品項，方便回頭確認誰點了什麼。
     .person-list
       article.person-panel(v-for="person in state.persons" :key="person.cartId")
         .person-panel__head
@@ -198,6 +214,12 @@ onBeforeUnmount(() => {
 .person-card__title
   margin: 0 0 12px
 
+.batch-card__intro,
+.person-card__intro
+  margin: 0 0 12px
+  color: var(--dc-text-muted)
+  line-height: 1.7
+
 .batch-list,
 .person-list,
 .history-card__list
@@ -230,6 +252,7 @@ onBeforeUnmount(() => {
 .batch-item__meta,
 .batch-item__time,
 .batch-item__count,
+.batch-item__draft,
 .person-panel__meta
   color: var(--dc-text-muted)
   font-size: 13px
