@@ -469,7 +469,8 @@ async function confirmAddToCart() {
 .option-pill.is-active
   border-color: rgba(84, 196, 189, 0.72)
   background: rgba(121, 214, 207, 0.14)
-
+  color: #009688
+  
 .option-note
   width: 100%
   border: 1px solid var(--dc-border)

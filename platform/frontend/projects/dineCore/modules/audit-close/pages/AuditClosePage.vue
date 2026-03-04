@@ -61,7 +61,7 @@ async function submitUnlock() {
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow Audit Close
+    p.eyebrow 關帳稽核
     h2 營業日關帳
     p.lead 管理者可檢查當日訂單、付款與鎖定狀態，確認無阻塞後再執行關帳；必要時也可留下原因進行解鎖。
 

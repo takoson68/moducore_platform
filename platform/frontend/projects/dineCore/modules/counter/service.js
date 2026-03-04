@@ -4,6 +4,10 @@ function translateCounterError(error) {
   const code = error instanceof Error ? error.message : String(error || '')
 
   switch (code) {
+    case 'STAFF_SESSION_REQUIRED':
+      return '請先登入員工帳號再查看櫃台資料。'
+    case 'STAFF_ROLE_FORBIDDEN':
+      return '目前帳號沒有櫃台作業權限。'
     case 'BUSINESS_DATE_LOCKED':
       return '當前營業日已關帳，無法再調整訂單。'
     case 'ORDER_NOT_FOUND':

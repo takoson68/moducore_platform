@@ -303,7 +303,7 @@ function closeDevMenu() {
         .staff-auth-mask__backdrop
         .staff-auth-mask__panel
           .staff-auth-copy
-            p.staff-auth-copy__eyebrow DineCore Staff
+            p.staff-auth-copy__eyebrow 權限驗證
             h1.staff-auth-copy__title 目前帳號無法進入此頁面
             p.staff-auth-copy__lead 請改用具備權限的員工帳號登入，或返回可操作的工作頁面。
           form.staff-auth-form(@submit.prevent="submitStaffLogin()")
@@ -332,7 +332,7 @@ function closeDevMenu() {
     .staff-auth-full(v-else)
       .staff-auth-full__panel
         .staff-auth-copy
-          p.staff-auth-copy__eyebrow DineCore Staff
+          p.staff-auth-copy__eyebrow 員工登入
           h1.staff-auth-copy__title 商家登入
           p.staff-auth-copy__lead 進入商家工作台前，請先使用員工帳號登入。註冊流程暫不開放，由管理者於後台建立帳號。
         form.staff-auth-form(@submit.prevent="submitStaffLogin()")

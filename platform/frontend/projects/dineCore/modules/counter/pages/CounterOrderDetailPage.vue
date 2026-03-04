@@ -103,7 +103,7 @@ async function cancelOrder() {
     p.error-text {{ state.error }}
 
   section.scope-card
-    p.eyebrow Counter Detail
+    p.eyebrow 櫃台明細
     h2 訂單明細
     p.lead {{ detail.order.orderNo }}
     .detail-grid

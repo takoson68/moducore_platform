@@ -60,7 +60,7 @@ export function createDashboardStore() {
           store.set({
             ...store.get(),
             loading: false,
-            error: error instanceof Error ? error.message : 'DASHBOARD_LOAD_FAILED'
+            error: error instanceof Error ? error.message : '營運總覽資料載入失敗。'
           })
         }
       }

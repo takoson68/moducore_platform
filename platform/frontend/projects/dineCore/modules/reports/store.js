@@ -72,7 +72,7 @@ export function createReportsStore() {
           store.set({
             ...store.get(),
             loading: false,
-            error: error instanceof Error ? error.message : 'REPORTS_LOAD_FAILED'
+            error: error instanceof Error ? error.message : '營運報表資料載入失敗。'
           })
         }
       },

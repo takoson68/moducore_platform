@@ -200,7 +200,7 @@ final class AuthController
         if ($project === '') {
             $response->json([
                 'success' => false,
-                'message' => 'Missing project',
+                'message' => '缺少專案識別',
             ], 400);
             return;
         }
@@ -211,7 +211,7 @@ final class AuthController
         if ($username === '' || $password === '') {
             $response->json([
                 'success' => false,
-                'message' => 'Missing username or password',
+                'message' => '缺少帳號或密碼',
             ], 400);
             return;
         }
@@ -233,7 +233,7 @@ final class AuthController
 
         $response->json([
             'success' => false,
-            'message' => 'Invalid username or password',
+            'message' => '帳號或密碼錯誤',
         ], 401);
     }
 
@@ -243,7 +243,7 @@ final class AuthController
         if ($project === '') {
             $response->json([
                 'success' => false,
-                'message' => 'Missing project',
+                'message' => '缺少專案識別',
             ], 400);
             return;
         }
@@ -262,7 +262,7 @@ final class AuthController
         if ($project === '') {
             $response->json([
                 'success' => false,
-                'message' => 'Missing project',
+                'message' => '缺少專案識別',
             ], 400);
             return;
         }

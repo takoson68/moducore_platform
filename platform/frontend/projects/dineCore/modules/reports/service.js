@@ -21,6 +21,19 @@ const reportPaymentMethodLabels = {
   all: '全部'
 }
 
+function translateReportsError(error) {
+  const code = error instanceof Error ? error.message : String(error || '')
+
+  switch (code) {
+    case 'STAFF_SESSION_REQUIRED':
+      return '請先登入具備權限的員工帳號再查看營運報表。'
+    case 'STAFF_ROLE_FORBIDDEN':
+      return '目前帳號沒有查看營運報表的權限。'
+    default:
+      return code || '營運報表資料載入失敗。'
+  }
+}
+
 function normalizeSummary(payload = {}) {
   return {
     businessDate: payload.businessDate || '',
@@ -44,28 +57,32 @@ function normalizeBreakdown(payload = {}, defaults = {}) {
 }
 
 export async function loadReportsSnapshot(filters = {}) {
-  const [summary, orders] = await Promise.all([
-    loadReportsSummary(filters),
-    loadReportOrders(filters)
-  ])
+  try {
+    const [summary, orders] = await Promise.all([
+      loadReportsSummary(filters),
+      loadReportOrders(filters)
+    ])
 
-  return {
-    summary: normalizeSummary(summary.summary),
-    statusBreakdown: normalizeBreakdown(summary.statusBreakdown, {
-      pending: 0,
-      preparing: 0,
-      ready: 0,
-      picked_up: 0,
-      cancelled: 0
-    }),
-    paymentBreakdown: normalizeBreakdown(summary.paymentBreakdown, {
-      cash: 0,
-      counter_card: 0,
-      other: 0,
-      unpaid: 0
-    }),
-    topItems: Array.isArray(summary.topItems) ? summary.topItems : [],
-    orderRows: Array.isArray(orders.orders) ? orders.orders : []
+    return {
+      summary: normalizeSummary(summary.summary),
+      statusBreakdown: normalizeBreakdown(summary.statusBreakdown, {
+        pending: 0,
+        preparing: 0,
+        ready: 0,
+        picked_up: 0,
+        cancelled: 0
+      }),
+      paymentBreakdown: normalizeBreakdown(summary.paymentBreakdown, {
+        cash: 0,
+        counter_card: 0,
+        other: 0,
+        unpaid: 0
+      }),
+      topItems: Array.isArray(summary.topItems) ? summary.topItems : [],
+      orderRows: Array.isArray(orders.orders) ? orders.orders : []
+    }
+  } catch (error) {
+    throw new Error(translateReportsError(error))
   }
 }
 

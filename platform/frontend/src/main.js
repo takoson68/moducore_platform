@@ -6,10 +6,16 @@ import '@project/styles/sass/main.sass'
 
 async function start() {
   await world.start()
+  const projectConfig = world.projectConfig()
+
+  if (typeof document !== 'undefined') {
+    document.title = projectConfig?.title || 'ModuCore Platform'
+    document.documentElement.lang = 'zh-Hant'
+  }
 
   createApp(App, {
     ...world.appProps(),
-    projectConfig: world.projectConfig()
+    projectConfig
   })
     .use(world.router())
     .mount('#app')

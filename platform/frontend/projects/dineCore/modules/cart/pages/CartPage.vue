@@ -554,7 +554,8 @@ function goToConfirmOrder() {
   border-color: transparent
   background: linear-gradient(135deg, var(--dc-mint-1) 0%, var(--dc-mint-2) 100%)
   color: #fff
-
+  color: #009688
+  
 .option-note
   width: 100%
   border: 1px solid rgba(97, 129, 131, 0.2)

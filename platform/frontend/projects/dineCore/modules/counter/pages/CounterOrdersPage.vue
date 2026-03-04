@@ -96,7 +96,7 @@ async function markPaid(orderId) {
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow Counter
+    p.eyebrow 櫃台作業
     h2 櫃台訂單總覽
     p.lead 查看目前已送出的訂單，快速確認桌號、共桌人數、最新批次狀態與付款狀態。
 

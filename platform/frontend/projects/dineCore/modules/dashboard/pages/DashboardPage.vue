@@ -30,7 +30,7 @@ watchEffect(() => {
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow Dashboard
+    p.eyebrow 營運總覽
     h2 營運儀表板
     p.lead 主管視角整合今日營收、主單狀態與目前仍在流動中的送單批次，方便快速掌握現場負載。
 

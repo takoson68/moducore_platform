@@ -25,7 +25,7 @@ final class DineCoreGuestApiController
             $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), true);
             $order = $this->findOrderById((int)$session['order_id']);
             if ($order === null) {
-                $response->notFound('Order not found');
+                $response->notFound('找不到訂單');
                 return;
             }
 
@@ -108,7 +108,7 @@ final class DineCoreGuestApiController
 
         $menuItemId = trim((string)($request->body['menuItemId'] ?? $request->body['menu_item_id'] ?? ''));
         if ($menuItemId === '') {
-            $response->validation('Missing menu item id');
+            $response->validation('缺少商品編號');
             return;
         }
 
@@ -120,11 +120,11 @@ final class DineCoreGuestApiController
             $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $menuItem = $this->findMenuItem($menuItemId);
             if ($menuItem === null || (int)$menuItem['hidden'] === 1) {
-                $response->notFound('Menu item not found');
+                $response->notFound('找不到商品');
                 return;
             }
             if ((int)$menuItem['sold_out'] === 1) {
-                $response->error('MENU_ITEM_SOLD_OUT', 'Menu item sold out', 409);
+                $response->error('MENU_ITEM_SOLD_OUT', '商品已售完', 409);
                 return;
             }
 
@@ -169,7 +169,7 @@ final class DineCoreGuestApiController
         $delta = (int)($request->body['delta'] ?? 0);
 
         if ($cartId === '' || $cartItemId <= 0 || $delta === 0) {
-            $response->validation('Missing cart mutation payload');
+            $response->validation('缺少購物車調整資料');
             return;
         }
 
@@ -182,7 +182,7 @@ final class DineCoreGuestApiController
             $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
             $item = $this->findCartItem((int)$session['order_id'], (int)$batch['id'], $cartId, $cartItemId);
             if ($item === null) {
-                $response->notFound('Cart item not found');
+                $response->notFound('找不到購物車品項');
                 return;
             }
 
@@ -215,7 +215,7 @@ final class DineCoreGuestApiController
         $cartId = trim((string)($request->body['cartId'] ?? $request->body['cart_id'] ?? ''));
         $cartItemId = (int)($request->body['cartItemId'] ?? $request->body['cart_item_id'] ?? 0);
         if ($cartId === '' || $cartItemId <= 0) {
-            $response->validation('Missing cart item');
+            $response->validation('缺少購物車品項');
             return;
         }
 
@@ -228,13 +228,13 @@ final class DineCoreGuestApiController
             $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
             $item = $this->findCartItem((int)$session['order_id'], (int)$batch['id'], $cartId, $cartItemId);
             if ($item === null) {
-                $response->notFound('Cart item not found');
+                $response->notFound('找不到購物車品項');
                 return;
             }
 
             $menuItem = $this->findMenuItem((string)$item['menu_item_id']);
             if ($menuItem === null) {
-                $response->notFound('Menu item not found');
+                $response->notFound('找不到商品');
                 return;
             }
 
@@ -285,14 +285,14 @@ final class DineCoreGuestApiController
     {
         $orderId = (int)($request->query['orderId'] ?? $request->query['order_id'] ?? 0);
         if ($orderId <= 0) {
-            $response->validation('Missing order id');
+            $response->validation('缺少訂單編號');
             return;
         }
 
         try {
             $order = $this->findOrderById($orderId);
             if ($order === null) {
-                $response->notFound('Order not found');
+                $response->notFound('找不到訂單');
                 return;
             }
 
@@ -325,13 +325,13 @@ final class DineCoreGuestApiController
             $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $order = $this->findOrderById((int)$session['order_id']);
             if ($order === null) {
-                $response->notFound('Order not found');
+                $response->notFound('找不到訂單');
                 return;
             }
             $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
             $summary = $this->buildCheckoutSummary($tableCode, $session);
             if ((int)$summary['itemCount'] <= 0) {
-                $response->validation('Draft batch is empty');
+                $response->validation('目前送單批次為空');
                 return;
             }
 
@@ -394,14 +394,14 @@ final class DineCoreGuestApiController
     {
         $orderId = (int)($request->query['orderId'] ?? $request->query['order_id'] ?? 0);
         if ($orderId <= 0) {
-            $response->validation('Missing order id');
+            $response->validation('缺少訂單編號');
             return;
         }
 
         try {
             $order = $this->findOrderById($orderId);
             if ($order === null) {
-                $response->notFound('Order not found');
+                $response->notFound('找不到訂單');
                 return;
             }
 
@@ -461,7 +461,7 @@ final class DineCoreGuestApiController
             ?? ''
         ));
         if ($tableCode === '') {
-            $response->validation('Missing table code');
+            $response->validation('缺少桌號');
             return null;
         }
 
@@ -490,17 +490,17 @@ final class DineCoreGuestApiController
         $stmt->execute([$tableCode]);
         $table = $stmt->fetch();
         if (!$table) {
-            $response->notFound('Table not found');
+            $response->notFound('找不到桌號');
             return null;
         }
 
         if ((string)$table['status'] !== 'active') {
-            $response->error('TABLE_INACTIVE', 'Table inactive', 409);
+            $response->error('TABLE_INACTIVE', '此桌號目前未啟用', 409);
             return null;
         }
 
         if ((int)$table['is_ordering_enabled'] !== 1) {
-            $response->error('ORDERING_DISABLED', 'Ordering disabled', 409);
+            $response->error('ORDERING_DISABLED', '此桌目前暫停接單', 409);
             return null;
         }
 
@@ -1367,15 +1367,15 @@ final class DineCoreGuestApiController
     {
         $code = $error->getMessage();
         if ($code === 'ORDER_NOT_FOUND') {
-            $response->notFound('Order not found');
+            $response->notFound('找不到訂單');
             return;
         }
 
         if ($code === 'ORDERING_SESSION_REQUIRED') {
-            $response->error('ORDERING_SESSION_REQUIRED', 'Ordering session required', 409);
+            $response->error('ORDERING_SESSION_REQUIRED', '需要有效的點餐工作階段', 409);
             return;
         }
 
-        $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'DineCore backend failed');
+        $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'DineCore 後端處理失敗');
     }
 }

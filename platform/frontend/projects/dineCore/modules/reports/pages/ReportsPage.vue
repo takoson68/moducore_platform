@@ -42,7 +42,7 @@ function downloadCsv() {
   section.panel-card
     .panel-card__head
       .panel-card__copy
-        p.eyebrow Reports
+        p.eyebrow 營運報表
         h2 營運報表
         p.lead 可依日期、訂單狀態與付款條件過濾主單資料，並匯出 CSV 供後續對帳或管理分析。
       button.ghost-button(type="button" :disabled="state.orderRows.length === 0" @click="downloadCsv()") 匯出 CSV

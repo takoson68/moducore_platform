@@ -47,7 +47,7 @@ async function updateOrderStatus(batchId, orderStatus) {
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow Kitchen
+    p.eyebrow 廚房作業
     h2 廚房看板
     p.lead 即時查看已送出的批次，確認桌號、批次內容與目前製作狀態。
 

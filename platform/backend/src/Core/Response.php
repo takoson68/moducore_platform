@@ -30,27 +30,27 @@ final class Response
         ], $status);
     }
 
-    public function unauthorized(string $message = 'Unauthorized'): void
+    public function unauthorized(string $message = '未授權'): void
     {
         $this->error('UNAUTHORIZED', $message, 401);
     }
 
-    public function forbidden(string $message = 'Forbidden'): void
+    public function forbidden(string $message = '禁止存取'): void
     {
         $this->error('FORBIDDEN', $message, 403);
     }
 
-    public function notFound(string $message = 'Not Found'): void
+    public function notFound(string $message = '找不到資料'): void
     {
         $this->error('NOT_FOUND', $message, 404);
     }
 
-    public function validation(string $message = 'Validation Failed'): void
+    public function validation(string $message = '資料驗證失敗'): void
     {
         $this->error('VALIDATION_FAILED', $message, 422);
     }
 
-    public function internal(string $message = 'Internal Server Error'): void
+    public function internal(string $message = '伺服器內部錯誤'): void
     {
         $this->error('INTERNAL_ERROR', $message, 500);
     }

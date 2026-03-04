@@ -35,7 +35,7 @@ final class DineCoreStaffApiController
 
             $response->ok($tables);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Staff tables failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入桌號資料失敗');
         }
     }
 
@@ -109,7 +109,7 @@ final class DineCoreStaffApiController
                 ];
             }, $orders));
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter orders failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入櫃台訂單失敗');
         }
     }
 
@@ -169,7 +169,7 @@ final class DineCoreStaffApiController
                 'timeline' => $timeline,
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter order detail failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入櫃台訂單明細失敗');
         }
     }
 
@@ -192,7 +192,7 @@ final class DineCoreStaffApiController
 
         try {
             if ($this->isBusinessDateLockedForOrder($orderId)) {
-                $response->error('BUSINESS_DATE_LOCKED', 'Business date locked', 409);
+                $response->error('BUSINESS_DATE_LOCKED', '當前營業日已關帳', 409);
                 return;
             }
 
@@ -227,7 +227,7 @@ final class DineCoreStaffApiController
                 $orderId,
                 $orderStatus,
                 'counter',
-                $note !== '' ? $note : sprintf('櫃台已更新狀態為 %s', $orderStatus),
+                $note !== '' ? $note : sprintf('櫃台已更新訂單狀態為「%s」', $this->labelOrderStatus($orderStatus)),
             ]);
 
             $response->ok([
@@ -235,7 +235,7 @@ final class DineCoreStaffApiController
                 'orderStatus' => $orderStatus,
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter order status update failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '更新櫃台訂單狀態失敗');
         }
     }
 
@@ -255,7 +255,7 @@ final class DineCoreStaffApiController
 
         try {
             if ($this->isBusinessDateLockedForOrder($orderId)) {
-                $response->error('BUSINESS_DATE_LOCKED', 'Business date locked', 409);
+                $response->error('BUSINESS_DATE_LOCKED', '當前營業日已關帳', 409);
                 return;
             }
 
@@ -289,7 +289,7 @@ final class DineCoreStaffApiController
                 $orderId,
                 (string)$order['order_status'],
                 'counter',
-                sprintf('櫃台已更新付款狀態為 %s', $paymentStatus),
+                sprintf('櫃台已更新付款狀態為「%s」', $this->labelPaymentStatus($paymentStatus)),
             ]);
 
             $response->ok([
@@ -297,7 +297,7 @@ final class DineCoreStaffApiController
                 'paymentStatus' => $paymentStatus,
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Counter payment update failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '更新付款狀態失敗');
         }
     }
 
@@ -329,12 +329,12 @@ final class DineCoreStaffApiController
                     'orderStatus' => (string)$row['status'],
                     'batchNo' => (int)$row['batch_no'],
                     'createdAt' => (string)($row['submitted_at'] ?? $row['created_at']),
-                    'waitLabel' => sprintf('%d min', (int)($row['estimated_wait_minutes'] ?? 0)),
+                    'waitLabel' => sprintf('%d 分鐘', (int)($row['estimated_wait_minutes'] ?? 0)),
                     'items' => $items,
                 ];
             }, $rows));
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Kitchen orders failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入廚房訂單失敗');
         }
     }
 
@@ -360,7 +360,7 @@ final class DineCoreStaffApiController
             }
 
             if ($this->isBusinessDateLockedForOrder((int)$batch['order_id'])) {
-                $response->error('BUSINESS_DATE_LOCKED', 'Business date locked', 409);
+                $response->error('BUSINESS_DATE_LOCKED', '當前營業日已關帳', 409);
                 return;
             }
 
@@ -380,7 +380,7 @@ final class DineCoreStaffApiController
                 (int)$batch['order_id'],
                 $orderStatus,
                 'kitchen',
-                sprintf('廚房已更新第 %d 批狀態為 %s', (int)$batch['batch_no'], $orderStatus),
+                sprintf('廚房已更新第 %d 批狀態為「%s」', (int)$batch['batch_no'], $this->labelOrderStatus($orderStatus)),
             ]);
 
             $response->ok([
@@ -388,7 +388,7 @@ final class DineCoreStaffApiController
                 'orderStatus' => $orderStatus,
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Kitchen order status update failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '更新廚房訂單狀態失敗');
         }
     }
 
@@ -405,7 +405,7 @@ final class DineCoreStaffApiController
             $summary = $this->buildReportsSummaryPayload($orders, $filters);
             $response->ok($summary);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Reports summary failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入報表摘要失敗');
         }
     }
 
@@ -423,7 +423,7 @@ final class DineCoreStaffApiController
                 'orders' => array_map(fn (array $order) => $this->normalizeReportOrderRow($order), $orders),
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Reports orders failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入報表訂單明細失敗');
         }
     }
 
@@ -438,7 +438,7 @@ final class DineCoreStaffApiController
             $businessDate = $this->resolveBusinessDate($request);
             $response->ok($this->buildAuditSummaryPayloadV2($businessDate));
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Audit summary failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入關帳摘要失敗');
         }
     }
 
@@ -476,7 +476,7 @@ final class DineCoreStaffApiController
                 ], $rows),
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Audit history failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '載入關帳歷程失敗');
         }
     }
 
@@ -494,12 +494,12 @@ final class DineCoreStaffApiController
         try {
             $summary = $this->buildAuditSummaryPayloadV2($businessDate);
             if (($summary['lockState']['isLocked'] ?? false) === true) {
-                $response->error('BUSINESS_DATE_ALREADY_CLOSED', 'Business date already closed', 409);
+                $response->error('BUSINESS_DATE_ALREADY_CLOSED', '當前營業日已關帳', 409);
                 return;
             }
 
             if (($summary['blockingIssues'] ?? []) !== []) {
-                $response->error('AUDIT_CLOSE_BLOCKED', 'Audit close blocked', 409);
+                $response->error('AUDIT_CLOSE_BLOCKED', '仍有阻塞項目，無法關帳', 409);
                 return;
             }
 
@@ -544,7 +544,7 @@ final class DineCoreStaffApiController
                 'closeStatus' => 'closed',
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Audit close failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '執行關帳失敗');
         }
     }
 
@@ -567,7 +567,7 @@ final class DineCoreStaffApiController
         try {
             $closing = $this->findClosingByDate($businessDate);
             if ($closing === null || (string)$closing['status'] !== 'closed') {
-                $response->error('BUSINESS_DATE_NOT_CLOSED', 'Business date not closed', 409);
+                $response->error('BUSINESS_DATE_NOT_CLOSED', '該營業日尚未關帳', 409);
                 return;
             }
 
@@ -603,7 +603,7 @@ final class DineCoreStaffApiController
                 'closeStatus' => 'reopened',
             ]);
         } catch (Throwable $error) {
-            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'Audit unlock failed');
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '執行解鎖失敗');
         }
     }
 
@@ -611,7 +611,7 @@ final class DineCoreStaffApiController
     {
         $token = $this->resolveTokenFromRequest($request);
         if ($token === '') {
-            $response->unauthorized('STAFF_SESSION_REQUIRED');
+            $response->error('STAFF_SESSION_REQUIRED', '需要有效的員工登入狀態', 401);
             return null;
         }
 
@@ -626,12 +626,12 @@ final class DineCoreStaffApiController
         $stmt->execute([$token, 'dineCore', 'dine_core']);
         $row = $stmt->fetch();
         if (!$row) {
-            $response->unauthorized('STAFF_SESSION_REQUIRED');
+            $response->error('STAFF_SESSION_REQUIRED', '需要有效的員工登入狀態', 401);
             return null;
         }
 
         if (!in_array((string)$row['role'], $allowedRoles, true)) {
-            $response->forbidden('STAFF_ROLE_FORBIDDEN');
+            $response->error('STAFF_ROLE_FORBIDDEN', '目前帳號無法執行此操作', 403);
             return null;
         }
 
@@ -1256,5 +1256,28 @@ final class DineCoreStaffApiController
 
         $decoded = json_decode($raw, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function labelOrderStatus(string $status): string
+    {
+        return match ($status) {
+            'draft' => '草稿',
+            'pending' => '待送出',
+            'submitted' => '已送出',
+            'preparing' => '製作中',
+            'ready' => '可取餐',
+            'picked_up' => '已取餐',
+            'cancelled' => '已取消',
+            default => $status,
+        };
+    }
+
+    private function labelPaymentStatus(string $status): string
+    {
+        return match ($status) {
+            'unpaid' => '未付款',
+            'paid' => '已付款',
+            default => $status,
+        };
     }
 }

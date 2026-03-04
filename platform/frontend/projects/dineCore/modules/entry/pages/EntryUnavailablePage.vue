@@ -7,7 +7,7 @@ const route = useRoute()
 <template lang="pug">
 .mobile-page
   section.scope-card
-    p.eyebrow Entry Module
+    p.eyebrow 入口狀態
     h2 桌號暫不可用
     p.lead 此入口預留給桌號停用、非營業中或暫停接單的狀態提示。
     p.meta-code(v-if="route.params.tableCode") 桌號：{{ route.params.tableCode }}
