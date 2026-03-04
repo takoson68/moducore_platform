@@ -1,5 +1,6 @@
 import world from '@/world.js'
 import { mockApiRequest } from '@project/api/mockRequest.js'
+import { setGuestOrderingSessionToken } from '@project/api/guestOrderingSession.js'
 
 function buildQuery(query = {}) {
   const params = new URLSearchParams()
@@ -31,6 +32,16 @@ function unwrapResult(result) {
   throw new Error(String(code))
 }
 
+function resolveTableCode({ query, body } = {}) {
+  return String(
+    query?.tableCode ||
+    query?.table_code ||
+    body?.tableCode ||
+    body?.table_code ||
+    ''
+  ).trim()
+}
+
 export async function dineCoreRequest(
   mockAction,
   { path, method = 'GET', query, body, mockPayload } = {}
@@ -45,8 +56,30 @@ export async function dineCoreRequest(
   const http = world.http()
 
   if (method === 'GET') {
-    return unwrapResult(await http.get(`${path}${buildQuery(query)}`))
+    try {
+      return unwrapResult(await http.get(`${path}${buildQuery(query)}`))
+    } catch (error) {
+      if (String(error?.message || '') === 'ORDERING_SESSION_REQUIRED') {
+        const tableCode = resolveTableCode({ query, body })
+        if (tableCode) {
+          setGuestOrderingSessionToken(tableCode, '')
+        }
+      }
+
+      throw error
+    }
   }
 
-  return unwrapResult(await http.post(path, body))
+  try {
+    return unwrapResult(await http.post(path, body))
+  } catch (error) {
+    if (String(error?.message || '') === 'ORDERING_SESSION_REQUIRED') {
+      const tableCode = resolveTableCode({ query, body })
+      if (tableCode) {
+        setGuestOrderingSessionToken(tableCode, '')
+      }
+    }
+
+    throw error
+  }
 }

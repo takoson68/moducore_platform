@@ -1,0 +1,174 @@
+【DineCore 今晚續做交接】
+
+時間基準：
+- 今天日期：2026-03-04
+- 專案路徑：F:\GitHub\moducore_platform
+- 前端專案：platform/frontend/projects/dineCore
+- 後端專案：platform/backend
+
+一、目前已完成的重要事項
+
+1. 顧客端 session 規則
+- `ordering_session_token` 已從 `sessionStorage` 改為 `localStorage`
+- 同一瀏覽器分頁/視窗共用同一位顧客
+- 避免重整、斷線、重開頁面就長出新顧客
+
+2. ghost session 根因修正
+- 只有 `entry-context` 可以建立新顧客 session
+- `menu / carts / checkout` 不會再偷偷建立新顧客
+
+3. batch 訂單模型已導入
+- `dinecore_order_batches` 已建立
+- `dinecore_cart_items.batch_id` 已建立
+- 送單後：
+  - 舊 batch 會變 `submitted`
+  - 系統會自動建立下一個新的 `draft batch`
+- 加點不會再混進上一批
+
+4. 空單問題已處理
+- 空購物車不能前往結帳
+- 結帳頁不能送空單
+- 後端也會拒絕空批次送單
+
+5. 顧客端文案已調整
+- 購物車頁主按鈕：`合併訂單`
+- 確認頁主按鈕：`送出訂單`
+
+6. 商家端 shell UI 已調整
+- staff shell 改為左側深色 sidebar
+- sidebar 貼齊左側、寬約 260px、無圓角
+- 登出按鈕固定在右上角，已調整避免與 title 重疊
+- 商家端以平板/桌機優先
+
+7. 櫃台 / 廚房輪詢已完成
+- 櫃台總覽：5 秒輪詢
+- 櫃台明細：5 秒輪詢
+- 廚房看板：5 秒輪詢
+- 離頁會停止輪詢
+
+8. 商家端不顯示訂單的根因已修正
+- 真正原因是 `staffApiRequest.js` 解包錯誤
+- API 有資料，但前端拿到錯誤結構，導致畫面顯示空白
+- 此問題已修掉
+
+9. 櫃台總覽批次顯示已修正
+- 改為取「最新非 draft 批次」
+- 不再把新的空 `draft batch` 當作最新送單批次
+
+10. 櫃台桌號篩選已升級
+- 已改成下拉選單
+- 並且改為讀 `dinecore_tables`
+- 所以即使沒有訂單的桌號，也會出現在下拉中
+
+11. 顧客端舊 token 防呆已補上
+- 若本機 `localStorage` 留著舊 token
+- 但後端 session 已不存在
+- 遇到 `ORDERING_SESSION_REQUIRED` 時，前端會自動清除本機 token
+
+12. A01 測試資料已可手動清空
+- 已驗證可以把 A01 的：
+  - `dinecore_guest_sessions`
+  - `dinecore_orders`
+  - `dinecore_order_batches`
+  - `dinecore_cart_items`
+  - `dinecore_order_timeline`
+  全部清成 0
+
+二、今晚開始前的狀態提醒
+
+- 如果 A01 又看到很多顧客，先懷疑是瀏覽器本機 token 或其他瀏覽器/分頁又重新進桌號
+- 若要完全乾淨重測：
+  1. 先清 DB A01 資料
+  2. 再清瀏覽器 localStorage 的 `dinecore-guest-ordering-session:A01`
+
+瀏覽器 console 可用：
+localStorage.removeItem('dinecore-guest-ordering-session:A01')
+
+若要清所有 DineCore 顧客 token：
+Object.keys(localStorage)
+  .filter(key => key.startsWith('dinecore-guest-ordering-session:'))
+  .forEach(key => localStorage.removeItem(key))
+
+三、目前最自然的下一步
+
+今晚優先做：
+- 清理 staff 端剩餘亂碼文案
+
+優先順序建議：
+1. `staff-auth`
+2. `table-admin`
+3. `dashboard / reports / audit-close` 殘留亂碼字串
+4. `DineCoreStaffApiController.php` 裡殘留的 timeline / note 中文亂碼
+
+四、今晚如果要直接驗流程，建議順序
+
+1. 清空 A01
+2. 清瀏覽器 A01 localStorage token
+3. 顧客端進 A01
+4. 加一筆商品
+5. `合併訂單 -> 送出訂單`
+6. 等 5 秒
+7. 櫃台總覽確認出現
+8. 廚房看板確認出現
+9. 再做第二批加點，確認 batch 分開
+
+五、關鍵檔案
+
+後端：
+- platform/backend/src/Controllers/DineCoreGuestApiController.php
+- platform/backend/src/Controllers/DineCoreStaffApiController.php
+- platform/backend/src/routes.php
+
+前端共用層：
+- platform/frontend/projects/dineCore/api/guestOrderingSession.js
+- platform/frontend/projects/dineCore/api/dineCoreRequest.js
+- platform/frontend/projects/dineCore/api/staffApiRequest.js
+
+顧客端：
+- platform/frontend/projects/dineCore/modules/entry/store.js
+- platform/frontend/projects/dineCore/modules/cart/pages/CartPage.vue
+- platform/frontend/projects/dineCore/modules/checkout/pages/CheckoutPage.vue
+
+商家端：
+- platform/frontend/projects/dineCore/layout/LayoutRoot.vue
+- platform/frontend/projects/dineCore/modules/counter/pages/CounterOrdersPage.vue
+- platform/frontend/projects/dineCore/modules/counter/pages/CounterOrderDetailPage.vue
+- platform/frontend/projects/dineCore/modules/counter/service.js
+- platform/frontend/projects/dineCore/modules/counter/store.js
+- platform/frontend/projects/dineCore/modules/kitchen/pages/KitchenBoardPage.vue
+- platform/frontend/projects/dineCore/modules/kitchen/service.js
+
+六、今晚貼給 Codex 的建議開場文字
+
+請沿用 DineCore 目前狀態繼續，不要重做既有 batch/session 修正。
+目前已完成：
+- guest token 改 localStorage
+- ghost session 根因修正
+- batch flow 完成
+- staff API 解包 bug 修正
+- counter/kitchen 5 秒輪詢完成
+- counter 桌號下拉已改讀 dinecore_tables
+
+今晚任務：
+- 先清理 staff-auth 與 table-admin 的亂碼文案
+- 然後回頭檢查 staff 端是否還有殘留亂碼字串
+- 若過程中需要測 A01，先清 DB 與 localStorage token
+
+七、如果今晚要先做 A01 清空，可直接執行的 SQL 邏輯
+
+刪除順序：
+- dinecore_cart_items
+- dinecore_order_batches
+- dinecore_order_timeline
+- dinecore_guest_sessions
+- dinecore_orders
+
+條件：
+- table_code = 'A01'
+
+八、補充
+
+- 今天已確認：DB 有資料但商家端不顯示的問題，根因不是結單，而是前端 staff API 解包錯誤
+- 目前商家端 API 實測是有回資料的
+- 如果晚上又出現「DB 有、畫面沒有」，先檢查是否吃到舊資產，必要時重新 build 並同步到 backend/public
+
