@@ -35,6 +35,8 @@ ModuCore Platform 是一個：
 ⚠️  
 - 未先閱讀 RootIndex.md 者，不得進行任何實作、重構或生成行為  
 - AI 不得自行跳過目錄層級的 index.md
+- 若任務涉及「開發新專案、建立模組、產生或修改工程內容」，必須先閱讀 `skills/index.md`
+- 針對 skills 僅要求完成閱讀與遵守，不要求事前回報將使用哪些 skill
 
 RootIndex.md 僅裁決「跨目錄層級的閱讀與進入順序」，
 目錄內之閱讀細節，完全由該目錄的 index.md 自行裁決。

@@ -119,6 +119,21 @@ skill 本身 **不產生裁決語句**。
 
 ---
 
+## 8. 目前已可用 Skills
+
+- `module-scaffold`
+  - 建立 / 補齊 frontend 模組骨架，並對齊 MODULE_TEMPLATE_CONTRACT
+- `dinecore-api-smoke-check`
+  - 針對 dineCore 核心 API 進行快速健康檢查與故障分流
+- `dinecore-auth-repair`
+  - 修復 dineCore staff 401（token 傳遞、staff profile、角色驗證）
+- `dinecore-db-repair`
+  - 修復 dineCore 缺表/缺欄位導致的 500，並做回歸驗證
+- `local-ip-mobile-test`
+  - 將本機服務開成同網段手機可直接測試的 IP 網址
+
+---
+
 本文件為 `skills/` 目錄之唯一閱讀入口。  
 任何未依此定義之技能行為，皆視為不合法 skill。
 
