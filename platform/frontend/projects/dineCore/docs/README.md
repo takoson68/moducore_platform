@@ -1,5 +1,8 @@
 # DineCore Docs
 
+- `DINECORE_TABLE_SESSION_FLOW_EXECUTION_PLAN.md`：桌次 session / 訂單 / 顧客 session 新流程執行文件（含隱患補強與分階段落地）
+- `DINECORE_TABLE_SESSION_PHASE4_SMOKE_2026-03-05.md`：table-session 流程 Phase 4 smoke 測試結果
+
 此目錄存放 DineCore 的規格、邊界、進度與工程執行文件。
 
 目前建議閱讀順序：

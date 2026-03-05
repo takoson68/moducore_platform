@@ -281,6 +281,12 @@ final class DineCoreStaffApiController
             );
             $sessionStmt->execute([$sessionStatus, $orderId]);
 
+            if ($paymentStatus === 'paid') {
+                $this->closeTableSessionsForOrder($orderId);
+            } else {
+                $this->ensureActiveTableSessionForOrder($orderId, (string)$order['table_code']);
+            }
+
             $timeline = db()->prepare(
                 'INSERT INTO dinecore_order_timeline (order_id, status, source, note, changed_at)
                  VALUES (?, ?, ?, ?, NOW())'
@@ -605,6 +611,89 @@ final class DineCoreStaffApiController
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : '執行解鎖失敗');
         }
+    }
+
+    public function clearGuestSessions(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $tableCode = trim((string)($request->body['tableCode'] ?? $request->body['table_code'] ?? $request->query['table_code'] ?? ''));
+        if ($tableCode === '') {
+            $response->validation('TABLE_CODE_REQUIRED');
+            return;
+        }
+
+        try {
+            $stmt = db()->prepare(
+                'UPDATE dinecore_guest_sessions
+                 SET status = ?, last_seen_at = NOW()
+                 WHERE table_code = ? AND status <> ?'
+            );
+            $stmt->execute(['expired', $tableCode, 'expired']);
+
+            $closeTableSession = db()->prepare(
+                'UPDATE dinecore_table_sessions
+                 SET order_id = NULL, status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
+                 WHERE table_code = ?'
+            );
+            $closeTableSession->execute(['closed', '[]', $tableCode]);
+
+            $response->ok([
+                'cleared' => (int)$stmt->rowCount(),
+                'scope' => 'table',
+                'tableCode' => $tableCode,
+                'actor' => (string)$context['username'],
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : '頛頝餅?極??餃');
+        }
+    }
+
+    private function closeTableSessionsForOrder(int $orderId): void
+    {
+        $stmt = db()->prepare(
+            'UPDATE dinecore_table_sessions
+             SET order_id = NULL, status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
+             WHERE order_id = ?'
+        );
+        $stmt->execute(['closed', '[]', $orderId]);
+    }
+
+    private function ensureActiveTableSessionForOrder(int $orderId, string $tableCode): void
+    {
+        $existing = db()->prepare(
+            'SELECT id
+             FROM dinecore_table_sessions
+             WHERE table_code = ?
+             LIMIT 1'
+        );
+        $existing->execute([$tableCode]);
+        $row = $existing->fetch();
+
+        if ($row) {
+            $update = db()->prepare(
+                'UPDATE dinecore_table_sessions
+                 SET order_id = ?,
+                     status = ?,
+                     started_at = NOW(),
+                     closed_at = NULL,
+                     guest_state_json = CASE WHEN order_id = ? THEN guest_state_json ELSE ? END,
+                     updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $update->execute([$orderId, 'active', $orderId, '[]', (int)$row['id']]);
+            return;
+        }
+
+        $insert = db()->prepare(
+            'INSERT INTO dinecore_table_sessions
+                (table_code, order_id, status, started_at, closed_at, guest_state_json, created_at, updated_at)
+             VALUES (?, ?, ?, NOW(), NULL, ?, NOW(), NOW())'
+        );
+        $insert->execute([$tableCode, $orderId, 'active', '[]']);
     }
 
     private function requireStaffContext(Request $request, Response $response, array $allowedRoles): ?array
@@ -1043,6 +1132,35 @@ final class DineCoreStaffApiController
 
     private function listSessionsForOrder(int $orderId, bool $activeOnly): array
     {
+        $tableSession = $this->findTableSessionByOrderId($orderId);
+        if ($tableSession !== null) {
+            $sessions = [];
+            foreach ($this->decodeJsonArray($tableSession['guest_state_json'] ?? '[]') as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $status = (string)($row['status'] ?? 'active');
+                if ($activeOnly && $status === 'expired') {
+                    continue;
+                }
+                if ((int)($row['order_id'] ?? 0) !== $orderId) {
+                    continue;
+                }
+                $sessions[] = [
+                    'id' => (int)($row['id'] ?? 0),
+                    'session_token' => (string)($row['session_token'] ?? ''),
+                    'table_code' => (string)($row['table_code'] ?? ''),
+                    'order_id' => (int)($row['order_id'] ?? 0),
+                    'person_slot' => max(1, (int)($row['person_slot'] ?? 1)),
+                    'cart_id' => (string)($row['cart_id'] ?? ''),
+                    'display_label' => (string)($row['display_label'] ?? ''),
+                    'status' => $status,
+                ];
+            }
+            usort($sessions, fn (array $a, array $b): int => ((int)$a['person_slot'] <=> (int)$b['person_slot']));
+            return $sessions;
+        }
+
         $sql = 'SELECT id, session_token, table_code, order_id, person_slot, cart_id, display_label, status
                 FROM dinecore_guest_sessions
                 WHERE order_id = ?';
@@ -1055,6 +1173,21 @@ final class DineCoreStaffApiController
         $stmt->execute($activeOnly ? [$orderId, 'expired'] : [$orderId]);
 
         return $stmt->fetchAll() ?: [];
+    }
+
+    private function findTableSessionByOrderId(int $orderId): ?array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, table_code, order_id, status, guest_state_json
+             FROM dinecore_table_sessions
+             WHERE order_id = ?
+             ORDER BY id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$orderId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
     }
 
     private function listCartItemsByCartId(int $orderId, ?int $batchId = null): array

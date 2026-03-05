@@ -1,10 +1,15 @@
 <script setup>
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import world from '@/world.js'
 
 const route = useRoute()
 const devMenuOpen = ref(false)
+const clearSessionTableCode = ref('A01')
+const clearSessionTableOptions = ref([])
+const isLoadingClearSessionTables = ref(false)
+const isRevalidatingEntryContext = ref(false)
+const lastEntryRevalidateAt = ref(0)
 
 function safeStore(name) {
   return world.hasStore(name) ? world.store(name) : null
@@ -246,6 +251,15 @@ watch(
   }
 )
 
+watch(
+  [() => isStaffRoute.value, () => isStaffAuthenticated.value],
+  async ([staffRoute, authenticated]) => {
+    if (!staffRoute || !authenticated || clearSessionTableOptions.value.length > 0) return
+    await loadClearSessionTableOptions()
+  },
+  { immediate: true }
+)
+
 async function submitStaffLogin() {
   if (!staffAuthStore) return
 
@@ -262,6 +276,96 @@ async function logout() {
   loginForm.account = 'manager'
   loginForm.password = 'manager123'
 }
+
+function resolveTableCodeForSessionClear() {
+  return String(clearSessionTableCode.value || currentTableCode.value || 'A01')
+    .trim()
+    .toUpperCase()
+}
+
+async function loadClearSessionTableOptions() {
+  if (world.apiMode() !== 'real') return
+
+  isLoadingClearSessionTables.value = true
+  try {
+    const result = await world.http().get('/api/dinecore/staff/tables')
+    if (!result?.ok || !Array.isArray(result.data)) return
+
+    const options = result.data
+      .map(table => String(table.code || '').trim().toUpperCase())
+      .filter(code => code.length > 0)
+
+    clearSessionTableOptions.value = options
+    if (options.length > 0 && !options.includes(clearSessionTableCode.value)) {
+      clearSessionTableCode.value = options[0]
+    }
+  } finally {
+    isLoadingClearSessionTables.value = false
+  }
+}
+
+async function clearSession() {
+  try {
+    if (world.apiMode() === 'real') {
+      const tableCode = resolveTableCodeForSessionClear()
+      if (!tableCode) return
+
+      const result = await world.http().post('/api/dinecore/staff/sessions/clear', {
+        table_code: tableCode
+      })
+      if (!result?.ok) {
+        throw new Error('CLEAR_SESSION_FAILED')
+      }
+    }
+  } catch {
+    if (typeof window !== 'undefined') {
+      window.alert('清空顧客 Session 失敗，請稍後再試。')
+    }
+  }
+}
+
+async function revalidateEntryContextOnResume() {
+  if (isStaffRoute.value || !entryStore) return
+
+  const now = Date.now()
+  if (isRevalidatingEntryContext.value || now - lastEntryRevalidateAt.value < 1500) {
+    return
+  }
+
+  isRevalidatingEntryContext.value = true
+  lastEntryRevalidateAt.value = now
+
+  try {
+    await entryStore.loadTableContext({
+      tableCode: currentTableCode.value,
+      orderingSessionToken: entryState.value.orderingSessionToken
+    })
+  } finally {
+    isRevalidatingEntryContext.value = false
+  }
+}
+
+function handleWindowFocus() {
+  revalidateEntryContextOnResume()
+}
+
+function handleVisibilityChange() {
+  if (typeof document === 'undefined') return
+  if (document.visibilityState !== 'visible') return
+  revalidateEntryContextOnResume()
+}
+
+onMounted(() => {
+  if (typeof window === 'undefined') return
+  window.addEventListener('focus', handleWindowFocus)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onBeforeUnmount(() => {
+  if (typeof window === 'undefined') return
+  window.removeEventListener('focus', handleWindowFocus)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 
 function clearLoginError() {
   if (!staffAuthStore) return
@@ -287,7 +391,19 @@ function closeDevMenu() {
             strong.staff-shell__title DineCore 商家工作台
             span.staff-shell__meta(v-if="staffSession") {{ `${staffSession.name}｜${staffSession.account}` }}
             span.staff-shell__meta(v-else) 未載入員工登入模組
-          button.staff-shell__logout(v-if="staffSession" type="button" @click="logout()") 登出
+          .staff-shell__actions(v-if="staffSession")
+            select.staff-shell__table-select(
+              v-model="clearSessionTableCode"
+              :disabled="isLoadingClearSessionTables || clearSessionTableOptions.length === 0"
+              title="選擇要清空顧客 Session 的桌號"
+            )
+              option(
+                v-for="code in clearSessionTableOptions"
+                :key="code"
+                :value="code"
+              ) {{ code }}
+            button.staff-shell__clear-session(type="button" @click="clearSession()") 清空顧客 Session
+            button.staff-shell__logout(type="button" @click="logout()") 登出
         nav.staff-shell__nav(v-if="staffNavItems.length > 0")
           RouterLink.staff-shell__nav-item(
             v-for="item in staffNavItems"
@@ -644,11 +760,16 @@ function closeDevMenu() {
   color: #537174
   font-weight: 700
 
-.staff-shell__logout
+.staff-shell__actions
   position: fixed
   top: 12px
   right: 16px
   z-index: 30
+  display: inline-flex
+  gap: 8px
+
+.staff-shell__logout,
+.staff-shell__clear-session
   border: 1px solid rgba(21, 36, 44, 0.12)
   border-radius: 999px
   padding: 7px 11px
@@ -660,7 +781,24 @@ function closeDevMenu() {
   cursor: pointer
   box-shadow: 0 12px 24px rgba(21, 36, 44, 0.12)
 
-.staff-shell__logout:hover
+.staff-shell__table-select
+  border: 1px solid rgba(21, 36, 44, 0.12)
+  border-radius: 999px
+  padding: 6px 10px
+  background: rgba(255, 255, 255, 0.94)
+  color: #1c3138
+  font-size: 12px
+  font-weight: 700
+  line-height: 1
+  cursor: pointer
+  box-shadow: 0 12px 24px rgba(21, 36, 44, 0.12)
+
+.staff-shell__table-select:disabled
+  opacity: 0.6
+  cursor: not-allowed
+
+.staff-shell__logout:hover,
+.staff-shell__clear-session:hover
   background: #ffffff
   color: #fff
   color: #15242c
@@ -881,7 +1019,7 @@ function closeDevMenu() {
     margin: -16px -16px 0
     padding: 12px 16px 10px
 
-  .staff-shell__logout
+  .staff-shell__actions
     top: 10px
     right: 10px
 

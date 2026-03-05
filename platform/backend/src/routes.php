@@ -25,6 +25,7 @@ $router->add('GET', '/api/dinecore/staff/kitchen/orders', 'DineCoreStaffApiContr
 $router->add('POST', '/api/dinecore/staff/kitchen/update-order-status', 'DineCoreStaffApiController@kitchenUpdateOrderStatus');
 $router->add('GET', '/api/dinecore/staff/reports/summary', 'DineCoreStaffApiController@reportsSummary');
 $router->add('GET', '/api/dinecore/staff/reports/orders', 'DineCoreStaffApiController@reportsOrders');
+$router->add('POST', '/api/dinecore/staff/sessions/clear', 'DineCoreStaffApiController@clearGuestSessions');
 $router->add('GET', '/api/dinecore/staff/audit-close/summary', 'DineCoreStaffApiController@auditCloseSummary');
 $router->add('GET', '/api/dinecore/staff/audit-close/history', 'DineCoreStaffApiController@auditCloseHistory');
 $router->add('POST', '/api/dinecore/staff/audit-close/close', 'DineCoreStaffApiController@closeBusinessDate');

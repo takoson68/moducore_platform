@@ -9,6 +9,8 @@ use Throwable;
 
 final class DineCoreGuestApiController
 {
+    private const GUEST_SESSION_IDLE_TIMEOUT_SECONDS = 14400;
+
     public function entryContext(Request $request, Response $response): void
     {
         $tableCode = $this->requireTableCode($request, $response);
@@ -25,7 +27,7 @@ final class DineCoreGuestApiController
             $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), true);
             $order = $this->findOrderById((int)$session['order_id']);
             if ($order === null) {
-                $response->notFound('找不到訂單');
+                $response->notFound('ORDER_NOT_FOUND');
                 return;
             }
 
@@ -108,7 +110,7 @@ final class DineCoreGuestApiController
 
         $menuItemId = trim((string)($request->body['menuItemId'] ?? $request->body['menu_item_id'] ?? ''));
         if ($menuItemId === '') {
-            $response->validation('缺少商品編號');
+            $response->validation('INVALID_ADD_ITEM_PARAMS');
             return;
         }
 
@@ -120,11 +122,11 @@ final class DineCoreGuestApiController
             $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $menuItem = $this->findMenuItem($menuItemId);
             if ($menuItem === null || (int)$menuItem['hidden'] === 1) {
-                $response->notFound('找不到商品');
+                $response->notFound('MENU_ITEM_NOT_FOUND');
                 return;
             }
             if ((int)$menuItem['sold_out'] === 1) {
-                $response->error('MENU_ITEM_SOLD_OUT', '商品已售完', 409);
+                $response->error('MENU_ITEM_SOLD_OUT', 'MENU_ITEM_SOLD_OUT', 409);
                 return;
             }
 
@@ -169,7 +171,7 @@ final class DineCoreGuestApiController
         $delta = (int)($request->body['delta'] ?? 0);
 
         if ($cartId === '' || $cartItemId <= 0 || $delta === 0) {
-            $response->validation('缺少購物車調整資料');
+            $response->validation('INVALID_CART_ITEM_PARAMS');
             return;
         }
 
@@ -182,7 +184,7 @@ final class DineCoreGuestApiController
             $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
             $item = $this->findCartItem((int)$session['order_id'], (int)$batch['id'], $cartId, $cartItemId);
             if ($item === null) {
-                $response->notFound('找不到購物車品項');
+                $response->notFound('CART_ITEM_NOT_FOUND');
                 return;
             }
 
@@ -215,7 +217,7 @@ final class DineCoreGuestApiController
         $cartId = trim((string)($request->body['cartId'] ?? $request->body['cart_id'] ?? ''));
         $cartItemId = (int)($request->body['cartItemId'] ?? $request->body['cart_item_id'] ?? 0);
         if ($cartId === '' || $cartItemId <= 0) {
-            $response->validation('缺少購物車品項');
+            $response->validation('INVALID_UPDATE_ITEM_PARAMS');
             return;
         }
 
@@ -228,13 +230,13 @@ final class DineCoreGuestApiController
             $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
             $item = $this->findCartItem((int)$session['order_id'], (int)$batch['id'], $cartId, $cartItemId);
             if ($item === null) {
-                $response->notFound('找不到購物車品項');
+                $response->notFound('CART_ITEM_NOT_FOUND');
                 return;
             }
 
             $menuItem = $this->findMenuItem((string)$item['menu_item_id']);
             if ($menuItem === null) {
-                $response->notFound('找不到商品');
+                $response->notFound('MENU_ITEM_NOT_FOUND');
                 return;
             }
 
@@ -286,14 +288,14 @@ final class DineCoreGuestApiController
         $orderId = (int)($request->query['orderId'] ?? $request->query['order_id'] ?? 0);
         $submittedBatchNo = (int)($request->query['submittedBatchNo'] ?? $request->query['submitted_batch_no'] ?? 0);
         if ($orderId <= 0) {
-            $response->validation('缺少訂單編號');
+            $response->validation('ORDER_ID_REQUIRED');
             return;
         }
 
         try {
             $order = $this->findOrderById($orderId);
             if ($order === null) {
-                $response->notFound('找不到訂單');
+                $response->notFound('ORDER_NOT_FOUND');
                 return;
             }
 
@@ -331,13 +333,13 @@ final class DineCoreGuestApiController
             $session = $this->resolveOrderingSession($tableCode, $this->resolveOrderingSessionToken($request), false);
             $order = $this->findOrderById((int)$session['order_id']);
             if ($order === null) {
-                $response->notFound('找不到訂單');
+                $response->notFound('ORDER_NOT_FOUND');
                 return;
             }
             $batch = $this->resolveDraftBatchForOrder((int)$session['order_id']);
             $summary = $this->buildCheckoutSummary($tableCode, $session);
             if ((int)$summary['itemCount'] <= 0) {
-                $response->validation('目前送單批次為空');
+                $response->validation('EMPTY_ORDER_ITEMS');
                 return;
             }
 
@@ -380,7 +382,7 @@ final class DineCoreGuestApiController
                 (int)$session['order_id'],
                 'pending',
                 'customer',
-                '顧客已送出訂單',
+                '憿批恥撌脤閮',
             ]);
 
             $response->ok([
@@ -400,14 +402,14 @@ final class DineCoreGuestApiController
     {
         $orderId = (int)($request->query['orderId'] ?? $request->query['order_id'] ?? 0);
         if ($orderId <= 0) {
-            $response->validation('缺少訂單編號');
+            $response->validation('ORDER_ID_REQUIRED');
             return;
         }
 
         try {
             $order = $this->findOrderById($orderId);
             if ($order === null) {
-                $response->notFound('找不到訂單');
+                $response->notFound('ORDER_NOT_FOUND');
                 return;
             }
 
@@ -467,7 +469,7 @@ final class DineCoreGuestApiController
             ?? ''
         ));
         if ($tableCode === '') {
-            $response->validation('缺少桌號');
+            $response->validation('TABLE_CODE_REQUIRED');
             return null;
         }
 
@@ -496,17 +498,17 @@ final class DineCoreGuestApiController
         $stmt->execute([$tableCode]);
         $table = $stmt->fetch();
         if (!$table) {
-            $response->notFound('找不到桌號');
+            $response->notFound('TABLE_NOT_FOUND');
             return null;
         }
 
         if ((string)$table['status'] !== 'active') {
-            $response->error('TABLE_INACTIVE', '此桌號目前未啟用', 409);
+            $response->error('TABLE_INACTIVE', '甇斗????', 409);
             return null;
         }
 
         if ((int)$table['is_ordering_enabled'] !== 1) {
-            $response->error('ORDERING_DISABLED', '此桌目前暫停接單', 409);
+            $response->error('ORDERING_DISABLED', '甇斗??桀??怠??亙', 409);
             return null;
         }
 
@@ -546,66 +548,196 @@ final class DineCoreGuestApiController
 
     private function resolveOrderingSession(string $tableCode, string $sessionToken, bool $allowCreate): array
     {
-        $openOrder = $this->findOpenOrderForTable($tableCode);
-        if ($sessionToken !== '') {
-            $session = $this->findSessionByToken($sessionToken);
-            if ($session) {
-                $order = $this->findOrderById((int)$session['order_id']);
-                if ($order && !$this->isOrderSettled($order) && (string)$session['table_code'] === $tableCode) {
-                    $stmt = db()->prepare(
-                        'UPDATE dinecore_guest_sessions
-                         SET status = ?, last_seen_at = NOW()
-                         WHERE id = ?'
-                    );
-                    $stmt->execute(['active', (int)$session['id']]);
-                    $session['status'] = 'active';
-                    return $session;
-                }
+        $pdo = db();
+        $startedTransaction = !$pdo->inTransaction();
 
-                $stmt = db()->prepare(
-                    'UPDATE dinecore_guest_sessions
-                     SET status = ?, last_seen_at = NOW()
-                     WHERE id = ?'
-                );
-                $stmt->execute(['expired', (int)$session['id']]);
+        if ($startedTransaction) {
+            $pdo->beginTransaction();
+        }
+
+        try {
+            $this->lockTableForSession($tableCode);
+            $order = $this->resolveActiveOrderForTable($tableCode, $allowCreate);
+            $tableSession = $this->findTableSessionForUpdate($tableCode);
+            if (!$tableSession) {
+                throw new \RuntimeException('TABLE_SESSION_NOT_FOUND');
             }
+            $guestState = $this->decodeGuestState((string)($tableSession['guest_state_json'] ?? '[]'));
+
+            if ($sessionToken !== '') {
+                $session = $this->findGuestStateSessionByToken($guestState, $sessionToken);
+                if ($session !== null) {
+                    if (
+                        (int)$session['order_id'] === (int)$order['id']
+                        && (string)$session['table_code'] === $tableCode
+                        && (string)$session['status'] !== 'expired'
+                        && !$this->isGuestSessionTimedOut($session)
+                    ) {
+                        $session['status'] = 'active';
+                        $session['last_seen_at'] = date('Y-m-d H:i:s');
+                        $guestState = $this->upsertGuestStateSession($guestState, $session);
+                        $this->persistGuestStateForTableSession((int)$tableSession['id'], $guestState);
+
+                        if ($startedTransaction) {
+                            $pdo->commit();
+                        }
+
+                        return $session;
+                    }
+
+                    $session['status'] = 'expired';
+                    $session['last_seen_at'] = date('Y-m-d H:i:s');
+                    $guestState = $this->upsertGuestStateSession($guestState, $session);
+                }
+            }
+
+            if (!$allowCreate) {
+                $this->persistGuestStateForTableSession((int)$tableSession['id'], $guestState);
+                throw new \RuntimeException('ORDERING_SESSION_REQUIRED');
+            }
+
+            $nextSlot = $this->nextPersonSlotFromGuestState($guestState);
+            $displayLabel = $this->buildGuestDisplayLabel($tableCode, $guestState);
+            $cartId = sprintf('guest-%d', $nextSlot);
+            $token = sprintf('dcs_%s', bin2hex(random_bytes(16)));
+            $now = date('Y-m-d H:i:s');
+
+            $result = [
+                'id' => 0,
+                'session_token' => $token,
+                'table_code' => $tableCode,
+                'order_id' => (int)$order['id'],
+                'person_slot' => $nextSlot,
+                'cart_id' => $cartId,
+                'display_label' => $displayLabel,
+                'status' => 'active',
+                'created_at' => $now,
+                'last_seen_at' => $now,
+            ];
+            $guestState = $this->upsertGuestStateSession($guestState, $result);
+            $this->persistGuestStateForTableSession((int)$tableSession['id'], $guestState);
+
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
+
+            return $result;
+        } catch (Throwable $error) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $error;
+        }
+    }
+
+    private function lockTableForSession(string $tableCode): void
+    {
+        $stmt = db()->prepare(
+            'SELECT code
+             FROM dinecore_tables
+             WHERE code = ?
+             FOR UPDATE'
+        );
+        $stmt->execute([$tableCode]);
+    }
+
+    private function resolveActiveOrderForTable(string $tableCode, bool $allowCreate): array
+    {
+        $tableSession = $this->findTableSessionForUpdate($tableCode);
+        if ($tableSession && (int)($tableSession['order_id'] ?? 0) > 0 && (string)$tableSession['status'] === 'active') {
+            $order = $this->findOrderById((int)$tableSession['order_id']);
+            if ($order && !$this->isOrderSettled($order)) {
+                return $order;
+            }
+            $this->clearTableSession((int)$tableSession['id']);
+        }
+
+        $openOrder = $this->findOpenOrderForTable($tableCode);
+        if ($openOrder) {
+            if ($tableSession) {
+                $this->activateTableSession((int)$tableSession['id'], (int)$openOrder['id']);
+            } else {
+                $this->insertActiveTableSession($tableCode, (int)$openOrder['id']);
+            }
+            return $openOrder;
         }
 
         if (!$allowCreate) {
             throw new \RuntimeException('ORDERING_SESSION_REQUIRED');
         }
 
-        $order = $openOrder ?? $this->createOpenOrder($tableCode);
-        $nextSlot = $this->nextPersonSlot((int)$order['id']);
-        $displayLabel = sprintf('%d號顧客', $nextSlot);
-        $cartId = sprintf('guest-%d', $nextSlot);
-        $token = sprintf('dcs_%s', bin2hex(random_bytes(16)));
+        $order = $this->createOpenOrder($tableCode);
+        if ($tableSession) {
+            $this->activateTableSession((int)$tableSession['id'], (int)$order['id']);
+        } else {
+            $this->insertActiveTableSession($tableCode, (int)$order['id']);
+        }
+        return $order;
+    }
 
+    private function findTableSessionForUpdate(string $tableCode): ?array
+    {
         $stmt = db()->prepare(
-            'INSERT INTO dinecore_guest_sessions
-                (session_token, table_code, order_id, person_slot, cart_id, display_label, status, created_at, last_seen_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+            'SELECT id, table_code, order_id, status, started_at, closed_at, guest_state_json, created_at, updated_at
+             FROM dinecore_table_sessions
+             WHERE table_code = ?
+             ORDER BY id DESC
+             FOR UPDATE'
         );
-        $stmt->execute([
-            $token,
-            $tableCode,
-            (int)$order['id'],
-            $nextSlot,
-            $cartId,
-            $displayLabel,
-            'active',
-        ]);
+        $stmt->execute([$tableCode]);
+        $rows = $stmt->fetchAll() ?: [];
+        if ($rows !== []) {
+            $current = $rows[0];
+            if (count($rows) > 1) {
+                $duplicateIds = array_map(
+                    fn (array $row): int => (int)$row['id'],
+                    array_slice($rows, 1)
+                );
+                $placeholders = implode(',', array_fill(0, count($duplicateIds), '?'));
+                $delete = db()->prepare(
+                    "DELETE FROM dinecore_table_sessions WHERE id IN ($placeholders)"
+                );
+                $delete->execute($duplicateIds);
+            }
+            return $current;
+        }
 
-        return [
-            'id' => (int)db()->lastInsertId(),
-            'session_token' => $token,
-            'table_code' => $tableCode,
-            'order_id' => (int)$order['id'],
-            'person_slot' => $nextSlot,
-            'cart_id' => $cartId,
-            'display_label' => $displayLabel,
-            'status' => 'active',
-        ];
+        return null;
+    }
+
+    private function activateTableSession(int $tableSessionId, int $orderId): void
+    {
+        $stmt = db()->prepare(
+            'UPDATE dinecore_table_sessions
+             SET order_id = ?,
+                 status = ?,
+                 started_at = NOW(),
+                 closed_at = NULL,
+                 guest_state_json = CASE WHEN order_id = ? THEN guest_state_json ELSE ? END,
+                 updated_at = NOW()
+             WHERE id = ?'
+        );
+        $stmt->execute([$orderId, 'active', $orderId, '[]', $tableSessionId]);
+    }
+
+    private function insertActiveTableSession(string $tableCode, int $orderId): void
+    {
+        $stmt = db()->prepare(
+            'INSERT INTO dinecore_table_sessions
+                (table_code, order_id, status, started_at, closed_at, guest_state_json, created_at, updated_at)
+             VALUES (?, ?, ?, NOW(), NULL, ?, NOW(), NOW())'
+        );
+        $stmt->execute([$tableCode, $orderId, 'active', '[]']);
+    }
+
+    private function clearTableSession(int $tableSessionId): void
+    {
+        $stmt = db()->prepare(
+            'UPDATE dinecore_table_sessions
+             SET order_id = NULL, status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
+             WHERE id = ?'
+        );
+        $stmt->execute(['closed', '[]', $tableSessionId]);
     }
 
     private function findOpenOrderForTable(string $tableCode): ?array
@@ -787,30 +919,152 @@ final class DineCoreGuestApiController
         return $row ?: null;
     }
 
-    private function nextPersonSlot(int $orderId): int
+    private function decodeGuestState(string $raw): array
     {
-        $stmt = db()->prepare(
-            'SELECT MAX(person_slot) AS max_slot
-             FROM dinecore_guest_sessions
-             WHERE order_id = ? AND status <> ?'
-        );
-        $stmt->execute([$orderId, 'expired']);
+        if (trim($raw) === '') {
+            return [];
+        }
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
 
-        return ((int)($stmt->fetch()['max_slot'] ?? 0)) + 1;
+        return array_values(array_filter($decoded, fn ($row): bool => is_array($row)));
     }
 
-    private function findSessionByToken(string $token): ?array
+    private function findGuestStateSessionByToken(array $guestState, string $token): ?array
+    {
+        foreach ($guestState as $session) {
+            if ((string)($session['session_token'] ?? '') === $token) {
+                return $this->normalizeGuestStateSessionRow($session);
+            }
+        }
+
+        return null;
+    }
+
+    private function upsertGuestStateSession(array $guestState, array $session): array
+    {
+        $normalized = $this->normalizeGuestStateSessionRow($session);
+        $found = false;
+
+        foreach ($guestState as $index => $row) {
+            $rowToken = (string)($row['session_token'] ?? '');
+            if ($rowToken !== '' && $rowToken === (string)$normalized['session_token']) {
+                $guestState[$index] = $normalized;
+                $found = true;
+                break;
+            }
+        }
+
+        if (!$found) {
+            $guestState[] = $normalized;
+        }
+
+        usort($guestState, function (array $a, array $b): int {
+            return ((int)$a['person_slot'] <=> (int)$b['person_slot'])
+                ?: strcmp((string)$a['session_token'], (string)$b['session_token']);
+        });
+
+        return array_values($guestState);
+    }
+
+    private function persistGuestStateForTableSession(int $tableSessionId, array $guestState): void
     {
         $stmt = db()->prepare(
-            'SELECT id, session_token, table_code, order_id, person_slot, cart_id, display_label, status
-             FROM dinecore_guest_sessions
-             WHERE session_token = ?
-             LIMIT 1'
+            'UPDATE dinecore_table_sessions
+             SET guest_state_json = ?, updated_at = NOW()
+             WHERE id = ?'
         );
-        $stmt->execute([$token]);
-        $row = $stmt->fetch();
+        $stmt->execute([
+            json_encode($guestState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            $tableSessionId,
+        ]);
+    }
 
-        return $row ?: null;
+    private function nextPersonSlotFromGuestState(array $guestState): int
+    {
+        $max = 0;
+        foreach ($guestState as $session) {
+            $slot = (int)($session['person_slot'] ?? 0);
+            if ($slot > $max) {
+                $max = $slot;
+            }
+        }
+
+        return $max + 1;
+    }
+
+    private function buildGuestDisplayLabel(string $tableCode, array $guestState): string
+    {
+        $tablePrefix = strtoupper(trim($tableCode));
+        if ($tablePrefix === '') {
+            $tablePrefix = 'TABLE';
+        }
+
+        $existingLabels = [];
+        foreach ($guestState as $session) {
+            $status = (string)($session['status'] ?? 'active');
+            if ($status === 'expired') {
+                continue;
+            }
+            $label = strtoupper(trim((string)($session['display_label'] ?? '')));
+            if ($label !== '') {
+                $existingLabels[$label] = true;
+            }
+        }
+
+        for ($i = 0; $i < 8; $i += 1) {
+            $label = sprintf('%s-%s', $tablePrefix, $this->randomAlphaNumeric(3));
+            if (!isset($existingLabels[strtoupper($label)])) {
+                return $label;
+            }
+        }
+
+        return sprintf('%s-%s', $tablePrefix, $this->randomAlphaNumeric(4));
+    }
+
+    private function normalizeGuestStateSessionRow(array $session): array
+    {
+        return [
+            'id' => (int)($session['id'] ?? 0),
+            'session_token' => (string)($session['session_token'] ?? ''),
+            'table_code' => strtoupper((string)($session['table_code'] ?? '')),
+            'order_id' => (int)($session['order_id'] ?? 0),
+            'person_slot' => max(1, (int)($session['person_slot'] ?? 1)),
+            'cart_id' => (string)($session['cart_id'] ?? ''),
+            'display_label' => (string)($session['display_label'] ?? ''),
+            'status' => (string)($session['status'] ?? 'active'),
+            'created_at' => (string)($session['created_at'] ?? date('Y-m-d H:i:s')),
+            'last_seen_at' => (string)($session['last_seen_at'] ?? date('Y-m-d H:i:s')),
+        ];
+    }
+
+    private function randomAlphaNumeric(int $length): string
+    {
+        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $maxIndex = strlen($chars) - 1;
+        $code = '';
+        for ($i = 0; $i < $length; $i += 1) {
+            $code .= $chars[random_int(0, $maxIndex)];
+        }
+
+        return $code;
+    }
+
+    private function isGuestSessionTimedOut(array $session): bool
+    {
+        $lastSeenRaw = (string)($session['last_seen_at'] ?? '');
+        if ($lastSeenRaw === '') {
+            return true;
+        }
+
+        $lastSeenTs = strtotime($lastSeenRaw);
+        if ($lastSeenTs === false) {
+            return true;
+        }
+
+        return (time() - $lastSeenTs) > self::GUEST_SESSION_IDLE_TIMEOUT_SECONDS;
     }
 
     private function findOrderById(int $id): ?array
@@ -1081,7 +1335,7 @@ final class DineCoreGuestApiController
 
     private function buildCheckoutSummary(string $tableCode, array $orderingSession): array
     {
-        $order = $this->findOpenOrderForTable($tableCode);
+        $order = $this->findOrderById((int)$orderingSession['order_id']);
         if ($order === null) {
             throw new \RuntimeException('ORDER_NOT_FOUND');
         }
@@ -1145,8 +1399,8 @@ final class DineCoreGuestApiController
             'participantCount' => count($sessions),
             'persons' => $persons,
             'paymentMethods' => [
-                ['id' => 'cash', 'label' => '櫃台現金付款', 'description' => '由櫃台人工確認現金收款。'],
-                ['id' => 'counter-card', 'label' => '櫃台刷卡付款', 'description' => '由店員協助完成刷卡付款。'],
+                ['id' => 'cash', 'label' => 'Cash', 'description' => 'Pay at counter in cash'],
+                ['id' => 'counter-card', 'label' => 'Card', 'description' => 'Pay at counter by card'],
             ],
         ];
     }
@@ -1223,6 +1477,25 @@ final class DineCoreGuestApiController
 
     private function listSessionsForOrder(int $orderId, bool $activeOnly): array
     {
+        $tableSession = $this->findTableSessionByOrderId($orderId);
+        if ($tableSession !== null) {
+            $guestState = $this->decodeGuestState((string)($tableSession['guest_state_json'] ?? '[]'));
+            $rows = [];
+            foreach ($guestState as $session) {
+                $normalized = $this->normalizeGuestStateSessionRow($session);
+                if ($activeOnly && (string)$normalized['status'] === 'expired') {
+                    continue;
+                }
+                if ((int)$normalized['order_id'] !== $orderId) {
+                    continue;
+                }
+                $rows[] = $normalized;
+            }
+
+            usort($rows, fn (array $a, array $b): int => ((int)$a['person_slot'] <=> (int)$b['person_slot']));
+            return $rows;
+        }
+
         $sql = 'SELECT id, session_token, table_code, order_id, person_slot, cart_id, display_label, status
                 FROM dinecore_guest_sessions
                 WHERE order_id = ?';
@@ -1235,6 +1508,21 @@ final class DineCoreGuestApiController
         $stmt->execute($activeOnly ? [$orderId, 'expired'] : [$orderId]);
 
         return $stmt->fetchAll() ?: [];
+    }
+
+    private function findTableSessionByOrderId(int $orderId): ?array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, table_code, order_id, status, guest_state_json
+             FROM dinecore_table_sessions
+             WHERE order_id = ?
+             ORDER BY id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$orderId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
     }
 
     private function collectOrderPersons(int $orderId): array
@@ -1395,15 +1683,17 @@ final class DineCoreGuestApiController
     {
         $code = $error->getMessage();
         if ($code === 'ORDER_NOT_FOUND') {
-            $response->notFound('找不到訂單');
+            $response->notFound('ORDER_NOT_FOUND');
             return;
         }
 
         if ($code === 'ORDERING_SESSION_REQUIRED') {
-            $response->error('ORDERING_SESSION_REQUIRED', '需要有效的點餐工作階段', 409);
+            $response->error('ORDERING_SESSION_REQUIRED', '?閬???暺?撌乩??挾', 409);
             return;
         }
 
-        $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'DineCore 後端處理失敗');
+        $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'DineCore 敺垢??憭望?');
     }
 }
+
+
