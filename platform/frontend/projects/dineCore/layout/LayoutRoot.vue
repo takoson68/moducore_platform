@@ -288,7 +288,7 @@ async function loadClearSessionTableOptions() {
 
   isLoadingClearSessionTables.value = true
   try {
-    const result = await world.http().get('/api/dinecore/staff/tables')
+    const result = await world.http().get('/api/dinecore/staff/tables', { tokenQuery: true })
     if (!result?.ok || !Array.isArray(result.data)) return
 
     const options = result.data
@@ -312,7 +312,7 @@ async function clearSession() {
 
       const result = await world.http().post('/api/dinecore/staff/sessions/clear', {
         table_code: tableCode
-      })
+      }, { tokenQuery: true })
       if (!result?.ok) {
         throw new Error('CLEAR_SESSION_FAILED')
       }

@@ -53,8 +53,8 @@ export async function staffApiRequest(
   }
 
   if (method === 'GET') {
-    return unwrapResult(await apiRequest(`${path}${buildQuery(query)}`, { method: 'GET' }))
+    return unwrapResult(await apiRequest(`${path}${buildQuery(query)}`, { method: 'GET', tokenQuery: true }))
   }
 
-  return unwrapResult(await apiRequest(path, { method: 'POST', body }))
+  return unwrapResult(await apiRequest(path, { method: 'POST', body, tokenQuery: true }))
 }

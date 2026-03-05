@@ -14,6 +14,14 @@ export async function createAppRouter() {
   const router = createRouter({
     history: createWebHistory(),
     routes,
+    // 路由切換後一律回到頁面頂端，避免跨頁共用捲動位置
+    scrollBehavior(_to, _from, savedPosition) {
+      if (savedPosition) {
+        return savedPosition
+      }
+
+      return { left: 0, top: 0, behavior: 'auto' }
+    },
   });
 
   setupAuthGuard(router);

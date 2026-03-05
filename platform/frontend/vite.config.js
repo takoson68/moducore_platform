@@ -8,6 +8,7 @@ import { cp, mkdir, rm } from 'node:fs/promises'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const project = env.VITE_PROJECT || 'project-a'
+  const apiTarget = env.VITE_API_TARGET || 'http://moducore_platform.test'
   const projectOutDir = path.join('projects', project, 'dist')
 
   return {
@@ -49,7 +50,15 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://moducore_platform.test',
+          target: apiTarget,
+          changeOrigin: true,
+        },
+      },
+    },
+    preview: {
+      proxy: {
+        '/api': {
+          target: apiTarget,
           changeOrigin: true,
         },
       },
