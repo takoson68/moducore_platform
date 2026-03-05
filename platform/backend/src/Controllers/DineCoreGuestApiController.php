@@ -1478,36 +1478,25 @@ final class DineCoreGuestApiController
     private function listSessionsForOrder(int $orderId, bool $activeOnly): array
     {
         $tableSession = $this->findTableSessionByOrderId($orderId);
-        if ($tableSession !== null) {
-            $guestState = $this->decodeGuestState((string)($tableSession['guest_state_json'] ?? '[]'));
-            $rows = [];
-            foreach ($guestState as $session) {
-                $normalized = $this->normalizeGuestStateSessionRow($session);
-                if ($activeOnly && (string)$normalized['status'] === 'expired') {
-                    continue;
-                }
-                if ((int)$normalized['order_id'] !== $orderId) {
-                    continue;
-                }
-                $rows[] = $normalized;
+        if ($tableSession === null) {
+            return [];
+        }
+
+        $guestState = $this->decodeGuestState((string)($tableSession['guest_state_json'] ?? '[]'));
+        $rows = [];
+        foreach ($guestState as $session) {
+            $normalized = $this->normalizeGuestStateSessionRow($session);
+            if ($activeOnly && (string)$normalized['status'] === 'expired') {
+                continue;
             }
-
-            usort($rows, fn (array $a, array $b): int => ((int)$a['person_slot'] <=> (int)$b['person_slot']));
-            return $rows;
+            if ((int)$normalized['order_id'] !== $orderId) {
+                continue;
+            }
+            $rows[] = $normalized;
         }
 
-        $sql = 'SELECT id, session_token, table_code, order_id, person_slot, cart_id, display_label, status
-                FROM dinecore_guest_sessions
-                WHERE order_id = ?';
-        if ($activeOnly) {
-            $sql .= ' AND status <> ?';
-        }
-        $sql .= ' ORDER BY person_slot ASC, id ASC';
-
-        $stmt = db()->prepare($sql);
-        $stmt->execute($activeOnly ? [$orderId, 'expired'] : [$orderId]);
-
-        return $stmt->fetchAll() ?: [];
+        usort($rows, fn (array $a, array $b): int => ((int)$a['person_slot'] <=> (int)$b['person_slot']));
+        return $rows;
     }
 
     private function findTableSessionByOrderId(int $orderId): ?array

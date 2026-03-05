@@ -273,14 +273,6 @@ final class DineCoreStaffApiController
             );
             $stmt->execute([$paymentStatus, $paymentMethod, $orderId]);
 
-            $sessionStatus = $paymentStatus === 'paid' ? 'expired' : 'active';
-            $sessionStmt = db()->prepare(
-                'UPDATE dinecore_guest_sessions
-                 SET status = ?, last_seen_at = NOW()
-                 WHERE order_id = ?'
-            );
-            $sessionStmt->execute([$sessionStatus, $orderId]);
-
             if ($paymentStatus === 'paid') {
                 $this->closeTableSessionsForOrder($orderId);
             } else {
@@ -627,13 +619,6 @@ final class DineCoreStaffApiController
         }
 
         try {
-            $stmt = db()->prepare(
-                'UPDATE dinecore_guest_sessions
-                 SET status = ?, last_seen_at = NOW()
-                 WHERE table_code = ? AND status <> ?'
-            );
-            $stmt->execute(['expired', $tableCode, 'expired']);
-
             $closeTableSession = db()->prepare(
                 'UPDATE dinecore_table_sessions
                  SET order_id = NULL, status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
@@ -642,7 +627,7 @@ final class DineCoreStaffApiController
             $closeTableSession->execute(['closed', '[]', $tableCode]);
 
             $response->ok([
-                'cleared' => (int)$stmt->rowCount(),
+                'cleared' => (int)$closeTableSession->rowCount(),
                 'scope' => 'table',
                 'tableCode' => $tableCode,
                 'actor' => (string)$context['username'],
@@ -1133,46 +1118,36 @@ final class DineCoreStaffApiController
     private function listSessionsForOrder(int $orderId, bool $activeOnly): array
     {
         $tableSession = $this->findTableSessionByOrderId($orderId);
-        if ($tableSession !== null) {
-            $sessions = [];
-            foreach ($this->decodeJsonArray($tableSession['guest_state_json'] ?? '[]') as $row) {
-                if (!is_array($row)) {
-                    continue;
-                }
-                $status = (string)($row['status'] ?? 'active');
-                if ($activeOnly && $status === 'expired') {
-                    continue;
-                }
-                if ((int)($row['order_id'] ?? 0) !== $orderId) {
-                    continue;
-                }
-                $sessions[] = [
-                    'id' => (int)($row['id'] ?? 0),
-                    'session_token' => (string)($row['session_token'] ?? ''),
-                    'table_code' => (string)($row['table_code'] ?? ''),
-                    'order_id' => (int)($row['order_id'] ?? 0),
-                    'person_slot' => max(1, (int)($row['person_slot'] ?? 1)),
-                    'cart_id' => (string)($row['cart_id'] ?? ''),
-                    'display_label' => (string)($row['display_label'] ?? ''),
-                    'status' => $status,
-                ];
+        if ($tableSession === null) {
+            return [];
+        }
+
+        $sessions = [];
+        foreach ($this->decodeJsonArray($tableSession['guest_state_json'] ?? '[]') as $row) {
+            if (!is_array($row)) {
+                continue;
             }
-            usort($sessions, fn (array $a, array $b): int => ((int)$a['person_slot'] <=> (int)$b['person_slot']));
-            return $sessions;
+            $status = (string)($row['status'] ?? 'active');
+            if ($activeOnly && $status === 'expired') {
+                continue;
+            }
+            if ((int)($row['order_id'] ?? 0) !== $orderId) {
+                continue;
+            }
+            $sessions[] = [
+                'id' => (int)($row['id'] ?? 0),
+                'session_token' => (string)($row['session_token'] ?? ''),
+                'table_code' => (string)($row['table_code'] ?? ''),
+                'order_id' => (int)($row['order_id'] ?? 0),
+                'person_slot' => max(1, (int)($row['person_slot'] ?? 1)),
+                'cart_id' => (string)($row['cart_id'] ?? ''),
+                'display_label' => (string)($row['display_label'] ?? ''),
+                'status' => $status,
+            ];
         }
+        usort($sessions, fn (array $a, array $b): int => ((int)$a['person_slot'] <=> (int)$b['person_slot']));
 
-        $sql = 'SELECT id, session_token, table_code, order_id, person_slot, cart_id, display_label, status
-                FROM dinecore_guest_sessions
-                WHERE order_id = ?';
-        if ($activeOnly) {
-            $sql .= ' AND status <> ?';
-        }
-        $sql .= ' ORDER BY person_slot ASC, id ASC';
-
-        $stmt = db()->prepare($sql);
-        $stmt->execute($activeOnly ? [$orderId, 'expired'] : [$orderId]);
-
-        return $stmt->fetchAll() ?: [];
+        return $sessions;
     }
 
     private function findTableSessionByOrderId(int $orderId): ?array

@@ -136,43 +136,6 @@ INSERT INTO `dinecore_cart_items` VALUES (1,1,1,'A01','guest-1','winter-plum-tea
 UNLOCK TABLES;
 
 --
--- Table structure for table `dinecore_guest_sessions`
---
-
-DROP TABLE IF EXISTS `dinecore_guest_sessions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `dinecore_guest_sessions` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `session_token` varchar(128) NOT NULL,
-  `table_code` varchar(32) NOT NULL,
-  `order_id` int(10) unsigned NOT NULL,
-  `person_slot` int(11) NOT NULL,
-  `cart_id` varchar(64) NOT NULL,
-  `display_label` varchar(64) NOT NULL,
-  `status` varchar(32) NOT NULL DEFAULT 'active',
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `last_seen_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `session_token` (`session_token`),
-  KEY `idx_dinecore_guest_sessions_order` (`order_id`),
-  KEY `idx_dinecore_guest_sessions_table` (`table_code`),
-  CONSTRAINT `fk_dinecore_guest_sessions_order` FOREIGN KEY (`order_id`) REFERENCES `dinecore_orders` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_dinecore_guest_sessions_table` FOREIGN KEY (`table_code`) REFERENCES `dinecore_tables` (`code`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `dinecore_guest_sessions`
---
-
-LOCK TABLES `dinecore_guest_sessions` WRITE;
-/*!40000 ALTER TABLE `dinecore_guest_sessions` DISABLE KEYS */;
-INSERT INTO `dinecore_guest_sessions` VALUES (1,'dcs_e960b0a41f8abe230df7871cb8b4def7','A01',1,1,'guest-1','A01-NA3','active','2026-03-05 14:41:16','2026-03-05 14:42:15'),(2,'dcs_5a319e74598fda674439db6995e7e5ec','A01',1,2,'guest-2','A01-7HF','active','2026-03-05 14:41:59','2026-03-05 14:42:40');
-/*!40000 ALTER TABLE `dinecore_guest_sessions` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `dinecore_menu_categories`
 --
 
@@ -386,6 +349,7 @@ CREATE TABLE `dinecore_table_sessions` (
   `status` varchar(32) NOT NULL DEFAULT 'active',
   `started_at` datetime NOT NULL DEFAULT current_timestamp(),
   `closed_at` datetime DEFAULT NULL,
+  `guest_state_json` longtext DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `active_table_code` varchar(32) GENERATED ALWAYS AS (case when `status` = 'active' then `table_code` else NULL end) STORED,
@@ -405,7 +369,7 @@ CREATE TABLE `dinecore_table_sessions` (
 
 LOCK TABLES `dinecore_table_sessions` WRITE;
 /*!40000 ALTER TABLE `dinecore_table_sessions` DISABLE KEYS */;
-INSERT INTO `dinecore_table_sessions` VALUES (1,'A01',1,'active','2026-03-05 14:41:16',NULL,'2026-03-05 14:41:16','2026-03-05 14:41:16','A01');
+INSERT INTO `dinecore_table_sessions` VALUES (1,'A01',1,'active','2026-03-05 14:41:16',NULL,'[{\"id\":0,\"session_token\":\"dcs_0f0ae8ce7c3f38da050d64a5b21b0d6c\",\"table_code\":\"A01\",\"order_id\":1,\"person_slot\":1,\"cart_id\":\"guest-1\",\"display_label\":\"A01-5KB\",\"status\":\"active\",\"created_at\":\"2026-03-05 08:15:11\",\"last_seen_at\":\"2026-03-05 08:15:11\"},{\"id\":0,\"session_token\":\"dcs_388df0001af833ce494d76f63bb517c0\",\"table_code\":\"A01\",\"order_id\":1,\"person_slot\":2,\"cart_id\":\"guest-2\",\"display_label\":\"A01-ADK\",\"status\":\"active\",\"created_at\":\"2026-03-05 08:15:28\",\"last_seen_at\":\"2026-03-05 08:15:47\"},{\"id\":0,\"session_token\":\"dcs_61dacbb2343f8282e49e49d62fc50d85\",\"table_code\":\"A01\",\"order_id\":1,\"person_slot\":3,\"cart_id\":\"guest-3\",\"display_label\":\"A01-TLZ\",\"status\":\"active\",\"created_at\":\"2026-03-05 08:19:17\",\"last_seen_at\":\"2026-03-05 08:19:17\"}]','2026-03-05 14:41:16','2026-03-05 15:19:17','A01');
 /*!40000 ALTER TABLE `dinecore_table_sessions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -980,4 +944,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-05 15:03:48
+-- Dump completed on 2026-03-05 15:21:16
