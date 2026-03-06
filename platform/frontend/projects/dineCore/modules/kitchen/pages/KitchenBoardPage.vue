@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import world from '@/world.js'
 
 const kitchenStore = world.store('dineCoreKitchenStore')
@@ -15,6 +15,8 @@ const statusLabels = {
 }
 
 let pollTimer = null
+let waitTickTimer = null
+const waitNow = ref(Date.now())
 
 function startPolling() {
   stopPolling()
@@ -30,13 +32,48 @@ function stopPolling() {
   }
 }
 
+function startWaitTicker() {
+  stopWaitTicker()
+  waitTickTimer = window.setInterval(() => {
+    waitNow.value = Date.now()
+  }, 60000)
+}
+
+function stopWaitTicker() {
+  if (waitTickTimer) {
+    window.clearInterval(waitTickTimer)
+    waitTickTimer = null
+  }
+}
+
+function parseDateTime(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+
+  const direct = new Date(raw)
+  if (!Number.isNaN(direct.getTime())) return direct
+
+  const normalized = new Date(raw.replace(' ', 'T'))
+  return Number.isNaN(normalized.getTime()) ? null : normalized
+}
+
+function formatWaitLabel(order) {
+  const createdAt = parseDateTime(order?.createdAt)
+  if (!createdAt) return String(order?.waitLabel || '已等待 0 分鐘')
+
+  const elapsedMinutes = Math.max(0, Math.floor((waitNow.value - createdAt.getTime()) / 60000))
+  return `已等待 ${elapsedMinutes} 分鐘`
+}
+
 onMounted(() => {
   kitchenStore.load()
   startPolling()
+  startWaitTicker()
 })
 
 onUnmounted(() => {
   stopPolling()
+  stopWaitTicker()
 })
 
 async function updateOrderStatus(batchId, orderStatus) {
@@ -66,7 +103,7 @@ async function updateOrderStatus(batchId, orderStatus) {
     article.board-card(v-for="order in state.orders" :key="order.id")
       .board-card__head
         strong.board-card__title {{ `${order.orderNo} / 第 ${order.batchNo} 批` }}
-        span.board-card__wait {{ order.waitLabel }}
+        span.board-card__wait {{ formatWaitLabel(order) }}
       p.board-card__meta {{ `桌號 ${order.tableCode} | ${statusLabels[order.orderStatus] || order.orderStatus}` }}
 
       .board-card__items

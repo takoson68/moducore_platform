@@ -3,7 +3,7 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
-import { cp, mkdir } from 'node:fs/promises'
+import { cp, mkdir, rm } from 'node:fs/promises'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -85,12 +85,15 @@ function copyDistToBackend(project) {
       ]
       const sourceDir = sourceCandidates.find(candidate => existsSync(candidate))
       const backendPublicDir = path.resolve(__dirname, '..', 'backend', 'public')
+      const backendAssetsDir = path.join(backendPublicDir, 'assets')
 
       if (!sourceDir) {
         throw new Error(`[copy-dist-to-backend] build output not found: ${sourceCandidates.join(', ')}`)
       }
 
       await mkdir(backendPublicDir, { recursive: true })
+      // Clean previous hashed build assets so old JS/CSS files do not accumulate.
+      await rm(backendAssetsDir, { recursive: true, force: true })
       await cp(sourceDir, backendPublicDir, { force: true, recursive: true })
     },
   }

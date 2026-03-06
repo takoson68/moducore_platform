@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
@@ -19,23 +19,11 @@ function goToMenu() {
 .mobile-page
   section.mobile-hero-card
     .mobile-hero-card__badge 掃碼點餐
-    h2.mobile-hero-card__title {{ state.tableCode || `${tableCode} 桌` }}
-    p.mobile-hero-card__copy
-      | 掃描桌邊 QR Code 後可直接開始點餐，不需下載 App，也不需要登入。
-
-  section.quick-stat-grid
-    article.stat-soft-card
-      span.stat-soft-card__label 用餐模式
-      strong.stat-soft-card__value {{ state.dineMode }}
-    article.stat-soft-card
-      span.stat-soft-card__label 點餐狀態
-      strong.stat-soft-card__value {{ state.orderingEnabled ? '開放點餐' : '暫停接單' }}
-    article.stat-soft-card
-      span.stat-soft-card__label 桌號資訊
-      strong.stat-soft-card__value {{ state.tableCode || `${tableCode} 桌` }}
-    article.stat-soft-card(v-if="state.orderingLabel")
-      span.stat-soft-card__label 本機身份
-      strong.stat-soft-card__value {{ state.orderingLabel }}
+    .mobile-hero-card__title-row
+      h2.mobile-hero-card__title
+        | {{ state.tableCode || (tableCode + ' 桌') }}
+        span.mobile-hero-card__identity(v-if="state.orderingLabel") {{ `｜本機身分碼 ${state.orderingLabel}` }}
+      button.mobile-hero-card__button(type="button" @click="goToMenu") 進入菜單
 
   section.feature-card
     h3.feature-card__title 開始點餐前會確認的事項
@@ -49,19 +37,14 @@ function goToMenu() {
       .entry-stage__step
         span.entry-stage__index 2
         .entry-stage__copy
-          strong 自由加點
-          p 每位顧客都可以建立自己的子購物車，最後再一起合單送出，不需要拆帳。
+          strong 選擇品項
+          p 可在菜單中調整數量、客製規格與備註，送單前都能回到購物車修改。
       .entry-stage__step
         span.entry-stage__index 3
         .entry-stage__copy
-          strong 櫃台付款
-          p 目前採櫃台人工付款確認，送單後可隨時回到追單頁查看進度。
+          strong 送出訂單
+          p 結帳前會先檢查內容與金額，確認後送出，櫃台就會收到你的點餐單。
 
-  section.action-card
-    .action-card__body
-      strong.action-card__title 準備開始點餐
-      p.action-card__copy 進入菜單後即可選擇餐點、客製選項與備註，再送出整桌訂單。
-    button.action-card__button(type="button" @click="goToMenu") 進入菜單
 </template>
 
 <style lang="sass">
@@ -89,34 +72,25 @@ function goToMenu() {
 .mobile-hero-card__title
   margin: 0
   font-size: 34px
+  flex: 1
 
-.mobile-hero-card__copy
-  margin: 0
-  line-height: 1.6
-  opacity: 0.94
+.mobile-hero-card__identity
+  margin-left: 8px
+  font-size: 18px
+  font-weight: 700
+  opacity: 0.92
 
-.quick-stat-grid
-  display: grid
-  grid-template-columns: repeat(4, minmax(0, 1fr))
-  gap: 12px
+.mobile-hero-card__title-row
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  gap: 14px
 
-.stat-soft-card, .feature-card
+.feature-card
   padding: 18px
   border-radius: 22px
   background: var(--dc-card)
   border: 1px solid var(--dc-border)
-
-.stat-soft-card
-  display: grid
-  gap: 8px
-
-.stat-soft-card__label
-  color: var(--dc-text-muted)
-  font-size: 13px
-
-.stat-soft-card__value
-  color: var(--dc-text)
-  font-size: 18px
 
 .feature-card__title
   margin: 0 0 10px
@@ -167,41 +141,25 @@ function goToMenu() {
   color: #53686c
   line-height: 1.7
 
-.action-card
-  padding: 18px
-  border-radius: 22px
-  background: linear-gradient(180deg, rgba(120, 213, 206, 0.95), rgba(99, 195, 189, 0.98))
-  color: #fff
-  display: flex
-  justify-content: space-between
-  align-items: center
-  gap: 16px
-
-.action-card__body
-  display: grid
-  gap: 4px
-
-.action-card__title
-  font-size: 18px
-
-.action-card__copy
-  margin: 0
-  opacity: 0.92
-  line-height: 1.6
-
-.action-card__button
+.mobile-hero-card__button
   border: 0
   border-radius: 16px
-  padding: 14px 18px
+  padding: 16px 22px
   background: #fff
   color: #2b6c69
+  font-size: 16px
   font-weight: 700
   cursor: pointer
+  flex: 1
+  text-align: center
 
 @media (max-width: 900px)
-  .quick-stat-grid
-    grid-template-columns: 1fr
+  .mobile-hero-card__title-row
+    align-items: flex-start
+    flex-direction: column
 
-  .action-card
-    display: grid
+  .mobile-hero-card__button
+    width: 100%
 </style>
+
+

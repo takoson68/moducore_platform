@@ -5,6 +5,7 @@ import world from '@/world.js'
 
 const route = useRoute()
 const devMenuOpen = ref(false)
+const staffHeadMenuOpen = ref(false)
 const demoTableCode = 'A01'
 const isRevalidatingEntryContext = ref(false)
 const lastEntryRevalidateAt = ref(0)
@@ -266,6 +267,7 @@ watch(
   () => route.fullPath,
   () => {
     devMenuOpen.value = false
+    staffHeadMenuOpen.value = false
   }
 )
 
@@ -293,6 +295,7 @@ async function logout() {
   if (!staffAuthStore) return
 
   await staffAuthStore.logout()
+  staffHeadMenuOpen.value = false
   loginForm.account = 'manager'
   loginForm.password = 'manager123'
 }
@@ -352,13 +355,30 @@ function toggleDevMenu() {
 function closeDevMenu() {
   devMenuOpen.value = false
 }
+
+function toggleStaffHeadMenu() {
+  staffHeadMenuOpen.value = !staffHeadMenuOpen.value
+}
+
+function closeStaffHeadMenu() {
+  staffHeadMenuOpen.value = false
+}
 </script>
 
 <template lang="pug">
 .dine-root(:class="{ 'is-staff': isStaffRoute }")
   template(v-if="isStaffRoute")
     .staff-shell(v-if="isStaffAuthenticated || !staffAuthStore")
-      aside.staff-shell__head
+      button.staff-shell__mobile-toggle(
+        v-if="staffSession"
+        type="button"
+        @click="toggleStaffHeadMenu()"
+      ) {{ staffHeadMenuOpen ? '關閉選單' : '選單' }}
+      .staff-shell__mobile-backdrop(
+        v-if="staffSession && staffHeadMenuOpen"
+        @click="closeStaffHeadMenu()"
+      )
+      aside.staff-shell__head(:class="{ 'is-mobile-open': staffHeadMenuOpen }")
         .staff-shell__topbar-main
           .staff-shell__brand
             strong.staff-shell__title DineCore 員工後台
@@ -372,6 +392,7 @@ function closeDevMenu() {
             v-for="item in activeStaffNavItems"
             :key="item.key"
             :to="item.to"
+            @click="closeStaffHeadMenu()"
             :class="{ 'is-active': route.path.startsWith(item.to) }"
           ) {{ item.label }}
           .staff-shell__planned(v-if="plannedStaffNavItems.length > 0")
@@ -534,6 +555,10 @@ function closeDevMenu() {
   gap: 0
   align-items: stretch
   background: #eef4f6
+
+.staff-shell__mobile-toggle,
+.staff-shell__mobile-backdrop
+  display: none
 
 .staff-auth-full
   min-height: 100vh
@@ -1061,10 +1086,48 @@ function closeDevMenu() {
   .staff-shell
     grid-template-columns: 1fr
 
+  .staff-shell__mobile-toggle
+    position: fixed
+    top: 10px
+    left: 10px
+    z-index: 36
+    display: inline-flex
+    align-items: center
+    justify-content: center
+    border: 0
+    border-radius: 999px
+    padding: 10px 14px
+    background: rgba(21, 36, 44, 0.92)
+    color: #f4f8f9
+    font-weight: 700
+    box-shadow: 0 12px 24px rgba(21, 36, 44, 0.24)
+
+  .staff-shell__mobile-backdrop
+    display: block
+    position: fixed
+    inset: 0
+    z-index: 34
+    background: rgba(17, 40, 44, 0.42)
+
   .staff-shell__head
-    height: auto
-    max-height: none
-    padding: 48px 16px 16px
+    position: fixed
+    top: 0
+    left: 0
+    width: min(280px, 82vw)
+    height: 100vh
+    max-height: 100vh
+    padding: 56px 16px 16px
+    z-index: 35
+    transform: translateX(-106%)
+    transition: transform 0.22s ease
+
+  .staff-shell__head.is-mobile-open
+    transform: translateX(0)
+
+  .staff-shell__actions
+    position: static
+    top: auto
+    right: auto
 
   .staff-shell__body
     padding: 52px 16px 24px
