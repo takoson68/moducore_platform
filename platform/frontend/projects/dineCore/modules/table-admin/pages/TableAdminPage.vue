@@ -1,12 +1,13 @@
 <script setup>
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, watchEffect } from 'vue'
 import world from '@/world.js'
 
 const tableAdminStore = world.store('dineCoreTableAdminStore')
 const state = computed(() => tableAdminStore.state)
 
 const copiedTableCode = ref('')
-const qrImageByTableCode = reactive({})
+const qrImageUrlByTableCode = reactive({})
+const isGeneratingQrByTableCode = reactive({})
 const createForm = reactive({
   code: '',
   name: '',
@@ -18,50 +19,17 @@ watchEffect(() => {
   tableAdminStore.load()
 })
 
-watch(
-  () => state.value.tables,
-  async tables => {
-    await Promise.all(
-      tables.map(async table => {
-        qrImageByTableCode[table.code] = await createEntryQrDataUrl(table.code)
-      })
-    )
-  },
-  { immediate: true, deep: true }
-)
+watchEffect(() => {
+  for (const table of state.value.tables || []) {
+    const tableCode = String(table?.code || '').trim().toUpperCase()
+    if (!tableCode) continue
 
-async function createEntryQrDataUrl(tableCode) {
-  const entryUrl = getEntryUrl(tableCode)
-  // 在缺少外部 QR 套件時，先用可下載的入口圖卡維持功能可用，避免 build 被第三方依賴阻塞。
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
-      <rect width="220" height="220" rx="24" fill="#ffffff"/>
-      <rect x="18" y="18" width="184" height="184" rx="20" fill="#eef7f6" stroke="#d3e7e4"/>
-      <rect x="34" y="34" width="36" height="36" rx="8" fill="#17383f"/>
-      <rect x="150" y="34" width="36" height="36" rx="8" fill="#17383f"/>
-      <rect x="34" y="150" width="36" height="36" rx="8" fill="#17383f"/>
-      <g fill="#2f6f6d">
-        <rect x="92" y="38" width="10" height="10" rx="3"/>
-        <rect x="108" y="38" width="10" height="10" rx="3"/>
-        <rect x="92" y="54" width="10" height="10" rx="3"/>
-        <rect x="108" y="54" width="10" height="10" rx="3"/>
-        <rect x="124" y="70" width="10" height="10" rx="3"/>
-        <rect x="92" y="86" width="10" height="10" rx="3"/>
-        <rect x="108" y="102" width="10" height="10" rx="3"/>
-        <rect x="124" y="102" width="10" height="10" rx="3"/>
-        <rect x="92" y="118" width="10" height="10" rx="3"/>
-        <rect x="140" y="118" width="10" height="10" rx="3"/>
-        <rect x="108" y="134" width="10" height="10" rx="3"/>
-        <rect x="124" y="134" width="10" height="10" rx="3"/>
-        <rect x="140" y="150" width="10" height="10" rx="3"/>
-      </g>
-      <text x="110" y="182" text-anchor="middle" font-size="18" font-family="sans-serif" font-weight="700" fill="#17383f">${tableCode}</text>
-      <text x="110" y="200" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#5f7679">${entryUrl}</text>
-    </svg>
-  `.trim()
+    const initialUrl = normalizeQrUrl(table?.qrImageUrl || '')
+    if (!initialUrl) continue
 
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
-}
+    qrImageUrlByTableCode[tableCode] = initialUrl
+  }
+})
 
 async function createTable() {
   await tableAdminStore.createTable({
@@ -106,6 +74,35 @@ function getEntryUrl(tableCode) {
   return `${window.location.origin}${getEntryPath(tableCode)}`
 }
 
+function normalizeQrUrl(urlLike, entryUrlLike = '') {
+  const raw = String(urlLike || '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw)) return raw
+
+  const entryUrl = String(entryUrlLike || '').trim()
+  if (/^https?:\/\//i.test(entryUrl)) {
+    try {
+      return new URL(raw, entryUrl).toString()
+    } catch (_error) {
+      // fallback below
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      return new URL(raw, window.location.origin).toString()
+    } catch (_error) {
+      return raw
+    }
+  }
+
+  return raw
+}
+
+function getQrImageSrc(tableCode) {
+  return String(qrImageUrlByTableCode[tableCode] || '')
+}
+
 async function copyEntryUrl(tableCode) {
   const url = getEntryUrl(tableCode)
 
@@ -121,13 +118,50 @@ async function copyEntryUrl(tableCode) {
   }, 1800)
 }
 
+async function generateQrImage(table) {
+  const tableCode = String(table.code || '').trim().toUpperCase()
+  if (!tableCode) return
+
+  isGeneratingQrByTableCode[tableCode] = true
+  try {
+    const payload = await tableAdminStore.generateTableQr({
+      tableCode,
+      entryBaseUrl: typeof window !== 'undefined' ? window.location.origin : ''
+    })
+    const publicUrl = normalizeQrUrl(
+      payload?.publicUrl || payload?.publicPath || `/assets/QRC/${tableCode}.png`,
+      payload?.entryUrl || ''
+    )
+    qrImageUrlByTableCode[tableCode] = publicUrl.includes('?')
+      ? `${publicUrl}&v=${Date.now()}`
+      : `${publicUrl}?v=${Date.now()}`
+    window.alert(`已產生 ${tableCode} 的 QR 圖片`)
+  } catch (error) {
+    const message = String(error?.message || 'UNKNOWN_ERROR')
+
+    if (message === 'REAL_API_REQUIRED') {
+      window.alert('目前為 mock 模式，請切換 real API 後再產生 QR。')
+      return
+    }
+
+    window.alert(`產生 QR 失敗：${message}`)
+  } finally {
+    isGeneratingQrByTableCode[tableCode] = false
+  }
+}
+
 function downloadQrImage(table) {
-  const dataUrl = qrImageByTableCode[table.code]
-  if (!dataUrl) return
+  const tableCode = String(table.code || '').trim().toUpperCase()
+  const imageUrl = getQrImageSrc(tableCode)
+
+  if (!imageUrl) {
+    window.alert('請先點擊「產生 QR」再下載。')
+    return
+  }
 
   const link = document.createElement('a')
-  link.href = dataUrl
-  link.download = `dinecore-table-${table.code}.svg`
+  link.href = imageUrl
+  link.download = `dinecore-table-${tableCode}.png`
   link.click()
 }
 </script>
@@ -137,10 +171,10 @@ function downloadQrImage(table) {
   section.table-admin-card
     .table-admin-card__head
       div
-        p.eyebrow 桌號管理
-        h2.table-admin-card__title 桌位設定、排序與入口管理
+        p.eyebrow 桌位管理
+        h2.table-admin-card__title 桌號與入桌連結管理
         p.table-admin-card__lead
-          | 可在這裡新增桌號、調整桌位順序、編輯桌區與狀態，並下載每桌固定入口的 QR。
+          | 可設定桌位資料、複製入桌連結，並產生可公開存取的 QR 圖片檔。
 
     form.create-panel(@submit.prevent="createTable()")
       label.form-field
@@ -150,7 +184,7 @@ function downloadQrImage(table) {
         span.form-field__label 桌位名稱
         input.form-field__input(v-model="createForm.name" type="text" placeholder="例如 A02 桌")
       label.form-field
-        span.form-field__label 桌區
+        span.form-field__label 區域
         input.form-field__input(v-model="createForm.areaName" type="text" placeholder="例如 內用區")
       label.form-field
         span.form-field__label 用餐模式
@@ -159,7 +193,7 @@ function downloadQrImage(table) {
           option(value="takeout") 外帶
           option(value="pickup") 自取
       .create-panel__actions
-        button.action-chip(type="submit") 新增桌號
+        button.action-chip(type="submit") 新增桌位
 
   section.table-list
     article.table-row(v-for="(table, index) in state.tables" :key="table.code")
@@ -171,17 +205,19 @@ function downloadQrImage(table) {
         .table-row__meta
           span.meta-pill {{ table.areaName }}
           span.meta-pill {{ table.dineMode === 'dine_in' ? '內用' : table.dineMode === 'takeout' ? '外帶' : '自取' }}
-          span.meta-pill(:class="{ 'is-paused': !table.orderingEnabled }") {{ table.orderingEnabled ? '開放點餐' : '暫停接單' }}
-          span.meta-pill.is-status {{ table.status === 'active' ? '使用中' : table.status === 'cleaning' ? '清潔中' : '停用' }}
+          span.meta-pill(:class="{ 'is-paused': !table.orderingEnabled }") {{ table.orderingEnabled ? '開放點餐' : '暫停點餐' }}
+          span.meta-pill.is-status {{ table.status === 'active' ? '啟用中' : table.status === 'cleaning' ? '清潔中' : '停用' }}
 
         .entry-card
           .entry-card__preview
-            img.entry-card__qr(v-if="qrImageByTableCode[table.code]" :src="qrImageByTableCode[table.code]" :alt="`${table.code} QR`")
+            img.entry-card__qr(v-if="getQrImageSrc(table.code)" :src="getQrImageSrc(table.code)" :alt="`${table.code} QR`")
+            .entry-card__qr-empty(v-else) 尚未產生 QR
             .entry-card__info
-              strong.entry-card__title 固定入口
+              strong.entry-card__title 入桌網址
               code.entry-card__path {{ getEntryPath(table.code) }}
               p.entry-card__url {{ getEntryUrl(table.code) }}
           .entry-card__actions
+            button.action-chip(type="button" @click="generateQrImage(table)" :disabled="isGeneratingQrByTableCode[table.code]") {{ isGeneratingQrByTableCode[table.code] ? '產生中...' : '產生 QR' }}
             button.action-chip(type="button" @click="copyEntryUrl(table.code)") 複製連結
             button.action-chip.is-muted(type="button" @click="downloadQrImage(table)") 下載 QR
             span.entry-card__copied(v-if="copiedTableCode === table.code") 已複製
@@ -195,7 +231,7 @@ function downloadQrImage(table) {
             @change="updateTable(table, { name: $event.target.value })"
           )
         label.inline-field
-          span.inline-field__label 桌區
+          span.inline-field__label 區域
           input.inline-field__input(
             :value="table.areaName"
             type="text"
@@ -207,7 +243,7 @@ function downloadQrImage(table) {
             :value="table.status"
             @change="updateTable(table, { status: $event.target.value })"
           )
-            option(value="active") 使用中
+            option(value="active") 啟用中
             option(value="cleaning") 清潔中
             option(value="inactive") 停用
 
@@ -227,7 +263,7 @@ function downloadQrImage(table) {
             button.action-chip(
               type="button"
               @click="updateTable(table, { orderingEnabled: !table.orderingEnabled })"
-            ) {{ table.orderingEnabled ? '暫停接單' : '恢復接單' }}
+            ) {{ table.orderingEnabled ? '暫停點餐' : '恢復點餐' }}
             button.action-chip.is-danger(type="button" @click="deleteTable(table)") 刪除桌位
 </template>
 
@@ -371,6 +407,17 @@ function downloadQrImage(table) {
   border: 1px solid rgba(109, 180, 177, 0.18)
   object-fit: cover
 
+.entry-card__qr-empty
+  width: 124px
+  height: 124px
+  border-radius: 16px
+  border: 1px dashed rgba(109, 180, 177, 0.35)
+  color: #6e8083
+  display: grid
+  place-items: center
+  font-size: 12px
+  background: rgba(255, 255, 255, 0.82)
+
 .entry-card__info
   display: grid
   gap: 6px
@@ -477,3 +524,4 @@ function downloadQrImage(table) {
   .entry-card__preview
     grid-template-columns: 1fr
 </style>
+

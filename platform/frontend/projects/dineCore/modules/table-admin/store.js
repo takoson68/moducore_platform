@@ -2,6 +2,7 @@ import world from '@/world.js'
 import {
   createTableAdminTable,
   deleteTableAdminTable,
+  generateTableAdminQr,
   loadTableAdminTables,
   reorderTableAdminTables,
   updateTableAdminTable
@@ -49,6 +50,9 @@ export function createTableAdminStore() {
           ...store.get(),
           tables: nextState.tables || []
         })
+      },
+      async generateTableQr(_store, payload = {}) {
+        return generateTableAdminQr(payload)
       }
     }
   })

@@ -1,0 +1,14 @@
+{
+    "name": "moducore/dinecore-backend",
+    "description": "DineCore backend",
+    "type": "project",
+    "authors": [
+        {
+            "name": "takoson68",
+            "email": "95896770+takoson68@users.noreply.github.com"
+        }
+    ],
+    "require": {
+        "chillerlan/php-qrcode": "5"
+    }
+}

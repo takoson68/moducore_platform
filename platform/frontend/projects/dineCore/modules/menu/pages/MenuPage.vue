@@ -59,6 +59,10 @@ watch(
 )
 
 const filteredItems = computed(() => {
+  if (state.value.activeCategoryId === 'all') {
+    return state.value.items
+  }
+
   if (state.value.activeCategoryId === 'popular') {
     return state.value.items.slice(0, 4)
   }

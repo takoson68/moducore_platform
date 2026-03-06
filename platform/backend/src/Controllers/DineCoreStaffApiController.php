@@ -5,6 +5,9 @@ namespace App\Controllers;
 
 use App\Core\Request;
 use App\Core\Response;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
+use chillerlan\QRCode\Output\QROutputInterface;
 use Throwable;
 
 final class DineCoreStaffApiController
@@ -31,6 +34,7 @@ final class DineCoreStaffApiController
                 'dineMode' => (string)$table['dine_mode'],
                 'status' => (string)$table['status'],
                 'orderingEnabled' => (int)$table['is_ordering_enabled'] === 1,
+                'qrImageUrl' => $this->resolveTableQrImageUrl((string)$table['code']),
             ], $stmt->fetchAll() ?: []);
 
             $response->ok($tables);
@@ -425,6 +429,264 @@ final class DineCoreStaffApiController
         }
     }
 
+    public function menuAdminItems(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $response->ok([
+                'categories' => $this->loadMenuAdminCategories(),
+                'items' => $this->loadMenuAdminItems(),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_ITEMS_FAILED');
+        }
+    }
+
+    public function generateTableQr(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $tableCode = strtoupper(trim((string)($request->body['table_code'] ?? $request->body['tableCode'] ?? '')));
+
+        if ($tableCode === '') {
+            $response->error('TABLE_CODE_REQUIRED', 'TABLE_CODE_REQUIRED', 422);
+            return;
+        }
+
+        if (!preg_match('/^[A-Z0-9_-]+$/', $tableCode)) {
+            $response->error('TABLE_CODE_INVALID', 'TABLE_CODE_INVALID', 422);
+            return;
+        }
+
+        try {
+            $table = $this->findTableByCode($tableCode);
+            if ($table === null) {
+                $response->error('TABLE_NOT_FOUND', 'TABLE_NOT_FOUND', 404);
+                return;
+            }
+
+            if (!class_exists(QRCode::class) || !class_exists(QROptions::class)) {
+                $response->error('QR_LIBRARY_MISSING', 'QR_LIBRARY_MISSING', 500);
+                return;
+            }
+
+            if (!extension_loaded('gd')) {
+                $response->error('GD_EXTENSION_MISSING', 'GD_EXTENSION_MISSING', 500);
+                return;
+            }
+
+            $entryUrl = rtrim($this->resolveEntryBaseUrl($request), '/') . '/t/' . $tableCode;
+            $pngBinary = (new QRCode(new QROptions([
+                'outputType' => QROutputInterface::GDIMAGE_PNG,
+                'outputBase64' => false,
+                'eccLevel' => QRCode::ECC_M,
+                'scale' => 8,
+                'addQuietzone' => true,
+                'quietzoneSize' => 4,
+            ])))->render($entryUrl);
+
+            if (!is_string($pngBinary) || $pngBinary === '') {
+                $response->error('QR_GENERATE_FAILED', 'QR_GENERATE_FAILED', 500);
+                return;
+            }
+
+            $dir = BASE_PATH . '/public/assets/QRC';
+            if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+                $response->error('QR_SAVE_FAILED', 'QR_SAVE_FAILED', 500);
+                return;
+            }
+            if (!is_writable($dir)) {
+                $response->error('QR_DIR_NOT_WRITABLE', 'QR_DIR_NOT_WRITABLE', 500);
+                return;
+            }
+
+            $fileName = $tableCode . '.png';
+            $path = $dir . '/' . $fileName;
+            if (is_file($path) && !is_writable($path)) {
+                $response->error('QR_SAVE_FAILED', 'QR_SAVE_FAILED', 500);
+                return;
+            }
+
+            // Force overwrite same table QR file so regenerated content is always the latest.
+            $written = @file_put_contents($path, $pngBinary, LOCK_EX);
+            if ($written === false || $written <= 0) {
+                $response->error('QR_SAVE_FAILED', 'QR_SAVE_FAILED', 500);
+                return;
+            }
+
+            $publicPath = '/assets/QRC/' . rawurlencode($fileName);
+            $publicUrl = rtrim($this->resolveBackendBaseUrl(), '/') . $publicPath;
+            $response->ok([
+                'tableCode' => $tableCode,
+                'fileName' => $fileName,
+                'publicPath' => $publicPath,
+                'publicUrl' => $publicUrl,
+                'entryUrl' => $entryUrl,
+                'updatedAt' => date('c'),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'QR_GENERATE_FAILED');
+        }
+    }
+
+    public function menuAdminCreateItem(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $title = trim((string)($request->body['title'] ?? ''));
+        $categoryId = trim((string)($request->body['categoryId'] ?? $request->body['category_id'] ?? ''));
+        $priceRaw = $request->body['price'] ?? 0;
+        $description = trim((string)($request->body['description'] ?? ''));
+        $imageUrl = trim((string)($request->body['imageUrl'] ?? $request->body['image_url'] ?? ''));
+
+        if ($title === '') {
+            $response->error('MENU_ITEM_TITLE_REQUIRED', 'MENU_ITEM_TITLE_REQUIRED', 422);
+            return;
+        }
+
+        if ($categoryId === '' || !$this->menuCategoryExists($categoryId)) {
+            $response->error('MENU_CATEGORY_NOT_FOUND', 'MENU_CATEGORY_NOT_FOUND', 404);
+            return;
+        }
+
+        if (!is_numeric($priceRaw) || (float)$priceRaw < 0) {
+            $response->error('INVALID_MENU_ITEM_PRICE', 'INVALID_MENU_ITEM_PRICE', 422);
+            return;
+        }
+
+        try {
+            $itemId = $this->generateMenuItemId();
+            $stmt = db()->prepare(
+                'INSERT INTO dinecore_menu_items
+                    (id, category_id, name, description, base_price, image_url, sold_out, hidden, badge, tone, tags_json, default_note, default_option_ids_json, option_groups_json, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+            );
+            $stmt->execute([
+                $itemId,
+                $categoryId,
+                $title,
+                $description,
+                (int)round((float)$priceRaw),
+                $imageUrl,
+                '',
+                '',
+                '[]',
+                '',
+                '[]',
+                '[]',
+            ]);
+
+            $response->ok([
+                'categories' => $this->loadMenuAdminCategories(),
+                'items' => $this->loadMenuAdminItems(),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_CREATE_ITEM_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateItemContent(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $title = trim((string)($request->body['title'] ?? ''));
+        $description = trim((string)($request->body['description'] ?? ''));
+
+        if ($itemId === '') {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+
+        if ($title === '') {
+            $response->error('MENU_ITEM_TITLE_REQUIRED', 'MENU_ITEM_TITLE_REQUIRED', 422);
+            return;
+        }
+
+        try {
+            if (!$this->menuItemExists($itemId)) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'UPDATE dinecore_menu_items
+                 SET name = ?, description = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([$title, $description, $itemId]);
+
+            $categoryNameById = $this->menuCategoryNameMap();
+            $itemRow = $this->findMenuItemRowForAdmin($itemId);
+            if ($itemRow === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $response->ok([
+                'item' => $this->normalizeMenuAdminItem($itemRow, $categoryNameById),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_ITEM_CONTENT_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateItemImage(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $imageUrl = trim((string)($request->body['imageUrl'] ?? $request->body['image_url'] ?? ''));
+
+        if ($itemId === '') {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+
+        try {
+            if (!$this->menuItemExists($itemId)) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'UPDATE dinecore_menu_items
+                 SET image_url = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([$imageUrl, $itemId]);
+
+            $categoryNameById = $this->menuCategoryNameMap();
+            $itemRow = $this->findMenuItemRowForAdmin($itemId);
+            if ($itemRow === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $response->ok([
+                'item' => $this->normalizeMenuAdminItem($itemRow, $categoryNameById),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_ITEM_IMAGE_FAILED');
+        }
+    }
+
     public function auditCloseSummary(Request $request, Response $response): void
     {
         $context = $this->requireStaffContext($request, $response, ['manager']);
@@ -734,6 +996,248 @@ final class DineCoreStaffApiController
         }
 
         return trim((string)($request->query['token'] ?? ''));
+    }
+
+    private function findTableByCode(string $tableCode): ?array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, code, name
+             FROM dinecore_tables
+             WHERE UPPER(TRIM(code)) = ?
+             LIMIT 1'
+        );
+        $stmt->execute([strtoupper(trim($tableCode))]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
+    private function resolveEntryBaseUrl(Request $request): string
+    {
+        $fromBody = trim((string)($request->body['entry_base_url'] ?? $request->body['entryBaseUrl'] ?? ''));
+        if ($fromBody !== '') {
+            $origin = $this->extractOriginFromUrl($fromBody);
+            if ($origin !== '') {
+                return $origin;
+            }
+        }
+
+        $originHeader = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
+        if ($originHeader !== '') {
+            $origin = $this->extractOriginFromUrl($originHeader);
+            if ($origin !== '') {
+                return $origin;
+            }
+        }
+
+        $referer = trim((string)($_SERVER['HTTP_REFERER'] ?? ''));
+        if ($referer !== '') {
+            $origin = $this->extractOriginFromUrl($referer);
+            if ($origin !== '') {
+                return $origin;
+            }
+        }
+
+        return $this->resolveBackendBaseUrl();
+    }
+
+    private function resolveBackendBaseUrl(): string
+    {
+        $configured = trim((string)(getenv('APP_BASE_URL') ?: ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/');
+        }
+
+        $forwardedProto = trim((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        $https = strtolower((string)($_SERVER['HTTPS'] ?? ''));
+        $scheme = $forwardedProto !== ''
+            ? $forwardedProto
+            : ($https !== '' && $https !== 'off' ? 'https' : 'http');
+
+        $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+        if ($host !== '') {
+            return $scheme . '://' . $host;
+        }
+
+        return $scheme . '://127.0.0.1:8000';
+    }
+
+    private function extractOriginFromUrl(string $url): string
+    {
+        $parts = @parse_url(trim($url));
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = (string)($parts['host'] ?? '');
+        if (($scheme !== 'http' && $scheme !== 'https') || $host === '') {
+            return '';
+        }
+
+        $port = isset($parts['port']) ? (int)$parts['port'] : 0;
+        $portPart = $port > 0 ? ':' . $port : '';
+
+        return $scheme . '://' . $host . $portPart;
+    }
+
+    private function resolveTableQrImageUrl(string $tableCode): string
+    {
+        $normalized = strtoupper(trim($tableCode));
+        if ($normalized === '') {
+            return '';
+        }
+
+        $fileName = $normalized . '.png';
+        $fullPath = BASE_PATH . '/public/assets/QRC/' . $fileName;
+        if (!is_file($fullPath)) {
+            return '';
+        }
+
+        $timestamp = @filemtime($fullPath);
+        $version = is_int($timestamp) ? '?v=' . $timestamp : '';
+        return rtrim($this->resolveBackendBaseUrl(), '/') . '/assets/QRC/' . rawurlencode($fileName) . $version;
+    }
+
+    private function loadMenuAdminCategories(): array
+    {
+        $rows = db()->query(
+            'SELECT id, name, sort_order
+             FROM dinecore_menu_categories
+             ORDER BY sort_order ASC, id ASC'
+        )->fetchAll() ?: [];
+
+        return array_map(static fn (array $row): array => [
+            'id' => (string)$row['id'],
+            'name' => (string)$row['name'],
+            'sortOrder' => (int)$row['sort_order'],
+        ], $rows);
+    }
+
+    private function loadMenuAdminItems(): array
+    {
+        $rows = db()->query(
+            'SELECT id, category_id, name, description, base_price, image_url, sold_out, hidden, default_option_ids_json, option_groups_json
+             FROM dinecore_menu_items
+             ORDER BY category_id ASC, id ASC'
+        )->fetchAll() ?: [];
+
+        $categoryNameById = $this->menuCategoryNameMap();
+        return array_map(fn (array $row): array => $this->normalizeMenuAdminItem($row, $categoryNameById), $rows);
+    }
+
+    private function menuCategoryNameMap(): array
+    {
+        $rows = db()->query(
+            'SELECT id, name
+             FROM dinecore_menu_categories'
+        )->fetchAll() ?: [];
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(string)$row['id']] = (string)$row['name'];
+        }
+
+        return $map;
+    }
+
+    private function normalizeMenuAdminItem(array $row, array $categoryNameById): array
+    {
+        $categoryId = (string)$row['category_id'];
+        $optionGroups = [];
+
+        foreach ($this->decodeJsonArray($row['option_groups_json'] ?? '[]') as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+
+            $options = [];
+            foreach ((array)($group['options'] ?? []) as $option) {
+                if (!is_array($option)) {
+                    continue;
+                }
+
+                $options[] = [
+                    'id' => (string)($option['id'] ?? ''),
+                    'label' => (string)($option['label'] ?? ''),
+                    'priceDelta' => (int)($option['price_delta'] ?? $option['priceDelta'] ?? 0),
+                ];
+            }
+
+            $optionGroups[] = [
+                'id' => (string)($group['id'] ?? ''),
+                'label' => (string)($group['label'] ?? ''),
+                'type' => (string)($group['type'] ?? 'single'),
+                'required' => (bool)($group['required'] ?? false),
+                'options' => $options,
+            ];
+        }
+
+        return [
+            'id' => (string)$row['id'],
+            'title' => (string)$row['name'],
+            'categoryId' => $categoryId,
+            'categoryName' => $categoryNameById[$categoryId] ?? $categoryId,
+            'description' => (string)($row['description'] ?? ''),
+            'price' => (int)$row['base_price'],
+            'imageUrl' => (string)($row['image_url'] ?? ''),
+            'defaultOptionIds' => array_values(array_map(
+                static fn ($id): string => (string)$id,
+                $this->decodeJsonArray($row['default_option_ids_json'] ?? '[]')
+            )),
+            'optionGroups' => $optionGroups,
+            'soldOut' => (int)$row['sold_out'] === 1,
+            'hidden' => (int)$row['hidden'] === 1,
+        ];
+    }
+
+    private function menuCategoryExists(string $categoryId): bool
+    {
+        $stmt = db()->prepare(
+            'SELECT id
+             FROM dinecore_menu_categories
+             WHERE id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$categoryId]);
+        return (bool)$stmt->fetch();
+    }
+
+    private function menuItemExists(string $itemId): bool
+    {
+        $stmt = db()->prepare(
+            'SELECT id
+             FROM dinecore_menu_items
+             WHERE id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$itemId]);
+        return (bool)$stmt->fetch();
+    }
+
+    private function findMenuItemRowForAdmin(string $itemId): ?array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, category_id, name, description, base_price, image_url, sold_out, hidden, default_option_ids_json, option_groups_json
+             FROM dinecore_menu_items
+             WHERE id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$itemId]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    private function generateMenuItemId(): string
+    {
+        do {
+            $candidate = 'custom-item-' . bin2hex(random_bytes(4));
+            $stmt = db()->prepare('SELECT id FROM dinecore_menu_items WHERE id = ? LIMIT 1');
+            $stmt->execute([$candidate]);
+            $exists = (bool)$stmt->fetch();
+        } while ($exists);
+
+        return $candidate;
     }
 
     private function normalizeReportFilters(Request $request): array

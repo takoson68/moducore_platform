@@ -5,6 +5,25 @@ function createCategory(id, name) {
   return { id, name }
 }
 
+function normalizeCategoriesWithAll(categories = []) {
+  const mapped = Array.isArray(categories)
+    ? categories.map(category => createCategory(category.id, category.name))
+    : []
+
+  const seen = new Set()
+  const result = [createCategory('all', '全部商品')]
+  seen.add('all')
+
+  for (const category of mapped) {
+    const id = String(category.id || '').trim()
+    if (!id || seen.has(id) || id === 'all') continue
+    seen.add(id)
+    result.push(createCategory(id, category.name))
+  }
+
+  return result
+}
+
 function normalizeOption(option) {
   return {
     id: option.id,
@@ -85,9 +104,10 @@ export function createMenuStore() {
   return world.createStore({
     name: 'dineCoreMenuStore',
     defaultValue: {
-      activeCategoryId: 'popular',
+      activeCategoryId: 'all',
       errorMessage: '',
       categories: [
+        createCategory('all', '全部商品'),
         createCategory('popular', '人氣推薦'),
         createCategory('main', '主餐'),
         createCategory('drink', '飲品'),
@@ -107,7 +127,7 @@ export function createMenuStore() {
           store.set({
             ...store.get(),
             errorMessage: '',
-            categories: payload.categories.map(category => createCategory(category.id, category.name)),
+            categories: normalizeCategoriesWithAll(payload.categories),
             items: payload.items.map(createItem)
           })
         } catch (error) {

@@ -12,6 +12,7 @@ import {
   updateMenuAdminCategory,
   updateMenuAdminDefaultOptions,
   updateMenuAdminItemCategory,
+  updateMenuAdminItemContent,
   updateMenuAdminItemImage,
   updateMenuAdminItemPrice,
   updateMenuAdminItemStatus,
@@ -95,6 +96,15 @@ export function createMenuAdminStore() {
       },
       async updateItemImage(store, payload = {}) {
         const updated = await updateMenuAdminItemImage(payload)
+        const state = store.get()
+
+        store.set({
+          ...state,
+          items: state.items.map(item => (item.id === updated.item.id ? updated.item : item))
+        })
+      },
+      async updateItemContent(store, payload = {}) {
+        const updated = await updateMenuAdminItemContent(payload)
         const state = store.get()
 
         store.set({

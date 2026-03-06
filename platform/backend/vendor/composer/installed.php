@@ -1,0 +1,41 @@
+<?php return array(
+    'root' => array(
+        'name' => 'moducore/dinecore-backend',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '50d5686cecfd405ea3388627d62d03a4b5094fa5',
+        'type' => 'project',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'dev' => true,
+    ),
+    'versions' => array(
+        'chillerlan/php-qrcode' => array(
+            'pretty_version' => '5.0.0',
+            'version' => '5.0.0.0',
+            'reference' => 'a301af5b7faa7fcd690b29f38b283616a7d93b89',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../chillerlan/php-qrcode',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'chillerlan/php-settings-container' => array(
+            'pretty_version' => '3.2.1',
+            'version' => '3.2.1.0',
+            'reference' => '95ed3e9676a1d47cab2e3174d19b43f5dbf52681',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../chillerlan/php-settings-container',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'moducore/dinecore-backend' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '50d5686cecfd405ea3388627d62d03a4b5094fa5',
+            'type' => 'project',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+    ),
+);

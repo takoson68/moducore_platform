@@ -1640,6 +1640,28 @@ const handlers = {
       })
     })
   },
+  async 'menu-admin/update-item-content'({ itemId, title, description = '' }) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const target = state.items.find(item => item.id === itemId)
+      if (!target) {
+        throw new Error('MENU_ITEM_NOT_FOUND')
+      }
+
+      const safeTitle = String(title || '').trim()
+      if (!safeTitle) {
+        throw new Error('MENU_ITEM_TITLE_REQUIRED')
+      }
+
+      target.name = safeTitle
+      target.description = String(description || '').trim()
+
+      return cloneMockValue({
+        item: buildDashboardMenuItems(state).find(item => item.id === itemId)
+      })
+    })
+  },
   async 'menu-admin/update-item-image'({ itemId, imageUrl }) {
     await waitForMock()
 

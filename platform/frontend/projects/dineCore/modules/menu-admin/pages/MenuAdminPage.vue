@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import world from '@/world.js'
 
@@ -6,7 +6,6 @@ const menuAdminStore = world.store('dineCoreMenuAdminStore')
 const state = computed(() => menuAdminStore.state)
 
 const createPanelOpen = ref(false)
-const createPreviewUrl = ref('')
 const createForm = reactive({
   title: '',
   categoryId: '',
@@ -17,9 +16,12 @@ const createForm = reactive({
 
 const categoryCreateName = ref('')
 const categoryDraftNames = reactive({})
+const draftTitles = reactive({})
+const draftDescriptions = reactive({})
 const draftCategoryIds = reactive({})
 const draftPrices = reactive({})
 const draftImages = reactive({})
+const customizationCollapsed = reactive({})
 const optionGroupCreateForms = reactive({})
 const optionCreateForms = reactive({})
 const optionGroupEditForms = reactive({})
@@ -47,9 +49,12 @@ watch(
   () => state.value.items,
   items => {
     items.forEach(item => {
+      draftTitles[item.id] = item.title || ''
+      draftDescriptions[item.id] = item.description || ''
       draftCategoryIds[item.id] = item.categoryId || draftCategoryIds[item.id] || ''
       draftPrices[item.id] = String(item.price)
       draftImages[item.id] = item.imageUrl || ''
+      customizationCollapsed[item.id] ??= true
 
       optionGroupCreateForms[item.id] ||= {
         label: '',
@@ -96,15 +101,6 @@ function buildOptionKey(itemId, groupId, optionId) {
   return `${itemId}:${groupId}:${optionId}`
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result || ''))
-    reader.onerror = () => reject(new Error('IMAGE_READ_FAILED'))
-    reader.readAsDataURL(file)
-  })
-}
-
 async function runSafely(task) {
   try {
     await task()
@@ -112,7 +108,7 @@ async function runSafely(task) {
     const message = String(error?.message || '')
 
     if (message === 'MENU_CATEGORY_IN_USE') {
-      window.alert('此分類仍有商品使用中，請先移動或處理商品後再刪除。')
+      window.alert('此分類仍有商品使用中，請先移動商品後再刪除分類。')
       return
     }
 
@@ -131,7 +127,17 @@ async function runSafely(task) {
       return
     }
 
-    window.alert('操作失敗，請稍後再試。')
+    if (message === 'MENU_ITEM_NOT_FOUND') {
+      window.alert('找不到指定商品，請重新整理後再試。')
+      return
+    }
+
+    if (message === 'MENU_IMAGE_URL_REQUIRED') {
+      window.alert('請輸入圖片網址。')
+      return
+    }
+
+    window.alert('操作失敗：' + (message || 'UNKNOWN_ERROR'))
     console.error(error)
   }
 }
@@ -140,28 +146,31 @@ function toggleCreatePanel() {
   createPanelOpen.value = !createPanelOpen.value
 }
 
-async function handleCreateImageChange(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-
-  const dataUrl = await readFileAsDataUrl(file)
-  createForm.imageUrl = dataUrl
-  createPreviewUrl.value = dataUrl
-}
-
-async function handleItemImageChange(item, event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-
-  const dataUrl = await readFileAsDataUrl(file)
-  draftImages[item.id] = dataUrl
-
+async function saveItemImageUrl(item) {
   await runSafely(async () => {
     await menuAdminStore.updateItemImage({
       itemId: item.id,
-      imageUrl: dataUrl
+      imageUrl: String(draftImages[item.id] || '').trim()
     })
   })
+}
+
+async function saveItemContent(item) {
+  await runSafely(async () => {
+    await menuAdminStore.updateItemContent({
+      itemId: item.id,
+      title: String(draftTitles[item.id] || '').trim(),
+      description: String(draftDescriptions[item.id] || '').trim()
+    })
+  })
+}
+
+function isCustomizationCollapsed(itemId) {
+  return customizationCollapsed[itemId] !== false
+}
+
+function toggleCustomization(itemId) {
+  customizationCollapsed[itemId] = !isCustomizationCollapsed(itemId)
 }
 
 async function createCategory() {
@@ -217,7 +226,6 @@ async function createItem() {
     createForm.price = '0'
     createForm.description = ''
     createForm.imageUrl = ''
-    createPreviewUrl.value = ''
     createPanelOpen.value = false
   })
 }
@@ -404,7 +412,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
       input.form-field__input(
         v-model="categoryCreateName"
         type="text"
-        placeholder="輸入新分類名稱"
+        placeholder="請輸入新分類名稱"
       )
       button.action-chip(type="button" @click="createCategory()") 新增分類
     .category-list
@@ -434,7 +442,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
     form.create-panel(v-if="createPanelOpen" @submit.prevent="createItem()")
       label.form-field
         span.form-field__label 商品名稱
-        input.form-field__input(v-model="createForm.title" type="text" placeholder="例：招牌海藻涼麵")
+        input.form-field__input(v-model="createForm.title" type="text" placeholder="例如：招牌海藻涼麵")
       label.form-field
         span.form-field__label 所屬分類
         select.form-field__input(v-model="createForm.categoryId")
@@ -447,13 +455,13 @@ function toggleDefaultOption(item, group, optionId, checked) {
         textarea.form-field__input.form-field__textarea(
           v-model="createForm.description"
           rows="3"
-          placeholder="簡短說明商品內容與特色"
+          placeholder="請輸入商品描述"
         )
       label.form-field.form-field--wide
-        span.form-field__label 商品圖片
-        input.form-field__input(type="file" accept="image/*" @change="handleCreateImageChange")
-      .create-preview(v-if="createPreviewUrl")
-        img.create-preview__image(:src="createPreviewUrl" alt="商品預覽")
+        span.form-field__label 商品圖片網址
+        input.form-field__input(v-model="createForm.imageUrl" type="url" placeholder="https://images.example.com/menu/item.jpg")
+      .create-preview(v-if="createForm.imageUrl")
+        img.create-preview__image(:src="createForm.imageUrl" alt="商品預覽")
       .create-panel__actions
         button.action-chip(type="submit") 建立商品
 
@@ -462,15 +470,23 @@ function toggleDefaultOption(item, group, optionId, checked) {
       .menu-admin-row__image
         img.menu-admin-row__preview(v-if="draftImages[item.id]" :src="draftImages[item.id]" :alt="item.title")
         .menu-admin-row__preview.is-empty(v-else) 尚未設定圖片
-        label.upload-chip
-          span 更換圖片
-          input.upload-chip__input(type="file" accept="image/*" @change="handleItemImageChange(item, $event)")
+        input.form-field__input(v-model="draftImages[item.id]" type="url" placeholder="https://images.example.com/menu/item.jpg")
+        button.action-chip.is-muted(type="button" @click="saveItemImageUrl(item)") 套用圖片網址
+
 
       .menu-admin-row__main
         .menu-admin-row__title-wrap
-          strong.menu-admin-row__title {{ item.title }}
+          input.menu-admin-row__title-input(
+            v-model="draftTitles[item.id]"
+            type="text"
+            placeholder="請輸入商品名稱"
+          )
           span.menu-admin-row__category {{ item.categoryName }}
-        p.menu-admin-row__description(v-if="item.description") {{ item.description }}
+        textarea.menu-admin-row__description-input(
+          v-model="draftDescriptions[item.id]"
+          rows="2"
+          placeholder="請輸入商品描述"
+        )
         .menu-admin-row__meta
           label.price-editor
             span.price-editor__label 分類
@@ -483,20 +499,26 @@ function toggleDefaultOption(item, group, optionId, checked) {
             button.price-editor__save(type="button" @click="savePrice(item)") 儲存價格
           span.menu-admin-row__status(
             :class="{ 'is-hidden': item.hidden, 'is-sold-out': item.soldOut && !item.hidden }"
-          ) {{ item.hidden ? '已下架' : item.soldOut ? '已售完' : '上架中' }}
+          ) {{ item.hidden ? "已下架" : item.soldOut ? "已售完" : "上架中" }}
+          button.price-editor__save(type="button" @click="saveItemContent(item)") 儲存品名與描述
 
         .customization-card
           .customization-card__head
-            h3.customization-card__title 客製規則
-            p.customization-card__meta 建立選項群組、選項內容與預設值，供顧客端點餐時使用。
+            .customization-card__head-main
+              h3.customization-card__title 客製規則
+              p.customization-card__meta 建立選項群組、選項內容與預設值，供顧客端點餐時使用。
+            button.action-chip.is-muted(
+              type="button"
+              @click="toggleCustomization(item.id)"
+            ) {{ isCustomizationCollapsed(item.id) ? '展開' : '收合' }}
 
-          .group-create
+          .group-create(v-if="!isCustomizationCollapsed(item.id)")
             label.form-field
               span.form-field__label 新群組名稱
               input.form-field__input(
                 v-model="optionGroupCreateForms[item.id].label"
                 type="text"
-                placeholder="例：麵量、辣度、加料"
+                placeholder="例如：份量、辣度、加料"
               )
             label.form-field
               span.form-field__label 選擇方式
@@ -508,7 +530,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
               span 顧客必選
             button.action-chip(type="button" @click="createOptionGroup(item)") 新增群組
 
-          .group-list(v-if="item.optionGroups && item.optionGroups.length > 0")
+          .group-list(v-if="!isCustomizationCollapsed(item.id) && item.optionGroups && item.optionGroups.length > 0")
             article.option-group-card(v-for="group in item.optionGroups" :key="group.id")
               .option-group-card__head
                 .option-group-card__title-block
@@ -517,25 +539,25 @@ function toggleDefaultOption(item, group, optionId, checked) {
                     type="text"
                   )
                   p.option-group-card__subtitle
-                    | 可調整名稱、類型與必選設定，再儲存回商品。
+                    | 單選群組僅可設定一個預設值，多選群組可設定多個預設值。
                 .option-group-card__actions
                   button.action-chip.is-muted(type="button" @click="saveOptionGroup(item, group)") 儲存群組
                   button.action-chip.is-danger(type="button" @click="removeOptionGroup(item, group)") 刪除群組
 
               .option-group-card__settings
                 label.form-field
-                  span.form-field__label 類型
+                  span.form-field__label 選擇方式
                   select.form-field__input(v-model="optionGroupEditForms[buildGroupKey(item.id, group.id)].type")
                     option(value="single") 單選
                     option(value="multi") 多選
                 label.form-field.option-group-card__required
-                  span.form-field__label 必選設定
+                  span.form-field__label 顧客必選
                   .checkbox-line
                     input(type="checkbox" v-model="optionGroupEditForms[buildGroupKey(item.id, group.id)].required")
-                    span 顧客必須選擇
+                    span 啟用必選
 
               .option-defaults(v-if="group.options.length > 0")
-                h4.option-defaults__title 預設值
+                h4.option-defaults__title 預設選項
                 .option-defaults__list
                   label.option-defaults__item(v-for="option in group.options" :key="option.id")
                     input(
@@ -545,7 +567,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
                       @change="toggleDefaultOption(item, group, option.id, $event.target.checked)"
                     )
                     span {{ option.label }}
-                button.action-chip.is-muted(type="button" @click="saveDefaultOptions(item)") 儲存預設值
+                button.action-chip.is-muted(type="button" @click="saveDefaultOptions(item)") 儲存預設
 
               .option-list
                 article.option-row(v-for="option in group.options" :key="option.id")
@@ -577,7 +599,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
                 )
                 button.action-chip.is-muted(type="button" @click="createOption(item, group)") 新增選項
 
-          p.customization-card__empty(v-else) 目前尚未設定任何客製群組。
+          p.customization-card__empty(v-if="!isCustomizationCollapsed(item.id) && (!item.optionGroups || item.optionGroups.length === 0)") 尚未設定客製規則，請先新增群組。
 
       .menu-admin-row__actions
         button.action-chip(type="button" @click="updateItemStatus(item, { hidden: !item.hidden })")
@@ -782,17 +804,31 @@ function toggleDefaultOption(item, group, optionId, checked) {
   align-items: center
   gap: 10px
 
-.menu-admin-row__title
+.menu-admin-row__title-input
+  flex: 1
+  min-width: 220px
+  border: 1px solid rgba(109, 180, 177, 0.24)
+  border-radius: 12px
+  padding: 10px 12px
+  font: inherit
   color: #21393d
+  background: #fff
 
 .menu-admin-row__category
   color: #6e8083
   font-size: 13px
 
-.menu-admin-row__description
-  margin: 0
+.menu-admin-row__description-input
+  width: 100%
+  min-height: 64px
+  border: 1px solid rgba(109, 180, 177, 0.24)
+  border-radius: 12px
+  padding: 10px 12px
+  font: inherit
   color: #53686c
+  background: #fff
   line-height: 1.6
+  resize: vertical
 
 .menu-admin-row__meta
   display: flex
@@ -853,6 +889,12 @@ function toggleDefaultOption(item, group, optionId, checked) {
   border: 1px solid rgba(109, 180, 177, 0.18)
 
 .customization-card__head
+  display: flex
+  justify-content: space-between
+  align-items: start
+  gap: 10px
+
+.customization-card__head-main
   display: grid
   gap: 4px
 
