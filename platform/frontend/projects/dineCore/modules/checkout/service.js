@@ -12,8 +12,13 @@ export async function submitCheckoutOrder(tableCode, orderingSessionToken = '') 
   return submitCheckout(tableCode, orderingSessionToken)
 }
 
-export async function loadCheckoutSuccessSummary(orderId, submittedBatchNo = 0) {
-  return getCheckoutSuccess(orderId, submittedBatchNo)
+export async function loadCheckoutSuccessSummary(
+  tableCode,
+  orderId,
+  submittedBatchNo = 0,
+  orderingSessionToken = ''
+) {
+  return getCheckoutSuccess(tableCode, orderId, submittedBatchNo, orderingSessionToken)
 }
 
 export function mapCheckoutError(error) {

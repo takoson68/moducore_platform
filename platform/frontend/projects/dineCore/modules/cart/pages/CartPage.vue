@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
@@ -11,6 +11,7 @@ const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreE
 const state = computed(() => cartStore.state)
 const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
+
 const pollIntervalMs = 5000
 let pollTimer = null
 
@@ -31,9 +32,7 @@ function stopPolling() {
 
 function startPolling() {
   stopPolling()
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-    return
-  }
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
 
   pollTimer = window.setInterval(() => {
     refreshCart()
@@ -81,18 +80,23 @@ const orderingCart = computed(() =>
   state.value.carts.find(item => item.id === state.value.orderingCartId) || null
 )
 
-const viewingCart = computed(() =>
-  state.value.carts.find(item => item.id === state.value.viewingCartId) || null
-)
+const viewingCart = computed(() => orderingCart.value)
 
-const viewingCartItems = computed(() => state.value.cartItemsByCartId[state.value.viewingCartId] || [])
-const hasCheckoutItems = computed(() =>
-  state.value.carts.some(cart => Number(cart.itemCount || 0) > 0)
-)
-const submittedBatchCount = computed(() => Math.max(Number(state.value.currentBatchNo || 0) - 1, 0))
+const viewingCartItems = computed(() => {
+  const cartId = String(viewingCart.value?.id || state.value.orderingCartId || '')
+  const rows = Array.isArray(state.value.cartItemsByCartId[cartId])
+    ? [...state.value.cartItemsByCartId[cartId]]
+    : []
+
+  rows.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
+  return rows
+})
+
+const hasCheckoutItems = computed(() => Number(viewingCart.value?.itemCount || 0) > 0)
+
 const currentBatchLabel = computed(() => {
   const batchNo = Number(state.value.currentBatchNo || 0)
-  return batchNo > 0 ? `第 ${batchNo} 批餐點` : '本批餐點'
+  return batchNo > 0 ? `第 ${batchNo} 批次` : '尚未送單'
 })
 
 const editorSelectedOptions = computed(() => {
@@ -115,9 +119,12 @@ const editorTotalPrice = computed(() => {
 })
 
 async function changeQuantity(cartItemId, delta) {
+  const cartId = String(viewingCart.value?.id || state.value.orderingCartId || '')
+  if (!cartId) return
+
   await cartStore.changeItemQuantity({
     tableCode: tableCode.value,
-    cartId: state.value.viewingCartId,
+    cartId,
     cartItemId,
     delta
   })
@@ -152,80 +159,58 @@ function goToConfirmOrder() {
 
 <template lang="pug">
 .mobile-page
-  section.mobile-hero-card.is-compact
-    .mobile-hero-card__badge 購物車
-    h2.mobile-hero-card__title {{ currentBatchLabel }}
-    p.mobile-hero-card__copy(v-if="state.currentBatchNo > 0") {{ `你現在編輯的是第 ${state.currentBatchNo} 批，送出後這一批就會鎖定。` }}
-    p.mobile-hero-card__copy(v-if="submittedBatchCount > 0") {{ `前面已送出 ${submittedBatchCount} 批，新的加點不會混進上一批。` }}
-    p.mobile-hero-card__copy(v-if="orderingCart") {{ `本機顧客身份：${orderingCart.guestLabel}` }}
-    p.mobile-hero-card__copy 系統會持續同步共桌點餐狀態；若其他顧客先送單，這裡會自動切到新的空白批次。
+  section.cart-hero
+    .cart-hero__chip 購物車
+    h2.cart-hero__title 我的點餐清單
+    p.cart-hero__meta {{ currentBatchLabel }}
+    p.cart-hero__meta(v-if="orderingCart") {{ `身份：${orderingCart.guestLabel}` }}
 
-  section.feature-card.is-error(v-if="state.errorMessage")
-    h3.feature-card__title 發生問題
-    p.feature-card__copy {{ state.errorMessage }}
+  section.notice-card.is-error(v-if="state.errorMessage")
+    p.notice-card__text {{ state.errorMessage }}
 
-  section.cart-switcher
-    button.cart-chip(
-      v-for="cart in state.carts"
-      :key="cart.id"
-      type="button"
-      :class="{ 'is-active': state.viewingCartId === cart.id }"
-      @click="cartStore.setViewingCart(cart.id)"
-    )
-      span.cart-chip__title {{ cart.guestLabel }}
-      small.cart-chip__pin(v-if="state.orderingCartId === cart.id") 本機
-      span.cart-chip__meta {{ `${cart.itemCount} 項 / $${cart.subtotal}` }}
-
-  section.cart-summary-card
-    .cart-summary-card__head
-      h3.cart-summary-card__title {{ viewingCart?.guestLabel || '尚未選擇共桌購物車' }}
-      span.cart-summary-card__tag {{ state.currentBatchStatus || 'draft' }}
+  section.cart-card
+    .cart-card__head
+      h3.cart-card__title 目前品項
+      span.cart-card__subtotal(v-if="viewingCart") {{ `小計 $${viewingCart.subtotal || 0}` }}
 
     .cart-empty(v-if="viewingCartItems.length === 0")
-      p.cart-empty__text 這位顧客在目前批次還沒有品項。
-    .cart-item-list(v-else)
-      article.cart-item(v-for="item in viewingCartItems" :key="item.id")
-        button.cart-item__remove(type="button" @click="removeItem(item.id, item.quantity)") 取消
-        .cart-item__main
-          h4.cart-item__title {{ item.title }}
-          p.cart-item__meta {{ item.note || '無備註' }}
-          .cart-item__options(v-if="item.options?.length")
-            span.cart-item__option(v-for="option in item.options" :key="option") {{ option }}
-        .cart-item__side
-          .cart-item__stepper
-            button.cart-item__stepper-button(type="button" @click="changeQuantity(item.id, -1)") -
-            span.cart-item__qty {{ `x${item.quantity}` }}
-            button.cart-item__stepper-button(type="button" @click="changeQuantity(item.id, 1)") +
-          strong.cart-item__price {{ `$${item.price}` }}
-          button.cart-item__edit(type="button" @click="cartStore.openEditor(item)") 編輯
+      p.cart-empty__title 還沒有加入任何餐點
+      p.cart-empty__text 請回到菜單頁選擇商品後再送單。
 
-    .cart-summary-card__footer
-      strong.cart-summary-card__total {{ `小計 $${viewingCart?.subtotal || 0}` }}
+    .item-list(v-else)
+      article.item-card(v-for="item in viewingCartItems" :key="item.id")
+        .item-card__main
+          .item-card__title-row
+            strong.item-card__title {{ item.title }}
+            .item-card__qty
+              button.item-card__qty-btn(type="button" @click="changeQuantity(item.id, -1)") -
+              span.item-card__qty-value {{ `${item.quantity}` }}
+              button.item-card__qty-btn(type="button" @click="changeQuantity(item.id, 1)") +
+          .item-card__spec(v-if="item.options?.length")
+            span.item-card__spec-label 規格：
+            span.item-card__spec-values
+              span.item-card__option(v-for="option in item.options" :key="option") {{ option }}
+          p.item-card__note(v-if="item.note") {{ item.note }}
+        .item-card__footer
+          .item-card__actions
+            button.item-card__action.item-card__action--edit(type="button" @click="cartStore.openEditor(item)") 編輯規格
+            button.item-card__action.is-danger(type="button" @click="removeItem(item.id, item.quantity)") 刪除
+          .item-card__pricing
+            span.item-card__unit {{ `單價 $${item.price}` }}
+            strong.item-card__subtotal {{ `小計 $${item.price * item.quantity}` }}
 
-  section.bottom-action-card
-    .bottom-action-card__meta
-      span.bottom-action-card__label 正在共桌點餐
-      strong.bottom-action-card__value {{ `${state.participantCount} 位顧客可一起送出這一批` }}
-      p.bottom-action-card__hint 進入下一步後，你會先確認這一批餐點；送出後系統會自動開啟下一批加點。
-    button.bottom-action-card__button(type="button" :disabled="!hasCheckoutItems" @click="goToConfirmOrder") 確認本批餐點
-
-  section.feature-card
-    h3.feature-card__title 批次提醒
-    p.feature-card__copy 系統每 5 秒檢查一次。如果其他顧客先送單，這裡會自動切到新的空白批次，避免新的加點混進已送出的餐點。
+  section.checkout-card
+    .checkout-card__meta
+      span.checkout-card__label 目前合計
+      strong.checkout-card__value {{ `$${viewingCart?.subtotal || 0}` }}
+    button.checkout-card__button(type="button" :disabled="!hasCheckoutItems" @click="goToConfirmOrder") 前往結帳
 
   section.option-sheet(v-if="state.editor")
     .option-sheet__backdrop(@click="cartStore.closeEditor()")
     .option-sheet__panel
-      .option-sheet__head
-        .option-sheet__title-block
-          h3.option-sheet__title {{ state.editor.title }}
-          p.option-sheet__subtitle 編輯購物車品項
-        button.option-sheet__close(type="button" @click="cartStore.closeEditor()") 關閉
-
+      h3.option-sheet__title {{ state.editor.title }}
       section.option-group(v-for="group in state.editor.optionGroups" :key="group.id")
-        .option-group__head
-          h4.option-group__title {{ group.label }}
-          span.option-group__meta {{ group.type === 'single' ? '單選' : '多選' }}
+        h4.option-group__title {{ group.label }}
         .option-group__list
           button.option-pill(
             v-for="option in group.options"
@@ -233,281 +218,292 @@ function goToConfirmOrder() {
             type="button"
             :class="{ 'is-active': hasEditorOption(group.id, option.id) }"
             @click="cartStore.toggleEditorOption({ groupId: group.id, optionId: option.id })"
-          )
-            span {{ option.label }}
-            small(v-if="option.priceDelta > 0") {{ `+$${option.priceDelta}` }}
-
-      section.option-group
-        .option-group__head
-          h4.option-group__title 備註
-          span.option-group__meta 可留空
-        textarea.option-note(
-          :value="state.editor.note"
-          rows="3"
-          placeholder="例如：少冰、去蔥、餐後再上"
-          @input="cartStore.setEditorNote($event.target.value)"
-        )
-
-      .option-sheet__summary
-        .option-sheet__chips
-          span.option-sheet__chip(v-for="option in editorSelectedOptions" :key="option.id") {{ option.label }}
-        strong.option-sheet__price {{ `$${editorTotalPrice}` }}
-
-      button.option-sheet__submit(type="button" @click="saveEditor") 儲存變更
+          ) {{ option.label }} {{ option.priceDelta > 0 ? `+$${option.priceDelta}` : '' }}
+      textarea.option-note(
+        :value="state.editor.note"
+        rows="3"
+        placeholder="可填寫口味或備註"
+        @input="cartStore.setEditorNote($event.target.value)"
+      )
+      p.option-sheet__price {{ `調整後單價：$${editorTotalPrice}` }}
+      .option-sheet__actions
+        button.option-sheet__btn(type="button" @click="cartStore.closeEditor()") 取消
+        button.option-sheet__btn.is-primary(type="button" @click="saveEditor") 儲存
 </template>
 
 <style lang="sass">
 .mobile-page
   display: grid
   gap: 14px
+  padding-bottom: 96px
 
-.mobile-hero-card
+.cart-hero
   padding: 20px
-  border-radius: 24px
-  background: linear-gradient(180deg, rgba(120, 213, 206, 0.95), rgba(99, 195, 189, 0.98))
-  color: #fff
+  border-radius: 22px
+  background: linear-gradient(155deg, #113f47 0%, #1f6975 55%, #2e8a8e 100%)
+  color: #f7ffff
   display: grid
-  gap: 10px
+  gap: 8px
+  box-shadow: 0 18px 32px rgba(22, 63, 71, 0.24)
 
-.mobile-hero-card.is-compact .mobile-hero-card__title
-  font-size: 28px
-
-.mobile-hero-card__badge
+.cart-hero__chip
   width: fit-content
-  padding: 6px 12px
+  padding: 6px 10px
   border-radius: 999px
-  background: rgba(255, 255, 255, 0.2)
+  background: rgba(255, 255, 255, 0.18)
   font-size: 12px
   font-weight: 700
+  letter-spacing: 0.04em
 
-.mobile-hero-card__title
+.cart-hero__title
   margin: 0
+  font-size: 30px
+  line-height: 1.15
 
-.mobile-hero-card__copy
+.cart-hero__meta
   margin: 0
+  color: rgba(247, 255, 255, 0.9)
   line-height: 1.6
 
-.feature-card,
-.cart-summary-card,
-.bottom-action-card
-  padding: 18px
-  border-radius: 22px
-  background: var(--dc-card)
-  border: 1px solid var(--dc-border)
+.notice-card
+  border-radius: 16px
+  padding: 14px 16px
+  border: 1px solid #efbdb4
+  background: #fff1ee
 
-.feature-card__title
-  margin: 0 0 8px
-
-.feature-card__copy
+.notice-card__text
   margin: 0
-  color: var(--dc-text-muted)
-  line-height: 1.7
+  color: #9a3f32
+  line-height: 1.5
 
-.feature-card.is-error
-  border-color: rgba(220, 104, 89, 0.32)
-  background: rgba(255, 237, 232, 0.9)
-
-.cart-switcher
+.cart-card
+  background: #ffffff
+  border: 1px solid #d9ece8
+  border-radius: 20px
+  padding: 16px
   display: grid
-  grid-template-columns: repeat(3, minmax(0, 1fr))
-  gap: 10px
+  gap: 12px
+  box-shadow: 0 10px 22px rgba(64, 111, 113, 0.08)
 
-.cart-chip
-  min-width: 0
-  min-height: 88px
-  border: 0
-  border-radius: 18px
-  padding: 12px 14px
-  background: rgba(255, 255, 255, 0.84)
-  color: #5d4a34
-  cursor: pointer
-  display: grid
-  grid-template-rows: auto auto 1fr
-  align-content: start
-  gap: 6px
-  text-align: left
-
-.cart-chip.is-active
-  background: linear-gradient(135deg, var(--dc-mint-1) 0%, var(--dc-mint-2) 100%)
-  color: #fff
-
-.cart-chip__title
-  font-weight: 700
-  line-height: 1.4
-
-.cart-chip__pin
-  width: fit-content
-  font-size: 11px
-  padding: 2px 6px
-  border-radius: 999px
-  background: rgba(255, 255, 255, 0.22)
-
-.cart-chip__meta
-  font-size: 12px
-  opacity: 0.82
-
-.cart-summary-card
-  display: grid
-  gap: 14px
-
-.cart-summary-card__head
+.cart-card__head
   display: flex
   justify-content: space-between
   align-items: center
-  gap: 12px
+  gap: 10px
 
-.cart-summary-card__title
+.cart-card__title
   margin: 0
 
-.cart-summary-card__tag
-  padding: 6px 10px
-  border-radius: 999px
-  background: rgba(121, 214, 207, 0.14)
-  color: #4d7678
-  font-size: 12px
+.cart-card__subtotal
+  margin: 0
+  color: #2a6469
   font-weight: 700
 
 .cart-empty
-  padding: 20px
-  border-radius: 18px
-  background: rgba(121, 214, 207, 0.08)
+  border: 1px dashed #bdd9d3
+  border-radius: 14px
+  padding: 14px
+  background: #f6fbfa
+  display: grid
+  gap: 6px
+
+.cart-empty__title
+  margin: 0
+  color: #335c5f
+  font-weight: 700
 
 .cart-empty__text
   margin: 0
-  color: var(--dc-text-muted)
-
-.cart-item-list
-  display: grid
-  gap: 12px
-
-.cart-item
-  padding: 16px
-  border-radius: 18px
-  background: linear-gradient(180deg, #ffffff 0%, #f5faf9 100%)
-  display: flex
-  justify-content: space-between
-  gap: 16px
-  position: relative
-
-.cart-item__main
-  display: grid
-  gap: 8px
-
-.cart-item__title
-  margin: 0
-
-.cart-item__meta
-  margin: 0
-  color: var(--dc-text-muted)
-
-.cart-item__options
-  display: flex
-  flex-wrap: wrap
-  gap: 6px
-
-.cart-item__option
-  padding: 4px 8px
-  border-radius: 999px
-  background: rgba(121, 214, 207, 0.16)
-  color: #4d7678
-  font-size: 11px
-  font-weight: 700
-
-.cart-item__side
-  display: grid
-  gap: 10px
-  justify-items: end
-
-.cart-item__stepper
-  display: inline-flex
-  align-items: center
-  gap: 8px
-  padding: 6px 10px
-  border-radius: 999px
-  background: rgba(121, 214, 207, 0.12)
-
-.cart-item__stepper-button
-  border: 0
-  background: transparent
-  font-size: 18px
-  cursor: pointer
-
-.cart-item__qty
-  min-width: 42px
-  text-align: center
-  font-weight: 700
-
-.cart-item__price
-  font-size: 18px
-  color: #21373b
-
-.cart-item__edit
-  border: 0
-  border-radius: 999px
-  padding: 8px 12px
-  background: rgba(93, 189, 184, 0.14)
-  color: #356d6e
-  font-weight: 700
-  cursor: pointer
-
-.cart-item__remove
-  position: absolute
-  top: 14px
-  right: 14px
-  border: 0
-  border-radius: 999px
-  padding: 8px 12px
-  background: rgba(220, 104, 89, 0.14)
-  color: #a44b3d
-  font-size: 12px
-  font-weight: 700
-  cursor: pointer
-
-.cart-summary-card__footer
-  display: flex
-  justify-content: flex-end
-
-.cart-summary-card__total
-  font-size: 20px
-  color: #20373b
-
-.bottom-action-card
-  display: flex
-  justify-content: space-between
-  align-items: center
-  gap: 12px
-
-.bottom-action-card__meta
-  display: grid
-  gap: 4px
-
-.bottom-action-card__label
-  color: var(--dc-text-muted)
-  font-size: 13px
-
-.bottom-action-card__value
-  color: #20373b
-  font-size: 18px
-  font-weight: 700
-
-.bottom-action-card__hint
-  margin: 0
-  color: var(--dc-text-muted)
+  color: #6f8689
   line-height: 1.6
 
-.bottom-action-card__button
+.item-list
+  display: grid
+  gap: 10px
+
+.item-card
+  padding: 12px
+  border-radius: 12px
+  border: 1px solid #e0efec
+  background: linear-gradient(180deg, #ffffff 0%, #f8fcfb 100%)
+  display: grid
+  gap: 8px
+
+.item-card__main
+  min-width: 0
+
+.item-card__title-row
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  min-width: 0
+  border: 1px solid #e2efed
+  border-radius: 10px
+  padding: 8px 10px
+  background: #fbfefd
+
+.item-card__title
+  line-height: 1.45
+  min-width: 0
+  flex: 1
+
+.item-card__note
+  margin: 4px 0 0
+  color: #607679
+  border: 1px solid #e2efed
+  border-radius: 10px
+  padding: 8px 10px
+  background: #fbfefd
+
+.item-card__spec
+  display: flex
+  align-items: center
+  gap: 4px
+  margin-top: 4px
+  border: 1px solid #e2efed
+  border-radius: 10px
+  padding: 6px 10px
+  background: #fbfefd
+
+.item-card__spec-label
+  color: #5f7c7f
+  font-size: 11px
+  white-space: nowrap
+
+.item-card__spec-values
+  display: flex
+  flex-wrap: wrap
+  gap: 4px
+
+.item-card__option
+  padding: 3px 7px
+  border-radius: 999px
+  background: #edf8f6
+  font-size: 11px
+  color: #44686a
+
+.item-card__footer
+  display: flex
+  justify-content: space-between
+  align-items: end
+  gap: 8px
+
+.item-card__pricing
+  display: grid
+  justify-items: end
+  gap: 1px
+
+.item-card__unit
+  color: #70888b
+  font-size: 11px
+
+.item-card__subtotal
+  color: #1f4044
+  font-size: 16px
+
+.item-card__qty
+  display: flex
+  gap: 4px
+  align-items: center
+  border-radius: 999px
+  padding: 3px
+  background: #ecf7f5
+
+.item-card__qty-btn
+  width: 24px
+  height: 24px
   border: 0
+  border-radius: 999px
+  background: #fff
+  color: #245f63
+  font-size: 14px
+  font-weight: 700
+  cursor: pointer
+  box-shadow: 0 2px 8px rgba(43, 96, 99, 0.12)
+
+.item-card__qty-value
+  min-width: 30px
+  text-align: center
+  font-weight: 700
+  color: #356466
+  font-size: 13px
+
+.item-card__actions
+  display: flex
+  justify-content: center
+  align-items: center
+  gap: 8px
+  width: 100%
+
+.item-card__action
+  border: 0
+  border-radius: 999px
+  padding: 6px 9px
+  background: #e6f4f1
+  color: #2e676a
+  font-weight: 700
+  font-size: 11px
+  cursor: pointer
+  justify-self: center
+
+.item-card__action--edit
+  justify-self: center
+
+.item-card__action.is-danger
+  background: #ffeceb
+  color: #a64a3a
+
+@media (max-width: 520px)
+  .item-card__footer
+    align-items: start
+    flex-direction: column
+
+  .item-card__pricing
+    justify-items: start
+
+.checkout-card
+  position: fixed
+  left: 12px
+  right: 12px
+  bottom: 12px
+  z-index: 25
   border-radius: 16px
-  padding: 14px 18px
-  background: linear-gradient(180deg, #2dc762, #24ba59)
+  border: 1px solid #d4ebe6
+  background: rgba(255, 255, 255, 0.94)
+  backdrop-filter: blur(8px)
+  box-shadow: 0 14px 30px rgba(37, 76, 78, 0.2)
+  padding: 10px
+  display: grid
+  grid-template-columns: minmax(0, 1fr) auto
+  gap: 10px
+  align-items: center
+
+.checkout-card__meta
+  display: grid
+  gap: 2px
+  padding-left: 4px
+
+.checkout-card__label
+  color: #6a8183
+  font-size: 12px
+
+.checkout-card__value
+  color: #1f3e42
+  font-size: 22px
+
+.checkout-card__button
+  border: 0
+  border-radius: 12px
+  padding: 13px 18px
+  background: linear-gradient(180deg, #2dc762 0%, #24ba59 100%)
   color: #fff
-  font-size: 15px
   font-weight: 700
   cursor: pointer
 
-.bottom-action-card__button:disabled
+.checkout-card__button:disabled
   background: #cfd8d6
-  color: #7a8784
+  color: #798582
   cursor: not-allowed
 
 .option-sheet
@@ -518,128 +514,88 @@ function goToConfirmOrder() {
 .option-sheet__backdrop
   position: absolute
   inset: 0
-  background: rgba(16, 29, 34, 0.42)
-  backdrop-filter: blur(5px)
+  background: rgba(0, 0, 0, 0.36)
 
 .option-sheet__panel
   position: absolute
   left: 0
   right: 0
   bottom: 0
-  max-height: 88vh
-  overflow: auto
-  border-radius: 24px 24px 0 0
-  background: #fff
-  padding: 20px
+  background: #ffffff
+  border-radius: 18px 18px 0 0
+  padding: 16px
   display: grid
-  gap: 16px
-
-.option-sheet__head
-  display: flex
-  justify-content: space-between
   gap: 12px
+  max-height: 85vh
+  overflow: auto
 
 .option-sheet__title
   margin: 0
-
-.option-sheet__subtitle
-  margin: 6px 0 0
-  color: var(--dc-text-muted)
-
-.option-sheet__close
-  border: 0
-  background: transparent
-  color: var(--dc-text-muted)
-  cursor: pointer
+  color: #23464a
 
 .option-group
   display: grid
-  gap: 10px
-
-.option-group__head
-  display: flex
-  justify-content: space-between
-  align-items: center
-  gap: 12px
+  gap: 8px
 
 .option-group__title
   margin: 0
-
-.option-group__meta
-  color: var(--dc-text-muted)
-  font-size: 12px
+  color: #34595d
+  font-size: 14px
 
 .option-group__list
   display: flex
+  gap: 8px
   flex-wrap: wrap
-  gap: 10px
 
 .option-pill
-  border: 1px solid rgba(121, 214, 207, 0.28)
+  border: 0
   border-radius: 999px
-  padding: 9px 12px
-  background: #fff
-  display: inline-flex
-  align-items: center
-  gap: 6px
+  padding: 8px 10px
+  background: #eef7f6
+  color: #2f5f63
   cursor: pointer
 
 .option-pill.is-active
-  border-color: transparent
-  background: linear-gradient(135deg, var(--dc-mint-1) 0%, var(--dc-mint-2) 100%)
-  color: #fff
-  color: #009688
-  
-.option-note
-  width: 100%
-  border: 1px solid rgba(97, 129, 131, 0.2)
-  border-radius: 14px
-  padding: 12px
-  resize: vertical
-  font: inherit
-
-.option-sheet__summary
-  display: grid
-  gap: 12px
-
-.option-sheet__chips
-  display: flex
-  flex-wrap: wrap
-  gap: 8px
-
-.option-sheet__chip
-  padding: 4px 8px
-  border-radius: 999px
-  background: rgba(121, 214, 207, 0.16)
-  color: #4d7678
-  font-size: 11px
+  background: #daf3ee
+  color: #155f5f
   font-weight: 700
 
-.option-sheet__price
-  font-size: 20px
-  color: #20373b
+.option-note
+  width: 100%
+  border: 1px solid #d7e7e4
+  border-radius: 12px
+  padding: 10px 12px
+  resize: vertical
+  font: inherit
+  color: #294c50
 
-.option-sheet__submit
+.option-sheet__price
+  margin: 0
+  color: #214144
+  font-weight: 700
+
+.option-sheet__actions
+  display: flex
+  justify-content: end
+  gap: 8px
+
+.option-sheet__btn
   border: 0
-  border-radius: 16px
-  padding: 14px
-  background: linear-gradient(180deg, #2dc762, #24ba59)
-  color: #fff
+  border-radius: 10px
+  padding: 10px 14px
+  background: #edf5f4
+  color: #315b5f
   font-weight: 700
   cursor: pointer
 
-@media (max-width: 720px)
-  .cart-switcher
-    grid-template-columns: repeat(3, minmax(0, 1fr))
+.option-sheet__btn.is-primary
+  background: linear-gradient(180deg, #2dc762 0%, #24ba59 100%)
+  color: #fff
 
-@media (max-width: 520px)
-  .bottom-action-card
-    display: grid
-
-  .cart-item
-    flex-direction: column
-    align-items: stretch
-
-  .cart-item__side
-    justify-items: start
+@media (min-width: 860px)
+  .checkout-card
+    position: sticky
+    left: auto
+    right: auto
+    bottom: 0
 </style>

@@ -15,7 +15,7 @@ export function createCounterStore() {
         tableCode: '',
         orderNo: '',
         orderStatus: 'all',
-        paymentStatus: 'all'
+        paymentStatus: 'unpaid'
       },
       error: '',
       tables: [],

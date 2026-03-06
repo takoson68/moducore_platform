@@ -84,3 +84,24 @@ export async function generateTableAdminQr(payload) {
     )
   )
 }
+
+export async function clearTableAdminGuestSessions(payload = {}) {
+  if (world.apiMode() !== 'real') {
+    throw new Error('REAL_API_REQUIRED')
+  }
+
+  const tableCode = String(payload?.tableCode || payload?.table_code || '')
+    .trim()
+    .toUpperCase()
+  if (!tableCode) {
+    throw new Error('TABLE_CODE_REQUIRED')
+  }
+
+  return unwrapResult(
+    await world.http().post(
+      '/api/dinecore/staff/sessions/clear',
+      { table_code: tableCode },
+      { tokenQuery: true }
+    )
+  )
+}

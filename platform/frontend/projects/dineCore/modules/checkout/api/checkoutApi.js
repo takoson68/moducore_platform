@@ -30,17 +30,21 @@ export function submitCheckout(tableCode, orderingSessionToken = '') {
   })
 }
 
-export function getCheckoutSuccess(orderId, submittedBatchNo = 0) {
+export function getCheckoutSuccess(tableCode, orderId, submittedBatchNo = 0, orderingSessionToken = '') {
   return dineCoreRequest('checkout/success', {
     path: '/api/dinecore/checkout-success',
     method: 'GET',
     mockPayload: {
+      tableCode,
       orderId,
-      submittedBatchNo
+      submittedBatchNo,
+      orderingSessionToken
     },
     query: {
+      table_code: tableCode,
       order_id: orderId,
-      submitted_batch_no: submittedBatchNo || ''
+      submitted_batch_no: submittedBatchNo || '',
+      ordering_session_token: orderingSessionToken
     }
   })
 }

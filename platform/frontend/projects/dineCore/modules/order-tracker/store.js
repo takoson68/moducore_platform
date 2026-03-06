@@ -1,5 +1,6 @@
 import world from '@/world.js'
 import { loadOrderTrackerPayload, mapOrderTrackerError } from './service.js'
+import { loadCheckoutSuccessSummary } from '../checkout/service.js'
 
 function normalizePerson(person) {
   return {
@@ -39,9 +40,11 @@ export function createOrderTrackerStore() {
       history: []
     },
     actions: {
-      async load(store, { orderId, orderingSessionToken = '' }) {
+      async load(store, { tableCode, orderId, orderingSessionToken = '' }) {
+        let apiError = null
+
         try {
-          const payload = await loadOrderTrackerPayload(orderId, orderingSessionToken)
+          const payload = await loadOrderTrackerPayload(tableCode, orderId, orderingSessionToken)
           store.set({
             ...store.get(),
             errorMessage: '',
@@ -53,12 +56,51 @@ export function createOrderTrackerStore() {
             timeline: payload.timeline,
             history: payload.history
           })
+          return
         } catch (error) {
+          apiError = error
+        }
+
+        // Fallback: if tracker endpoint fails, still show latest submitted data.
+        try {
+          const fallback = await loadCheckoutSuccessSummary(
+            tableCode,
+            orderId,
+            0,
+            orderingSessionToken
+          )
           store.set({
             ...store.get(),
-            errorMessage: mapOrderTrackerError(error)
+            errorMessage: '',
+            orderNo: String(fallback.orderNo || ''),
+            status: String(fallback.status || 'pending'),
+            estimatedWaitMinutes: fallback.estimatedWaitMinutes ?? null,
+            persons: Array.isArray(fallback.persons) ? fallback.persons.map(normalizePerson) : [],
+            batches: Array.isArray(fallback.batches) ? fallback.batches.map(normalizeBatch) : [],
+            timeline: [],
+            history: []
           })
+          return
+        } catch (fallbackError) {
+          void fallbackError
         }
+
+        store.set({
+          ...store.get(),
+          errorMessage: mapOrderTrackerError(apiError)
+        })
+      },
+      setErrorMessage(store, message = '') {
+        store.set({
+          ...store.get(),
+          errorMessage: String(message || '')
+        })
+      },
+      clearError(store) {
+        store.set({
+          ...store.get(),
+          errorMessage: ''
+        })
       },
       setOrderSnapshot(store, payload = {}) {
         const state = store.get()

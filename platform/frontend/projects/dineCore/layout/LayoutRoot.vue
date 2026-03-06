@@ -5,9 +5,7 @@ import world from '@/world.js'
 
 const route = useRoute()
 const devMenuOpen = ref(false)
-const clearSessionTableCode = ref('A01')
-const clearSessionTableOptions = ref([])
-const isLoadingClearSessionTables = ref(false)
+const demoTableCode = 'A01'
 const isRevalidatingEntryContext = ref(false)
 const lastEntryRevalidateAt = ref(0)
 
@@ -150,7 +148,10 @@ const cartItemCount = computed(() =>
 
 const orderId = computed(() => String(entryState.value.orderId || '').trim())
 const orderNo = computed(() => String(entryState.value.orderNo || '').trim())
-const hasOrder = computed(() => Boolean(orderId.value))
+const orderStatus = computed(() => String(entryState.value.orderStatus || '').trim().toLowerCase())
+const canTrackOrder = computed(() =>
+  Boolean(orderId.value) && orderStatus.value !== 'draft'
+)
 
 const guestNavItems = computed(() => {
   const items = []
@@ -176,9 +177,9 @@ const guestNavItems = computed(() => {
     items.push({
       key: 'tracker',
       label: '訂單追蹤',
-      to: hasOrder.value ? `/t/${currentTableCode.value}/order/${orderId.value}` : '',
-      disabled: !hasOrder.value,
-      hint: hasOrder.value ? '' : '尚無可追蹤訂單'
+      to: canTrackOrder.value ? `/t/${currentTableCode.value}/order/${orderId.value}` : '',
+      disabled: !canTrackOrder.value,
+      hint: canTrackOrder.value ? '' : '尚未送單，暫時無法追蹤'
     })
   }
 
@@ -189,9 +190,17 @@ const isMenuRoute = computed(() => route.path.endsWith('/menu'))
 const menuCategories = computed(() => menuStore?.state?.categories || [])
 const activeMenuCategoryId = computed(() => menuStore?.state?.activeCategoryId || 'all')
 const showCategoryRow = computed(() => isMenuRoute.value && menuCategories.value.length > 0)
+const demoQrImageUrl = computed(() => `/assets/QRC/${demoTableCode}.png`)
+const demoEntryPath = computed(() => `/t/${demoTableCode}`)
+const demoEntryUrl = computed(() => {
+  if (typeof window === 'undefined') return demoEntryPath.value
+  return `${window.location.origin}${demoEntryPath.value}`
+})
 
 const staffNavItems = computed(() => {
   if (!staffSession.value) return []
+
+  const plannedKeys = new Set(['dashboard', 'reports', 'audit-close'])
 
   return staffRouteRegistry
     .filter(item => hasRoute(item.path))
@@ -200,14 +209,23 @@ const staffNavItems = computed(() => {
     .map(item => ({
       key: item.key,
       label: item.label,
-      to: typeof item.to === 'function' ? item.to(currentOrderId.value) : item.to
+      to: typeof item.to === 'function' ? item.to(currentOrderId.value) : item.to,
+      disabled: plannedKeys.has(item.key)
     }))
 })
+
+const activeStaffNavItems = computed(() =>
+  staffNavItems.value.filter(item => !item.disabled)
+)
+
+const plannedStaffNavItems = computed(() =>
+  staffNavItems.value.filter(item => item.disabled)
+)
 
 const devGuestLinks = computed(() =>
   guestRouteRegistry
     .filter(item => hasRoute(item.path))
-    .filter(item => !item.path.includes(':orderId') || hasOrder.value)
+    .filter(item => !item.path.includes(':orderId') || canTrackOrder.value)
     .map(item => ({
       key: item.key,
       label: item.label,
@@ -252,10 +270,12 @@ watch(
 )
 
 watch(
-  [() => isStaffRoute.value, () => isStaffAuthenticated.value],
-  async ([staffRoute, authenticated]) => {
-    if (!staffRoute || !authenticated || clearSessionTableOptions.value.length > 0) return
-    await loadClearSessionTableOptions()
+  [() => route.path, () => canTrackOrder.value],
+  ([path, canTrack]) => {
+    if (isStaffRoute.value || canTrack) return
+    if (!/^\/t\/[^/]+\/order\/[^/]+$/.test(String(path || ''))) return
+    if (!hasRoute('/t/:tableCode/cart')) return
+    world.router().replace(`/t/${currentTableCode.value}/cart`)
   },
   { immediate: true }
 )
@@ -275,62 +295,6 @@ async function logout() {
   await staffAuthStore.logout()
   loginForm.account = 'manager'
   loginForm.password = 'manager123'
-}
-
-function resolveTableCodeForSessionClear() {
-  return String(clearSessionTableCode.value || currentTableCode.value || 'A01')
-    .trim()
-    .toUpperCase()
-}
-
-async function loadClearSessionTableOptions() {
-  if (world.apiMode() !== 'real') return
-
-  isLoadingClearSessionTables.value = true
-  try {
-    const result = await world.http().get('/api/dinecore/staff/tables', { tokenQuery: true })
-    if (!result?.ok || !Array.isArray(result.data)) return
-
-    const options = result.data
-      .map(table => String(table.code || '').trim().toUpperCase())
-      .filter(code => code.length > 0)
-
-    clearSessionTableOptions.value = options
-    if (options.length > 0 && !options.includes(clearSessionTableCode.value)) {
-      clearSessionTableCode.value = options[0]
-    }
-  } finally {
-    isLoadingClearSessionTables.value = false
-  }
-}
-
-async function clearSession() {
-  try {
-    if (world.apiMode() !== 'real') return
-
-    const tableCode = resolveTableCodeForSessionClear()
-    if (!tableCode) return
-
-    const result = await world.http().post('/api/dinecore/staff/sessions/clear', {
-      table_code: tableCode
-    }, { tokenQuery: true })
-
-    if (!result?.ok) {
-      const code = String(result?.data?.error?.code || result?.data?.code || 'UNKNOWN')
-      const message = String(result?.data?.error?.message || result?.data?.message || '')
-      throw new Error(message ? `${code}: ${message}` : code)
-    }
-
-    if (typeof window !== 'undefined') {
-      const matched = Number(result?.data?.matched ?? 0)
-      const updated = Number(result?.data?.updated ?? result?.data?.cleared ?? 0)
-      window.alert(`清空成功：桌號 ${tableCode}，命中 ${matched} 筆，更新 ${updated} 筆。`)
-    }
-  } catch (error) {
-    if (typeof window === 'undefined') return
-    const message = error instanceof Error ? error.message : 'UNKNOWN_ERROR'
-    window.alert(`清空失敗：${message}`)
-  }
 }
 
 async function revalidateEntryContextOnResume() {
@@ -402,25 +366,20 @@ function closeDevMenu() {
             span.staff-shell__meta(v-else) 尚未登入員工帳號
 
           .staff-shell__actions(v-if="staffSession")
-            select.staff-shell__table-select(
-              v-model="clearSessionTableCode"
-              :disabled="isLoadingClearSessionTables || clearSessionTableOptions.length === 0"
-              title="選擇要清空顧客 Session 的桌號"
-            )
-              option(
-                v-for="code in clearSessionTableOptions"
-                :key="code"
-                :value="code"
-              ) {{ code }}
-            button.staff-shell__clear-session(type="button" @click="clearSession()") 清空顧客 Session
             button.staff-shell__logout(type="button" @click="logout()") 登出
         nav.staff-shell__nav(v-if="staffNavItems.length > 0")
           RouterLink.staff-shell__nav-item(
-            v-for="item in staffNavItems"
+            v-for="item in activeStaffNavItems"
             :key="item.key"
             :to="item.to"
             :class="{ 'is-active': route.path.startsWith(item.to) }"
           ) {{ item.label }}
+          .staff-shell__planned(v-if="plannedStaffNavItems.length > 0")
+            span.staff-shell__planned-title 下個階段功能
+            span.staff-shell__nav-item.is-disabled(
+              v-for="item in plannedStaffNavItems"
+              :key="item.key"
+            ) {{ item.label }}
 
       main.staff-shell__body
         RouterView
@@ -460,7 +419,7 @@ function closeDevMenu() {
         .staff-auth-copy
           p.staff-auth-copy__eyebrow 員工登入
           h1.staff-auth-copy__title DineCore 後台登入
-          p.staff-auth-copy__lead 請使用員工帳號與密碼登入，登入後可進入櫃台、廚房與管理頁面。
+          p.staff-auth-copy__lead 這個專案是 QRC 點餐系統 DEMO 展示，請使用 manager 帳號登入後台操作流程。
         form.staff-auth-form(@submit.prevent="submitStaffLogin()")
           label.staff-auth-form__field
             span.staff-auth-form__label 帳號
@@ -484,11 +443,15 @@ function closeDevMenu() {
           button.staff-auth-form__submit(type="submit" :disabled="authState.isSubmitting")
             | {{ authState.isSubmitting ? '登入中...' : '登入' }}
           .staff-auth-form__hint
-            span 測試帳號如下：
+            span 測試帳號：
             code manager / manager123
-            code deputy / deputy123
-            code counter / counter123
-            code kitchen / kitchen123
+      .staff-demo-qr.staff-demo-qr--floating
+        h2.staff-demo-qr__title 桌號 {{ demoTableCode }} 點餐入口
+        img.staff-demo-qr__image(
+          :src="demoQrImageUrl"
+          :alt="`桌號 ${demoTableCode} QR`"
+        )
+        a.staff-demo-qr__link(:href="demoEntryPath" target="_blank" rel="noopener noreferrer") {{ demoEntryUrl }}
 
   template(v-else)
     .guest-shell
@@ -522,8 +485,7 @@ function closeDevMenu() {
         RouterView
 
   button.dev-menu-toggle(type="button" @click="toggleDevMenu()")
-    span.dev-menu-toggle__title 開發捷徑
-    small.dev-menu-toggle__hint 快速切換測試路由
+    span.dev-menu-toggle__title 切換
   section.dev-menu(v-if="devMenuOpen")
     .dev-menu__backdrop(@click="closeDevMenu()")
     .dev-menu__panel
@@ -595,6 +557,53 @@ function closeDevMenu() {
 .staff-auth-copy
   display: grid
   gap: 8px
+
+.staff-demo-qr
+  display: grid
+  gap: 10px
+  padding: 16px
+  border-radius: 20px
+  background: rgba(255, 255, 255, 0.94)
+  border: 1px dashed rgba(109, 180, 177, 0.5)
+  box-shadow: 0 14px 32px rgba(40, 88, 92, 0.16)
+
+.staff-demo-qr--floating
+  position: fixed
+  right: 20px
+  top: 24px
+  width: min(300px, calc(100vw - 40px))
+  z-index: 50
+
+.staff-demo-qr__eyebrow
+  margin: 0
+  color: #3f7e7a
+  font-size: 12px
+  font-weight: 700
+  letter-spacing: 0.08em
+  text-transform: uppercase
+
+.staff-demo-qr__title
+  margin: 0
+  font-size: 18px
+  color: #224246
+
+.staff-demo-qr__copy
+  margin: 0
+  color: #4d6f72
+  line-height: 1.6
+
+.staff-demo-qr__image
+  width: min(220px, 100%)
+  border-radius: 16px
+  background: #fff
+  border: 1px solid rgba(109, 180, 177, 0.22)
+  padding: 8px
+
+.staff-demo-qr__link
+  color: #1e6663
+  font-weight: 700
+  word-break: break-all
+  text-decoration: none
 
 .staff-auth-copy__eyebrow
   margin: 0
@@ -779,8 +788,7 @@ function closeDevMenu() {
   display: inline-flex
   gap: 8px
 
-.staff-shell__logout,
-.staff-shell__clear-session
+.staff-shell__logout
   border: 1px solid rgba(21, 36, 44, 0.12)
   border-radius: 999px
   padding: 7px 11px
@@ -792,24 +800,7 @@ function closeDevMenu() {
   cursor: pointer
   box-shadow: 0 12px 24px rgba(21, 36, 44, 0.12)
 
-.staff-shell__table-select
-  border: 1px solid rgba(21, 36, 44, 0.12)
-  border-radius: 999px
-  padding: 6px 10px
-  background: rgba(255, 255, 255, 0.94)
-  color: #1c3138
-  font-size: 12px
-  font-weight: 700
-  line-height: 1
-  cursor: pointer
-  box-shadow: 0 12px 24px rgba(21, 36, 44, 0.12)
-
-.staff-shell__table-select:disabled
-  opacity: 0.6
-  cursor: not-allowed
-
-.staff-shell__logout:hover,
-.staff-shell__clear-session:hover
+.staff-shell__logout:hover
   background: #ffffff
   color: #fff
   color: #15242c
@@ -875,6 +866,30 @@ function closeDevMenu() {
   background: rgba(124, 214, 207, 0.18)
   color: #f5fbfb
 
+.staff-shell__planned
+  margin-top: 10px
+  display: grid
+  gap: 8px
+
+.staff-shell__planned-title
+  color: rgba(233, 242, 245, 0.52)
+  font-size: 11px
+  font-weight: 700
+  letter-spacing: 0.08em
+  text-transform: uppercase
+
+.staff-shell__nav-item.is-disabled
+  width: 100%
+  min-height: 50px
+  padding: 12px 14px
+  border-radius: 0
+  justify-content: flex-start
+  background: rgba(255, 255, 255, 0.04)
+  color: rgba(233, 242, 245, 0.38)
+  border: 0
+  border-left: 3px solid rgba(233, 242, 245, 0.18)
+  cursor: not-allowed
+
 .guest-shell__nav-item.is-disabled
   opacity: 0.52
   cursor: default
@@ -926,24 +941,27 @@ function closeDevMenu() {
 
 .dev-menu-toggle
   position: fixed
-  right: 22px
-  bottom: 22px
+  right: 14px
+  bottom: 14px
   z-index: 40
   border: 0
-  border-radius: 18px
-  padding: 12px 14px
+  border-radius: 999px
+  width: 56px
+  height: 56px
   background: #17383f
   color: #fff
   display: grid
-  gap: 2px
-  box-shadow: 0 18px 36px rgba(23, 56, 63, 0.24)
+  place-items: center
+  box-shadow: 0 10px 20px rgba(23, 56, 63, 0.22)
   cursor: pointer
 
 .dev-menu-toggle__title
   font-weight: 700
+  font-size: 13px
 
 .dev-menu-toggle__hint
   opacity: 0.72
+  display: none
 
 .dev-menu
   position: fixed
@@ -1034,6 +1052,11 @@ function closeDevMenu() {
     top: 10px
     right: 10px
 
+  .staff-demo-qr--floating
+    position: static
+    width: min(520px, 100%)
+    margin-top: 12px
+
 @media (max-width: 768px)
   .staff-shell
     grid-template-columns: 1fr
@@ -1069,8 +1092,10 @@ function closeDevMenu() {
     width: 100vw
 
   .dev-menu-toggle
-    right: 16px
-    bottom: 16px
+    right: 12px
+    bottom: 12px
+    width: 50px
+    height: 50px
 
 .guest-shell__category-row
   margin: 0

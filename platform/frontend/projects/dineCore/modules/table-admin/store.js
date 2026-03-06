@@ -1,6 +1,7 @@
 import world from '@/world.js'
 import {
   createTableAdminTable,
+  clearTableAdminGuestSessions,
   deleteTableAdminTable,
   generateTableAdminQr,
   loadTableAdminTables,
@@ -53,6 +54,9 @@ export function createTableAdminStore() {
       },
       async generateTableQr(_store, payload = {}) {
         return generateTableAdminQr(payload)
+      },
+      async clearGuestSessions(_store, payload = {}) {
+        return clearTableAdminGuestSessions(payload)
       }
     }
   })

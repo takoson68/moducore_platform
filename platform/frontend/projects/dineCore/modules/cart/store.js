@@ -112,7 +112,7 @@ export function createCartStore() {
           typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
         const current = store.get()
         try {
-          const payload = normalizePayload(
+        const payload = normalizePayload(
             await loadCartPayload(tableCode, orderingSessionToken)
           )
         const batchChanged =
@@ -123,9 +123,7 @@ export function createCartStore() {
         const orderingCartId = availableCartIds.includes(payload.orderingCartId)
           ? payload.orderingCartId
           : payload.carts[0]?.id || ''
-        const viewingCartId = availableCartIds.includes(current.viewingCartId)
-          ? (batchChanged ? orderingCartId : current.viewingCartId)
-          : orderingCartId
+        const viewingCartId = orderingCartId
 
         store.set({
           ...current,

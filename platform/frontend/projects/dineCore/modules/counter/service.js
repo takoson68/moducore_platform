@@ -1,5 +1,17 @@
 import { staffApiRequest } from '@project/api/staffApiRequest.js'
 
+function normalizePaymentStatus(value) {
+  const status = String(value || '').trim().toLowerCase()
+  return status === 'paid' ? 'paid' : 'unpaid'
+}
+
+function normalizeOrderRow(order) {
+  return {
+    ...order,
+    paymentStatus: normalizePaymentStatus(order?.paymentStatus)
+  }
+}
+
 function translateCounterError(error) {
   const code = error instanceof Error ? error.message : String(error || '')
 
@@ -52,7 +64,7 @@ export async function loadCounterOrders(filters = {}) {
           String(order.id || '').trim() !== '' &&
           String(order.orderNo || '').trim() !== '' &&
           String(order.tableCode || '').trim() !== ''
-        )
+        ).map(normalizeOrderRow)
       : []
   } catch (error) {
     throw new Error(translateCounterError(error))
@@ -61,12 +73,23 @@ export async function loadCounterOrders(filters = {}) {
 
 export async function loadCounterOrderDetail(orderId) {
   try {
-    return await staffApiRequest('counter/order-detail', {
+    const detail = await staffApiRequest('counter/order-detail', {
       path: '/api/dinecore/staff/counter/order-detail',
       method: 'GET',
       query: { order_id: orderId },
       mockPayload: { orderId }
     })
+    if (!detail || typeof detail !== 'object') {
+      return detail
+    }
+
+    return {
+      ...detail,
+      order: {
+        ...(detail.order || {}),
+        paymentStatus: normalizePaymentStatus(detail?.order?.paymentStatus)
+      }
+    }
   } catch (error) {
     throw new Error(translateCounterError(error))
   }

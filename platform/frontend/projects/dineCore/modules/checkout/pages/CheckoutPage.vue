@@ -88,6 +88,19 @@ async function submitOrder() {
     tableCode: tableCode.value,
     orderingSessionToken: entryState.value.orderingSessionToken
   })
+
+  // Keep top nav state in sync immediately after submit, no hard refresh required.
+  if (entryStore) {
+    entryStore.setTableContext({
+      tableCode: tableCode.value,
+      orderId: String(result.orderId || entryState.value.orderId || ''),
+      orderStatus: 'pending',
+      currentBatchId: String(result.nextBatchId || ''),
+      currentBatchNo: Number(result.nextBatchNo || 0),
+      currentBatchStatus: 'draft'
+    })
+  }
+
   router.push({
     path: `/t/${tableCode.value}/checkout/success/${result.orderId}`,
     query: {

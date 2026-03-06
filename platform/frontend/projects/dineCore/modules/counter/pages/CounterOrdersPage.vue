@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import world from '@/world.js'
@@ -8,10 +8,10 @@ const state = computed(() => counterStore.state)
 
 const statusLabels = {
   draft: '草稿',
-  pending: '待送出',
+  pending: '待處理',
   submitted: '已送出',
   preparing: '製作中',
-  ready: '可取餐',
+  ready: '可出餐',
   picked_up: '已取餐',
   cancelled: '已取消',
   unpaid: '未付款',
@@ -73,7 +73,7 @@ async function markPreparing(orderId) {
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'preparing',
-    note: '櫃台已確認訂單並通知開始製作'
+    note: '櫃台已更新為製作中'
   })
 }
 
@@ -81,7 +81,7 @@ async function markReady(orderId) {
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'ready',
-    note: '櫃台已確認本批次可取餐'
+    note: '櫃台已更新為可出餐'
   })
 }
 
@@ -96,9 +96,9 @@ async function markPaid(orderId) {
 <template lang="pug">
 .desk-page
   section.panel-card
-    p.eyebrow 櫃台作業
-    h2 櫃台訂單總覽
-    p.lead 查看目前已送出的訂單，快速確認桌號、共桌人數、最新批次狀態與付款狀態。
+    p.eyebrow 櫃台總覽
+    h2 訂單清單（依開單身分）
+    p.lead 每筆訂單代表一位顧客的開單身份，同桌不同顧客會分開顯示，方便追加與收款管理。
 
   section.error-card(v-if="state.error")
     p {{ state.error }}
@@ -126,10 +126,10 @@ async function markPaid(orderId) {
         @change="counterStore.setFilters({ orderStatus: $event.target.value })"
       )
         option(value="all") 全部
-        option(value="pending") 待送出
+        option(value="pending") 待處理
         option(value="submitted") 已送出
         option(value="preparing") 製作中
-        option(value="ready") 可取餐
+        option(value="ready") 可出餐
         option(value="picked_up") 已取餐
         option(value="cancelled") 已取消
     label.field-card
@@ -149,23 +149,23 @@ async function markPaid(orderId) {
         span.order-card__badge(:class="`is-${order.orderStatus}`") {{ statusLabels[order.orderStatus] || order.orderStatus }}
       .order-card__meta
         span {{ `桌號 ${order.tableCode}` }}
-        span {{ `${order.guestCount} 位顧客` }}
+        span {{ `開單 ${order.guestLabel || '未綁定'}` }}
       .order-card__meta
         span {{ `最新批次：第 ${order.latestBatchNo || 0} 批 / ${statusLabels[order.latestBatchStatus] || order.latestBatchStatus || '無資料'}` }}
-        span {{ `批次數 ${order.batchCount || 0}` }}
+        span {{ order.canAppend ? `可追加（草稿第 ${order.draftBatchNo || 0} 批）` : '不可追加' }}
       .order-card__meta
-        span {{ `付款：${statusLabels[order.paymentStatus] || order.paymentStatus}` }}
+        span {{ `付款狀態：${statusLabels[order.paymentStatus] || order.paymentStatus}` }}
         strong {{ `NT$ ${order.totalAmount}` }}
-      p.order-card__time {{ order.createdAt }}
+      p.order-card__time {{ `建立 ${order.createdAt} / 更新 ${order.updatedAt || order.createdAt}` }}
       .order-card__actions
         button.quick-action(type="button" :disabled="order.orderStatus === 'preparing'" @click="markPreparing(order.id)") 標記製作中
-        button.quick-action(type="button" :disabled="order.orderStatus === 'ready'" @click="markReady(order.id)") 標記可取餐
+        button.quick-action(type="button" :disabled="order.orderStatus === 'ready'" @click="markReady(order.id)") 標記可出餐
         button.quick-action(type="button" :disabled="order.paymentStatus === 'paid'" @click="markPaid(order.id)") 標記已付款
         RouterLink.detail-link(:to="`/staff/counter/orders/${order.id}`") 查看明細
 
   section.empty-card(v-else)
-    p.empty-card__title 目前沒有可顯示的訂單
-    p.empty-card__text 只有已送出的有效訂單會出現在這裡，空草稿或未完成資料不會列入櫃台總覽。
+    p.empty-card__title 目前沒有符合條件的訂單
+    p.empty-card__text 請調整篩選條件，或等待顧客送出訂單。
 </template>
 
 <style lang="sass">

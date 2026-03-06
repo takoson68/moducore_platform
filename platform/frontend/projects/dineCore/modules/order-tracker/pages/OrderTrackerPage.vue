@@ -1,7 +1,8 @@
-<script setup>
+﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
+import { getGuestOrderingSessionToken, setGuestOrderingSessionToken } from '@project/api/guestOrderingSession.js'
 
 const route = useRoute()
 const trackerStore = world.store('dineCoreOrderTrackerStore')
@@ -9,25 +10,54 @@ const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreE
 
 const state = computed(() => trackerStore.state)
 const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
+
 const statusLabels = {
   draft: '草稿',
-  pending: '待處理',
+  pending: '待製作',
   submitted: '已送出',
   preparing: '製作中',
   ready: '可取餐',
   picked_up: '已取餐',
   cancelled: '已取消'
 }
+
 const POLL_INTERVAL_MS = 5000
 let refreshTimer = null
 
+function formatCurrency(value) {
+  return `$${Number(value || 0)}`
+}
+
+function formatDateTime(input) {
+  if (!input) return '--'
+  const parsed = new Date(input)
+  if (Number.isNaN(parsed.getTime())) return String(input)
+  return new Intl.DateTimeFormat('zh-TW', {
+    hour12: false,
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(parsed)
+}
+
 async function refreshTracker() {
+  const tableCode = String(route.params.tableCode || '')
   const orderId = String(route.params.orderId || '')
-  if (!orderId) return
+  if (!tableCode || !orderId) return
+
+  const queryToken = String(route.query.orderingSessionToken || route.query.ordering_session_token || '')
+  const storedToken = getGuestOrderingSessionToken(tableCode)
+  const effectiveToken = String(entryState.value.orderingSessionToken || queryToken || storedToken || '')
+
+  if (effectiveToken) {
+    setGuestOrderingSessionToken(tableCode, effectiveToken)
+  }
 
   await trackerStore.load({
+    tableCode,
     orderId,
-    orderingSessionToken: entryState.value.orderingSessionToken
+    orderingSessionToken: effectiveToken
   })
 }
 
@@ -60,7 +90,12 @@ function handleVisibilityChange() {
 }
 
 watch(
-  [() => route.params.orderId, () => entryState.value.orderingSessionToken],
+  [
+    () => route.params.orderId,
+    () => route.query.orderingSessionToken,
+    () => route.query.ordering_session_token,
+    () => entryState.value.orderingSessionToken
+  ],
   async () => {
     await refreshTracker()
     startPolling()
@@ -84,9 +119,11 @@ onBeforeUnmount(() => {
 const submittedBatches = computed(() =>
   (Array.isArray(state.value.batches) ? state.value.batches : []).filter(batch => batch.status !== 'draft')
 )
+
 const latestSubmittedBatch = computed(() =>
   submittedBatches.value.length > 0 ? submittedBatches.value[submittedBatches.value.length - 1] : null
 )
+
 const canContinueOrdering = computed(() =>
   (Array.isArray(state.value.batches) ? state.value.batches : []).some(batch => batch.status === 'draft')
 )
@@ -99,46 +136,46 @@ const canContinueOrdering = computed(() =>
     h2.order-card__title {{ state.orderNo || route.params.orderId || '訂單' }}
     p.order-card__meta {{ `目前狀態：${statusLabels[state.status] || state.status}` }}
     p.order-card__meta {{ `預估等待：${state.estimatedWaitMinutes ?? '--'} 分鐘` }}
-    p.order-card__meta(v-if="latestSubmittedBatch") {{ `最近送出：第 ${latestSubmittedBatch.batchNo} 批，共 ${latestSubmittedBatch.itemCount} 項。` }}
-    p.order-card__meta(v-if="canContinueOrdering") 系統已保留新的草稿批次，還可以繼續加點。
+    p.order-card__meta(v-if="latestSubmittedBatch") {{ `最近送出：第 ${latestSubmittedBatch.batchNo} 批，共 ${latestSubmittedBatch.itemCount} 項` }}
+    p.order-card__meta(v-if="canContinueOrdering") 你可以回到菜單繼續加點，會進入下一個草稿批次。
 
   section.notice-card.is-error(v-if="state.errorMessage")
-    h3.notice-card__title 發生問題
+    h3.notice-card__title 載入失敗
     p.notice-card__copy {{ state.errorMessage }}
 
   section.batch-card
     h3.batch-card__title 批次進度
-    p.batch-card__intro(v-if="submittedBatches.length > 0") {{ `目前共有 ${submittedBatches.length} 批已送出，店家會依各批次分開處理。` }}
-    p.batch-card__intro(v-else) 送單後，這裡會顯示各批次的處理進度。
+    p.batch-card__intro(v-if="submittedBatches.length > 0") {{ `目前已送出 ${submittedBatches.length} 批，以下可查看每批內容。` }}
+    p.batch-card__intro(v-else) 目前尚未有已送出批次。
     .batch-list
       article.batch-item(v-for="batch in state.batches" :key="batch.id")
         .batch-item__head
           .batch-item__title-block
             strong.batch-item__title {{ `第 ${batch.batchNo} 批` }}
             span.batch-item__meta {{ statusLabels[batch.status] || batch.status }}
-          strong.batch-item__sum {{ `$${batch.subtotal}` }}
-        p.batch-item__time(v-if="batch.submittedAt") {{ `送出時間：${batch.submittedAt}` }}
+          strong.batch-item__sum {{ formatCurrency(batch.subtotal) }}
+        p.batch-item__time(v-if="batch.submittedAt") {{ `送出時間：${formatDateTime(batch.submittedAt)}` }}
         p.batch-item__time(v-else) 尚未送出
-        p.batch-item__count {{ `${batch.itemCount} 項品項` }}
-        p.batch-item__draft(v-if="batch.status === 'draft'") 這是目前可繼續加點的草稿批次。
+        p.batch-item__count {{ `${batch.itemCount} 項` }}
+        p.batch-item__draft(v-if="batch.status === 'draft'") 這是目前可編輯的草稿批次。
         .batch-item__persons(v-if="batch.persons.length > 0")
           article.batch-person(v-for="person in batch.persons" :key="`${batch.id}-${person.cartId}`")
             .batch-person__head
               strong {{ person.guestLabel }}
-              span {{ `$${person.subtotal}` }}
+              span {{ formatCurrency(person.subtotal) }}
             ul.batch-person__items
               li(v-for="item in person.items" :key="`${batch.id}-${item.id}`") {{ `${item.title} x${item.quantity}` }}
 
   section.person-card
-    h3.person-card__title 全單彙總
-    p.person-card__intro 這裡會保留整張桌單的所有顧客與品項，方便回頭確認誰點了什麼。
+    h3.person-card__title 本單人員明細
+    p.person-card__intro 每位顧客在這張訂單中的品項與金額如下。
     .person-list
       article.person-panel(v-for="person in state.persons" :key="person.cartId")
         .person-panel__head
           .person-panel__title-block
             strong.person-panel__title {{ person.guestLabel }}
-            span.person-panel__meta {{ `小計 $${person.subtotal}` }}
-          strong.person-panel__total {{ `$${person.total}` }}
+            span.person-panel__meta {{ `小計 ${formatCurrency(person.subtotal)}` }}
+          strong.person-panel__total {{ formatCurrency(person.total) }}
         .person-panel__items
           article.person-item(v-for="item in person.items" :key="item.id")
             .person-item__head
@@ -149,19 +186,19 @@ const canContinueOrdering = computed(() =>
               span.person-item__option(v-for="option in item.options" :key="option") {{ option }}
 
   section.timeline-card
-    h3.timeline-card__title 時間線
+    h3.timeline-card__title 狀態時間軸
     .timeline-item(v-for="item in state.timeline" :key="`${item.status}-${item.changed_at}`")
       span.timeline-item__dot
-      p.timeline-item__text {{ `${item.changed_at} | ${item.note}` }}
+      p.timeline-item__text {{ `${formatDateTime(item.changed_at)} | ${item.note}` }}
 
   section.history-card
-    h3.history-card__title 最近同桌訂單
+    h3.history-card__title 同桌近期訂單
     .history-card__list
       article.history-card__item(v-for="(item, index) in state.history" :key="item.id")
         .history-card__badge {{ index + 1 }}
         .history-card__body
           strong {{ item.orderNo }}
-          p {{ `建立時間：${item.createdAt}` }}
+          p {{ `建立時間：${formatDateTime(item.createdAt)}` }}
           span {{ `NT$ ${item.totalAmount}` }}
 </template>
 

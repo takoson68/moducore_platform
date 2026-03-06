@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, reactive, ref, watchEffect } from 'vue'
 import world from '@/world.js'
 
@@ -8,6 +8,8 @@ const state = computed(() => tableAdminStore.state)
 const copiedTableCode = ref('')
 const qrImageUrlByTableCode = reactive({})
 const isGeneratingQrByTableCode = reactive({})
+const isClearingGuestSessionsByTableCode = reactive({})
+
 const createForm = reactive({
   code: '',
   name: '',
@@ -53,9 +55,22 @@ async function updateTable(table, patch) {
 }
 
 async function deleteTable(table) {
+  const tableCode = String(table?.code || '').trim().toUpperCase()
+  if (!tableCode) return
+
+  const confirmed = window.confirm(
+    `確定要刪除桌位 ${tableCode} 嗎？\n按下「取消」可保留桌位，按下「確定」才會刪除。`
+  )
+  if (!confirmed) {
+    window.alert(`已取消刪除桌位 ${tableCode}`)
+    return
+  }
+
   await tableAdminStore.deleteTable({
-    code: table.code
+    code: tableCode
   })
+
+  window.alert(`已刪除桌位 ${tableCode}`)
 }
 
 async function moveTable(table, direction) {
@@ -67,6 +82,10 @@ async function moveTable(table, direction) {
 
 function getEntryPath(tableCode) {
   return `/t/${tableCode}`
+}
+
+function toTableCode(value) {
+  return String(value || '').trim().toUpperCase()
 }
 
 function getEntryUrl(tableCode) {
@@ -119,7 +138,7 @@ async function copyEntryUrl(tableCode) {
 }
 
 async function generateQrImage(table) {
-  const tableCode = String(table.code || '').trim().toUpperCase()
+  const tableCode = toTableCode(table?.code)
   if (!tableCode) return
 
   isGeneratingQrByTableCode[tableCode] = true
@@ -128,13 +147,16 @@ async function generateQrImage(table) {
       tableCode,
       entryBaseUrl: typeof window !== 'undefined' ? window.location.origin : ''
     })
+
     const publicUrl = normalizeQrUrl(
       payload?.publicUrl || payload?.publicPath || `/assets/QRC/${tableCode}.png`,
       payload?.entryUrl || ''
     )
+
     qrImageUrlByTableCode[tableCode] = publicUrl.includes('?')
       ? `${publicUrl}&v=${Date.now()}`
       : `${publicUrl}?v=${Date.now()}`
+
     window.alert(`已產生 ${tableCode} 的 QR 圖片`)
   } catch (error) {
     const message = String(error?.message || 'UNKNOWN_ERROR')
@@ -164,6 +186,33 @@ function downloadQrImage(table) {
   link.download = `dinecore-table-${tableCode}.png`
   link.click()
 }
+
+async function clearGuestSessions(table) {
+  const tableCode = toTableCode(table?.code)
+  if (!tableCode) {
+    window.alert('桌號無效，無法清空 Session。')
+    return
+  }
+
+  isClearingGuestSessionsByTableCode[tableCode] = true
+  try {
+    const result = await tableAdminStore.clearGuestSessions({ tableCode })
+    const matched = Number(result?.matched ?? 0)
+    const updated = Number(result?.updated ?? result?.cleared ?? 0)
+    window.alert(`清空成功：桌號 ${tableCode}，命中 ${matched} 筆，更新 ${updated} 筆。`)
+  } catch (error) {
+    const message = String(error?.message || 'UNKNOWN_ERROR')
+
+    if (message === 'REAL_API_REQUIRED') {
+      window.alert('目前為 mock 模式，請切換 real API 後再清空 Session。')
+      return
+    }
+
+    window.alert(`清空失敗：${message}`)
+  } finally {
+    isClearingGuestSessionsByTableCode[tableCode] = false
+  }
+}
 </script>
 
 <template lang="pug">
@@ -173,9 +222,7 @@ function downloadQrImage(table) {
       div
         p.eyebrow 桌位管理
         h2.table-admin-card__title 桌號與入桌連結管理
-        p.table-admin-card__lead
-          | 可設定桌位資料、複製入桌連結，並產生可公開存取的 QR 圖片檔。
-
+        p.table-admin-card__lead 可新增桌位資料、複製入桌連結，並產生對外可掃碼的 QR 圖片。
     form.create-panel(@submit.prevent="createTable()")
       label.form-field
         span.form-field__label 桌號代碼
@@ -264,6 +311,11 @@ function downloadQrImage(table) {
               type="button"
               @click="updateTable(table, { orderingEnabled: !table.orderingEnabled })"
             ) {{ table.orderingEnabled ? '暫停點餐' : '恢復點餐' }}
+            button.action-chip.is-danger(
+              type="button"
+              @click="clearGuestSessions(table)"
+              :disabled="isClearingGuestSessionsByTableCode[toTableCode(table.code)]"
+            ) {{ isClearingGuestSessionsByTableCode[toTableCode(table.code)] ? '清空中...' : '清空顧客 Session' }}
             button.action-chip.is-danger(type="button" @click="deleteTable(table)") 刪除桌位
 </template>
 
@@ -426,27 +478,25 @@ function downloadQrImage(table) {
   color: #21393d
 
 .entry-card__path
-  width: fit-content
   padding: 4px 8px
-  border-radius: 999px
-  background: rgba(121, 214, 207, 0.14)
-  color: #486c70
+  border-radius: 8px
+  background: rgba(121, 214, 207, 0.2)
+  color: #315a5d
 
 .entry-card__url
   margin: 0
   color: #6e8083
-  line-height: 1.5
   word-break: break-all
 
 .entry-card__actions
   display: flex
-  align-items: center
-  gap: 10px
   flex-wrap: wrap
+  gap: 8px
+  align-items: center
 
 .entry-card__copied
   color: #2d6f6d
-  font-size: 13px
+  font-size: 12px
   font-weight: 700
 
 .table-row__controls
@@ -458,18 +508,18 @@ function downloadQrImage(table) {
   gap: 6px
 
 .inline-field__label
-  color: #51686b
+  color: #6e8083
   font-size: 12px
   font-weight: 700
 
 .inline-field__input
   width: 100%
-  border: 1px solid rgba(109, 180, 177, 0.25)
-  border-radius: 12px
-  padding: 10px 12px
+  border: 1px solid rgba(109, 180, 177, 0.22)
+  border-radius: 10px
+  padding: 8px 10px
   font: inherit
-  color: #243a3e
-  background: #f8fcfb
+  color: #264145
+  background: #fff
 
 .table-row__actions
   display: grid
@@ -479,49 +529,47 @@ function downloadQrImage(table) {
 .table-row__status-actions
   display: flex
   flex-wrap: wrap
-  gap: 10px
-  justify-content: end
+  gap: 8px
 
 .action-chip
   border: 0
   border-radius: 999px
-  padding: 10px 14px
-  background: #17383f
-  color: #fff
+  padding: 8px 12px
+  background: rgba(121, 214, 207, 0.16)
+  color: #2d6f6d
   font-weight: 700
   cursor: pointer
 
 .action-chip.is-muted
-  background: rgba(121, 214, 207, 0.14)
-  color: #2d6f6d
+  background: rgba(140, 90, 31, 0.1)
+  color: #8c5a1f
 
 .action-chip.is-danger
-  background: rgba(214, 87, 74, 0.14)
-  color: #a63d31
+  background: rgba(214, 123, 108, 0.18)
+  color: #8f3a2f
 
 .action-chip:disabled
-  opacity: 0.45
+  opacity: 0.55
   cursor: not-allowed
 
-@media (max-width: 1080px)
-  .create-panel
-    grid-template-columns: repeat(2, minmax(0, 1fr))
-
+@media (max-width: 1100px)
   .table-row
     grid-template-columns: 1fr
 
-  .table-row__sort-actions,
-  .table-row__status-actions
-    justify-content: start
+@media (max-width: 860px)
+  .create-panel
+    grid-template-columns: repeat(2, minmax(0, 1fr))
 
 @media (max-width: 640px)
   .create-panel
     grid-template-columns: 1fr
 
-  .create-panel__actions
-    justify-content: start
-
   .entry-card__preview
     grid-template-columns: 1fr
-</style>
 
+  .entry-card__qr,
+  .entry-card__qr-empty
+    width: 100%
+    height: auto
+    min-height: 124px
+</style>
