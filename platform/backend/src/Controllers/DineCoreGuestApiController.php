@@ -734,7 +734,7 @@ final class DineCoreGuestApiController
     {
         $stmt = db()->prepare(
             'UPDATE dinecore_table_sessions
-             SET order_id = NULL, status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
+             SET status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
              WHERE id = ?'
         );
         $stmt->execute(['closed', '[]', $tableSessionId]);

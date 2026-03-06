@@ -612,21 +612,35 @@ final class DineCoreStaffApiController
             return;
         }
 
-        $tableCode = trim((string)($request->body['tableCode'] ?? $request->body['table_code'] ?? $request->query['table_code'] ?? ''));
+        $tableCode = strtoupper(trim((string)($request->body['tableCode'] ?? $request->body['table_code'] ?? $request->query['table_code'] ?? '')));
         if ($tableCode === '') {
             $response->validation('TABLE_CODE_REQUIRED');
             return;
         }
 
         try {
+            $countStmt = db()->prepare(
+                'SELECT COUNT(*) AS total
+                 FROM dinecore_table_sessions
+                 WHERE UPPER(TRIM(table_code)) = ?'
+            );
+            $countStmt->execute([$tableCode]);
+            $matched = (int)($countStmt->fetch()['total'] ?? 0);
+            if ($matched <= 0) {
+                $response->notFound('TABLE_SESSION_NOT_FOUND');
+                return;
+            }
+
             $closeTableSession = db()->prepare(
                 'UPDATE dinecore_table_sessions
-                 SET order_id = NULL, status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
-                 WHERE table_code = ?'
+                 SET status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
+                 WHERE UPPER(TRIM(table_code)) = ?'
             );
             $closeTableSession->execute(['closed', '[]', $tableCode]);
 
             $response->ok([
+                'matched' => $matched,
+                'updated' => (int)$closeTableSession->rowCount(),
                 'cleared' => (int)$closeTableSession->rowCount(),
                 'scope' => 'table',
                 'tableCode' => $tableCode,
@@ -641,7 +655,7 @@ final class DineCoreStaffApiController
     {
         $stmt = db()->prepare(
             'UPDATE dinecore_table_sessions
-             SET order_id = NULL, status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
+             SET status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
              WHERE order_id = ?'
         );
         $stmt->execute(['closed', '[]', $orderId]);

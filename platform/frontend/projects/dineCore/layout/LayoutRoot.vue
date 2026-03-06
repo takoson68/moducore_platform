@@ -23,6 +23,7 @@ const cartStore = safeStore('dineCoreCartStore')
 const entryStore = safeStore('dineCoreEntryStore')
 const staffAuthStore = safeStore('dineCoreStaffAuthStore')
 const menuStore = safeStore('dineCoreMenuStore')
+const tokenStore = safeStore('token')
 
 const loginForm = reactive({
   account: 'manager',
@@ -30,13 +31,13 @@ const loginForm = reactive({
 })
 
 const guestRouteRegistry = [
-  { key: 'entry', label: '入口', path: '/t/:tableCode', to: tableCode => `/t/${tableCode}` },
-  { key: 'menu', label: '菜單', path: '/t/:tableCode/menu', to: tableCode => `/t/${tableCode}/menu` },
-  { key: 'cart', label: '購物車', path: '/t/:tableCode/cart', to: tableCode => `/t/${tableCode}/cart` },
-  { key: 'confirm', label: '確認訂單', path: '/t/:tableCode/checkout', to: tableCode => `/t/${tableCode}/checkout` },
+  { key: 'entry', label: '?�口', path: '/t/:tableCode', to: tableCode => `/t/${tableCode}` },
+  { key: 'menu', label: '?�單', path: '/t/:tableCode/menu', to: tableCode => `/t/${tableCode}/menu` },
+  { key: 'cart', label: '購物�?, path: '/t/:tableCode/cart', to: tableCode => `/t/${tableCode}/cart` },
+  { key: 'confirm', label: '確�?訂單', path: '/t/:tableCode/checkout', to: tableCode => `/t/${tableCode}/checkout` },
   {
     key: 'success',
-    label: '送單成功',
+    label: '?�單?��?',
     path: '/t/:tableCode/checkout/success/:orderId',
     to: (tableCode, orderId) => `/t/${tableCode}/checkout/success/${orderId}`
   },
@@ -48,7 +49,7 @@ const guestRouteRegistry = [
   },
   {
     key: 'unavailable',
-    label: '暫停接單',
+    label: '?��??�單',
     path: '/t/:tableCode/unavailable',
     to: tableCode => `/t/${tableCode}/unavailable`
   }
@@ -64,49 +65,49 @@ const staffRouteRegistry = [
   },
   {
     key: 'counter-detail',
-    label: '櫃台明細',
+    label: '櫃台?�細',
     path: '/staff/counter/orders/:orderId',
     to: orderId => `/staff/counter/orders/${orderId}`,
     roles: ['counter', 'deputy_manager', 'manager']
   },
   {
     key: 'kitchen',
-    label: '廚房看板',
+    label: '廚房?�板',
     path: '/staff/kitchen/board',
     to: '/staff/kitchen/board',
     roles: ['kitchen', 'deputy_manager', 'manager']
   },
   {
     key: 'dashboard',
-    label: '營運總覽',
+    label: '?��?總覽',
     path: '/staff/manager/dashboard',
     to: '/staff/manager/dashboard',
     roles: ['deputy_manager', 'manager']
   },
   {
     key: 'reports',
-    label: '營運報表',
+    label: '?��??�表',
     path: '/staff/manager/reports',
     to: '/staff/manager/reports',
     roles: ['deputy_manager', 'manager']
   },
   {
     key: 'audit-close',
-    label: '關帳與稽核',
+    label: '?�帳?�稽??,
     path: '/staff/manager/audit-close',
     to: '/staff/manager/audit-close',
     roles: ['manager']
   },
   {
     key: 'menu-admin',
-    label: '商品管理',
+    label: '?��?管�?',
     path: '/staff/manager/menu-items',
     to: '/staff/manager/menu-items',
     roles: ['deputy_manager', 'manager']
   },
   {
     key: 'table-admin',
-    label: '桌號管理',
+    label: '桌�?管�?',
     path: '/staff/manager/tables',
     to: '/staff/manager/tables',
     roles: ['counter', 'deputy_manager', 'manager']
@@ -133,6 +134,11 @@ const authState = computed(() => staffAuthStore?.state || {
 const staffSession = computed(() => authState.value.session || null)
 const isStaffAuthenticated = computed(() => Boolean(staffSession.value))
 const currentStaffRole = computed(() => String(staffSession.value?.role || ''))
+const authToken = computed(() => String(tokenStore?.getToken?.() || '').trim())
+const tokenDebugLabel = computed(() => {
+  if (!authToken.value) return 'token:missing'
+  return `token:present(${authToken.value.slice(0, 8)}...)`
+})
 const currentRouteStaffRoles = computed(() =>
   Array.isArray(route.meta?.staffRoles) ? route.meta.staffRoles : []
 )
@@ -158,7 +164,7 @@ const guestNavItems = computed(() => {
   if (hasRoute('/t/:tableCode/menu')) {
     items.push({
       key: 'menu',
-      label: '菜單',
+      label: '?�單',
       to: `/t/${currentTableCode.value}/menu`
     })
   }
@@ -166,7 +172,7 @@ const guestNavItems = computed(() => {
   if (hasRoute('/t/:tableCode/cart')) {
     items.push({
       key: 'cart',
-      label: '購物車',
+      label: '購物�?,
       to: `/t/${currentTableCode.value}/cart`,
       badge: cartItemCount.value > 0 ? String(cartItemCount.value) : ''
     })
@@ -178,7 +184,7 @@ const guestNavItems = computed(() => {
       label: '追單',
       to: hasOrder.value ? `/t/${currentTableCode.value}/order/${orderId.value}` : '',
       disabled: !hasOrder.value,
-      hint: hasOrder.value ? '' : '尚無可追蹤訂單'
+      hint: hasOrder.value ? '' : '尚無?�追蹤�???
     })
   }
 
@@ -306,21 +312,30 @@ async function loadClearSessionTableOptions() {
 
 async function clearSession() {
   try {
-    if (world.apiMode() === 'real') {
-      const tableCode = resolveTableCodeForSessionClear()
-      if (!tableCode) return
+    if (world.apiMode() !== 'real') return
 
-      const result = await world.http().post('/api/dinecore/staff/sessions/clear', {
-        table_code: tableCode
-      }, { tokenQuery: true })
-      if (!result?.ok) {
-        throw new Error('CLEAR_SESSION_FAILED')
-      }
+    const tableCode = resolveTableCodeForSessionClear()
+    if (!tableCode) return
+
+    const result = await world.http().post('/api/dinecore/staff/sessions/clear', {
+      table_code: tableCode
+    }, { tokenQuery: true })
+
+    if (!result?.ok) {
+      const code = String(result?.data?.error?.code || result?.data?.code || 'UNKNOWN')
+      const message = String(result?.data?.error?.message || result?.data?.message || '')
+      throw new Error(message ? `${code}: ${message}` : code)
     }
-  } catch {
+
     if (typeof window !== 'undefined') {
-      window.alert('清空顧客 Session 失敗，請稍後再試。')
+      const matched = Number(result?.data?.matched ?? 0)
+      const updated = Number(result?.data?.updated ?? result?.data?.cleared ?? 0)
+      window.alert(`�M�Ŧ��\�G�ู ${tableCode}�A�R�� ${matched} ���A��s ${updated} ���C`)
     }
+  } catch (error) {
+    if (typeof window === 'undefined') return
+    const message = error instanceof Error ? error.message : 'UNKNOWN_ERROR'
+    window.alert(`�M�ť��ѡG${message}`)
   }
 }
 
@@ -388,14 +403,16 @@ function closeDevMenu() {
       aside.staff-shell__head
         .staff-shell__topbar-main
           .staff-shell__brand
-            strong.staff-shell__title DineCore 商家工作台
-            span.staff-shell__meta(v-if="staffSession") {{ `${staffSession.name}｜${staffSession.account}` }}
-            span.staff-shell__meta(v-else) 未載入員工登入模組
+            strong.staff-shell__title DineCore ?�家工�???
+            span.staff-shell__meta(v-if="staffSession") {{ `${staffSession.name}�?{staffSession.account}` }}
+            span.staff-shell__meta(v-else) ?��??�員工登?�模�?
+            span.staff-shell__meta(v-if="staffSession") {{ tokenDebugLabel }}
+
           .staff-shell__actions(v-if="staffSession")
             select.staff-shell__table-select(
               v-model="clearSessionTableCode"
               :disabled="isLoadingClearSessionTables || clearSessionTableOptions.length === 0"
-              title="選擇要清空顧客 Session 的桌號"
+              title="?��?要�?空顧�?Session ?��???
             )
               option(
                 v-for="code in clearSessionTableOptions"
@@ -403,7 +420,7 @@ function closeDevMenu() {
                 :value="code"
               ) {{ code }}
             button.staff-shell__clear-session(type="button" @click="clearSession()") 清空顧客 Session
-            button.staff-shell__logout(type="button" @click="logout()") 登出
+            button.staff-shell__logout(type="button" @click="logout()") ?�出
         nav.staff-shell__nav(v-if="staffNavItems.length > 0")
           RouterLink.staff-shell__nav-item(
             v-for="item in staffNavItems"
@@ -419,17 +436,17 @@ function closeDevMenu() {
         .staff-auth-mask__backdrop
         .staff-auth-mask__panel
           .staff-auth-copy
-            p.staff-auth-copy__eyebrow 權限驗證
-            h1.staff-auth-copy__title 目前帳號無法進入此頁面
-            p.staff-auth-copy__lead 請改用具備權限的員工帳號登入，或返回可操作的工作頁面。
+            p.staff-auth-copy__eyebrow 權�?驗�?
+            h1.staff-auth-copy__title ?��?帳�??��??�入此�???
+            p.staff-auth-copy__lead 請改?�具?��??��??�工帳�??�入，�?返�??��?作�?工�??�面??
           form.staff-auth-form(@submit.prevent="submitStaffLogin()")
             label.staff-auth-form__field
-              span.staff-auth-form__label 帳號
+              span.staff-auth-form__label 帳�?
               input.staff-auth-form__input(
                 v-model="loginForm.account"
                 type="text"
                 autocomplete="username"
-                placeholder="請輸入員工帳號"
+                placeholder="請輸?�員工帳??
                 @input="clearLoginError()"
               )
             label.staff-auth-form__field
@@ -438,27 +455,27 @@ function closeDevMenu() {
                 v-model="loginForm.password"
                 type="password"
                 autocomplete="current-password"
-                placeholder="請輸入登入密碼"
+                placeholder="請輸?�登?��?�?
                 @input="clearLoginError()"
               )
             p.staff-auth-form__error(v-if="authState.errorMessage") {{ authState.errorMessage }}
             button.staff-auth-form__submit(type="submit" :disabled="authState.isSubmitting")
-              | {{ authState.isSubmitting ? '登入中...' : '切換帳號並登入' }}
+              | {{ authState.isSubmitting ? '?�入�?..' : '?��?帳�?並登?? }}
 
     .staff-auth-full(v-else)
       .staff-auth-full__panel
         .staff-auth-copy
-          p.staff-auth-copy__eyebrow 員工登入
-          h1.staff-auth-copy__title 商家登入
-          p.staff-auth-copy__lead 進入商家工作台前，請先使用員工帳號登入。註冊流程暫不開放，由管理者於後台建立帳號。
+          p.staff-auth-copy__eyebrow ?�工?�入
+          h1.staff-auth-copy__title ?�家?�入
+          p.staff-auth-copy__lead ?�入?�家工�??��?，�??�使?�員工帳?�登?�。註?��?程暫不�??��??�管?�者於後台建�?帳�???
         form.staff-auth-form(@submit.prevent="submitStaffLogin()")
           label.staff-auth-form__field
-            span.staff-auth-form__label 帳號
+            span.staff-auth-form__label 帳�?
             input.staff-auth-form__input(
               v-model="loginForm.account"
               type="text"
               autocomplete="username"
-              placeholder="請輸入員工帳號"
+              placeholder="請輸?�員工帳??
               @input="clearLoginError()"
             )
           label.staff-auth-form__field
@@ -467,14 +484,14 @@ function closeDevMenu() {
               v-model="loginForm.password"
               type="password"
               autocomplete="current-password"
-              placeholder="請輸入登入密碼"
+              placeholder="請輸?�登?��?�?
               @input="clearLoginError()"
             )
           p.staff-auth-form__error(v-if="authState.errorMessage") {{ authState.errorMessage }}
           button.staff-auth-form__submit(type="submit" :disabled="authState.isSubmitting")
-            | {{ authState.isSubmitting ? '登入中...' : '登入' }}
+            | {{ authState.isSubmitting ? '?�入�?..' : '?�入' }}
           .staff-auth-form__hint
-            span 開發預設帳號：
+            span ?�發?�設帳�?�?
             code manager / manager123
             code deputy / deputy123
             code counter / counter123
@@ -484,7 +501,7 @@ function closeDevMenu() {
     .guest-shell
       header.guest-shell__head
         .guest-shell__topbar-main
-          strong.guest-shell__topbar-title 顧客點餐
+          strong.guest-shell__topbar-title 顧客點�?
           span.guest-shell__topbar-meta {{ `${currentTableCode} 桌` }}
           span.guest-shell__topbar-meta(v-if="orderNo") {{ `訂單 ${orderNo}` }}
         nav.guest-shell__nav(v-if="guestNavItems.length > 0")
@@ -512,19 +529,19 @@ function closeDevMenu() {
         RouterView
 
   button.dev-menu-toggle(type="button" @click="toggleDevMenu()")
-    span.dev-menu-toggle__title 開發選單
-    small.dev-menu-toggle__hint 快速切換頁面
+    span.dev-menu-toggle__title ?�發?�單
+    small.dev-menu-toggle__hint 快速�??��???
   section.dev-menu(v-if="devMenuOpen")
     .dev-menu__backdrop(@click="closeDevMenu()")
     .dev-menu__panel
       .dev-menu__head
         .dev-menu__title-block
-          strong.dev-menu__title DineCore 開發選單
-          p.dev-menu__meta 這裡只顯示目前專案已註冊的路由，模組未掛載時不會出現連結。
-        button.dev-menu__close(type="button" @click="closeDevMenu()") 關閉
+          strong.dev-menu__title DineCore ?�發?�單
+          p.dev-menu__meta ?�裡?�顯示目?��?案已註�??�路?��?模�??��?載�?不�??�現?????
+        button.dev-menu__close(type="button" @click="closeDevMenu()") ?��?
 
       .dev-menu__section(v-if="devGuestLinks.length > 0")
-        h3.dev-menu__section-title 顧客端頁面
+        h3.dev-menu__section-title 顧客端�???
         .dev-menu__links
           RouterLink.dev-menu__link(
             v-for="item in devGuestLinks"
@@ -533,7 +550,7 @@ function closeDevMenu() {
           ) {{ item.label }}
 
       .dev-menu__section(v-if="devStaffLinks.length > 0")
-        h3.dev-menu__section-title 商家端頁面
+        h3.dev-menu__section-title ?�家端�???
         .dev-menu__links
           RouterLink.dev-menu__link(
             v-for="item in devStaffLinks"

@@ -20,7 +20,7 @@ final class Router
 
         $handler = $this->routes[$method][$path] ?? null;
         if ($handler === null) {
-            $response->notFound('Route Not Found');
+            $response->notFound(sprintf('Route Not Found: %s %s', $method, $path));
             return;
         }
 

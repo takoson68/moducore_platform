@@ -26,6 +26,12 @@ $router->add('POST', '/api/dinecore/staff/kitchen/update-order-status', 'DineCor
 $router->add('GET', '/api/dinecore/staff/reports/summary', 'DineCoreStaffApiController@reportsSummary');
 $router->add('GET', '/api/dinecore/staff/reports/orders', 'DineCoreStaffApiController@reportsOrders');
 $router->add('POST', '/api/dinecore/staff/sessions/clear', 'DineCoreStaffApiController@clearGuestSessions');
+$router->add('GET', '/api/dinecore/staff/sessions/clear', 'DineCoreStaffApiController@clearGuestSessions');
+// Backward/edge compatibility: tolerate singular path and trailing slash.
+$router->add('POST', '/api/dinecore/staff/session/clear', 'DineCoreStaffApiController@clearGuestSessions');
+$router->add('GET', '/api/dinecore/staff/session/clear', 'DineCoreStaffApiController@clearGuestSessions');
+$router->add('POST', '/api/dinecore/staff/sessions/clear/', 'DineCoreStaffApiController@clearGuestSessions');
+$router->add('GET', '/api/dinecore/staff/sessions/clear/', 'DineCoreStaffApiController@clearGuestSessions');
 $router->add('GET', '/api/dinecore/staff/audit-close/summary', 'DineCoreStaffApiController@auditCloseSummary');
 $router->add('GET', '/api/dinecore/staff/audit-close/history', 'DineCoreStaffApiController@auditCloseHistory');
 $router->add('POST', '/api/dinecore/staff/audit-close/close', 'DineCoreStaffApiController@closeBusinessDate');

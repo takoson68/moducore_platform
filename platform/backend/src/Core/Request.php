@@ -19,6 +19,7 @@ final class Request
         $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        $path = self::normalizePath($path);
 
         $body = [];
         $raw = file_get_contents('php://input');
@@ -49,5 +50,22 @@ final class Request
         }
 
         return new self($method, $path, $_GET, $body, $headers);
+    }
+
+    private static function normalizePath(string $path): string
+    {
+        // Some deployments/proxies prepend base segments (e.g. /backend/public).
+        // If an API segment exists, normalize to start from /api for route matching.
+        $apiPos = strpos($path, '/api/');
+        if ($apiPos !== false && $apiPos > 0) {
+            $path = substr($path, $apiPos);
+        }
+
+        // Normalize trailing slash except root.
+        if ($path !== '/' && str_ends_with($path, '/')) {
+            $path = rtrim($path, '/');
+        }
+
+        return $path === '' ? '/' : $path;
     }
 }
