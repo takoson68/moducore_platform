@@ -7,6 +7,7 @@ const route = useRoute()
 const router = useRouter()
 const checkoutStore = world.store('dineCoreCheckoutStore')
 const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
+const cartStore = world.hasStore('dineCoreCartStore') ? world.store('dineCoreCartStore') : null
 
 const state = computed(() => checkoutStore.state)
 const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
@@ -98,6 +99,13 @@ async function submitOrder() {
       currentBatchId: String(result.nextBatchId || ''),
       currentBatchNo: Number(result.nextBatchNo || 0),
       currentBatchStatus: 'draft'
+    })
+  }
+
+  if (cartStore && entryState.value.orderingSessionToken) {
+    await cartStore.load({
+      tableCode: tableCode.value,
+      orderingSessionToken: entryState.value.orderingSessionToken
     })
   }
 

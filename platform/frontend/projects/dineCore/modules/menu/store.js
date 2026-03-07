@@ -5,16 +5,45 @@ function createCategory(id, name) {
   return { id, name }
 }
 
+function normalizeCategoryToken(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function isMainCategory(category) {
+  const id = normalizeCategoryToken(category?.id)
+  const name = String(category?.name || '').trim()
+  return id.includes('main') || name.includes('主餐')
+}
+
+function isDrinkCategory(category) {
+  const id = normalizeCategoryToken(category?.id)
+  const name = String(category?.name || '').trim()
+  return id.includes('drink') || name.includes('飲')
+}
+
+function sortCategoriesByBusinessPriority(categories = []) {
+  return categories
+    .map((category, index) => ({ ...category, __index: index }))
+    .sort((left, right) => {
+      const leftRank = isMainCategory(left) ? 0 : isDrinkCategory(left) ? 2 : 1
+      const rightRank = isMainCategory(right) ? 0 : isDrinkCategory(right) ? 2 : 1
+      if (leftRank !== rightRank) return leftRank - rightRank
+      return left.__index - right.__index
+    })
+    .map(({ __index, ...category }) => category)
+}
+
 function normalizeCategoriesWithAll(categories = []) {
   const mapped = Array.isArray(categories)
     ? categories.map(category => createCategory(category.id, category.name))
     : []
+  const sorted = sortCategoriesByBusinessPriority(mapped)
 
   const seen = new Set()
   const result = [createCategory('all', '全部商品')]
   seen.add('all')
 
-  for (const category of mapped) {
+  for (const category of sorted) {
     const id = String(category.id || '').trim()
     if (!id || seen.has(id) || id === 'all') continue
     seen.add(id)
@@ -71,6 +100,23 @@ function createItem(payload) {
   }
 }
 
+function sortItemsByCategoryPriority(items = [], categories = []) {
+  const categoryOrder = new Map()
+  categories.forEach((category, index) => {
+    categoryOrder.set(String(category.id), index)
+  })
+
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((left, right) => {
+      const leftOrder = categoryOrder.get(String(left.item.categoryId)) ?? Number.MAX_SAFE_INTEGER
+      const rightOrder = categoryOrder.get(String(right.item.categoryId)) ?? Number.MAX_SAFE_INTEGER
+      if (leftOrder !== rightOrder) return leftOrder - rightOrder
+      return left.index - right.index
+    })
+    .map(entry => entry.item)
+}
+
 function buildOptionDraft(item) {
   if (!item?.customization) {
     return null
@@ -124,11 +170,13 @@ export function createMenuStore() {
           typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
         try {
           const payload = await loadMenuPayload(tableCode, orderingSessionToken)
+          const categories = normalizeCategoriesWithAll(payload.categories)
+          const items = sortItemsByCategoryPriority(payload.items.map(createItem), categories)
           store.set({
             ...store.get(),
             errorMessage: '',
-            categories: normalizeCategoriesWithAll(payload.categories),
-            items: payload.items.map(createItem)
+            categories,
+            items
           })
         } catch (error) {
           store.set({

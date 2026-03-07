@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
 
@@ -9,6 +9,22 @@ const entryStore = world.store('dineCoreEntryStore')
 const state = computed(() => entryStore.state)
 
 const tableCode = computed(() => String(route.params.tableCode || 'A01').trim())
+const entryHeroImageCandidates = [
+  import.meta.env.VITE_DINECORE_ENTRY_HERO_IMAGE_URL || '',
+  'https://images.pexels.com/photos/6287495/pexels-photo-6287495.jpeg',
+  '/assets/dinecore/entry-landing-food.png',
+  '/assets/dinecore/entry-landing-food.jpg',
+  '/assets/icons/moducore_platform.jpg'
+].filter(Boolean)
+const entryHeroImageUrl = ref(entryHeroImageCandidates[0] || '')
+
+function handleEntryHeroImageError() {
+  const currentIndex = entryHeroImageCandidates.indexOf(entryHeroImageUrl.value)
+  const nextImage = entryHeroImageCandidates[currentIndex + 1] || ''
+  if (nextImage && nextImage !== entryHeroImageUrl.value) {
+    entryHeroImageUrl.value = nextImage
+  }
+}
 
 function goToMenu() {
   router.push(`/t/${tableCode.value}/menu`)
@@ -24,6 +40,15 @@ function goToMenu() {
         | {{ state.tableCode || (tableCode + ' 桌') }}
         span.mobile-hero-card__identity(v-if="state.orderingLabel") {{ `｜本機身分碼 ${state.orderingLabel}` }}
       button.mobile-hero-card__button(type="button" @click="goToMenu") 進入菜單
+
+  section.entry-photo-card
+    img.entry-photo-card__image(
+      :src="entryHeroImageUrl"
+      alt="本店主打餐點示意圖"
+      loading="eager"
+      decoding="async"
+      @error="handleEntryHeroImageError"
+    )
 
   section.feature-card
     h3.feature-card__title 開始點餐前會確認的事項
@@ -91,6 +116,18 @@ function goToMenu() {
   border-radius: 22px
   background: var(--dc-card)
   border: 1px solid var(--dc-border)
+
+.entry-photo-card
+  border-radius: 22px
+  overflow: hidden
+  border: 1px solid var(--dc-border)
+  background: #fff
+
+.entry-photo-card__image
+  display: block
+  width: 100%
+  aspect-ratio: 16 / 10
+  object-fit: cover
 
 .feature-card__title
   margin: 0 0 10px
@@ -161,5 +198,3 @@ function goToMenu() {
   .mobile-hero-card__button
     width: 100%
 </style>
-
-

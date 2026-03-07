@@ -820,26 +820,45 @@ final class DineCoreGuestApiController
 
     private function createOpenOrder(string $tableCode): array
     {
-        $orderNo = $this->createOrderNo();
-        $stmt = db()->prepare(
-            'INSERT INTO dinecore_orders
-                (order_no, table_code, order_status, payment_status, payment_method, estimated_wait_minutes, subtotal_amount, service_fee_amount, tax_amount, total_amount, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
-        );
-        $stmt->execute([
-            $orderNo,
-            $tableCode,
-            'draft',
-            'unpaid',
-            'unpaid',
-            null,
-            0,
-            0,
-            0,
-            0,
-        ]);
+        $id = 0;
+        $orderNo = '';
+        $attempts = 0;
 
-        $id = (int)db()->lastInsertId();
+        while ($attempts < 5) {
+            $attempts += 1;
+            $orderNo = $this->createOrderNo($attempts);
+            $stmt = db()->prepare(
+                'INSERT INTO dinecore_orders
+                    (order_no, table_code, order_status, payment_status, payment_method, estimated_wait_minutes, subtotal_amount, service_fee_amount, tax_amount, total_amount, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+            );
+
+            try {
+                $stmt->execute([
+                    $orderNo,
+                    $tableCode,
+                    'draft',
+                    'unpaid',
+                    'unpaid',
+                    null,
+                    0,
+                    0,
+                    0,
+                    0,
+                ]);
+                $id = (int)db()->lastInsertId();
+                break;
+            } catch (Throwable $error) {
+                if (!$this->isDuplicateOrderNoError($error) || $attempts >= 5) {
+                    throw $error;
+                }
+            }
+        }
+
+        if ($id <= 0) {
+            throw new \RuntimeException('CREATE_ORDER_FAILED');
+        }
+
         $this->createInitialBatchForOrder($id);
 
         return $this->findOrderById($id) ?? [
@@ -857,18 +876,35 @@ final class DineCoreGuestApiController
         ];
     }
 
-    private function createOrderNo(): string
+    private function createOrderNo(int $attempt = 1): string
     {
-        $datePrefix = date('Ymd');
+        $datePrefix = gmdate('Ymd');
+        $orderPrefix = sprintf('DC%s', $datePrefix);
         $stmt = db()->prepare(
-            'SELECT COUNT(*) AS total
+            'SELECT COALESCE(MAX(CAST(RIGHT(order_no, 4) AS UNSIGNED)), 0) AS max_seq
              FROM dinecore_orders
-             WHERE DATE(created_at) = CURDATE()'
+             WHERE order_no LIKE ?'
         );
-        $stmt->execute();
-        $total = (int)($stmt->fetch()['total'] ?? 0);
+        $stmt->execute([$orderPrefix . '%']);
+        $maxSeq = (int)($stmt->fetch()['max_seq'] ?? 0);
 
-        return sprintf('DC%s%04d', $datePrefix, $total + 1);
+        $baseOrderNo = sprintf('%s%04d', $orderPrefix, $maxSeq + 1);
+        if ($attempt <= 1) {
+            return $baseOrderNo;
+        }
+
+        // 第二次以上重試加上短隨機碼，避免高併發下再次撞號。
+        return sprintf('%s%s', $baseOrderNo, $this->randomAlphaNumeric(2));
+    }
+
+    private function isDuplicateOrderNoError(Throwable $error): bool
+    {
+        if (!$error instanceof \PDOException) {
+            return false;
+        }
+
+        return $error->getCode() === '23000'
+            && str_contains($error->getMessage(), "for key 'order_no'");
     }
 
     private function resolveCurrentBatchForOrder(int $orderId): array
@@ -1755,7 +1791,5 @@ final class DineCoreGuestApiController
         $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'DINECORE_GUEST_API_FAILED');
     }
 }
-
-
 
 
