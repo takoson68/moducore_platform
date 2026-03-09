@@ -486,7 +486,8 @@ final class DineCoreStaffApiController
         try {
             $stmt = db()->query(
                 'SELECT b.id, b.order_id, b.batch_no, b.status, b.submitted_at,
-                        o.order_no, o.table_code, o.estimated_wait_minutes, o.created_at
+                        o.order_no, o.table_code, o.estimated_wait_minutes, o.created_at,
+                        GREATEST(0, TIMESTAMPDIFF(MINUTE, COALESCE(b.submitted_at, o.created_at), NOW())) AS wait_minutes
                  FROM dinecore_order_batches b
                  INNER JOIN dinecore_orders o ON o.id = b.order_id
                  WHERE b.status IN ("pending", "submitted", "preparing", "ready")
@@ -504,6 +505,7 @@ final class DineCoreStaffApiController
                     'orderStatus' => (string)$row['status'],
                     'batchNo' => (int)$row['batch_no'],
                     'createdAt' => (string)($row['submitted_at'] ?? $row['created_at']),
+                    'waitMinutes' => (int)($row['wait_minutes'] ?? 0),
                     'waitLabel' => sprintf('%d min', (int)($row['estimated_wait_minutes'] ?? 0)),
                     'items' => $items,
                 ];

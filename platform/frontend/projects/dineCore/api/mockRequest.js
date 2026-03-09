@@ -1126,6 +1126,12 @@ const handlers = {
               tableCode: order.table_code,
               orderStatus: order.order_status,
               createdAt: order.created_at,
+              waitMinutes: Math.max(
+                0,
+                Math.floor(
+                  (Date.now() - new Date(String(order.created_at || '').replace(' ', 'T')).getTime()) / 60000
+                ) || 0
+              ),
               waitLabel: `${order.estimated_wait_minutes} min`,
               items
             }

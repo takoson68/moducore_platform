@@ -58,6 +58,11 @@ function parseDateTime(value) {
 }
 
 function formatWaitLabel(order) {
+  const waitMinutes = Number(order?.waitMinutes)
+  if (Number.isFinite(waitMinutes)) {
+    return `已等待 ${Math.max(0, Math.floor(waitMinutes))} 分鐘`
+  }
+
   const createdAt = parseDateTime(order?.createdAt)
   if (!createdAt) return String(order?.waitLabel || '已等待 0 分鐘')
 
