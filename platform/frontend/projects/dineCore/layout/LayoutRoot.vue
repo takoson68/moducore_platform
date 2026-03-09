@@ -440,7 +440,7 @@ function closeStaffHeadMenu() {
         .staff-auth-copy
           p.staff-auth-copy__eyebrow 員工登入
           h1.staff-auth-copy__title DineCore 後台登入
-          p.staff-auth-copy__lead 這個專案是 QRC 點餐系統 DEMO 展示，請使用 manager 帳號登入後台操作流程。
+          p.staff-auth-copy__lead QRC 點餐系統 DEMO，使用 PHP + MySQL + Vue.js 建構。請使用 manager 帳號登入後台操作。
         form.staff-auth-form(@submit.prevent="submitStaffLogin()")
           label.staff-auth-form__field
             span.staff-auth-form__label 帳號
@@ -1171,4 +1171,3 @@ function closeStaffHeadMenu() {
   border-bottom-width: 2px
   border-bottom-style: solid
 </style>
-
