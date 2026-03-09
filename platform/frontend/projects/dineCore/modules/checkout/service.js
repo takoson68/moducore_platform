@@ -1,15 +1,20 @@
 import {
   getCheckoutSuccess,
-  getCheckoutSummary,
   submitCheckout
 } from './api/checkoutApi.js'
 
-export async function loadCheckoutSummary(tableCode, orderingSessionToken = '') {
-  return getCheckoutSummary(tableCode, orderingSessionToken)
-}
-
-export async function submitCheckoutOrder(tableCode, orderingSessionToken = '') {
-  return submitCheckout(tableCode, orderingSessionToken)
+export async function submitCheckoutOrder({
+  tableCode,
+  orderingSessionToken = '',
+  clientSubmissionId = '',
+  cart = {}
+}) {
+  return submitCheckout({
+    tableCode,
+    orderingSessionToken,
+    clientSubmissionId,
+    cart
+  })
 }
 
 export async function loadCheckoutSuccessSummary(

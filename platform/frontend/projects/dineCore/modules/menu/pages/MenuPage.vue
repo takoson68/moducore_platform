@@ -39,17 +39,27 @@ watch(
 
     try {
       if (menuStore) {
-        await menuStore.load({
+        const payload = await menuStore.load({
           tableCode: nextTableCode,
           orderingSessionToken
         })
-      }
 
-      if (cartStore) {
-        await cartStore.load({
-          tableCode: nextTableCode,
-          orderingSessionToken
-        })
+        if (cartStore) {
+          cartStore.setItemSchemas(
+            Object.fromEntries(
+              (payload?.items || [])
+                .filter(item => item?.customization)
+                .map(item => [item.id, item.customization])
+            )
+          )
+          cartStore.loadFromEntry({
+            tableCode: nextTableCode,
+            orderingSessionToken,
+            orderingCartId: entryState.value.orderingCartId,
+            orderingLabel: entryState.value.orderingLabel,
+            personSlot: entryState.value.personSlot
+          })
+        }
       }
     } catch (error) {
       console.error('[dineCore/menu] 載入菜單失敗', error)

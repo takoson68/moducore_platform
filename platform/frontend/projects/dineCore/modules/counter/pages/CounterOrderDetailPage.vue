@@ -7,16 +7,20 @@ const route = useRoute()
 const counterStore = world.store('dineCoreCounterStore')
 const state = computed(() => counterStore.state)
 const detail = computed(() => counterStore.state.detail)
+const mergeCandidates = computed(() => counterStore.state.mergeCandidates || [])
 const cancelReason = ref('')
+const mergeOrderId = ref('')
+const mergeReason = ref('')
 
 const statusLabels = {
   draft: '草稿',
-  pending: '待送出',
+  pending: '待處理',
   submitted: '已送出',
   preparing: '製作中',
-  ready: '可取餐',
+  ready: '可出餐',
   picked_up: '已取餐',
   cancelled: '已取消',
+  merged: '已併單',
   unpaid: '未付款',
   paid: '已付款'
 }
@@ -81,19 +85,32 @@ async function markPickedUp() {
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'picked_up',
-    note: '櫃台已確認本桌完成取餐'
+    note: '櫃台已更新為已取餐'
   })
 }
 
 async function cancelOrder() {
   const orderId = currentOrderId()
   if (!orderId) return
-  const reason = cancelReason.value.trim() || '櫃台取消此筆訂單'
+  const reason = cancelReason.value.trim() || '櫃台取消訂單'
   await counterStore.setOrderStatus({
     orderId,
     orderStatus: 'cancelled',
-    note: `訂單取消：${reason}`
+    note: `取消訂單：${reason}`
   })
+}
+
+async function mergeOrder() {
+  const orderId = currentOrderId()
+  if (!orderId || !mergeOrderId.value) return
+
+  await counterStore.mergeOrders({
+    targetOrderId: orderId,
+    mergedOrderId: mergeOrderId.value,
+    reason: mergeReason.value
+  })
+  mergeReason.value = ''
+  mergeOrderId.value = ''
 }
 </script>
 
@@ -123,10 +140,10 @@ async function cancelOrder() {
       label.action-field
         span.action-label 更新訂單狀態
         select.action-input(:value="detail.order.orderStatus" @change="updateOrderStatus")
-          option(value="pending") 待送出
+          option(value="pending") 待處理
           option(value="submitted") 已送出
           option(value="preparing") 製作中
-          option(value="ready") 可取餐
+          option(value="ready") 可出餐
           option(value="picked_up") 已取餐
           option(value="cancelled") 已取消
       label.action-field
@@ -141,7 +158,7 @@ async function cancelOrder() {
         button.quick-action.is-danger(type="button" @click="cancelOrder" :disabled="detail.order.orderStatus === 'cancelled'") 取消訂單
 
   section.detail-list-card
-    h3.detail-list-card__title 顧客小計
+    h3.detail-list-card__title 人員小計
     .list-row(v-for="person in detail.persons" :key="person.cartId || person.guestLabel")
       span {{ person.guestLabel }}
       strong {{ `NT$ ${person.total}` }}
@@ -153,7 +170,7 @@ async function cancelOrder() {
         strong.batch-block__title {{ `第 ${batch.batchNo} 批` }}
         span.batch-block__meta {{ statusLabels[batch.status] || batch.status }}
       p.batch-block__info(v-if="batch.submittedAt") {{ `送單時間：${batch.submittedAt}` }}
-      p.batch-block__info {{ `${batch.itemCount} 件 / NT$ ${batch.subtotal}` }}
+      p.batch-block__info {{ `${batch.itemCount} 項 / NT$ ${batch.subtotal}` }}
       .guest-block(v-for="person in batch.persons" :key="`${batch.id}-${person.cartId}`")
         .guest-block__head
           strong.guest-block__title {{ person.guestLabel }}
@@ -168,12 +185,27 @@ async function cancelOrder() {
           strong.item-card__price {{ `NT$ ${item.price}` }}
 
   section.detail-list-card
-    h3.detail-list-card__title 狀態時間軸
+    h3.detail-list-card__title 狀態紀錄
     .timeline-row(v-for="item in detail.timeline" :key="`${item.status}-${item.changed_at}`")
       .timeline-row__main
         strong {{ statusLabels[item.status] || item.status }}
         p {{ item.note }}
       span {{ item.changed_at }}
+
+  section.detail-list-card
+    h3.detail-list-card__title 併單
+    p.lead(v-if="mergeCandidates.length === 0") 目前沒有可併入這張單的同桌候選訂單。
+    template(v-else)
+      label.action-field
+        span.action-label 被併入訂單
+        select.action-input(v-model="mergeOrderId")
+          option(value="") 請選擇要併入的訂單
+          option(v-for="candidate in mergeCandidates" :key="candidate.id" :value="candidate.id")
+            | {{ `${candidate.orderNo} / ${candidate.tableCode} / NT$ ${candidate.totalAmount}` }}
+      label.action-field
+        span.action-label 併單原因
+        input.action-input(type="text" v-model="mergeReason" placeholder="可留空")
+      button.quick-action(type="button" :disabled="!mergeOrderId" @click="mergeOrder") 執行併單
 </template>
 
 <style lang="sass">
@@ -381,3 +413,4 @@ async function cancelOrder() {
   .cancel-box
     grid-template-columns: 1fr
 </style>
+

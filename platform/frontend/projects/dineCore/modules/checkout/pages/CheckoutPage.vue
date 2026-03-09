@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
 
@@ -13,99 +13,58 @@ const state = computed(() => checkoutStore.state)
 const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
 const submittedBatchCount = computed(() => Math.max(Number(state.value.currentBatchNo || 0) - 1, 0))
-const pollIntervalMs = 5000
-let pollTimer = null
-
-async function refreshCheckout() {
-  if (!entryState.value.orderingSessionToken) return
-
-  await checkoutStore.load({
-    tableCode: tableCode.value,
-    orderingSessionToken: entryState.value.orderingSessionToken
-  })
-}
-
-function stopPolling() {
-  if (!pollTimer) return
-  window.clearInterval(pollTimer)
-  pollTimer = null
-}
-
-function startPolling() {
-  stopPolling()
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-    return
-  }
-
-  pollTimer = window.setInterval(() => {
-    refreshCheckout()
-  }, pollIntervalMs)
-}
-
-function handleVisibilityChange() {
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-    stopPolling()
-    return
-  }
-
-  refreshCheckout()
-  startPolling()
-}
 
 watch(
   [tableCode, () => entryState.value.orderingSessionToken],
-  async ([, orderingSessionToken]) => {
-    if (!orderingSessionToken) {
-      stopPolling()
-      return
+  ([, orderingSessionToken]) => {
+    if (!orderingSessionToken) return
+
+    if (cartStore) {
+      cartStore.loadFromEntry({
+        tableCode: tableCode.value,
+        orderingSessionToken,
+        orderingCartId: entryState.value.orderingCartId,
+        orderingLabel: entryState.value.orderingLabel,
+        personSlot: entryState.value.personSlot
+      })
     }
 
-    await refreshCheckout()
-    startPolling()
+    checkoutStore.load({
+      tableCode: tableCode.value,
+      orderingSessionToken
+    })
   },
   { immediate: true }
 )
-
-onMounted(() => {
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-  }
-})
-
-onBeforeUnmount(() => {
-  stopPolling()
-  if (typeof document !== 'undefined') {
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }
-})
 
 async function submitOrder() {
   if (state.value.itemCount <= 0 || state.value.submitting) {
     return
   }
 
-  stopPolling()
   const result = await checkoutStore.submit({
     tableCode: tableCode.value,
     orderingSessionToken: entryState.value.orderingSessionToken
   })
 
-  // Keep top nav state in sync immediately after submit, no hard refresh required.
   if (entryStore) {
     entryStore.setTableContext({
       tableCode: tableCode.value,
-      orderId: String(result.orderId || entryState.value.orderId || ''),
-      orderStatus: 'pending',
+      orderId: String(result.orderId || ''),
+      orderNo: String(result.orderNo || ''),
+      orderStatus: String(result.orderStatus || 'pending'),
       currentBatchId: String(result.nextBatchId || ''),
       currentBatchNo: Number(result.nextBatchNo || 0),
       currentBatchStatus: 'draft'
     })
   }
 
-  if (cartStore && entryState.value.orderingSessionToken) {
-    await cartStore.load({
+  if (cartStore) {
+    cartStore.clearForSubmittedOrder({
       tableCode: tableCode.value,
-      orderingSessionToken: entryState.value.orderingSessionToken
+      orderingSessionToken: entryState.value.orderingSessionToken,
+      nextBatchId: String(result.nextBatchId || ''),
+      nextBatchNo: Number(result.nextBatchNo || 0)
     })
   }
 
@@ -127,12 +86,12 @@ function goBackToCart() {
 .mobile-page
   section.bill-card
     .bill-card__head
-      p.bill-card__eyebrow 結帳確認
-      h2.bill-card__title 確認本批餐點
+      p.bill-card__eyebrow 訂單確認
+      h2.bill-card__title 準備送出本次加點
       p.bill-card__copy(v-if="state.currentBatchNo > 0") {{ `目前要送出第 ${state.currentBatchNo} 批` }}
-      p.bill-card__copy 系統會將目前批次內所有顧客的品項一起送出。送出後，這一批會立即鎖定。
-      p.bill-card__copy(v-if="submittedBatchCount > 0") {{ `前面已送出 ${submittedBatchCount} 批，這次送出不會回頭改動之前的餐點。` }}
-      p.bill-card__copy 送出後如果還要加點，系統會自動建立新的草稿批次供你繼續操作。
+      p.bill-card__copy 結帳金額會先由前端顯示預估值，正式送單時後端會重新驗算。若品項、價格或售完狀態有變動，將以送單回應為準。
+      p.bill-card__copy(v-if="submittedBatchCount > 0") {{ `目前已有 ${submittedBatchCount} 批送出紀錄，本次內容會建立為下一批次。` }}
+      p.bill-card__copy 送出後即可前往訂單追蹤頁查看目前進度，也可以回到菜單繼續加點。
     .bill-row
       span.bill-row__label 品項數
       strong.bill-row__value {{ state.itemCount }}
@@ -146,12 +105,12 @@ function goBackToCart() {
       span.bill-row__label 稅額
       strong.bill-row__value {{ state.tax }}
     .bill-row.is-total
-      span.bill-row__label 總計
+      span.bill-row__label 合計
       strong.bill-row__value {{ state.total }}
     .bill-card__actions
-      button.bill-card__back(type="button" :disabled="state.submitting" @click="goBackToCart") 返回上一步
+      button.bill-card__back(type="button" :disabled="state.submitting" @click="goBackToCart") 返回購物車
       button.bill-card__action(type="button" :disabled="state.submitting || state.itemCount <= 0" @click="submitOrder")
-        | {{ state.submitting ? '處理中...' : '送出訂單' }}
+        | {{ state.submitting ? '送單中...' : '確認送單' }}
 
   section.notice-card.is-error(v-if="state.errorMessage")
     h3.notice-card__title 發生問題
@@ -159,10 +118,10 @@ function goBackToCart() {
 
   section.notice-card(v-else-if="state.itemCount <= 0")
     h3.notice-card__title 目前沒有可送出的品項
-    p.notice-card__copy 只要這一批沒有任何商品，系統就不會建立訂單。請先回菜單或購物車加入品項。
+    p.notice-card__copy 請先回到購物車或菜單頁加入餐點，再進行送單。
 
   section.person-card
-    h3.person-card__title 本批次明細
+    h3.person-card__title 本機購物車明細
     .person-list
       article.person-panel(v-for="person in state.persons" :key="person.cartId")
         .person-panel__head
@@ -181,8 +140,8 @@ function goBackToCart() {
             strong.person-item__price {{ `$${item.price}` }}
 
   section.notice-card
-    h3.notice-card__title 同步提示
-    p.notice-card__copy 系統每 5 秒同步一次。若其他顧客先送出，這裡會自動切到新的草稿批次。
+    h3.notice-card__title 計算規則
+    p.notice-card__copy 目前前端以小計 5% 服務費與 2.5% 稅額先行顯示，正式送單仍由後端重算並建立正式批次資料。
 </template>
 
 <style lang="sass">
@@ -372,3 +331,4 @@ function goBackToCart() {
   color: #21373b
   font-size: 16px
 </style>
+

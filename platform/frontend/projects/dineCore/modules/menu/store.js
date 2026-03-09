@@ -178,6 +178,10 @@ export function createMenuStore() {
             categories,
             items
           })
+          return {
+            categories,
+            items
+          }
         } catch (error) {
           store.set({
             ...store.get(),

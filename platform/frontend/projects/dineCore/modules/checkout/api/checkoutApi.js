@@ -1,31 +1,28 @@
 import { dineCoreRequest } from '@project/api/dineCoreRequest.js'
 
-export function getCheckoutSummary(tableCode, orderingSessionToken = '') {
-  return dineCoreRequest('checkout/summary', {
-    path: '/api/dinecore/checkout-summary',
-    method: 'GET',
-    mockPayload: {
-      tableCode,
-      orderingSessionToken
-    },
-    query: {
-      table_code: tableCode,
-      ordering_session_token: orderingSessionToken
-    }
-  })
-}
-
-export function submitCheckout(tableCode, orderingSessionToken = '') {
+export function submitCheckout({
+  tableCode,
+  orderingSessionToken = '',
+  clientSubmissionId = '',
+  cart = {}
+}) {
   return dineCoreRequest('checkout/submit', {
     path: '/api/dinecore/checkout-submit',
     method: 'POST',
     mockPayload: {
       tableCode,
-      orderingSessionToken
+      orderingSessionToken,
+      clientSubmissionId,
+      cart
     },
     body: {
       table_code: tableCode,
-      ordering_session_token: orderingSessionToken
+      ordering_session_token: orderingSessionToken,
+      client_submission_id: clientSubmissionId,
+      ordering_cart_id: cart.orderingCartId || '',
+      ordering_label: cart.orderingLabel || '',
+      person_slot: cart.personSlot || 0,
+      items: Array.isArray(cart.items) ? cart.items : []
     }
   })
 }

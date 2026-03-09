@@ -19,6 +19,8 @@ $router->add('GET', '/api/dinecore/order-tracker', 'DineCoreGuestApiController@o
 $router->add('GET', '/api/dinecore/staff/tables', 'DineCoreStaffApiController@staffTables');
 $router->add('GET', '/api/dinecore/staff/counter/orders', 'DineCoreStaffApiController@counterOrders');
 $router->add('GET', '/api/dinecore/staff/counter/order-detail', 'DineCoreStaffApiController@counterOrderDetail');
+$router->add('GET', '/api/dinecore/staff/counter/merge-candidates', 'DineCoreStaffApiController@counterMergeCandidates');
+$router->add('POST', '/api/dinecore/staff/counter/merge-orders', 'DineCoreStaffApiController@counterMergeOrders');
 $router->add('POST', '/api/dinecore/staff/counter/update-order-status', 'DineCoreStaffApiController@counterUpdateOrderStatus');
 $router->add('POST', '/api/dinecore/staff/counter/update-payment-status', 'DineCoreStaffApiController@counterUpdatePaymentStatus');
 $router->add('GET', '/api/dinecore/staff/kitchen/orders', 'DineCoreStaffApiController@kitchenOrders');

@@ -1,11 +1,13 @@
 import world from '@/world.js'
 import {
-  addItemToCartSelection,
-  changeCartItemQuantity,
-  loadCartPayload,
-  mapCartError,
-  updateCartItemCustomization
-} from './service.js'
+  buildCheckoutSummaryFromLocalCart,
+  clearLocalCartPayload,
+  createEmptyLocalCart,
+  createLocalCartItemId,
+  loadLocalCartPayload,
+  normalizeLocalCartPayload,
+  persistLocalCartPayload
+} from './localCart.js'
 
 function createDefaultEditor() {
   return null
@@ -42,27 +44,6 @@ function normalizeSchema(schema) {
   }
 }
 
-function normalizePayload(payload) {
-  return {
-    orderingSessionToken: payload.orderingSessionToken || '',
-    orderingCartId: payload.orderingCartId || '',
-    orderingLabel: payload.orderingLabel || '',
-    personSlot: Number(payload.personSlot || 0),
-    currentBatchId: payload.currentBatchId || '',
-    currentBatchNo: Number(payload.currentBatchNo || 0),
-    currentBatchStatus: payload.currentBatchStatus || '',
-    participantCount: Number(payload.participantCount || 0),
-    carts: Array.isArray(payload.carts) ? payload.carts : [],
-    cartItemsByCartId: payload.cartItemsByCartId || {},
-    itemSchemasByMenuItemId: Object.fromEntries(
-      Object.entries(payload.itemSchemasByMenuItemId || {}).map(([menuItemId, schema]) => [
-        menuItemId,
-        normalizeSchema(schema)
-      ])
-    )
-  }
-}
-
 function buildEditorFromItem(item) {
   if (!item?.editSchema) {
     return null
@@ -84,12 +65,65 @@ function buildEditorFromItem(item) {
   }
 }
 
+function buildItemFromSchema({ schema, menuItemId, cartId, customization }) {
+  const selectedOptionIds = Array.isArray(customization?.selectedOptionIds)
+    ? [...customization.selectedOptionIds]
+    : [...(schema.defaultOptionIds || [])]
+  const selectedOptions = (schema.optionGroups || []).flatMap(group =>
+    (group.options || []).filter(option => selectedOptionIds.includes(option.id))
+  )
+  const extraPrice = selectedOptions.reduce(
+    (sum, option) => sum + Number(option.priceDelta || 0),
+    0
+  )
+
+  return {
+    id: createLocalCartItemId(),
+    menu_item_id: menuItemId,
+    title: schema.title,
+    quantity: 1,
+    price: Number(schema.basePrice || 0) + extraPrice,
+    note: String(customization?.note || schema.defaultNote || ''),
+    options: selectedOptions.map(option => option.label),
+    selected_option_ids: selectedOptionIds,
+    cart_id: cartId,
+    editSchema: {
+      ...schema,
+      note: String(customization?.note || schema.defaultNote || ''),
+      selectedOptionIds
+    }
+  }
+}
+
+function patchStateWithPayload(state, payload) {
+  const nextItemSchemas =
+    payload.itemSchemasByMenuItemId &&
+    Object.keys(payload.itemSchemasByMenuItemId).length > 0
+      ? payload.itemSchemasByMenuItemId
+      : state.itemSchemasByMenuItemId
+
+  return {
+    ...state,
+    orderingSessionToken: payload.orderingSessionToken || state.orderingSessionToken,
+    errorMessage: '',
+    orderingCartId: payload.orderingCartId || state.orderingCartId,
+    orderingLabel: payload.orderingLabel || state.orderingLabel,
+    personSlot: Number(payload.personSlot || state.personSlot || 0),
+    currentBatchId: payload.currentBatchId || state.currentBatchId,
+    currentBatchNo: Number(payload.currentBatchNo || state.currentBatchNo || 0),
+    currentBatchStatus: payload.currentBatchStatus || state.currentBatchStatus,
+    participantCount: Number(payload.participantCount || 0),
+    viewingCartId: payload.orderingCartId || state.viewingCartId,
+    carts: Array.isArray(payload.carts) ? payload.carts : [],
+    cartItemsByCartId: payload.cartItemsByCartId || {},
+    itemSchemasByMenuItemId: nextItemSchemas
+  }
+}
+
 export function createCartStore() {
   return world.createStore({
     name: 'dineCoreCartStore',
     defaultValue: {
-      // orderingCartId 代表這支手機目前加點要送進哪個 cart；
-      // viewingCartId 只控制購物車頁現在在看哪個 cart。
       orderingSessionToken: '',
       errorMessage: '',
       orderingCartId: '',
@@ -106,40 +140,71 @@ export function createCartStore() {
       editor: createDefaultEditor()
     },
     actions: {
-      async load(store, input) {
+      load(store, input) {
         const tableCode = typeof input === 'string' ? input : input?.tableCode
         const orderingSessionToken =
           typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
-        const current = store.get()
-        try {
-        const payload = normalizePayload(
-            await loadCartPayload(tableCode, orderingSessionToken)
-          )
-        const batchChanged =
-          current.currentBatchId &&
-          payload.currentBatchId &&
-          current.currentBatchId !== payload.currentBatchId
-        const availableCartIds = payload.carts.map(cart => cart.id)
-        const orderingCartId = availableCartIds.includes(payload.orderingCartId)
-          ? payload.orderingCartId
-          : payload.carts[0]?.id || ''
-        const viewingCartId = orderingCartId
-
-        store.set({
-          ...current,
-          ...payload,
-          errorMessage: '',
-          orderingSessionToken: payload.orderingSessionToken || current.orderingSessionToken,
-          orderingCartId,
-          viewingCartId,
-          editor: batchChanged ? createDefaultEditor() : current.editor
-        })
-        } catch (error) {
-          store.set({
-            ...current,
-            errorMessage: mapCartError(error)
+        const payload = loadLocalCartPayload({
+          tableCode,
+          orderingSessionToken,
+          fallback: createEmptyLocalCart({
+            orderingSessionToken,
+            orderingCartId: input?.orderingCartId || '',
+            orderingLabel: input?.orderingLabel || '',
+            personSlot: input?.personSlot || 0
           })
-        }
+        })
+
+        store.set(patchStateWithPayload(store.get(), payload))
+      },
+      loadFromEntry(store, input = {}) {
+        const current = store.get()
+        const next = normalizeLocalCartPayload(
+          loadLocalCartPayload({
+            tableCode: input.tableCode,
+            orderingSessionToken: input.orderingSessionToken,
+            fallback: createEmptyLocalCart({
+              orderingSessionToken: input.orderingSessionToken,
+              orderingCartId: input.orderingCartId,
+              orderingLabel: input.orderingLabel,
+              personSlot: input.personSlot
+            })
+          }),
+          createEmptyLocalCart({
+            orderingSessionToken: input.orderingSessionToken,
+            orderingCartId: input.orderingCartId,
+            orderingLabel: input.orderingLabel,
+            personSlot: input.personSlot,
+            itemSchemasByMenuItemId: current.itemSchemasByMenuItemId
+          })
+        )
+
+        store.set(patchStateWithPayload(current, next))
+      },
+      setItemSchemas(store, itemSchemasByMenuItemId = {}) {
+        const state = store.get()
+        store.set({
+          ...state,
+          itemSchemasByMenuItemId: Object.fromEntries(
+            Object.entries(itemSchemasByMenuItemId).map(([menuItemId, schema]) => [
+              menuItemId,
+              normalizeSchema(schema)
+            ])
+          )
+        })
+      },
+      persist(store, { tableCode } = {}) {
+        const state = store.get()
+        if (!tableCode || !state.orderingSessionToken) return
+
+        persistLocalCartPayload({
+          tableCode,
+          orderingSessionToken: state.orderingSessionToken,
+          payload: {
+            ...state,
+            editor: null
+          }
+        })
       },
       setViewingCart(store, cartId) {
         store.set({
@@ -147,61 +212,68 @@ export function createCartStore() {
           viewingCartId: cartId
         })
       },
-      async addMenuItemToOrderingCart(store, { tableCode, menuItemId, customization }) {
-        const current = store.get()
-        const targetCartId = current.orderingCartId || current.viewingCartId
-        if (!targetCartId) return
+      addMenuItemToOrderingCart(store, { tableCode, menuItemId, customization }) {
+        const state = store.get()
+        const cartId = state.orderingCartId || ''
+        const schema = normalizeSchema(state.itemSchemasByMenuItemId[menuItemId])
+        if (!cartId || !schema) {
+          return
+        }
 
-        const payload = normalizePayload(
-          await addItemToCartSelection({
-            tableCode,
-            cartId: targetCartId,
+        const nextItems = [
+          ...(state.cartItemsByCartId[cartId] || []),
+          buildItemFromSchema({
+            schema,
             menuItemId,
-            customization,
-            orderingSessionToken: current.orderingSessionToken
+            cartId,
+            customization
           })
-        )
+        ]
 
-        store.set({
-          ...current,
-          ...payload,
-          errorMessage: '',
-          orderingSessionToken: payload.orderingSessionToken || current.orderingSessionToken,
-          orderingCartId: payload.orderingCartId || current.orderingCartId,
-          viewingCartId: current.viewingCartId || payload.orderingCartId || current.orderingCartId
+        const payload = normalizeLocalCartPayload({
+          ...state,
+          cartItemsByCartId: {
+            [cartId]: nextItems
+          }
         })
+
+        store.set(patchStateWithPayload(state, payload))
+        store.persist({ tableCode })
       },
       async addMenuItemToActiveCart(store, payload) {
-        await store.addMenuItemToOrderingCart(payload)
+        store.addMenuItemToOrderingCart(payload)
       },
-      async changeItemQuantity(store, { tableCode, cartId, cartItemId, delta }) {
-        const current = store.get()
-        try {
-          const payload = normalizePayload(
-            await changeCartItemQuantity({
-              tableCode,
-              cartId,
-              cartItemId,
-              delta,
-              orderingSessionToken: current.orderingSessionToken
-            })
-          )
+      changeItemQuantity(store, { tableCode, cartId, cartItemId, delta }) {
+        const state = store.get()
+        const currentItems = Array.isArray(state.cartItemsByCartId[cartId])
+          ? [...state.cartItemsByCartId[cartId]]
+          : []
+        const nextItems = currentItems
+          .map(item => {
+            if (item.id !== cartItemId) return item
+            return {
+              ...item,
+              quantity: Number(item.quantity || 0) + Number(delta || 0)
+            }
+          })
+          .filter(item => Number(item.quantity || 0) > 0)
+
+        const payload = normalizeLocalCartPayload({
+          ...state,
+          cartItemsByCartId: {
+            [cartId]: nextItems
+          }
+        })
+
         const shouldCloseEditor =
-          current.editor?.cartItemId === cartItemId &&
-          !payload.cartItemsByCartId[cartId]?.some(item => item.id === cartItemId)
+          state.editor?.cartItemId === cartItemId &&
+          !nextItems.some(item => item.id === cartItemId)
 
         store.set({
-          ...current,
-          ...payload,
-          errorMessage: '',
-          editor: shouldCloseEditor ? createDefaultEditor() : current.editor
+          ...patchStateWithPayload(state, payload),
+          editor: shouldCloseEditor ? createDefaultEditor() : state.editor
         })
-        } catch (error) {
-          store.set({
-            ...current,
-            errorMessage: mapCartError(error)
-          })
-        }
+        store.persist({ tableCode })
       },
       openEditor(store, item) {
         store.set({
@@ -216,8 +288,8 @@ export function createCartStore() {
         })
       },
       toggleEditorOption(store, { groupId, optionId }) {
-        const current = store.get()
-        const editor = current.editor
+        const state = store.get()
+        const editor = state.editor
         if (!editor) return
 
         const group = editor.optionGroups.find(entry => entry.id === groupId)
@@ -231,14 +303,13 @@ export function createCartStore() {
           )
           selectedOptionIds.push(optionId)
         } else {
-          const hasOption = selectedOptionIds.includes(optionId)
-          selectedOptionIds = hasOption
+          selectedOptionIds = selectedOptionIds.includes(optionId)
             ? selectedOptionIds.filter(existingId => existingId !== optionId)
             : [...selectedOptionIds, optionId]
         }
 
         store.set({
-          ...current,
+          ...state,
           editor: {
             ...editor,
             selectedOptionIds
@@ -246,48 +317,100 @@ export function createCartStore() {
         })
       },
       setEditorNote(store, note) {
-        const current = store.get()
-        if (!current.editor) return
+        const state = store.get()
+        if (!state.editor) return
 
         store.set({
-          ...current,
+          ...state,
           editor: {
-            ...current.editor,
+            ...state.editor,
             note
           }
         })
       },
-      async saveEditor(store, { tableCode }) {
-        const current = store.get()
-        const editor = current.editor
+      saveEditor(store, { tableCode }) {
+        const state = store.get()
+        const editor = state.editor
         if (!editor) return
 
-        try {
-          const payload = normalizePayload(
-            await updateCartItemCustomization({
-              tableCode,
-              cartId: editor.cartId || current.viewingCartId,
-              cartItemId: editor.cartItemId,
-              customization: {
-                note: editor.note,
-                selectedOptionIds: editor.selectedOptionIds
-              },
-              orderingSessionToken: current.orderingSessionToken
-            })
+        const cartId = editor.cartId || state.orderingCartId
+        const currentItems = Array.isArray(state.cartItemsByCartId[cartId])
+          ? [...state.cartItemsByCartId[cartId]]
+          : []
+        const nextItems = currentItems.map(item => {
+          if (item.id !== editor.cartItemId) return item
+
+          const selectedOptions = editor.optionGroups.flatMap(group =>
+            group.options.filter(option => editor.selectedOptionIds.includes(option.id))
+          )
+          const extraPrice = selectedOptions.reduce(
+            (sum, option) => sum + Number(option.priceDelta || 0),
+            0
           )
 
+          return {
+            ...item,
+            note: editor.note,
+            selected_option_ids: [...editor.selectedOptionIds],
+            options: selectedOptions.map(option => option.label),
+            price: Number(editor.basePrice || 0) + extraPrice,
+            editSchema: {
+              ...item.editSchema,
+              note: editor.note,
+              selectedOptionIds: [...editor.selectedOptionIds]
+            }
+          }
+        })
+
+        const payload = normalizeLocalCartPayload({
+          ...state,
+          cartItemsByCartId: {
+            [cartId]: nextItems
+          }
+        })
+
         store.set({
-          ...current,
-          ...payload,
-          errorMessage: '',
+          ...patchStateWithPayload(state, payload),
           editor: createDefaultEditor()
         })
-        } catch (error) {
-          store.set({
-            ...current,
-            errorMessage: mapCartError(error)
-          })
-        }
+        store.persist({ tableCode })
+      },
+      getCheckoutSummary(store) {
+        return buildCheckoutSummaryFromLocalCart(store.get())
+      },
+      clearForSubmittedOrder(store, { tableCode, orderingSessionToken, nextBatchId = '', nextBatchNo = 0 } = {}) {
+        const state = store.get()
+        const empty = normalizeLocalCartPayload(
+          createEmptyLocalCart({
+            orderingSessionToken: orderingSessionToken || state.orderingSessionToken,
+            orderingCartId: state.orderingCartId,
+            orderingLabel: state.orderingLabel,
+            personSlot: state.personSlot
+          }),
+          {
+            orderingSessionToken: orderingSessionToken || state.orderingSessionToken,
+            orderingCartId: state.orderingCartId,
+            orderingLabel: state.orderingLabel,
+            personSlot: state.personSlot,
+            currentBatchId: nextBatchId,
+            currentBatchNo: nextBatchNo,
+            currentBatchStatus: 'draft',
+            itemSchemasByMenuItemId: state.itemSchemasByMenuItemId
+          }
+        )
+
+        clearLocalCartPayload({
+          tableCode,
+          orderingSessionToken: orderingSessionToken || state.orderingSessionToken
+        })
+
+        store.set({
+          ...patchStateWithPayload(state, empty),
+          currentBatchId: String(nextBatchId || ''),
+          currentBatchNo: Number(nextBatchNo || 0),
+          currentBatchStatus: 'draft',
+          editor: createDefaultEditor()
+        })
       }
     }
   })

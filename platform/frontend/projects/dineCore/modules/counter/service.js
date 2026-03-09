@@ -17,15 +17,23 @@ function translateCounterError(error) {
 
   switch (code) {
     case 'STAFF_SESSION_REQUIRED':
-      return '請先登入員工帳號再查看櫃台資料。'
+      return '請先登入員工帳號。'
     case 'STAFF_ROLE_FORBIDDEN':
-      return '目前帳號沒有櫃台作業權限。'
+      return '目前帳號沒有櫃台權限。'
     case 'BUSINESS_DATE_LOCKED':
-      return '當前營業日已關帳，無法再調整訂單。'
+      return '該營業日已關帳，無法再修改訂單。'
     case 'ORDER_NOT_FOUND':
       return '找不到指定訂單。'
+    case 'MERGE_TABLE_MISMATCH':
+      return '只能併入同桌的訂單。'
+    case 'MERGE_DATE_MISMATCH':
+      return '只能併入同營業日的訂單。'
+    case 'MERGE_ORDER_PAID':
+      return '已付款訂單不可再併單。'
+    case 'MERGE_ORDER_INVALID_STATUS':
+      return '目前訂單狀態不可併單。'
     default:
-      return code || '櫃台訂單資料載入失敗。'
+      return code || '櫃台訂單操作失敗。'
   }
 }
 
@@ -59,12 +67,14 @@ export async function loadCounterOrders(filters = {}) {
     })
 
     return Array.isArray(orders)
-      ? orders.filter(order =>
-          order &&
-          String(order.id || '').trim() !== '' &&
-          String(order.orderNo || '').trim() !== '' &&
-          String(order.tableCode || '').trim() !== ''
-        ).map(normalizeOrderRow)
+      ? orders
+          .filter(order =>
+            order &&
+            String(order.id || '').trim() !== '' &&
+            String(order.orderNo || '').trim() !== '' &&
+            String(order.tableCode || '').trim() !== ''
+          )
+          .map(normalizeOrderRow)
       : []
   } catch (error) {
     throw new Error(translateCounterError(error))
@@ -79,6 +89,7 @@ export async function loadCounterOrderDetail(orderId) {
       query: { order_id: orderId },
       mockPayload: { orderId }
     })
+
     if (!detail || typeof detail !== 'object') {
       return detail
     }
@@ -90,6 +101,34 @@ export async function loadCounterOrderDetail(orderId) {
         paymentStatus: normalizePaymentStatus(detail?.order?.paymentStatus)
       }
     }
+  } catch (error) {
+    throw new Error(translateCounterError(error))
+  }
+}
+
+export async function loadCounterMergeCandidates(orderId) {
+  try {
+    const payload = await staffApiRequest('counter/merge-candidates', {
+      path: '/api/dinecore/staff/counter/merge-candidates',
+      method: 'GET',
+      query: { order_id: orderId },
+      mockPayload: { orderId }
+    })
+
+    return Array.isArray(payload?.candidates) ? payload.candidates : []
+  } catch (error) {
+    throw new Error(translateCounterError(error))
+  }
+}
+
+export async function mergeCounterOrders(targetOrderId, mergedOrderId, reason = '') {
+  try {
+    return await staffApiRequest('counter/merge-orders', {
+      path: '/api/dinecore/staff/counter/merge-orders',
+      method: 'POST',
+      body: { targetOrderId, mergedOrderId, reason },
+      mockPayload: { targetOrderId, mergedOrderId, reason }
+    })
   } catch (error) {
     throw new Error(translateCounterError(error))
   }
@@ -120,3 +159,4 @@ export async function updateCounterPaymentStatus(orderId, paymentStatus) {
     throw new Error(translateCounterError(error))
   }
 }
+

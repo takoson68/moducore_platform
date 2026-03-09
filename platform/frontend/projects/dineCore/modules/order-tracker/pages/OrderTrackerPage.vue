@@ -143,32 +143,9 @@ const canContinueOrdering = computed(() =>
     h3.notice-card__title 載入失敗
     p.notice-card__copy {{ state.errorMessage }}
 
-  section.batch-card
-    h3.batch-card__title 批次進度
-    p.batch-card__intro(v-if="submittedBatches.length > 0") {{ `目前已送出 ${submittedBatches.length} 批，以下可查看每批內容。` }}
-    p.batch-card__intro(v-else) 目前尚未有已送出批次。
-    .batch-list
-      article.batch-item(v-for="batch in state.batches" :key="batch.id")
-        .batch-item__head
-          .batch-item__title-block
-            strong.batch-item__title {{ `第 ${batch.batchNo} 批` }}
-            span.batch-item__meta {{ statusLabels[batch.status] || batch.status }}
-          strong.batch-item__sum {{ formatCurrency(batch.subtotal) }}
-        p.batch-item__time(v-if="batch.submittedAt") {{ `送出時間：${formatDateTime(batch.submittedAt)}` }}
-        p.batch-item__time(v-else) 尚未送出
-        p.batch-item__count {{ `${batch.itemCount} 項` }}
-        p.batch-item__draft(v-if="batch.status === 'draft'") 這是目前可編輯的草稿批次。
-        .batch-item__persons(v-if="batch.persons.length > 0")
-          article.batch-person(v-for="person in batch.persons" :key="`${batch.id}-${person.cartId}`")
-            .batch-person__head
-              strong {{ person.guestLabel }}
-              span {{ formatCurrency(person.subtotal) }}
-            ul.batch-person__items
-              li(v-for="item in person.items" :key="`${batch.id}-${item.id}`") {{ `${item.title} x${item.quantity}` }}
-
   section.person-card
-    h3.person-card__title 本單人員明細
-    p.person-card__intro 每位顧客在這張訂單中的品項與金額如下。
+    h3.person-card__title 訂單明細
+    p.person-card__intro 以下為這張訂單的品項與金額。
     .person-list
       article.person-panel(v-for="person in state.persons" :key="person.cartId")
         .person-panel__head
@@ -185,21 +162,27 @@ const canContinueOrdering = computed(() =>
             .person-item__options(v-if="item.options?.length")
               span.person-item__option(v-for="option in item.options" :key="option") {{ option }}
 
-  section.timeline-card
-    h3.timeline-card__title 狀態時間軸
-    .timeline-item(v-for="item in state.timeline" :key="`${item.status}-${item.changed_at}`")
-      span.timeline-item__dot
-      p.timeline-item__text {{ `${formatDateTime(item.changed_at)} | ${item.note}` }}
+  section.batch-card
+    h3.batch-card__title 批次進度
+    p.batch-card__intro(v-if="submittedBatches.length > 0") {{ `目前已送出 ${submittedBatches.length} 批，以下可查看每批內容。` }}
+    p.batch-card__intro(v-else) 目前尚未有已送出批次。
+    .batch-list
+      article.batch-item(v-for="batch in submittedBatches" :key="batch.id")
+        .batch-item__head
+          .batch-item__title-block
+            strong.batch-item__title {{ `第 ${batch.batchNo} 批` }}
+            span.batch-item__meta {{ statusLabels[batch.status] || batch.status }}
+          strong.batch-item__sum {{ formatCurrency(batch.subtotal) }}
+        p.batch-item__time(v-if="batch.submittedAt") {{ `送出時間：${formatDateTime(batch.submittedAt)}` }}
+        p.batch-item__count {{ `${batch.itemCount} 項` }}
+        .batch-item__persons(v-if="batch.persons.length > 0")
+          article.batch-person(v-for="person in batch.persons" :key="`${batch.id}-${person.cartId}`")
+            .batch-person__head
+              strong {{ person.guestLabel }}
+              span {{ formatCurrency(person.subtotal) }}
+            ul.batch-person__items
+              li(v-for="item in person.items" :key="`${batch.id}-${item.id}`") {{ `${item.title} x${item.quantity}` }}
 
-  section.history-card
-    h3.history-card__title 同桌近期訂單
-    .history-card__list
-      article.history-card__item(v-for="(item, index) in state.history" :key="item.id")
-        .history-card__badge {{ index + 1 }}
-        .history-card__body
-          strong {{ item.orderNo }}
-          p {{ `建立時間：${formatDateTime(item.createdAt)}` }}
-          span {{ `NT$ ${item.totalAmount}` }}
 </template>
 
 <style lang="sass">
@@ -209,8 +192,6 @@ const canContinueOrdering = computed(() =>
 
 .order-card,
 .batch-card,
-.timeline-card,
-.history-card,
 .person-card,
 .notice-card
   padding: 18px
@@ -246,8 +227,6 @@ const canContinueOrdering = computed(() =>
   color: #7b544d
 
 .batch-card__title,
-.timeline-card__title,
-.history-card__title,
 .person-card__title
   margin: 0 0 12px
 
@@ -258,14 +237,12 @@ const canContinueOrdering = computed(() =>
   line-height: 1.7
 
 .batch-list,
-.person-list,
-.history-card__list
+.person-list
   display: grid
   gap: 12px
 
 .batch-item,
-.person-panel,
-.history-card__item
+.person-panel
   padding: 16px
   border-radius: 18px
   background: linear-gradient(180deg, #ffffff 0%, #f5faf9 100%)
@@ -360,47 +337,4 @@ const canContinueOrdering = computed(() =>
   font-size: 11px
   font-weight: 700
 
-.timeline-item
-  display: grid
-  grid-template-columns: 20px 1fr
-  gap: 10px
-  align-items: start
-  padding: 10px 0
-
-.timeline-item__dot
-  width: 12px
-  height: 12px
-  border-radius: 999px
-  background: linear-gradient(135deg, var(--dc-mint-1) 0%, var(--dc-mint-2) 100%)
-  margin-top: 6px
-
-.timeline-item__text
-  margin: 0
-  color: var(--dc-text-muted)
-  line-height: 1.6
-
-.history-card__item
-  display: grid
-  grid-template-columns: 38px 1fr
-  gap: 12px
-  align-items: start
-
-.history-card__badge
-  width: 38px
-  height: 38px
-  border-radius: 12px
-  background: rgba(121, 214, 207, 0.16)
-  display: grid
-  place-items: center
-  font-weight: 700
-  color: #3f6668
-
-.history-card__body
-  display: grid
-  gap: 4px
-
-.history-card__body p,
-.history-card__body span
-  margin: 0
-  color: var(--dc-text-muted)
 </style>

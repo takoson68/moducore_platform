@@ -35,9 +35,7 @@ export function createOrderTrackerStore() {
       status: 'pending',
       estimatedWaitMinutes: null,
       persons: [],
-      batches: [],
-      timeline: [],
-      history: []
+      batches: []
     },
     actions: {
       async load(store, { tableCode, orderId, orderingSessionToken = '' }) {
@@ -52,9 +50,7 @@ export function createOrderTrackerStore() {
             status: payload.order.status,
             estimatedWaitMinutes: payload.order.estimatedWaitMinutes,
             persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : [],
-            batches: Array.isArray(payload.batches) ? payload.batches.map(normalizeBatch) : [],
-            timeline: payload.timeline,
-            history: payload.history
+            batches: Array.isArray(payload.batches) ? payload.batches.map(normalizeBatch) : []
           })
           return
         } catch (error) {
@@ -76,9 +72,7 @@ export function createOrderTrackerStore() {
             status: String(fallback.status || 'pending'),
             estimatedWaitMinutes: fallback.estimatedWaitMinutes ?? null,
             persons: Array.isArray(fallback.persons) ? fallback.persons.map(normalizePerson) : [],
-            batches: Array.isArray(fallback.batches) ? fallback.batches.map(normalizeBatch) : [],
-            timeline: [],
-            history: []
+            batches: Array.isArray(fallback.batches) ? fallback.batches.map(normalizeBatch) : []
           })
           return
         } catch (fallbackError) {
@@ -110,9 +104,7 @@ export function createOrderTrackerStore() {
           status: payload.status || state.status,
           estimatedWaitMinutes: payload.estimatedWaitMinutes ?? state.estimatedWaitMinutes,
           persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : state.persons,
-          batches: Array.isArray(payload.batches) ? payload.batches.map(normalizeBatch) : state.batches,
-          timeline: Array.isArray(payload.timeline) ? payload.timeline : state.timeline,
-          history: Array.isArray(payload.history) ? payload.history : state.history
+          batches: Array.isArray(payload.batches) ? payload.batches.map(normalizeBatch) : state.batches
         })
       }
     }

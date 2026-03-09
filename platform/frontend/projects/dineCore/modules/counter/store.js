@@ -1,8 +1,10 @@
 import world from '@/world.js'
 import {
+  loadCounterMergeCandidates,
   loadCounterTables,
   loadCounterOrderDetail,
   loadCounterOrders,
+  mergeCounterOrders,
   updateCounterOrderStatus,
   updateCounterPaymentStatus
 } from './service.js'
@@ -21,7 +23,8 @@ export function createCounterStore() {
       tables: [],
       orders: [],
       selectedOrderId: null,
-      detail: null
+      detail: null,
+      mergeCandidates: []
     },
     actions: {
       async load(store) {
@@ -62,12 +65,16 @@ export function createCounterStore() {
       },
       async loadDetail(store, orderId) {
         try {
-          const detail = await loadCounterOrderDetail(orderId)
+          const [detail, mergeCandidates] = await Promise.all([
+            loadCounterOrderDetail(orderId),
+            loadCounterMergeCandidates(orderId)
+          ])
           store.set({
             ...store.get(),
             error: '',
             selectedOrderId: orderId,
-            detail
+            detail,
+            mergeCandidates
           })
         } catch (error) {
           store.set({
@@ -97,6 +104,18 @@ export function createCounterStore() {
           store.set({
             ...store.get(),
             error: error instanceof Error ? error.message : 'COUNTER_PAYMENT_UPDATE_FAILED'
+          })
+        }
+      },
+      async mergeOrders(store, payload) {
+        try {
+          await mergeCounterOrders(payload.targetOrderId, payload.mergedOrderId, payload.reason || '')
+          await store.loadDetail(payload.targetOrderId)
+          await store.load()
+        } catch (error) {
+          store.set({
+            ...store.get(),
+            error: error instanceof Error ? error.message : 'COUNTER_MERGE_FAILED'
           })
         }
       }

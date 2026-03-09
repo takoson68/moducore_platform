@@ -1,9 +1,10 @@
 import world from '@/world.js'
-import {
-  loadCheckoutSummary,
-  mapCheckoutError,
-  submitCheckoutOrder
-} from './service.js'
+import { buildCheckoutSummaryFromLocalCart } from '../cart/localCart.js'
+import { mapCheckoutError, submitCheckoutOrder } from './service.js'
+
+function createClientSubmissionId() {
+  return `submit-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
 
 function normalizePerson(person) {
   return {
@@ -13,6 +14,21 @@ function normalizePerson(person) {
     total: Number(person.total || 0),
     items: Array.isArray(person.items) ? person.items : []
   }
+}
+
+function buildSubmitItems(cartState) {
+  const cartId = String(cartState.orderingCartId || '')
+  const items = Array.isArray(cartState.cartItemsByCartId?.[cartId])
+    ? cartState.cartItemsByCartId[cartId]
+    : []
+
+  return items.map(item => ({
+    clientItemId: String(item.id || ''),
+    menuItemId: String(item.menu_item_id || ''),
+    quantity: Number(item.quantity || 0),
+    note: String(item.note || ''),
+    selectedOptionIds: Array.isArray(item.selected_option_ids) ? [...item.selected_option_ids] : []
+  }))
 }
 
 export function createCheckoutStore() {
@@ -34,47 +50,28 @@ export function createCheckoutStore() {
       persons: []
     },
     actions: {
-      async load(store, input) {
-        const tableCode = typeof input === 'string' ? input : input?.tableCode
+      load(store, input) {
+        const cartStore = world.store('dineCoreCartStore')
+        const cartState = cartStore.state
+        const summary = buildCheckoutSummaryFromLocalCart(cartState)
         const orderingSessionToken =
-          typeof input === 'string' ? '' : String(input?.orderingSessionToken || '')
-        try {
-          const payload = await loadCheckoutSummary(tableCode, orderingSessionToken)
-          store.set({
-            ...store.get(),
-            errorMessage: '',
-            orderingSessionToken: orderingSessionToken || store.get().orderingSessionToken,
-            currentBatchId: payload.currentBatchId || '',
-            currentBatchNo: Number(payload.currentBatchNo || 0),
-            currentBatchStatus: payload.currentBatchStatus || '',
-            itemCount: Number(payload.itemCount || 0),
-            subtotal: Number(payload.subtotal || 0),
-            serviceFee: Number(payload.serviceFee || 0),
-            tax: Number(payload.tax || 0),
-            total: Number(payload.total || 0),
-            persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : []
-          })
-        } catch (error) {
-          store.set({
-            ...store.get(),
-            errorMessage: mapCheckoutError(error)
-          })
-        }
-      },
-      setSummary(store, payload = {}) {
-        const state = store.get()
+          typeof input === 'string'
+            ? String(cartState.orderingSessionToken || '')
+            : String(input?.orderingSessionToken || cartState.orderingSessionToken || '')
+
         store.set({
-          ...state,
-          currentBatchId: payload.currentBatchId || state.currentBatchId,
-          currentBatchNo: payload.currentBatchNo ?? state.currentBatchNo,
-          currentBatchStatus: payload.currentBatchStatus || state.currentBatchStatus,
-          itemCount: payload.itemCount ?? state.itemCount,
-          subtotal: payload.subtotal ?? state.subtotal,
-          serviceFee: payload.serviceFee ?? state.serviceFee,
-          tax: payload.tax ?? state.tax,
-          total: payload.total ?? state.total,
-          paymentStatus: payload.paymentStatus || state.paymentStatus,
-          persons: Array.isArray(payload.persons) ? payload.persons.map(normalizePerson) : state.persons
+          ...store.get(),
+          errorMessage: '',
+          orderingSessionToken,
+          currentBatchId: summary.currentBatchId || '',
+          currentBatchNo: Number(summary.currentBatchNo || 0),
+          currentBatchStatus: summary.currentBatchStatus || '',
+          itemCount: Number(summary.itemCount || 0),
+          subtotal: Number(summary.subtotal || 0),
+          serviceFee: Number(summary.serviceFee || 0),
+          tax: Number(summary.tax || 0),
+          total: Number(summary.total || 0),
+          persons: Array.isArray(summary.persons) ? summary.persons.map(normalizePerson) : []
         })
       },
       setSubmitting(store, submitting) {
@@ -84,19 +81,34 @@ export function createCheckoutStore() {
         })
       },
       async submit(store, input) {
+        const cartStore = world.store('dineCoreCartStore')
+        const cartState = cartStore.state
         const tableCode = typeof input === 'string' ? input : input?.tableCode
         const orderingSessionToken =
           typeof input === 'string'
             ? store.get().orderingSessionToken
             : String(input?.orderingSessionToken || store.get().orderingSessionToken || '')
+        const clientSubmissionId = createClientSubmissionId()
+
         store.setSubmitting(true)
         try {
-          const result = await submitCheckoutOrder(tableCode, orderingSessionToken)
+          const result = await submitCheckoutOrder({
+            tableCode,
+            orderingSessionToken,
+            clientSubmissionId,
+            cart: {
+              orderingCartId: String(cartState.orderingCartId || ''),
+              orderingLabel: String(cartState.orderingLabel || ''),
+              personSlot: Number(cartState.personSlot || 0),
+              items: buildSubmitItems(cartState)
+            }
+          })
+
           store.set({
             ...store.get(),
             errorMessage: '',
-            currentBatchId: result.nextBatchId || store.get().currentBatchId,
-            currentBatchNo: Number(result.nextBatchNo || store.get().currentBatchNo || 0),
+            currentBatchId: String(result.nextBatchId || ''),
+            currentBatchNo: Number(result.nextBatchNo || 0),
             currentBatchStatus: 'draft',
             itemCount: 0,
             subtotal: 0,
@@ -105,6 +117,7 @@ export function createCheckoutStore() {
             total: 0,
             persons: []
           })
+
           return result
         } catch (error) {
           store.set({
@@ -119,3 +132,4 @@ export function createCheckoutStore() {
     }
   })
 }
+

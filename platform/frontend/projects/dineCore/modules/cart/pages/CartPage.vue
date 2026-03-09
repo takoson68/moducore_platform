@@ -1,5 +1,5 @@
-﻿<script setup>
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+<script setup>
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
 
@@ -12,69 +12,21 @@ const state = computed(() => cartStore.state)
 const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
 
-const pollIntervalMs = 5000
-let pollTimer = null
-
-async function refreshCart() {
-  if (!entryState.value.orderingSessionToken) return
-
-  await cartStore.load({
-    tableCode: tableCode.value,
-    orderingSessionToken: entryState.value.orderingSessionToken
-  })
-}
-
-function stopPolling() {
-  if (!pollTimer) return
-  window.clearInterval(pollTimer)
-  pollTimer = null
-}
-
-function startPolling() {
-  stopPolling()
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
-
-  pollTimer = window.setInterval(() => {
-    refreshCart()
-  }, pollIntervalMs)
-}
-
-function handleVisibilityChange() {
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-    stopPolling()
-    return
-  }
-
-  refreshCart()
-  startPolling()
-}
-
 watch(
   [tableCode, () => entryState.value.orderingSessionToken],
-  async ([, orderingSessionToken]) => {
-    if (!orderingSessionToken) {
-      stopPolling()
-      return
-    }
+  ([, orderingSessionToken]) => {
+    if (!orderingSessionToken) return
 
-    await refreshCart()
-    startPolling()
+    cartStore.loadFromEntry({
+      tableCode: tableCode.value,
+      orderingSessionToken,
+      orderingCartId: entryState.value.orderingCartId,
+      orderingLabel: entryState.value.orderingLabel,
+      personSlot: entryState.value.personSlot
+    })
   },
   { immediate: true }
 )
-
-onMounted(() => {
-  if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-  }
-})
-
-onBeforeUnmount(() => {
-  stopPolling()
-  if (typeof document !== 'undefined') {
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }
-})
 
 const orderingCart = computed(() =>
   state.value.carts.find(item => item.id === state.value.orderingCartId) || null
@@ -88,7 +40,7 @@ const viewingCartItems = computed(() => {
     ? [...state.value.cartItemsByCartId[cartId]]
     : []
 
-  rows.sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))
+  rows.sort((a, b) => String(b?.id || '').localeCompare(String(a?.id || '')))
   return rows
 })
 
@@ -122,7 +74,7 @@ async function changeQuantity(cartItemId, delta) {
   const cartId = String(viewingCart.value?.id || state.value.orderingCartId || '')
   if (!cartId) return
 
-  await cartStore.changeItemQuantity({
+  cartStore.changeItemQuantity({
     tableCode: tableCode.value,
     cartId,
     cartItemId,
@@ -146,7 +98,7 @@ function hasEditorOption(groupId, optionId) {
 }
 
 async function saveEditor() {
-  await cartStore.saveEditor({
+  cartStore.saveEditor({
     tableCode: tableCode.value
   })
 }
@@ -599,3 +551,4 @@ function goToConfirmOrder() {
     right: auto
     bottom: 0
 </style>
+

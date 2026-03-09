@@ -253,6 +253,16 @@ watch(
       tableCode,
       orderingSessionToken: entryState.value.orderingSessionToken
     })
+
+    if (cartStore) {
+      cartStore.loadFromEntry({
+        tableCode,
+        orderingSessionToken: entryStore.state.orderingSessionToken,
+        orderingCartId: entryStore.state.orderingCartId,
+        orderingLabel: entryStore.state.orderingLabel,
+        personSlot: entryStore.state.personSlot
+      })
+    }
   },
   { immediate: true }
 )

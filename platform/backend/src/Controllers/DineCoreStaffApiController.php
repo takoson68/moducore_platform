@@ -63,7 +63,8 @@ final class DineCoreStaffApiController
                         FROM dinecore_order_batches b
                         WHERE b.order_id = dinecore_orders.id
                           AND b.status <> "draft"
-                    )';
+                    )
+                      AND order_status <> "merged"';
             $params = [];
 
             if ($tableCode !== '') {
@@ -74,10 +75,6 @@ final class DineCoreStaffApiController
                 $sql .= ' AND order_no LIKE ?';
                 $params[] = '%' . $orderNo . '%';
             }
-            if ($orderStatus !== '' && $orderStatus !== 'all') {
-                $sql .= ' AND order_status = ?';
-                $params[] = $orderStatus;
-            }
             if ($paymentStatus !== '' && $paymentStatus !== 'all') {
                 $sql .= ' AND payment_status = ?';
                 $params[] = $paymentStatus;
@@ -86,16 +83,21 @@ final class DineCoreStaffApiController
             $sql .= ' ORDER BY created_at DESC, id DESC';
             $stmt = db()->prepare($sql);
             $stmt->execute($params);
-            $orders = $stmt->fetchAll() ?: [];
+            $orders = array_values(array_filter(
+                array_map(function (array $order): array {
+                    $batches = $this->listOrderBatches((int)$order['id']);
+                    return $this->normalizeOrderRowWithDerivedStatus($order, $batches);
+                }, $stmt->fetchAll() ?: []),
+                fn (array $order): bool => $orderStatus === '' || $orderStatus === 'all'
+                    ? true
+                    : (string)$order['order_status'] === $orderStatus
+            ));
 
             $response->ok(array_map(function (array $order): array {
                 $batches = $this->listOrderBatches((int)$order['id']);
                 $activeSessions = $this->listSessionsForOrder((int)$order['id'], true);
                 $allSessions = $this->listSessionsForOrder((int)$order['id'], false);
-                $visibleBatches = array_values(array_filter(
-                    $batches,
-                    fn (array $batch): bool => (string)$batch['status'] !== 'draft'
-                ));
+                $visibleBatches = $this->filterEffectiveBatches($batches);
                 $latestBatch = $visibleBatches !== [] ? $visibleBatches[array_key_last($visibleBatches)] : null;
                 $draftBatches = array_values(array_filter(
                     $batches,
@@ -121,7 +123,7 @@ final class DineCoreStaffApiController
                     'latestBatchNo' => $latestBatch ? (int)$latestBatch['batch_no'] : 0,
                     'latestBatchStatus' => $latestBatch ? (string)$latestBatch['status'] : '',
                     'draftBatchNo' => $draftBatch ? (int)$draftBatch['batch_no'] : 0,
-                    'canAppend' => $canAppend,
+                    'canAppend' => $canAppend && !in_array((string)$order['order_status'], ['cancelled', 'merged', 'picked_up'], true),
                 ];
             }, $orders));
         } catch (Throwable $error) {
@@ -165,6 +167,8 @@ final class DineCoreStaffApiController
                 }
             }
 
+            $order = $this->normalizeOrderRowWithDerivedStatus($order);
+
             $response->ok([
                 'order' => [
                     'id' => (int)$order['id'],
@@ -186,6 +190,160 @@ final class DineCoreStaffApiController
             ]);
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'COUNTER_ORDER_DETAIL_LOAD_FAILED');
+        }
+    }
+
+    public function counterMergeCandidates(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $orderId = (int)($request->query['order_id'] ?? 0);
+        if ($orderId <= 0) {
+            $response->validation('ORDER_ID_REQUIRED');
+            return;
+        }
+
+        try {
+            $order = $this->findOrderById($orderId);
+            if ($order === null) {
+                $response->notFound('ORDER_NOT_FOUND');
+                return;
+            }
+
+            $response->ok([
+                'candidates' => $this->listMergeCandidatesForOrder($order),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'COUNTER_MERGE_CANDIDATES_FAILED');
+        }
+    }
+
+    public function counterMergeOrders(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $targetOrderId = (int)($request->body['targetOrderId'] ?? $request->body['target_order_id'] ?? 0);
+        $mergedOrderId = (int)($request->body['mergedOrderId'] ?? $request->body['merged_order_id'] ?? 0);
+        $reason = trim((string)($request->body['reason'] ?? ''));
+        if ($targetOrderId <= 0 || $mergedOrderId <= 0 || $targetOrderId === $mergedOrderId) {
+            $response->validation('MERGE_ORDER_PARAMS_REQUIRED');
+            return;
+        }
+
+        $pdo = db();
+        $startedTransaction = !$pdo->inTransaction();
+
+        try {
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
+
+            $targetOrder = $this->findOrderById($targetOrderId);
+            $mergedOrder = $this->findOrderById($mergedOrderId);
+            if ($targetOrder === null || $mergedOrder === null) {
+                $response->notFound('ORDER_NOT_FOUND');
+                if ($startedTransaction && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                return;
+            }
+
+            $this->assertMergeableOrders($targetOrder, $mergedOrder);
+
+            $batchRows = array_values(array_filter(
+                $this->listOrderBatches((int)$mergedOrder['id']),
+                fn (array $batch): bool => (string)$batch['status'] !== 'draft'
+            ));
+            $nextBatchNo = $this->resolveMaxBatchNo((int)$targetOrder['id']);
+            foreach ($batchRows as $batch) {
+                $nextBatchNo += 1;
+                $updateBatch = $pdo->prepare(
+                    'UPDATE dinecore_order_batches
+                     SET order_id = ?, batch_no = ?, updated_at = NOW()
+                     WHERE id = ?'
+                );
+                $updateBatch->execute([(int)$targetOrder['id'], $nextBatchNo, (int)$batch['id']]);
+
+                $updateItems = $pdo->prepare(
+                    'UPDATE dinecore_cart_items
+                     SET order_id = ?, updated_at = NOW()
+                     WHERE batch_id = ?'
+                );
+                $updateItems->execute([(int)$targetOrder['id'], (int)$batch['id']]);
+            }
+
+            $this->recalculateOrderAmounts((int)$targetOrder['id']);
+            $this->syncOrderStatusFromBatches((int)$targetOrder['id']);
+
+            $mergedUpdate = $pdo->prepare(
+                'UPDATE dinecore_orders
+                 SET order_status = ?, subtotal_amount = 0, service_fee_amount = 0, tax_amount = 0, total_amount = 0, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $mergedUpdate->execute(['merged', (int)$mergedOrder['id']]);
+
+            $record = $pdo->prepare(
+                'INSERT INTO dinecore_order_merge_records
+                    (target_order_id, merged_order_id, table_code, merged_by_user_id, reason, snapshot_json, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW())'
+            );
+            $record->execute([
+                (int)$targetOrder['id'],
+                (int)$mergedOrder['id'],
+                (string)$targetOrder['table_code'],
+                (int)($context['user_id'] ?? 0) ?: null,
+                $reason,
+                json_encode([
+                    'targetOrderNo' => (string)$targetOrder['order_no'],
+                    'mergedOrderNo' => (string)$mergedOrder['order_no'],
+                    'mergedBatchIds' => array_map(fn (array $batch): int => (int)$batch['id'], $batchRows),
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ]);
+
+            $timeline = $pdo->prepare(
+                'INSERT INTO dinecore_order_timeline (order_id, status, source, note, changed_at)
+                 VALUES (?, ?, ?, ?, NOW())'
+            );
+            $timeline->execute([
+                (int)$targetOrder['id'],
+                (string)($this->findOrderById((int)$targetOrder['id'])['order_status'] ?? 'pending'),
+                'counter',
+                sprintf('Merged order %s into this order', (string)$mergedOrder['order_no']),
+            ]);
+            $timeline->execute([
+                (int)$mergedOrder['id'],
+                'merged',
+                'counter',
+                sprintf('Merged into order %s', (string)$targetOrder['order_no']),
+            ]);
+
+            $this->rebindMergedSessions((string)$targetOrder['table_code'], (int)$mergedOrder['id'], (int)$targetOrder['id']);
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
+            $response->ok([
+                'targetOrderId' => (int)$targetOrder['id'],
+                'mergedOrderId' => (int)$mergedOrder['id'],
+                'targetOrderNo' => (string)$targetOrder['order_no'],
+            ]);
+        } catch (Throwable $error) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $message = $error->getMessage() !== '' ? $error->getMessage() : 'COUNTER_MERGE_ORDERS_FAILED';
+            if (in_array($message, ['MERGE_TABLE_MISMATCH', 'MERGE_DATE_MISMATCH', 'MERGE_ORDER_PAID', 'MERGE_ORDER_INVALID_STATUS'], true)) {
+                $response->error($message, $message, 409);
+                return;
+            }
+            $response->internal($message);
         }
     }
 
@@ -225,6 +383,9 @@ final class DineCoreStaffApiController
                      WHERE id = ? AND order_id = ?'
                 );
                 $stmt->execute([$orderStatus, $batchId, $orderId]);
+                $this->syncOrderStatusFromBatches($orderId);
+            } elseif (in_array($orderStatus, ['pending', 'submitted', 'preparing', 'ready', 'picked_up'], true)) {
+                $this->updateLatestEffectiveBatchStatus($orderId, $orderStatus);
                 $this->syncOrderStatusFromBatches($orderId);
             } else {
                 $stmt = db()->prepare(
@@ -895,7 +1056,7 @@ final class DineCoreStaffApiController
         try {
             $countStmt = db()->prepare(
                 'SELECT COUNT(*) AS total
-                 FROM dinecore_table_sessions
+                 FROM dinecore_guest_sessions
                  WHERE UPPER(TRIM(table_code)) = ?'
             );
             $countStmt->execute([$tableCode]);
@@ -904,6 +1065,13 @@ final class DineCoreStaffApiController
                 $response->notFound('TABLE_SESSION_NOT_FOUND');
                 return;
             }
+
+            $expireGuestSessions = db()->prepare(
+                'UPDATE dinecore_guest_sessions
+                 SET status = ?, last_seen_at = NOW()
+                 WHERE UPPER(TRIM(table_code)) = ?'
+            );
+            $expireGuestSessions->execute(['expired', $tableCode]);
 
             $closeTableSession = db()->prepare(
                 'UPDATE dinecore_table_sessions
@@ -914,8 +1082,8 @@ final class DineCoreStaffApiController
 
             $response->ok([
                 'matched' => $matched,
-                'updated' => (int)$closeTableSession->rowCount(),
-                'cleared' => (int)$closeTableSession->rowCount(),
+                'updated' => (int)$expireGuestSessions->rowCount(),
+                'cleared' => (int)$expireGuestSessions->rowCount(),
                 'scope' => 'table',
                 'tableCode' => $tableCode,
                 'actor' => (string)$context['username'],
@@ -932,41 +1100,22 @@ final class DineCoreStaffApiController
             return;
         }
 
-        $tableSession = $this->findLatestTableSessionByCode((string)$order['table_code']);
-        if ($tableSession === null) {
-            return;
-        }
-
-        $guestState = $this->decodeJsonArray($tableSession['guest_state_json'] ?? '[]');
-        $updated = false;
-        foreach ($guestState as $index => $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            if ((int)($row['order_id'] ?? 0) !== $orderId) {
-                continue;
-            }
-
-            $next = $row;
-            $next['status'] = 'expired';
-            $next['last_seen_at'] = date('Y-m-d H:i:s');
-            $guestState[$index] = $next;
-            $updated = true;
-        }
-
-        if (!$updated) {
-            return;
-        }
+        $expireGuests = db()->prepare(
+            'UPDATE dinecore_guest_sessions
+             SET status = ?, last_seen_at = NOW()
+             WHERE order_id = ?'
+        );
+        $expireGuests->execute(['expired', $orderId]);
 
         $stmt = db()->prepare(
             'UPDATE dinecore_table_sessions
-             SET status = ?, closed_at = NULL, guest_state_json = ?, updated_at = NOW()
-             WHERE id = ?'
+             SET status = ?, closed_at = NOW(), guest_state_json = ?, updated_at = NOW()
+             WHERE table_code = ?'
         );
         $stmt->execute([
-            'active',
-            json_encode(array_values($guestState), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            (int)$tableSession['id'],
+            'closed',
+            '[]',
+            (string)$order['table_code'],
         ]);
     }
 
@@ -1307,7 +1456,8 @@ final class DineCoreStaffApiController
                     FROM dinecore_order_batches b
                     WHERE b.order_id = dinecore_orders.id
                       AND b.status <> "draft"
-                )';
+                )
+                  AND order_status <> "merged"';
         $params = [];
 
         if ($filters['date_from'] !== '') {
@@ -1317,10 +1467,6 @@ final class DineCoreStaffApiController
         if ($filters['date_to'] !== '') {
             $sql .= ' AND DATE(created_at) <= ?';
             $params[] = $filters['date_to'];
-        }
-        if ($filters['status'] !== '' && $filters['status'] !== 'all') {
-            $sql .= ' AND order_status = ?';
-            $params[] = $filters['status'];
         }
         if ($filters['payment_status'] !== '' && $filters['payment_status'] !== 'all') {
             $sql .= ' AND payment_status = ?';
@@ -1340,7 +1486,12 @@ final class DineCoreStaffApiController
         $sql .= ' ORDER BY created_at DESC, id DESC';
         $stmt = db()->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll() ?: [];
+        return array_values(array_filter(
+            array_map(fn (array $order): array => $this->normalizeOrderRowWithDerivedStatus($order), $stmt->fetchAll() ?: []),
+            fn (array $order): bool => $filters['status'] === '' || $filters['status'] === 'all'
+                ? true
+                : (string)$order['order_status'] === $filters['status']
+        ));
     }
 
     private function buildReportsSummaryPayload(array $orders, array $filters): array
@@ -1388,6 +1539,7 @@ final class DineCoreStaffApiController
              JOIN dinecore_orders o ON o.id = ci.order_id
              JOIN dinecore_order_batches b ON b.id = ci.batch_id
              WHERE b.status <> "draft"
+               AND o.order_status <> "merged"
              GROUP BY ci.menu_item_id, ci.title
              ORDER BY quantity DESC, gross_sales DESC
              LIMIT 5'
@@ -1681,37 +1833,30 @@ final class DineCoreStaffApiController
 
     private function listSessionsForOrder(int $orderId, bool $activeOnly): array
     {
-        $tableSession = $this->findTableSessionByOrderId($orderId);
-        if ($tableSession === null) {
-            return [];
+        $sql = 'SELECT id, session_token, table_code, order_id, person_slot, cart_id, display_label, status, created_at, last_seen_at
+                FROM dinecore_guest_sessions
+                WHERE order_id = ?';
+        $params = [$orderId];
+
+        if ($activeOnly) {
+            $sql .= ' AND status <> ?';
+            $params[] = 'expired';
         }
 
-        $sessions = [];
-        foreach ($this->decodeJsonArray($tableSession['guest_state_json'] ?? '[]') as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $status = (string)($row['status'] ?? 'active');
-            if ($activeOnly && $status === 'expired') {
-                continue;
-            }
-            if ((int)($row['order_id'] ?? 0) !== $orderId) {
-                continue;
-            }
-            $sessions[] = [
-                'id' => (int)($row['id'] ?? 0),
-                'session_token' => (string)($row['session_token'] ?? ''),
-                'table_code' => (string)($row['table_code'] ?? ''),
-                'order_id' => (int)($row['order_id'] ?? 0),
-                'person_slot' => max(1, (int)($row['person_slot'] ?? 1)),
-                'cart_id' => (string)($row['cart_id'] ?? ''),
-                'display_label' => (string)($row['display_label'] ?? ''),
-                'status' => $status,
-            ];
-        }
-        usort($sessions, fn (array $a, array $b): int => ((int)$a['person_slot'] <=> (int)$b['person_slot']));
+        $sql .= ' ORDER BY person_slot ASC, id ASC';
+        $stmt = db()->prepare($sql);
+        $stmt->execute($params);
 
-        return $sessions;
+        return array_map(fn (array $row): array => [
+            'id' => (int)$row['id'],
+            'session_token' => (string)$row['session_token'],
+            'table_code' => (string)$row['table_code'],
+            'order_id' => (int)($row['order_id'] ?? 0),
+            'person_slot' => max(1, (int)$row['person_slot']),
+            'cart_id' => (string)$row['cart_id'],
+            'display_label' => (string)$row['display_label'],
+            'status' => (string)$row['status'],
+        ], $stmt->fetchAll() ?: []);
     }
 
     private function findTableSessionByOrderId(int $orderId): ?array
@@ -1727,7 +1872,7 @@ final class DineCoreStaffApiController
     private function findLatestTableSessionByCode(string $tableCode): ?array
     {
         $stmt = db()->prepare(
-            'SELECT id, table_code, order_id, status, guest_state_json
+            'SELECT id, table_code, order_id, status
              FROM dinecore_table_sessions
              WHERE table_code = ?
              ORDER BY id DESC
@@ -1800,10 +1945,7 @@ final class DineCoreStaffApiController
     private function buildBatchDetails(int $orderId): array
     {
         $sessions = $this->listSessionsForOrder($orderId, false);
-        $visibleBatches = array_values(array_filter(
-            $this->listOrderBatches($orderId),
-            fn (array $batch): bool => (string)$batch['status'] !== 'draft'
-        ));
+        $visibleBatches = $this->filterEffectiveBatches($this->listOrderBatches($orderId));
 
         return array_map(function (array $batch) use ($orderId, $sessions): array {
             $itemsByCartId = $this->listCartItemsByCartId($orderId, (int)$batch['id']);
@@ -1847,6 +1989,135 @@ final class DineCoreStaffApiController
                 'persons' => $persons,
             ];
         }, $visibleBatches);
+    }
+
+    private function listMergeCandidatesForOrder(array $order): array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, order_no, table_code, order_status, payment_status, total_amount, created_at
+             FROM dinecore_orders
+             WHERE table_code = ?
+               AND id <> ?
+               AND payment_status <> ?
+               AND order_status NOT IN (?, ?, ?)
+               AND DATE(created_at) = DATE(?)
+               AND EXISTS (
+                   SELECT 1
+                   FROM dinecore_order_batches b
+                   WHERE b.order_id = dinecore_orders.id
+                     AND b.status <> "draft"
+               )
+             ORDER BY created_at DESC, id DESC'
+        );
+        $stmt->execute([
+            (string)$order['table_code'],
+            (int)$order['id'],
+            'paid',
+            'cancelled',
+            'merged',
+            'draft',
+            (string)$order['created_at'],
+        ]);
+
+        return array_map(function (array $row): array {
+            $row = $this->normalizeOrderRowWithDerivedStatus($row);
+            return [
+            'id' => (int)$row['id'],
+            'orderNo' => (string)$row['order_no'],
+            'tableCode' => (string)$row['table_code'],
+            'orderStatus' => (string)$row['order_status'],
+            'paymentStatus' => (string)$row['payment_status'],
+            'totalAmount' => (int)$row['total_amount'],
+            'createdAt' => (string)$row['created_at'],
+            ];
+        }, $stmt->fetchAll() ?: []);
+    }
+
+    private function assertMergeableOrders(array $targetOrder, array $mergedOrder): void
+    {
+        if ((string)$targetOrder['table_code'] !== (string)$mergedOrder['table_code']) {
+            throw new \RuntimeException('MERGE_TABLE_MISMATCH');
+        }
+
+        if (substr((string)$targetOrder['created_at'], 0, 10) !== substr((string)$mergedOrder['created_at'], 0, 10)) {
+            throw new \RuntimeException('MERGE_DATE_MISMATCH');
+        }
+
+        foreach ([$targetOrder, $mergedOrder] as $order) {
+            if ((string)$order['payment_status'] === 'paid') {
+                throw new \RuntimeException('MERGE_ORDER_PAID');
+            }
+            if (in_array((string)$order['order_status'], ['cancelled', 'merged', 'draft'], true)) {
+                throw new \RuntimeException('MERGE_ORDER_INVALID_STATUS');
+            }
+        }
+    }
+
+    private function resolveMaxBatchNo(int $orderId): int
+    {
+        $stmt = db()->prepare(
+            'SELECT COALESCE(MAX(batch_no), 0) AS max_batch_no
+             FROM dinecore_order_batches
+             WHERE order_id = ?'
+        );
+        $stmt->execute([$orderId]);
+
+        return (int)($stmt->fetch()['max_batch_no'] ?? 0);
+    }
+
+    private function recalculateOrderAmounts(int $orderId): void
+    {
+        $stmt = db()->prepare(
+            'SELECT ci.quantity, ci.price
+             FROM dinecore_cart_items ci
+             INNER JOIN dinecore_order_batches b
+               ON b.id = ci.batch_id
+             WHERE ci.order_id = ?
+               AND b.status <> ?'
+        );
+        $stmt->execute([$orderId, 'draft']);
+        $rows = $stmt->fetchAll() ?: [];
+
+        $subtotal = array_reduce(
+            $rows,
+            fn ($sum, array $row) => $sum + ((int)$row['price'] * (int)$row['quantity']),
+            0
+        );
+        $serviceFee = (int)round($subtotal * 0.05);
+        $tax = (int)round($subtotal * 0.025);
+
+        $update = db()->prepare(
+            'UPDATE dinecore_orders
+             SET subtotal_amount = ?, service_fee_amount = ?, tax_amount = ?, total_amount = ?, updated_at = NOW()
+             WHERE id = ?'
+        );
+        $update->execute([
+            $subtotal,
+            $serviceFee,
+            $tax,
+            $subtotal + $serviceFee + $tax,
+            $orderId,
+        ]);
+    }
+
+    private function rebindMergedSessions(string $tableCode, int $fromOrderId, int $targetOrderId): void
+    {
+        $stmt = db()->prepare(
+            'UPDATE dinecore_guest_sessions
+             SET order_id = ?, last_seen_at = NOW()
+             WHERE table_code = ? AND order_id = ?'
+        );
+        $stmt->execute([$targetOrderId, $tableCode, $fromOrderId]);
+
+        $tableSession = $this->findLatestTableSessionByCode($tableCode);
+        if ($tableSession !== null) {
+            $touch = db()->prepare(
+                'UPDATE dinecore_table_sessions
+                 SET order_id = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $touch->execute([$targetOrderId, (int)$tableSession['id']]);
+        }
     }
 
     private function loadOrderTimeline(int $orderId): array
@@ -1896,10 +2167,7 @@ final class DineCoreStaffApiController
              LIMIT 1'
         );
         $stmt->execute([$orderId, 'draft']);
-        $status = (string)($stmt->fetch()['status'] ?? 'draft');
-        if ($status === 'submitted') {
-            $status = 'pending';
-        }
+        $status = $this->deriveOrderStatusFromBatches($orderId, null, 'draft');
 
         $update = db()->prepare(
             'UPDATE dinecore_orders
@@ -1907,6 +2175,29 @@ final class DineCoreStaffApiController
              WHERE id = ?'
         );
         $update->execute([$status, $orderId]);
+    }
+
+    private function updateLatestEffectiveBatchStatus(int $orderId, string $status): void
+    {
+        $stmt = db()->prepare(
+            'SELECT id
+             FROM dinecore_order_batches
+             WHERE order_id = ? AND status <> ?
+             ORDER BY batch_no DESC, id DESC
+             LIMIT 1'
+        );
+        $stmt->execute([$orderId, 'draft']);
+        $batchId = (int)($stmt->fetch()['id'] ?? 0);
+        if ($batchId <= 0) {
+            return;
+        }
+
+        $update = db()->prepare(
+            'UPDATE dinecore_order_batches
+             SET status = ?, updated_at = NOW()
+             WHERE id = ?'
+        );
+        $update->execute([$status, $batchId]);
     }
 
     private function isBusinessDateLockedForOrder(int $orderId): bool
@@ -1938,6 +2229,51 @@ final class DineCoreStaffApiController
 
         $decoded = json_decode($raw, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function isEffectiveBatchStatus(string $status): bool
+    {
+        return $status !== '' && $status !== 'draft';
+    }
+
+    private function filterEffectiveBatches(array $batches): array
+    {
+        return array_values(array_filter(
+            $batches,
+            fn (array $batch): bool => $this->isEffectiveBatchStatus((string)($batch['status'] ?? ''))
+        ));
+    }
+
+    private function normalizeBatchDrivenOrderStatus(string $status): string
+    {
+        return $status === 'submitted' ? 'pending' : $status;
+    }
+
+    private function deriveOrderStatusFromBatches(int $orderId, ?array $batches = null, string $fallback = 'draft'): string
+    {
+        $effectiveBatches = $this->filterEffectiveBatches($batches ?? $this->listOrderBatches($orderId));
+        if ($effectiveBatches === []) {
+            return $fallback;
+        }
+
+        $latestBatch = $effectiveBatches[array_key_last($effectiveBatches)];
+        return $this->normalizeBatchDrivenOrderStatus((string)($latestBatch['status'] ?? $fallback));
+    }
+
+    private function normalizeOrderRowWithDerivedStatus(array $order, ?array $batches = null): array
+    {
+        $currentStatus = (string)($order['order_status'] ?? 'draft');
+        if (in_array($currentStatus, ['cancelled', 'merged', 'picked_up'], true)) {
+            return $order;
+        }
+
+        $order['order_status'] = $this->deriveOrderStatusFromBatches(
+            (int)($order['id'] ?? 0),
+            $batches,
+            $currentStatus !== '' ? $currentStatus : 'draft'
+        );
+
+        return $order;
     }
 
     private function labelOrderStatus(string $status): string
