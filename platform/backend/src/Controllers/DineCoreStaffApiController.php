@@ -20,26 +20,221 @@ final class DineCoreStaffApiController
         }
 
         try {
-            $stmt = db()->query(
-                'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled
-                 FROM dinecore_tables
-                 ORDER BY code ASC, id ASC'
-            );
-
-            $tables = array_map(fn (array $table): array => [
-                'id' => (int)$table['id'],
-                'code' => (string)$table['code'],
-                'name' => (string)$table['name'],
-                'areaName' => (string)$table['area_name'],
-                'dineMode' => (string)$table['dine_mode'],
-                'status' => (string)$table['status'],
-                'orderingEnabled' => (int)$table['is_ordering_enabled'] === 1,
-                'qrImageUrl' => $this->resolveTableQrImageUrl((string)$table['code']),
-            ], $stmt->fetchAll() ?: []);
-
-            $response->ok($tables);
+            $response->ok($this->loadStaffTables());
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'STAFF_TABLES_LOAD_FAILED');
+        }
+    }
+
+    public function createStaffTable(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $code = strtoupper(trim((string)($request->body['code'] ?? '')));
+        $name = trim((string)($request->body['name'] ?? ''));
+        $areaName = trim((string)($request->body['areaName'] ?? $request->body['area_name'] ?? ''));
+        $dineMode = trim((string)($request->body['dineMode'] ?? $request->body['dine_mode'] ?? 'dine_in'));
+
+        if ($code === '') {
+            $response->error('TABLE_CODE_REQUIRED', 'TABLE_CODE_REQUIRED', 422);
+            return;
+        }
+        if (!preg_match('/^[A-Z0-9_-]+$/', $code)) {
+            $response->error('TABLE_CODE_INVALID', 'TABLE_CODE_INVALID', 422);
+            return;
+        }
+        if ($this->findTableByCode($code) !== null) {
+            $response->error('TABLE_CODE_ALREADY_EXISTS', 'TABLE_CODE_ALREADY_EXISTS', 409);
+            return;
+        }
+
+        $safeName = $name !== '' ? $name : sprintf('%s 桌', $code);
+        $safeAreaName = $areaName !== '' ? $areaName : '未分區';
+        $safeDineMode = in_array($dineMode, ['dine_in', 'takeout', 'pickup'], true) ? $dineMode : 'dine_in';
+
+        try {
+            $sortOrder = $this->resolveNextTableSortOrder();
+            $stmt = db()->prepare(
+                'INSERT INTO dinecore_tables (code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            );
+            $stmt->execute([$code, $safeName, $safeAreaName, $safeDineMode, 'active', 1, $sortOrder]);
+
+            $response->ok([
+                'tables' => $this->loadStaffTables(),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'TABLE_CREATE_FAILED');
+        }
+    }
+
+    public function updateStaffTable(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $code = strtoupper(trim((string)($request->body['code'] ?? '')));
+        if ($code === '') {
+            $response->error('TABLE_CODE_REQUIRED', 'TABLE_CODE_REQUIRED', 422);
+            return;
+        }
+
+        $table = $this->findTableByCode($code);
+        if ($table === null) {
+            $response->notFound('TABLE_NOT_FOUND');
+            return;
+        }
+
+        $name = $request->body['name'] ?? null;
+        $areaName = $request->body['areaName'] ?? $request->body['area_name'] ?? null;
+        $dineMode = $request->body['dineMode'] ?? $request->body['dine_mode'] ?? null;
+        $status = $request->body['status'] ?? null;
+        $orderingEnabled = $request->body['orderingEnabled'] ?? $request->body['ordering_enabled'] ?? null;
+
+        $nextName = is_string($name) ? trim($name) : (string)$table['name'];
+        $nextAreaName = is_string($areaName) ? trim($areaName) : (string)$table['area_name'];
+        $nextDineMode = is_string($dineMode) ? trim($dineMode) : (string)$table['dine_mode'];
+        $nextStatus = is_string($status) ? trim($status) : (string)$table['status'];
+        $nextOrderingEnabled = is_bool($orderingEnabled)
+            ? $orderingEnabled
+            : ((string)$orderingEnabled === '1' || (string)$orderingEnabled === 'true');
+        if ($orderingEnabled === null) {
+            $nextOrderingEnabled = (int)$table['is_ordering_enabled'] === 1;
+        }
+
+        if (!in_array($nextDineMode, ['dine_in', 'takeout', 'pickup'], true)) {
+            $nextDineMode = (string)$table['dine_mode'];
+        }
+        if (!in_array($nextStatus, ['active', 'cleaning', 'inactive'], true)) {
+            $nextStatus = (string)$table['status'];
+        }
+        if ($nextName === '') {
+            $nextName = sprintf('%s 桌', $code);
+        }
+        if ($nextAreaName === '') {
+            $nextAreaName = '未分區';
+        }
+
+        try {
+            $stmt = db()->prepare(
+                'UPDATE dinecore_tables
+                 SET name = ?, area_name = ?, dine_mode = ?, status = ?, is_ordering_enabled = ?, updated_at = NOW()
+                 WHERE code = ?'
+            );
+            $stmt->execute([
+                $nextName,
+                $nextAreaName,
+                $nextDineMode,
+                $nextStatus,
+                $nextOrderingEnabled ? 1 : 0,
+                $code,
+            ]);
+
+            $updated = $this->findTableByCode($code);
+            if ($updated === null) {
+                $response->notFound('TABLE_NOT_FOUND');
+                return;
+            }
+
+            $response->ok([
+                'table' => $this->normalizeStaffTable($updated),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'TABLE_UPDATE_FAILED');
+        }
+    }
+
+    public function deleteStaffTable(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $code = strtoupper(trim((string)($request->body['code'] ?? '')));
+        if ($code === '') {
+            $response->error('TABLE_CODE_REQUIRED', 'TABLE_CODE_REQUIRED', 422);
+            return;
+        }
+
+        if ($this->findTableByCode($code) === null) {
+            $response->notFound('TABLE_NOT_FOUND');
+            return;
+        }
+
+        try {
+            $stmt = db()->prepare('DELETE FROM dinecore_tables WHERE code = ?');
+            $stmt->execute([$code]);
+            $this->normalizeTableSortOrders();
+
+            $response->ok([
+                'tables' => $this->loadStaffTables(),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'TABLE_DELETE_FAILED');
+        }
+    }
+
+    public function reorderStaffTables(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $code = strtoupper(trim((string)($request->body['code'] ?? '')));
+        $direction = trim((string)($request->body['direction'] ?? ''));
+        if ($code === '') {
+            $response->error('TABLE_CODE_REQUIRED', 'TABLE_CODE_REQUIRED', 422);
+            return;
+        }
+        if (!in_array($direction, ['up', 'down'], true)) {
+            $response->error('TABLE_REORDER_DIRECTION_REQUIRED', 'TABLE_REORDER_DIRECTION_REQUIRED', 422);
+            return;
+        }
+
+        try {
+            $rows = db()->query(
+                'SELECT id, code
+                 FROM dinecore_tables
+                 ORDER BY sort_order ASC, id ASC'
+            )->fetchAll() ?: [];
+
+            $index = -1;
+            foreach ($rows as $i => $row) {
+                if (strtoupper((string)$row['code']) === $code) {
+                    $index = $i;
+                    break;
+                }
+            }
+            if ($index < 0) {
+                $response->notFound('TABLE_NOT_FOUND');
+                return;
+            }
+
+            $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
+            if ($targetIndex >= 0 && $targetIndex < count($rows)) {
+                $current = $rows[$index];
+                $target = $rows[$targetIndex];
+                $rows[$index] = $target;
+                $rows[$targetIndex] = $current;
+            }
+
+            $update = db()->prepare('UPDATE dinecore_tables SET sort_order = ?, updated_at = NOW() WHERE id = ?');
+            foreach ($rows as $i => $row) {
+                $update->execute([$i + 1, (int)$row['id']]);
+            }
+
+            $response->ok([
+                'tables' => $this->loadStaffTables(),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'TABLE_REORDER_FAILED');
         }
     }
 
@@ -628,7 +823,13 @@ final class DineCoreStaffApiController
             return;
         }
 
-        $tableCode = strtoupper(trim((string)($request->body['table_code'] ?? $request->body['tableCode'] ?? '')));
+        $tableCode = strtoupper(trim((string)(
+            $request->body['table_code']
+            ?? $request->body['tableCode']
+            ?? $request->query['table_code']
+            ?? $request->query['tableCode']
+            ?? ''
+        )));
 
         if ($tableCode === '') {
             $response->error('TABLE_CODE_REQUIRED', 'TABLE_CODE_REQUIRED', 422);
@@ -1195,10 +1396,63 @@ final class DineCoreStaffApiController
         return trim((string)($request->query['token'] ?? ''));
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadStaffTables(): array
+    {
+        $stmt = db()->query(
+            'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order
+             FROM dinecore_tables
+             ORDER BY sort_order ASC, id ASC'
+        );
+
+        return array_map(fn (array $table): array => $this->normalizeStaffTable($table), $stmt->fetchAll() ?: []);
+    }
+
+    /**
+     * @param array<string, mixed> $table
+     * @return array<string, mixed>
+     */
+    private function normalizeStaffTable(array $table): array
+    {
+        return [
+            'id' => (int)$table['id'],
+            'code' => (string)$table['code'],
+            'name' => (string)$table['name'],
+            'areaName' => (string)$table['area_name'],
+            'dineMode' => (string)$table['dine_mode'],
+            'status' => (string)$table['status'],
+            'orderingEnabled' => (int)$table['is_ordering_enabled'] === 1,
+            'sortOrder' => (int)($table['sort_order'] ?? 0),
+            'qrImageUrl' => $this->resolveTableQrImageUrl((string)$table['code']),
+        ];
+    }
+
+    private function resolveNextTableSortOrder(): int
+    {
+        $stmt = db()->query('SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM dinecore_tables');
+        return ((int)($stmt->fetch()['max_sort'] ?? 0)) + 1;
+    }
+
+    private function normalizeTableSortOrders(): void
+    {
+        $rows = db()->query(
+            'SELECT id
+             FROM dinecore_tables
+             ORDER BY sort_order ASC, id ASC'
+        )->fetchAll() ?: [];
+
+        $update = db()->prepare('UPDATE dinecore_tables SET sort_order = ?, updated_at = NOW() WHERE id = ?');
+        foreach ($rows as $index => $row) {
+            $update->execute([$index + 1, (int)$row['id']]);
+        }
+    }
+
     private function findTableByCode(string $tableCode): ?array
     {
         $stmt = db()->prepare(
-            'SELECT id, code, name
+            'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order
              FROM dinecore_tables
              WHERE UPPER(TRIM(code)) = ?
              LIMIT 1'

@@ -44,7 +44,7 @@ export async function loadTableAdminTables() {
         status: String(table.status || 'active'),
         orderingEnabled: Boolean(table.orderingEnabled),
         qrImageUrl: String(table.qrImageUrl || ''),
-        sortOrder: index + 1
+        sortOrder: Number(table.sortOrder || index + 1)
       }))
     }
   }
@@ -53,18 +53,75 @@ export async function loadTableAdminTables() {
 }
 
 export async function createTableAdminTable(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post(
+        '/api/dinecore/staff/tables/create',
+        {
+          code: String(payload?.code || '').trim().toUpperCase(),
+          name: String(payload?.name || '').trim(),
+          area_name: String(payload?.areaName || payload?.area_name || '').trim(),
+          dine_mode: String(payload?.dineMode || payload?.dine_mode || 'dine_in').trim()
+        },
+        { tokenQuery: true }
+      )
+    )
+  }
+
   return mockApiRequest('table-admin/create-table', payload)
 }
 
 export async function updateTableAdminTable(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post(
+        '/api/dinecore/staff/tables/update',
+        {
+          code: String(payload?.code || '').trim().toUpperCase(),
+          name: payload?.name,
+          area_name: payload?.areaName ?? payload?.area_name,
+          dine_mode: payload?.dineMode ?? payload?.dine_mode,
+          status: payload?.status,
+          ordering_enabled: payload?.orderingEnabled
+        },
+        { tokenQuery: true }
+      )
+    )
+  }
+
   return mockApiRequest('table-admin/update-table', payload)
 }
 
 export async function deleteTableAdminTable(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post(
+        '/api/dinecore/staff/tables/delete',
+        {
+          code: String(payload?.code || '').trim().toUpperCase()
+        },
+        { tokenQuery: true }
+      )
+    )
+  }
+
   return mockApiRequest('table-admin/delete-table', payload)
 }
 
 export async function reorderTableAdminTables(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post(
+        '/api/dinecore/staff/tables/reorder',
+        {
+          code: String(payload?.code || '').trim().toUpperCase(),
+          direction: String(payload?.direction || '').trim().toLowerCase()
+        },
+        { tokenQuery: true }
+      )
+    )
+  }
+
   return mockApiRequest('table-admin/reorder-tables', payload)
 }
 
@@ -73,16 +130,51 @@ export async function generateTableAdminQr(payload) {
     throw new Error('REAL_API_REQUIRED')
   }
 
-  return unwrapResult(
-    await world.http().post(
-      '/api/dinecore/staff/tables/generate-qr',
-      {
-        table_code: String(payload?.tableCode || payload?.table_code || '').trim().toUpperCase(),
-        entry_base_url: String(payload?.entryBaseUrl || payload?.entry_base_url || '').trim()
-      },
-      { tokenQuery: true }
-    )
-  )
+  const body = {
+    table_code: String(payload?.tableCode || payload?.table_code || '').trim().toUpperCase(),
+    entry_base_url: String(payload?.entryBaseUrl || payload?.entry_base_url || '').trim()
+  }
+  const paths = [
+    '/api/dinecore/staff/tables/generate-qr',
+    '/api/dinecore/staff/tables/generate-qr/',
+    '/api/dinecore/staff/table/generate-qr',
+    '/api/dinecore/staff/tables/generate_qr'
+  ]
+
+  let lastError = null
+  for (const path of paths) {
+    try {
+      return unwrapResult(await world.http().post(path, body, { tokenQuery: true }))
+    } catch (error) {
+      const message = String(error?.message || '')
+      const isNotFound =
+        message === 'NOT_FOUND' ||
+        message.includes('404') ||
+        message.toUpperCase().includes('NOT FOUND')
+      if (!isNotFound) {
+        throw error
+      }
+      lastError = error
+    }
+  }
+
+  // Fallback: if backend QR route is unavailable in current env, generate QR in browser.
+  if (typeof window !== 'undefined' && body.table_code) {
+    const baseUrl = body.entry_base_url || window.location.origin
+    const entryUrl = `${String(baseUrl).replace(/\/+$/, '')}/t/${body.table_code}`
+    const publicUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(entryUrl)}`
+
+    return {
+      tableCode: body.table_code,
+      fileName: `${body.table_code}.png`,
+      publicUrl,
+      entryUrl,
+      updatedAt: new Date().toISOString(),
+      generatedBy: 'frontend-fallback'
+    }
+  }
+
+  throw lastError || new Error('NOT_FOUND')
 }
 
 export async function clearTableAdminGuestSessions(payload = {}) {

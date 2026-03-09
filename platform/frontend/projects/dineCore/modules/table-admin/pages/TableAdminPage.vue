@@ -18,7 +18,9 @@ const createForm = reactive({
 })
 
 watchEffect(() => {
-  tableAdminStore.load()
+  tableAdminStore.load().catch(error => {
+    window.alert(resolveTableAdminErrorMessage(error))
+  })
 })
 
 watchEffect(() => {
@@ -33,25 +35,48 @@ watchEffect(() => {
   }
 })
 
-async function createTable() {
-  await tableAdminStore.createTable({
-    code: createForm.code,
-    name: createForm.name,
-    areaName: createForm.areaName,
-    dineMode: createForm.dineMode
-  })
+function resolveTableAdminErrorMessage(error) {
+  const code = String(error?.message || 'UNKNOWN_ERROR').trim()
 
-  createForm.code = ''
-  createForm.name = ''
-  createForm.areaName = ''
-  createForm.dineMode = 'dine_in'
+  switch (code) {
+    case 'TABLE_CODE_ALREADY_EXISTS':
+      return '桌號代碼已存在，請改用其他桌號。'
+    case 'TABLE_CODE_REQUIRED':
+      return '請輸入桌號代碼。'
+    case 'TABLE_NAME_REQUIRED':
+      return '請輸入桌位名稱。'
+    default:
+      return `操作失敗：${code}`
+  }
+}
+
+async function createTable() {
+  try {
+    await tableAdminStore.createTable({
+      code: createForm.code,
+      name: createForm.name,
+      areaName: createForm.areaName,
+      dineMode: createForm.dineMode
+    })
+
+    createForm.code = ''
+    createForm.name = ''
+    createForm.areaName = ''
+    createForm.dineMode = 'dine_in'
+  } catch (error) {
+    window.alert(resolveTableAdminErrorMessage(error))
+  }
 }
 
 async function updateTable(table, patch) {
-  await tableAdminStore.updateTable({
-    code: table.code,
-    ...patch
-  })
+  try {
+    await tableAdminStore.updateTable({
+      code: table.code,
+      ...patch
+    })
+  } catch (error) {
+    window.alert(resolveTableAdminErrorMessage(error))
+  }
 }
 
 async function deleteTable(table) {
@@ -66,18 +91,26 @@ async function deleteTable(table) {
     return
   }
 
-  await tableAdminStore.deleteTable({
-    code: tableCode
-  })
+  try {
+    await tableAdminStore.deleteTable({
+      code: tableCode
+    })
 
-  window.alert(`已刪除桌位 ${tableCode}`)
+    window.alert(`已刪除桌位 ${tableCode}`)
+  } catch (error) {
+    window.alert(resolveTableAdminErrorMessage(error))
+  }
 }
 
 async function moveTable(table, direction) {
-  await tableAdminStore.reorderTables({
-    code: table.code,
-    direction
-  })
+  try {
+    await tableAdminStore.reorderTables({
+      code: table.code,
+      direction
+    })
+  } catch (error) {
+    window.alert(resolveTableAdminErrorMessage(error))
+  }
 }
 
 function getEntryPath(tableCode) {
@@ -153,9 +186,17 @@ async function generateQrImage(table) {
       payload?.entryUrl || ''
     )
 
-    qrImageUrlByTableCode[tableCode] = publicUrl.includes('?')
-      ? `${publicUrl}&v=${Date.now()}`
-      : `${publicUrl}?v=${Date.now()}`
+    const isDataUrl = /^data:/i.test(publicUrl)
+    qrImageUrlByTableCode[tableCode] = isDataUrl
+      ? publicUrl
+      : publicUrl.includes('?')
+        ? `${publicUrl}&v=${Date.now()}`
+        : `${publicUrl}?v=${Date.now()}`
+
+    if (payload?.generatedBy === 'frontend-fallback') {
+      window.alert(`已產生 ${tableCode} 的 QR 圖片（本地 fallback）`)
+      return
+    }
 
     window.alert(`已產生 ${tableCode} 的 QR 圖片`)
   } catch (error) {

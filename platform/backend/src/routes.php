@@ -17,6 +17,10 @@ $router->add('GET', '/api/dinecore/checkout-success', 'DineCoreGuestApiControlle
 $router->add('POST', '/api/dinecore/checkout-submit', 'DineCoreGuestApiController@checkoutSubmit');
 $router->add('GET', '/api/dinecore/order-tracker', 'DineCoreGuestApiController@orderTracker');
 $router->add('GET', '/api/dinecore/staff/tables', 'DineCoreStaffApiController@staffTables');
+$router->add('POST', '/api/dinecore/staff/tables/create', 'DineCoreStaffApiController@createStaffTable');
+$router->add('POST', '/api/dinecore/staff/tables/update', 'DineCoreStaffApiController@updateStaffTable');
+$router->add('POST', '/api/dinecore/staff/tables/delete', 'DineCoreStaffApiController@deleteStaffTable');
+$router->add('POST', '/api/dinecore/staff/tables/reorder', 'DineCoreStaffApiController@reorderStaffTables');
 $router->add('GET', '/api/dinecore/staff/counter/orders', 'DineCoreStaffApiController@counterOrders');
 $router->add('GET', '/api/dinecore/staff/counter/order-detail', 'DineCoreStaffApiController@counterOrderDetail');
 $router->add('GET', '/api/dinecore/staff/counter/merge-candidates', 'DineCoreStaffApiController@counterMergeCandidates');
@@ -32,6 +36,14 @@ $router->add('POST', '/api/dinecore/staff/menu/create-item', 'DineCoreStaffApiCo
 $router->add('POST', '/api/dinecore/staff/menu/update-item-content', 'DineCoreStaffApiController@menuAdminUpdateItemContent');
 $router->add('POST', '/api/dinecore/staff/menu/update-item-image', 'DineCoreStaffApiController@menuAdminUpdateItemImage');
 $router->add('POST', '/api/dinecore/staff/tables/generate-qr', 'DineCoreStaffApiController@generateTableQr');
+// Backward compatibility for environments with older/variant routes.
+$router->add('GET', '/api/dinecore/staff/tables/generate-qr', 'DineCoreStaffApiController@generateTableQr');
+$router->add('POST', '/api/dinecore/staff/tables/generate-qr/', 'DineCoreStaffApiController@generateTableQr');
+$router->add('GET', '/api/dinecore/staff/tables/generate-qr/', 'DineCoreStaffApiController@generateTableQr');
+$router->add('POST', '/api/dinecore/staff/table/generate-qr', 'DineCoreStaffApiController@generateTableQr');
+$router->add('GET', '/api/dinecore/staff/table/generate-qr', 'DineCoreStaffApiController@generateTableQr');
+$router->add('POST', '/api/dinecore/staff/tables/generate_qr', 'DineCoreStaffApiController@generateTableQr');
+$router->add('GET', '/api/dinecore/staff/tables/generate_qr', 'DineCoreStaffApiController@generateTableQr');
 $router->add('POST', '/api/dinecore/staff/sessions/clear', 'DineCoreStaffApiController@clearGuestSessions');
 $router->add('GET', '/api/dinecore/staff/sessions/clear', 'DineCoreStaffApiController@clearGuestSessions');
 // Backward/edge compatibility: tolerate singular path and trailing slash.
