@@ -151,8 +151,18 @@ const canContinueOrdering = computed(() =>
         .person-panel__head
           .person-panel__title-block
             strong.person-panel__title {{ person.guestLabel }}
-            span.person-panel__meta {{ `小計 ${formatCurrency(person.subtotal)}` }}
-          strong.person-panel__total {{ formatCurrency(person.total) }}
+            span.person-panel__meta {{ `餐點小計 ${formatCurrency(person.subtotal)}` }}
+          strong.person-panel__total {{ `總計 ${formatCurrency(person.total)}` }}
+        .person-panel__bill
+          .person-panel__bill-row
+            span.person-panel__bill-label 餐點小計
+            span.person-panel__bill-value {{ formatCurrency(person.subtotal) }}
+          .person-panel__bill-row
+            span.person-panel__bill-label 10% 服務費
+            span.person-panel__bill-value {{ formatCurrency(person.serviceFee) }}
+          .person-panel__bill-row.is-total
+            span.person-panel__bill-label 總計
+            strong.person-panel__bill-value {{ formatCurrency(person.total) }}
         .person-panel__items
           article.person-item(v-for="item in person.items" :key="item.id")
             .person-item__head
@@ -294,6 +304,32 @@ const canContinueOrdering = computed(() =>
 .person-panel
   display: grid
   gap: 14px
+
+.person-panel__bill
+  display: grid
+  gap: 6px
+  padding: 12px 14px
+  border-radius: 14px
+  background: rgba(33, 55, 59, 0.04)
+
+.person-panel__bill-row
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+  color: var(--dc-text-muted)
+  font-size: 13px
+
+.person-panel__bill-row.is-total
+  padding-top: 6px
+  border-top: 1px dashed rgba(109, 180, 177, 0.35)
+  color: #21373b
+
+.person-panel__bill-label
+  white-space: nowrap
+
+.person-panel__bill-value
+  color: inherit
 
 .person-panel__total
   color: #21373b

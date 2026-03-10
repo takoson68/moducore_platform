@@ -897,13 +897,12 @@ final class DineCoreStaffApiController
                 return;
             }
 
-            $publicPath = '/assets/QRC/' . rawurlencode($fileName);
-            $publicUrl = rtrim($this->resolveBackendBaseUrl(), '/') . $publicPath;
+            $publicPath = 'assets/QRC/' . rawurlencode($fileName);
             $response->ok([
                 'tableCode' => $tableCode,
                 'fileName' => $fileName,
                 'publicPath' => $publicPath,
-                'publicUrl' => $publicUrl,
+                'publicUrl' => $publicPath,
                 'entryUrl' => $entryUrl,
                 'updatedAt' => date('c'),
             ]);
@@ -1467,9 +1466,9 @@ final class DineCoreStaffApiController
     {
         $fromBody = trim((string)($request->body['entry_base_url'] ?? $request->body['entryBaseUrl'] ?? ''));
         if ($fromBody !== '') {
-            $origin = $this->extractOriginFromUrl($fromBody);
-            if ($origin !== '') {
-                return $origin;
+            $baseUrl = $this->extractBaseUrlFromUrl($fromBody);
+            if ($baseUrl !== '') {
+                return $baseUrl;
             }
         }
 
@@ -1513,6 +1512,27 @@ final class DineCoreStaffApiController
         return $scheme . '://127.0.0.1:8000';
     }
 
+    private function extractBaseUrlFromUrl(string $url): string
+    {
+        $parts = @parse_url(trim($url));
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = (string)($parts['host'] ?? '');
+        if (($scheme !== 'http' && $scheme !== 'https') || $host === '') {
+            return '';
+        }
+
+        $port = isset($parts['port']) ? (int)$parts['port'] : 0;
+        $portPart = $port > 0 ? ':' . $port : '';
+        $path = trim((string)($parts['path'] ?? ''));
+        $normalizedPath = $path !== '' && $path !== '/' ? '/' . trim($path, '/') : '';
+
+        return $scheme . '://' . $host . $portPart . $normalizedPath;
+    }
+
     private function extractOriginFromUrl(string $url): string
     {
         $parts = @parse_url(trim($url));
@@ -1547,7 +1567,7 @@ final class DineCoreStaffApiController
 
         $timestamp = @filemtime($fullPath);
         $version = is_int($timestamp) ? '?v=' . $timestamp : '';
-        return rtrim($this->resolveBackendBaseUrl(), '/') . '/assets/QRC/' . rawurlencode($fileName) . $version;
+        return 'assets/QRC/' . rawurlencode($fileName) . $version;
     }
 
     private function loadMenuAdminCategories(): array

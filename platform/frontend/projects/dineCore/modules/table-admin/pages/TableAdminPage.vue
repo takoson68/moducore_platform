@@ -114,7 +114,7 @@ async function moveTable(table, direction) {
 }
 
 function getEntryPath(tableCode) {
-  return `/t/${tableCode}`
+  return resolveAppRelativePath(`t/${tableCode}`)
 }
 
 function toTableCode(value) {
@@ -126,29 +126,27 @@ function getEntryUrl(tableCode) {
   return `${window.location.origin}${getEntryPath(tableCode)}`
 }
 
-function normalizeQrUrl(urlLike, entryUrlLike = '') {
+function resolveAppRelativePath(pathLike) {
+  const raw = String(pathLike || '').trim()
+  if (!raw) return ''
+
+  const baseUrl = String(import.meta.env.BASE_URL || '/')
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  const normalizedPath = raw.replace(/^\.?\/*/, '')
+
+  return `${normalizedBase}${normalizedPath}`
+}
+
+function getAppBaseUrl() {
+  if (typeof window === 'undefined') return String(import.meta.env.BASE_URL || '/')
+  return new URL(String(import.meta.env.BASE_URL || '/'), window.location.origin).toString().replace(/\/$/, '')
+}
+
+function normalizeQrUrl(urlLike) {
   const raw = String(urlLike || '').trim()
   if (!raw) return ''
-  if (/^https?:\/\//i.test(raw)) return raw
-
-  const entryUrl = String(entryUrlLike || '').trim()
-  if (/^https?:\/\//i.test(entryUrl)) {
-    try {
-      return new URL(raw, entryUrl).toString()
-    } catch (_error) {
-      // fallback below
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    try {
-      return new URL(raw, window.location.origin).toString()
-    } catch (_error) {
-      return raw
-    }
-  }
-
-  return raw
+  if (/^data:/i.test(raw) || /^https?:\/\//i.test(raw)) return raw
+  return resolveAppRelativePath(raw)
 }
 
 function getQrImageSrc(tableCode) {
@@ -178,12 +176,11 @@ async function generateQrImage(table) {
   try {
     const payload = await tableAdminStore.generateTableQr({
       tableCode,
-      entryBaseUrl: typeof window !== 'undefined' ? window.location.origin : ''
+      entryBaseUrl: getAppBaseUrl()
     })
 
     const publicUrl = normalizeQrUrl(
-      payload?.publicUrl || payload?.publicPath || `/assets/QRC/${tableCode}.png`,
-      payload?.entryUrl || ''
+      payload?.publicUrl || payload?.publicPath || `assets/QRC/${tableCode}.png`
     )
 
     const isDataUrl = /^data:/i.test(publicUrl)

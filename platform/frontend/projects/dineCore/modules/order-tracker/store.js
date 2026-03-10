@@ -7,6 +7,8 @@ function normalizePerson(person) {
     cartId: person.cartId,
     guestLabel: person.guestLabel,
     subtotal: Number(person.subtotal || 0),
+    serviceFee: Number(person.serviceFee || 0),
+    tax: Number(person.tax || 0),
     total: Number(person.total || 0),
     items: Array.isArray(person.items) ? person.items : []
   }

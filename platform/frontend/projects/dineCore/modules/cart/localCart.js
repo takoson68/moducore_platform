@@ -153,8 +153,8 @@ export function buildCheckoutSummaryFromLocalCart(payload = {}) {
     (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
     0
   )
-  const serviceFee = Math.round(subtotal * 0.05)
-  const tax = Math.round(subtotal * 0.025)
+  const serviceFee = Math.round(subtotal * 0.1)
+  const tax = 0
   const itemCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
 
   return {
@@ -165,7 +165,7 @@ export function buildCheckoutSummaryFromLocalCart(payload = {}) {
     subtotal,
     serviceFee,
     tax,
-    total: subtotal + serviceFee + tax,
+    total: subtotal + serviceFee,
     paymentStatus: 'unpaid',
     persons: orderingCartId
       ? [
@@ -173,7 +173,7 @@ export function buildCheckoutSummaryFromLocalCart(payload = {}) {
             cartId: orderingCartId,
             guestLabel: String(payload.orderingLabel || ''),
             subtotal,
-            total: subtotal + serviceFee + tax,
+            total: subtotal + serviceFee,
             items
           }
         ]
@@ -184,4 +184,3 @@ export function buildCheckoutSummaryFromLocalCart(payload = {}) {
 export function createLocalCartItemId() {
   return `local-item-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
-

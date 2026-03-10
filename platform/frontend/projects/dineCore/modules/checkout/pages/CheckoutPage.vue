@@ -101,9 +101,6 @@ function goBackToCart() {
     .bill-row
       span.bill-row__label 服務費
       strong.bill-row__value {{ state.serviceFee }}
-    .bill-row
-      span.bill-row__label 稅額
-      strong.bill-row__value {{ state.tax }}
     .bill-row.is-total
       span.bill-row__label 合計
       strong.bill-row__value {{ state.total }}
@@ -141,7 +138,7 @@ function goBackToCart() {
 
   section.notice-card
     h3.notice-card__title 計算規則
-    p.notice-card__copy 目前前端以小計 5% 服務費與 2.5% 稅額先行顯示，正式送單仍由後端重算並建立正式批次資料。
+    p.notice-card__copy 目前前端以餐點小計加 10% 服務費先行顯示；菜單價格已含稅，正式送單仍由後端重算並建立正式批次資料。
 </template>
 
 <style lang="sass">
@@ -331,4 +328,3 @@ function goBackToCart() {
   color: #21373b
   font-size: 16px
 </style>
-

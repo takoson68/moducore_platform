@@ -449,8 +449,8 @@ function buildCheckoutSummary(state, tableCode) {
       options: cloneMockValue(item.options || [])
     }))
     const summary = summarizeCart(cart, bucket.itemsByCartId[cart.id] || [])
-    const personServiceFee = Math.round(summary.subtotal * 0.05)
-    const personTax = Math.round(summary.subtotal * 0.025)
+    const personServiceFee = Math.round(summary.subtotal * 0.1)
+    const personTax = 0
     const session = sessionByCartId[cart.id]
 
     return {
@@ -458,20 +458,20 @@ function buildCheckoutSummary(state, tableCode) {
       personSlot: Number(session?.person_slot || 0),
       guestLabel: summary.guestLabel,
       subtotal: summary.subtotal,
-      total: summary.subtotal + personServiceFee + personTax,
+      total: summary.subtotal + personServiceFee,
       items: personItems
     }
   })
 
   const subtotal = persons.reduce((sum, person) => sum + person.subtotal, 0)
-  const serviceFee = Math.round(subtotal * 0.05)
-  const tax = Math.round(subtotal * 0.025)
+  const serviceFee = Math.round(subtotal * 0.1)
+  const tax = 0
 
   return {
     subtotal,
     serviceFee,
     tax,
-    total: subtotal + serviceFee + tax,
+    total: subtotal + serviceFee,
     persons,
     paymentMethods: [
       { id: 'cash', label: '櫃台現金付款', description: '由櫃台人工確認現金收款。' },

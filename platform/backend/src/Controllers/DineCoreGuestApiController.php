@@ -1675,21 +1675,23 @@ final class DineCoreGuestApiController
                 continue;
             }
             $subtotal = array_reduce($items, fn ($sum, array $item) => $sum + ((int)$item['price'] * (int)$item['quantity']), 0);
-            $serviceFee = (int)round($subtotal * 0.05);
-            $tax = (int)round($subtotal * 0.025);
+            $serviceFee = (int)round($subtotal * 0.1);
+            $tax = 0;
             $persons[] = [
                 'cartId' => $cartId,
                 'personSlot' => (int)$session['person_slot'],
                 'guestLabel' => (string)$session['display_label'],
                 'subtotal' => $subtotal,
-                'total' => $subtotal + $serviceFee + $tax,
+                'serviceFee' => $serviceFee,
+                'tax' => $tax,
+                'total' => $subtotal + $serviceFee,
                 'items' => $items,
             ];
         }
 
         $subtotal = array_reduce($persons, fn ($sum, array $person) => $sum + (int)$person['subtotal'], 0);
-        $serviceFee = (int)round($subtotal * 0.05);
-        $tax = (int)round($subtotal * 0.025);
+        $serviceFee = (int)round($subtotal * 0.1);
+        $tax = 0;
 
         $itemCount = array_reduce(
             $persons,
@@ -1709,7 +1711,7 @@ final class DineCoreGuestApiController
             'subtotal' => $subtotal,
             'serviceFee' => $serviceFee,
             'tax' => $tax,
-            'total' => $subtotal + $serviceFee + $tax,
+            'total' => $subtotal + $serviceFee,
             'participantCount' => count($persons),
             'persons' => $persons,
             'paymentMethods' => [
@@ -1737,14 +1739,14 @@ final class DineCoreGuestApiController
             fn ($sum, array $row) => $sum + ((int)$row['price'] * (int)$row['quantity']),
             0
         );
-        $serviceFee = (int)round($subtotal * 0.05);
-        $tax = (int)round($subtotal * 0.025);
+        $serviceFee = (int)round($subtotal * 0.1);
+        $tax = 0;
 
         return [
             'subtotal' => $subtotal,
             'serviceFee' => $serviceFee,
             'tax' => $tax,
-            'total' => $subtotal + $serviceFee + $tax,
+            'total' => $subtotal + $serviceFee,
         ];
     }
 
@@ -1868,14 +1870,16 @@ final class DineCoreGuestApiController
             }
 
             $subtotal = array_reduce($items, fn ($sum, array $item) => $sum + ((int)$item['price'] * (int)$item['quantity']), 0);
-            $serviceFee = (int)round($subtotal * 0.05);
-            $tax = (int)round($subtotal * 0.025);
+            $serviceFee = (int)round($subtotal * 0.1);
+            $tax = 0;
             $persons[] = [
                 'cartId' => $cartId,
                 'personSlot' => (int)$session['person_slot'],
                 'guestLabel' => (string)$session['display_label'],
                 'subtotal' => $subtotal,
-                'total' => $subtotal + $serviceFee + $tax,
+                'serviceFee' => $serviceFee,
+                'tax' => $tax,
+                'total' => $subtotal + $serviceFee,
                 'items' => $items,
             ];
         }
@@ -1912,6 +1916,8 @@ final class DineCoreGuestApiController
                     'personSlot' => (int)$session['person_slot'],
                     'guestLabel' => (string)$session['display_label'],
                     'subtotal' => $subtotal,
+                    'serviceFee' => (int)round($subtotal * 0.1),
+                    'tax' => 0,
                     'items' => $items,
                 ];
             }

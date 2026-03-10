@@ -191,12 +191,27 @@ const isMenuRoute = computed(() => route.path.endsWith('/menu'))
 const menuCategories = computed(() => menuStore?.state?.categories || [])
 const activeMenuCategoryId = computed(() => menuStore?.state?.activeCategoryId || 'all')
 const showCategoryRow = computed(() => isMenuRoute.value && menuCategories.value.length > 0)
-const demoQrImageUrl = computed(() => `/assets/QRC/${demoTableCode}.png`)
-const demoEntryPath = computed(() => `/t/${demoTableCode}`)
-const demoEntryUrl = computed(() => {
-  if (typeof window === 'undefined') return demoEntryPath.value
-  return `${window.location.origin}${demoEntryPath.value}`
-})
+
+function resolveAppRelativePath(pathLike) {
+  const raw = String(pathLike || '').trim()
+  if (!raw) return ''
+
+  const baseUrl = String(import.meta.env.BASE_URL || '/')
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  const normalizedPath = raw.replace(/^\.?\/*/, '')
+
+  return `${normalizedBase}${normalizedPath}`
+}
+
+function getAppAbsoluteUrl(pathLike) {
+  const resolvedPath = resolveAppRelativePath(pathLike)
+  if (typeof window === 'undefined') return resolvedPath
+  return `${window.location.origin}${resolvedPath}`
+}
+
+const demoQrImageUrl = computed(() => resolveAppRelativePath(`assets/QRC/${demoTableCode}.png`))
+const demoEntryPath = computed(() => resolveAppRelativePath(`t/${demoTableCode}`))
+const demoEntryUrl = computed(() => getAppAbsoluteUrl(`t/${demoTableCode}`))
 
 const staffNavItems = computed(() => {
   if (!staffSession.value) return []
@@ -376,7 +391,7 @@ function closeStaffHeadMenu() {
 </script>
 
 <template lang="pug">
-.dine-root(:class="{ 'is-staff': isStaffRoute }")
+.dine-root(:class="{ 'is-staff': isStaffRoute, 'is-guest-shell': !isStaffRoute }")
   template(v-if="isStaffRoute")
     .staff-shell(v-if="isStaffAuthenticated || !staffAuthStore")
       button.staff-shell__mobile-toggle(
@@ -549,6 +564,11 @@ function closeStaffHeadMenu() {
 .dine-root
   min-height: 100vh
   background: linear-gradient(180deg, #f0fbf8 0%, #dff3f2 48%, #edf7f6 100%)
+
+.dine-root.is-guest-shell
+  width: min(540px, 100%)
+  margin: 0 auto
+  box-shadow: 0 0 16px #c7c7c7
 
 .guest-shell,
 .staff-shell
@@ -1068,6 +1088,9 @@ function closeStaffHeadMenu() {
   font-weight: 700
 
 @media (max-width: 960px)
+  .dine-root.is-guest-shell
+    width: 100%
+
   .guest-shell,
   .staff-shell
     padding: 16px
