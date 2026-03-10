@@ -5,6 +5,8 @@ import world from '@/world.js'
 const menuAdminStore = world.store('dineCoreMenuAdminStore')
 const state = computed(() => menuAdminStore.state)
 
+const categoryPanelOpen = ref(false)
+const activeItemCategoryId = ref('')
 const createPanelOpen = ref(false)
 const createForm = reactive({
   title: '',
@@ -41,6 +43,11 @@ watch(
     categories.forEach(category => {
       categoryDraftNames[category.id] = category.name
     })
+
+    const availableIds = new Set(categories.map(category => String(category.id || '')))
+    if (!availableIds.has(activeItemCategoryId.value)) {
+      activeItemCategoryId.value = resolvePreferredCategoryId(categories)
+    }
   },
   { immediate: true, deep: true }
 )
@@ -101,6 +108,28 @@ function buildOptionKey(itemId, groupId, optionId) {
   return `${itemId}:${groupId}:${optionId}`
 }
 
+function isMainCategory(category) {
+  const id = String(category?.id || '').trim().toLowerCase()
+  const name = String(category?.name || '').trim()
+  return id.includes('main') || name.includes('主餐')
+}
+
+function resolvePreferredCategoryId(categories = []) {
+  const matched = categories.find(isMainCategory)
+  return String(matched?.id || categories[0]?.id || '')
+}
+
+const filteredItems = computed(() => {
+  const categoryId = String(activeItemCategoryId.value || '').trim()
+  const items = Array.isArray(state.value.items) ? state.value.items : []
+
+  if (!categoryId) {
+    return items
+  }
+
+  return items.filter(item => String(item?.categoryId || '') === categoryId)
+})
+
 async function runSafely(task) {
   try {
     await task()
@@ -146,23 +175,12 @@ function toggleCreatePanel() {
   createPanelOpen.value = !createPanelOpen.value
 }
 
-async function saveItemImageUrl(item) {
-  await runSafely(async () => {
-    await menuAdminStore.updateItemImage({
-      itemId: item.id,
-      imageUrl: String(draftImages[item.id] || '').trim()
-    })
-  })
+function toggleCategoryPanel() {
+  categoryPanelOpen.value = !categoryPanelOpen.value
 }
 
-async function saveItemContent(item) {
-  await runSafely(async () => {
-    await menuAdminStore.updateItemContent({
-      itemId: item.id,
-      title: String(draftTitles[item.id] || '').trim(),
-      description: String(draftDescriptions[item.id] || '').trim()
-    })
-  })
+function setActiveItemCategory(categoryId) {
+  activeItemCategoryId.value = String(categoryId || '').trim()
 }
 
 function isCustomizationCollapsed(itemId) {
@@ -230,17 +248,24 @@ async function createItem() {
   })
 }
 
-async function savePrice(item) {
+async function saveItemBasics(item) {
   await runSafely(async () => {
+    await menuAdminStore.updateItemImage({
+      itemId: item.id,
+      imageUrl: String(draftImages[item.id] || '').trim()
+    })
+
+    await menuAdminStore.updateItemContent({
+      itemId: item.id,
+      title: String(draftTitles[item.id] || '').trim(),
+      description: String(draftDescriptions[item.id] || '').trim()
+    })
+
     await menuAdminStore.updateItemPrice({
       itemId: item.id,
       price: Number(draftPrices[item.id] || item.price)
     })
-  })
-}
 
-async function saveItemCategory(item) {
-  await runSafely(async () => {
     await menuAdminStore.updateItemCategory({
       itemId: item.id,
       categoryId: draftCategoryIds[item.id]
@@ -408,14 +433,16 @@ function toggleDefaultOption(item, group, optionId, checked) {
         p.eyebrow 分類管理
         h2.menu-admin-card__title 菜單分類
         p.menu-admin-card__lead 先把分類排好，商品新增與菜單顯示才會穩定。
-    .category-create
+      button.create-button(type="button" @click="toggleCategoryPanel()")
+        | {{ categoryPanelOpen ? '收起分類管理' : '展開分類管理' }}
+    .category-create(v-if="categoryPanelOpen")
       input.form-field__input(
         v-model="categoryCreateName"
         type="text"
         placeholder="請輸入新分類名稱"
       )
       button.action-chip(type="button" @click="createCategory()") 新增分類
-    .category-list
+    .category-list(v-if="categoryPanelOpen")
       article.category-row(v-for="category in state.categories" :key="category.id")
         .category-row__main
           input.category-row__input(
@@ -428,6 +455,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
           button.action-chip.is-muted(type="button" @click="moveCategory(category, 'down')") 下移
           button.action-chip.is-muted(type="button" @click="saveCategory(category)") 儲存名稱
           button.action-chip.is-danger(type="button" @click="removeCategory(category)") 刪除
+    p.menu-admin-card__collapsed-note(v-else) 分類管理預設收合，需要時再展開調整。
 
   section.menu-admin-card
     .menu-admin-card__head
@@ -459,19 +487,28 @@ function toggleDefaultOption(item, group, optionId, checked) {
         )
       label.form-field.form-field--wide
         span.form-field__label 商品圖片網址
-        input.form-field__input(v-model="createForm.imageUrl" type="url" placeholder="https://images.example.com/menu/item.jpg")
+        input.form-field__input(v-model="createForm.imageUrl" type="url" placeholder="因為是免費伺服器所以暫不提供圖片上傳功能，以免費圖片網站代替")
       .create-preview(v-if="createForm.imageUrl")
         img.create-preview__image(:src="createForm.imageUrl" alt="商品預覽")
       .create-panel__actions
         button.action-chip(type="submit") 建立商品
 
+  section.menu-admin-card(v-if="state.categories.length > 0")
+    .item-category-tabs
+      button.item-category-tab(
+        v-for="category in state.categories"
+        :key="category.id"
+        type="button"
+        :class="{ 'is-active': activeItemCategoryId === category.id }"
+        @click="setActiveItemCategory(category.id)"
+      ) {{ category.name }}
+
   section.menu-admin-table
-    article.menu-admin-row(v-for="item in state.items" :key="item.id")
+    article.menu-admin-row(v-for="item in filteredItems" :key="item.id")
       .menu-admin-row__image
         img.menu-admin-row__preview(v-if="draftImages[item.id]" :src="draftImages[item.id]" :alt="item.title")
         .menu-admin-row__preview.is-empty(v-else) 尚未設定圖片
         input.form-field__input(v-model="draftImages[item.id]" type="url" placeholder="https://images.example.com/menu/item.jpg")
-        button.action-chip.is-muted(type="button" @click="saveItemImageUrl(item)") 套用圖片網址
 
 
       .menu-admin-row__main
@@ -492,15 +529,12 @@ function toggleDefaultOption(item, group, optionId, checked) {
             span.price-editor__label 分類
             select.price-editor__input(v-model="draftCategoryIds[item.id]")
               option(v-for="category in state.categories" :key="category.id" :value="category.id") {{ category.name }}
-            button.price-editor__save(type="button" @click="saveItemCategory(item)") 儲存分類
           label.price-editor
             span.price-editor__label 售價
             input.price-editor__input(v-model="draftPrices[item.id]" type="number" min="0" step="1")
-            button.price-editor__save(type="button" @click="savePrice(item)") 儲存價格
           span.menu-admin-row__status(
             :class="{ 'is-hidden': item.hidden, 'is-sold-out': item.soldOut && !item.hidden }"
           ) {{ item.hidden ? "已下架" : item.soldOut ? "已售完" : "上架中" }}
-          button.price-editor__save(type="button" @click="saveItemContent(item)") 儲存品名與描述
 
         .customization-card
           .customization-card__head
@@ -602,13 +636,15 @@ function toggleDefaultOption(item, group, optionId, checked) {
           p.customization-card__empty(v-if="!isCustomizationCollapsed(item.id) && (!item.optionGroups || item.optionGroups.length === 0)") 尚未設定客製規則，請先新增群組。
 
       .menu-admin-row__actions
-        button.action-chip(type="button" @click="updateItemStatus(item, { hidden: !item.hidden })")
+        button.action-chip(type="button" @click="saveItemBasics(item)") 確認修改
+        button.action-chip.is-warning(type="button" @click="updateItemStatus(item, { hidden: !item.hidden })")
           | {{ item.hidden ? '重新上架' : '下架商品' }}
         button.action-chip.is-muted(
           type="button"
           @click="updateItemStatus(item, { soldOut: !item.soldOut })"
           :disabled="item.hidden"
         ) {{ item.soldOut ? '恢復供應' : '標記售完' }}
+    p.menu-admin-table__empty(v-if="filteredItems.length === 0") 目前這個分類尚無商品。
 </template>
 
 <style lang="sass">
@@ -646,6 +682,11 @@ function toggleDefaultOption(item, group, optionId, checked) {
   margin: 0
   color: #6e8083
   line-height: 1.6
+
+.menu-admin-card__collapsed-note
+  margin: 0
+  color: #6e8083
+  font-size: 13px
 
 .category-create
   display: grid
@@ -697,6 +738,24 @@ function toggleDefaultOption(item, group, optionId, checked) {
   color: #fff
   font-weight: 700
   cursor: pointer
+
+.item-category-tabs
+  display: flex
+  flex-wrap: wrap
+  gap: 10px
+
+.item-category-tab
+  border: 0
+  border-radius: 999px
+  padding: 10px 14px
+  background: rgba(121, 214, 207, 0.14)
+  color: #2d6f6d
+  font-weight: 700
+  cursor: pointer
+
+.item-category-tab.is-active
+  background: #17383f
+  color: #fff
 
 .create-panel
   display: grid
@@ -751,6 +810,14 @@ function toggleDefaultOption(item, group, optionId, checked) {
 .menu-admin-table
   display: grid
   gap: 12px
+
+.menu-admin-table__empty
+  margin: 0
+  padding: 20px
+  border-radius: 18px
+  background: rgba(255, 255, 255, 0.88)
+  border: 1px dashed rgba(109, 180, 177, 0.24)
+  color: #6e8083
 
 .menu-admin-row
   display: grid
@@ -854,15 +921,6 @@ function toggleDefaultOption(item, group, optionId, checked) {
   font: inherit
   color: #243a3e
   background: #f8fcfb
-
-.price-editor__save
-  border: 0
-  border-radius: 999px
-  padding: 10px 14px
-  background: rgba(121, 214, 207, 0.16)
-  color: #2d6f6d
-  font-weight: 700
-  cursor: pointer
 
 .menu-admin-row__status
   padding: 5px 10px
@@ -1054,6 +1112,10 @@ function toggleDefaultOption(item, group, optionId, checked) {
 .action-chip.is-muted
   background: rgba(121, 214, 207, 0.14)
   color: #2d6f6d
+
+.action-chip.is-warning
+  background: rgba(241, 164, 76, 0.18)
+  color: #9c5d11
 
 .action-chip.is-danger
   background: rgba(214, 87, 74, 0.14)
