@@ -8,7 +8,6 @@ const state = computed(() => tableAdminStore.state)
 const copiedTableCode = ref('')
 const qrImageUrlByTableCode = reactive({})
 const isGeneratingQrByTableCode = reactive({})
-const isClearingGuestSessionsByTableCode = reactive({})
 
 const createForm = reactive({
   code: '',
@@ -225,32 +224,6 @@ function downloadQrImage(table) {
   link.click()
 }
 
-async function clearGuestSessions(table) {
-  const tableCode = toTableCode(table?.code)
-  if (!tableCode) {
-    window.alert('桌號無效，無法清空 Session。')
-    return
-  }
-
-  isClearingGuestSessionsByTableCode[tableCode] = true
-  try {
-    const result = await tableAdminStore.clearGuestSessions({ tableCode })
-    const matched = Number(result?.matched ?? 0)
-    const updated = Number(result?.updated ?? result?.cleared ?? 0)
-    window.alert(`清空成功：桌號 ${tableCode}，命中 ${matched} 筆，更新 ${updated} 筆。`)
-  } catch (error) {
-    const message = String(error?.message || 'UNKNOWN_ERROR')
-
-    if (message === 'REAL_API_REQUIRED') {
-      window.alert('目前為 mock 模式，請切換 real API 後再清空 Session。')
-      return
-    }
-
-    window.alert(`清空失敗：${message}`)
-  } finally {
-    isClearingGuestSessionsByTableCode[tableCode] = false
-  }
-}
 </script>
 
 <template lang="pug">
@@ -349,11 +322,6 @@ async function clearGuestSessions(table) {
               type="button"
               @click="updateTable(table, { orderingEnabled: !table.orderingEnabled })"
             ) {{ table.orderingEnabled ? '暫停點餐' : '恢復點餐' }}
-            button.action-chip.is-danger(
-              type="button"
-              @click="clearGuestSessions(table)"
-              :disabled="isClearingGuestSessionsByTableCode[toTableCode(table.code)]"
-            ) {{ isClearingGuestSessionsByTableCode[toTableCode(table.code)] ? '清空中...' : '清空顧客 Session' }}
             button.action-chip.is-danger(type="button" @click="deleteTable(table)") 刪除桌位
 </template>
 

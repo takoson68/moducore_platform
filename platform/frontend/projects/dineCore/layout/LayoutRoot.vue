@@ -503,7 +503,7 @@ function handleGuestCategorySelect(categoryId) {
             span 測試帳號：
             code manager / manager123
       .staff-demo-qr.staff-demo-qr--floating
-        h2.staff-demo-qr__title 桌號 {{ demoTableCode }} 點餐入口
+        h2.staff-demo-qr__title 桌號 {{ demoTableCode }} 手機點餐入口
         img.staff-demo-qr__image(
           :src="demoQrImageUrl"
           :alt="`桌號 ${demoTableCode} QR`"
