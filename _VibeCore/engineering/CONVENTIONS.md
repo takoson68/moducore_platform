@@ -86,3 +86,41 @@
 - 不得為了快速串接而把多個模組的業務狀態集中到單一 project service；這會破壞模組可註冊、可卸載、可觀測的邊界。
 - 若某個 service 的存在會讓模組必須知道其他模組內部資料形狀、生命週期或狀態欄位，視為耦合，必須拒絕。
 - 若需求看起來必須突破此規則，必須先提出最小變更提案，不能直接改寫模組設計哲學。
+
+## 自 new_engineering 倒入的正式規範
+
+### Project API Boundary Non-Pollution
+- 專案層或模組層的 API 對齊需求，必須優先在該 project 自有的 API adapter、service 或 module 內處理。
+- 不得因單一 project 的 endpoint、method、payload 或 response 調整，直接修改 `platform/frontend/src/` 內的共享 API helper。
+- 只有當需求已被證明為跨 project 共通能力，且完成明確提案後，才可升級到共享層。
+
+### Module Data Ownership
+- 模組本身必須解決自己的資料需求。
+- 模組需要的 endpoint、payload、response mapping、錯誤處理、adapter 邏輯，應優先收斂在該模組或該 project 自有 API 層。
+- 不得因單一模組的資料需求，回推修改共享層、其他模組，或把 module-specific 契約偽裝成平台共通能力。
+- 共享層只能承載真正跨模組、跨 project 都成立的共用能力，不承載單一模組的資料語意。
+
+### Module Registry Boot Pipeline
+- `projects/<project>/modules/index.js` 是模組收集與安裝的唯一入口。
+- `modules/index.js` 只負責收集模組 loader、載入模組、列出模組名單、依 allowList 安裝模組。
+- 每個模組的預設輸出必須是 `{ name, setup }`；`setup` 內只允許宣告式掛件，例如 `stores`、`routes`、`ui`。
+- `moduleDiscovery.js` 只負責取得宣告模組名單，不得執行模組安裝。
+- `boot.js` 只負責 `discover -> visibility resolve -> install -> enter runtime`；不得跳過 `modules/index.js` 直接安裝單一模組。
+
+### Layout And Route Resilience
+- `LayoutRoot.vue` 必須是可降級容器，不得把任一模組 store、route 或 capability 視為永久存在。
+- page / component 若依賴其他模組能力，必須先做存在檢查；缺席時只能降級顯示或隱藏能力，不得報錯。
+- 導航顯示必須依已註冊 route 或 `meta.nav` 投影，不得硬寫成「所有模組永遠都在」。
+- 移除任一非核心模組時，shell 必須仍可載入，且該模組的導航入口必須同步消失。
+
+### Project Services Hard Boundary
+- project-level `services/` 不得直接提供 module-specific business API。
+- 若函式名稱、request shape、response shape 或 state shape 已帶有模組語意，必須回到該模組自己的 `service.js` 或 `api/`。
+- project-level `services/` 只能承載無模組語意能力，例如 transport、auth facade、repository primitive、pure shared transform。
+- project-level `services/` 不得持有模組私有 state，也不得聚合多個模組流程成跨模組業務中心。
+
+### Store And API Boundary
+- `world.store` 只承載前端執行期狀態，不得被當成共享事實來源。
+- 模組 `service.js` 負責流程協調，不得成為隱藏的長期 state center。
+- 模組 `api/` 或 backend/mock API 才是共享真相的交換邊界。
+- 若資料需要跨頁、跨角色、跨模組保持一致，必須建模為 API truth，而不是 store truth。

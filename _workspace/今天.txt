@@ -80,24 +80,5 @@ entry-card__qr 的QR圖片以及登入元件中的QR圖片，連結url應該都�
 我要再免費網站將  tako tako1234 這個帳號加入 資料表  幫我寫sql 
 
 
-完整內容
-id
-tenant_id 遞增 1
-世界 / 專案識別，用於 world rebuild
-username
-登入帳號（tenant scope）
-password
-密碼（可暫時明文或簡單 hash）
-status
-1=active, 0=disabled
-created_at
-
-110
-dineCore
-tako
-tako1234
-1
-2026-03-10 13:51:00
-
 
 
