@@ -1081,7 +1081,7 @@ final class DineCoreGuestApiController
 
     private function createOrderNo(int $attempt = 1): string
     {
-        $datePrefix = gmdate('Ymd');
+        $datePrefix = date('Ymd');
         $orderPrefix = sprintf('DC%s', $datePrefix);
         $stmt = db()->prepare(
             'SELECT COALESCE(MAX(CAST(RIGHT(order_no, 4) AS UNSIGNED)), 0) AS max_seq
@@ -2084,5 +2084,4 @@ final class DineCoreGuestApiController
         $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'DINECORE_GUEST_API_FAILED');
     }
 }
-
 

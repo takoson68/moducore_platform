@@ -1,5 +1,6 @@
 INSERT INTO users (tenant_id, username, password, status)
 VALUES
+  ('dineCore', 'tako', 'tako1234', 1),
   ('dineCore', 'manager', 'manager123', 1),
   ('dineCore', 'deputy', 'deputy123', 1),
   ('dineCore', 'counter', 'counter123', 1),

@@ -23,6 +23,7 @@ function db(): PDO
     ];
 
     $pdo = new PDO($dsn, $user, $pass, $options);
+    $pdo->exec("SET time_zone = '+08:00'");
 
     return $pdo;
 }
