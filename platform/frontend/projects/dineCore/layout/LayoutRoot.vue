@@ -388,6 +388,17 @@ function toggleStaffHeadMenu() {
 function closeStaffHeadMenu() {
   staffHeadMenuOpen.value = false
 }
+
+function scrollGuestViewportToTop() {
+  if (typeof window === 'undefined') return
+  window.scrollTo({ top: 0, behavior: 'auto' })
+}
+
+function handleGuestCategorySelect(categoryId) {
+  if (!menuStore) return
+  menuStore.setActiveCategory(categoryId)
+  scrollGuestViewportToTop()
+}
 </script>
 
 <template lang="pug">
@@ -524,7 +535,7 @@ function closeStaffHeadMenu() {
             :key="category.id"
             type="button"
             :class="{ 'is-active': activeMenuCategoryId === category.id }"
-            @click="menuStore && menuStore.setActiveCategory(category.id)"
+            @click="handleGuestCategorySelect(category.id)"
           ) {{ category.name }}
 
       main.guest-shell__body

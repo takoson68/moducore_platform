@@ -108,8 +108,10 @@ function goToMenu() {
 .mobile-hero-card__title-row
   display: flex
   align-items: center
-  justify-content: flex-start
+  justify-content: center
   gap: 14px
+  flex-direction: column
+  text-align: center
 
 .feature-card
   padding: 18px
@@ -187,14 +189,8 @@ function goToMenu() {
   font-size: 16px
   font-weight: 700
   cursor: pointer
-  flex: 1
+  width: 100%
   text-align: center
 
 @media (max-width: 900px)
-  .mobile-hero-card__title-row
-    align-items: flex-start
-    flex-direction: column
-
-  .mobile-hero-card__button
-    width: 100%
 </style>
