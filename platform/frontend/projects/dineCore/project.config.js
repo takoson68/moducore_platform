@@ -12,6 +12,7 @@ export default {
     'kitchen',
     'dashboard',
     'reports',
+    'visitor-stats',
     'audit-close',
     'menu-admin',
     'table-admin',

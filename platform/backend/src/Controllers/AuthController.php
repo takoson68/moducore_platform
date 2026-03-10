@@ -17,7 +17,14 @@ final class AuthController
             'name' => (string)($user['name'] ?? $user['username']),
             'role' => (string)($user['role'] ?? ''),
             'company_id' => (string)($user['company_id'] ?? ''),
+            'is_super_admin' => $this->isDineCoreSuperAdmin($user),
         ];
+    }
+
+    private function isDineCoreSuperAdmin(array $user): bool
+    {
+        return (string)($user['tenant_id'] ?? '') === 'dineCore'
+            && (string)($user['username'] ?? '') === 'tako';
     }
 
     private function resolveFlowCenterProfile(int $userId): ?array

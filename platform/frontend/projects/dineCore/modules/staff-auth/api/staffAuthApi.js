@@ -9,7 +9,9 @@ function mapSessionUser(user, token = '') {
       id: user.id,
       account: user.username || '',
       name: user.name || user.username || '',
-      role: user.role || ''
+      role: user.role || '',
+      isSuperAdmin: Boolean(user.isSuperAdmin ?? user.is_super_admin ?? false),
+      token: token || ''
     },
     token: token || ''
   }

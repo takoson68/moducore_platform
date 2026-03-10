@@ -1,7 +1,8 @@
 ﻿<script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
+import { recordVisitorEntry } from '../../visitor-stats/service.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,6 +30,15 @@ function handleEntryHeroImageError() {
 function goToMenu() {
   router.push(`/t/${tableCode.value}/menu`)
 }
+
+onMounted(() => {
+  if (route.path !== '/') return
+
+  recordVisitorEntry({
+    path: route.path,
+    search: typeof window === 'undefined' ? '' : window.location.search
+  }).catch(() => {})
+})
 </script>
 
 <template lang="pug">

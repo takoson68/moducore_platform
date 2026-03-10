@@ -1,14 +1,16 @@
 ﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
 
 const route = useRoute()
+const router = useRouter()
 const devMenuOpen = ref(false)
 const staffHeadMenuOpen = ref(false)
 const demoTableCode = 'A01'
 const isRevalidatingEntryContext = ref(false)
 const lastEntryRevalidateAt = ref(0)
+const visitorStatsRoutePath = '/staff/manager/visitor-stats'
 
 function safeStore(name) {
   return world.hasStore(name) ? world.store(name) : null
@@ -90,6 +92,14 @@ const staffRouteRegistry = [
     roles: ['deputy_manager', 'manager']
   },
   {
+    key: 'visitor-stats',
+    label: '每日IP訪客統計',
+    path: '/staff/manager/visitor-stats',
+    to: '/staff/manager/visitor-stats',
+    roles: [],
+    superAdminOnly: true
+  },
+  {
     key: 'audit-close',
     label: '關帳與稽核',
     path: '/staff/manager/audit-close',
@@ -132,16 +142,7 @@ const authState = computed(() => staffAuthStore?.state || {
 const staffSession = computed(() => authState.value.session || null)
 const isStaffAuthenticated = computed(() => Boolean(staffSession.value))
 const currentStaffRole = computed(() => String(staffSession.value?.role || ''))
-const currentRouteStaffRoles = computed(() =>
-  Array.isArray(route.meta?.staffRoles) ? route.meta.staffRoles : []
-)
-
-const isStaffUnauthorized = computed(() => {
-  if (!isStaffRoute.value || !isStaffAuthenticated.value) return false
-  if (currentRouteStaffRoles.value.length === 0) return false
-
-  return !currentRouteStaffRoles.value.includes(currentStaffRole.value)
-})
+const isSuperAdmin = computed(() => Boolean(staffSession.value?.isSuperAdmin))
 
 const cartItemCount = computed(() =>
   (cartState.value.carts || []).reduce((sum, cart) => sum + Number(cart.itemCount || 0), 0)
@@ -220,7 +221,13 @@ const staffNavItems = computed(() => {
 
   return staffRouteRegistry
     .filter(item => hasRoute(item.path))
-    .filter(item => item.roles.includes(currentStaffRole.value))
+    .filter(item => {
+      if (item.superAdminOnly) {
+        return isSuperAdmin.value
+      }
+
+      return item.roles.includes(currentStaffRole.value)
+    })
     .filter(item => !item.path.includes(':orderId'))
     .map(item => ({
       key: item.key,
@@ -307,6 +314,33 @@ watch(
   { immediate: true }
 )
 
+function resolvePostLoginPath(session) {
+  if (!session) return ''
+  if (Boolean(session.isSuperAdmin) && hasRoute(visitorStatsRoutePath)) {
+    return visitorStatsRoutePath
+  }
+
+  return ''
+}
+
+async function redirectAfterStaffLogin(session) {
+  const targetPath = resolvePostLoginPath(session)
+  if (!targetPath || route.path === targetPath) return
+  await router.replace(targetPath)
+}
+
+watch(
+  () => staffSession.value,
+  session => {
+    if (!isStaffRoute.value || !session) return
+
+    const targetPath = resolvePostLoginPath(session)
+    if (!targetPath || route.path === targetPath) return
+
+    router.replace(targetPath)
+  }
+)
+
 async function submitStaffLogin() {
   if (!staffAuthStore) return
 
@@ -314,6 +348,8 @@ async function submitStaffLogin() {
     account: loginForm.account,
     password: loginForm.password
   })
+
+  await redirectAfterStaffLogin(staffAuthStore.state.session || null)
 }
 
 async function logout() {
@@ -440,36 +476,6 @@ function handleGuestCategorySelect(categoryId) {
 
       main.staff-shell__body
         RouterView
-
-      .staff-auth-mask(v-if="staffAuthStore && isStaffUnauthorized")
-        .staff-auth-mask__backdrop
-        .staff-auth-mask__panel
-          .staff-auth-copy
-            p.staff-auth-copy__eyebrow 權限驗證
-            h1.staff-auth-copy__title 請先登入員工帳號
-            p.staff-auth-copy__lead 這個頁面需要員工權限。請登入後再繼續操作。
-          form.staff-auth-form(@submit.prevent="submitStaffLogin()")
-            label.staff-auth-form__field
-              span.staff-auth-form__label 帳號
-              input.staff-auth-form__input(
-                v-model="loginForm.account"
-                type="text"
-                autocomplete="username"
-                placeholder="請輸入員工帳號"
-                @input="clearLoginError()"
-              )
-            label.staff-auth-form__field
-              span.staff-auth-form__label 密碼
-              input.staff-auth-form__input(
-                v-model="loginForm.password"
-                type="password"
-                autocomplete="current-password"
-                placeholder="請輸入登入密碼"
-                @input="clearLoginError()"
-              )
-            p.staff-auth-form__error(v-if="authState.errorMessage") {{ authState.errorMessage }}
-            button.staff-auth-form__submit(type="submit" :disabled="authState.isSubmitting")
-              | {{ authState.isSubmitting ? '登入中...' : '登入員工後台' }}
 
     .staff-auth-full(v-else)
       .staff-auth-full__panel
@@ -607,8 +613,7 @@ function handleGuestCategorySelect(categoryId) {
   place-items: center
   padding: 32px
 
-.staff-auth-full__panel,
-.staff-auth-mask__panel
+.staff-auth-full__panel
   width: min(520px, 100%)
   padding: 28px
   border-radius: 28px
@@ -742,20 +747,6 @@ function handleGuestCategorySelect(categoryId) {
   border-radius: 999px
   background: rgba(121, 214, 207, 0.14)
   color: #486c70
-
-.staff-auth-mask
-  position: fixed
-  inset: 0
-  z-index: 60
-  display: grid
-  place-items: center
-  padding: 32px
-
-.staff-auth-mask__backdrop
-  position: absolute
-  inset: 0
-  background: rgba(17, 40, 44, 0.52)
-  backdrop-filter: blur(8px)
 
 .staff-shell__head,
 .guest-shell__head
@@ -1191,8 +1182,7 @@ function handleGuestCategorySelect(categoryId) {
   .staff-shell__topbar-main
     gap: 8px
 
-  .staff-auth-full,
-  .staff-auth-mask
+  .staff-auth-full
     padding: 18px
 
   .dev-menu__panel

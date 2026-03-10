@@ -16,6 +16,7 @@ $router->add('GET', '/api/dinecore/checkout-summary', 'DineCoreGuestApiControlle
 $router->add('GET', '/api/dinecore/checkout-success', 'DineCoreGuestApiController@checkoutSuccess');
 $router->add('POST', '/api/dinecore/checkout-submit', 'DineCoreGuestApiController@checkoutSubmit');
 $router->add('GET', '/api/dinecore/order-tracker', 'DineCoreGuestApiController@orderTracker');
+$router->add('POST', '/api/dinecore/visitor-stats/track', 'DineCoreVisitorStatsController@track');
 $router->add('GET', '/api/dinecore/staff/tables', 'DineCoreStaffApiController@staffTables');
 $router->add('POST', '/api/dinecore/staff/tables/create', 'DineCoreStaffApiController@createStaffTable');
 $router->add('POST', '/api/dinecore/staff/tables/update', 'DineCoreStaffApiController@updateStaffTable');
@@ -31,6 +32,7 @@ $router->add('GET', '/api/dinecore/staff/kitchen/orders', 'DineCoreStaffApiContr
 $router->add('POST', '/api/dinecore/staff/kitchen/update-order-status', 'DineCoreStaffApiController@kitchenUpdateOrderStatus');
 $router->add('GET', '/api/dinecore/staff/reports/summary', 'DineCoreStaffApiController@reportsSummary');
 $router->add('GET', '/api/dinecore/staff/reports/orders', 'DineCoreStaffApiController@reportsOrders');
+$router->add('GET', '/api/dinecore/staff/visitor-stats', 'DineCoreVisitorStatsController@staffIndex');
 $router->add('GET', '/api/dinecore/staff/menu/items', 'DineCoreStaffApiController@menuAdminItems');
 $router->add('POST', '/api/dinecore/staff/menu/create-item', 'DineCoreStaffApiController@menuAdminCreateItem');
 $router->add('POST', '/api/dinecore/staff/menu/update-item-content', 'DineCoreStaffApiController@menuAdminUpdateItemContent');

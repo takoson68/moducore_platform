@@ -30,7 +30,9 @@ const optionGroupEditForms = reactive({})
 const optionEditForms = reactive({})
 
 watchEffect(() => {
-  menuAdminStore.load()
+  menuAdminStore.load().catch(error => {
+    window.alert(error instanceof Error ? error.message : 'MENU_ADMIN_LOAD_FAILED')
+  })
 })
 
 watch(

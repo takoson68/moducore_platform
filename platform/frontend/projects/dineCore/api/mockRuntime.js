@@ -283,6 +283,14 @@ function createDefaultState() {
     ],
     staffUsers: [
       {
+        id: 'staff_super_admin_01',
+        account: 'tako',
+        password: 'tako1234',
+        name: 'Tako',
+        role: '',
+        isSuperAdmin: true
+      },
+      {
         id: 'staff_manager_01',
         account: 'manager',
         password: 'manager123',
@@ -312,6 +320,7 @@ function createDefaultState() {
       }
     ],
     staffSession: null,
+    visitorStatsDaily: [],
     auditClosings: {},
     auditHistory: [],
     nextIds: {
@@ -354,6 +363,7 @@ function normalizeState(raw = {}) {
       : defaults.orders,
     staffUsers: Array.isArray(raw.staffUsers) ? raw.staffUsers : defaults.staffUsers,
     staffSession: raw.staffSession || defaults.staffSession,
+    visitorStatsDaily: Array.isArray(raw.visitorStatsDaily) ? raw.visitorStatsDaily : defaults.visitorStatsDaily,
     auditClosings: { ...defaults.auditClosings, ...(raw.auditClosings || {}) },
     auditHistory: Array.isArray(raw.auditHistory) ? raw.auditHistory : defaults.auditHistory,
     nextIds: { ...defaults.nextIds, ...(raw.nextIds || {}) }

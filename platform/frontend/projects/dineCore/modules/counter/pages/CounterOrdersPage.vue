@@ -91,6 +91,10 @@ async function markPaid(orderId) {
     paymentStatus: 'paid'
   })
 }
+
+function isKitchenStatusLocked(orderStatus) {
+  return String(orderStatus || '').trim() === 'picked_up'
+}
 </script>
 
 <template lang="pug">
@@ -158,8 +162,8 @@ async function markPaid(orderId) {
         strong {{ `NT$ ${order.totalAmount}` }}
       p.order-card__time {{ `建立 ${order.createdAt} / 更新 ${order.updatedAt || order.createdAt}` }}
       .order-card__actions
-        button.quick-action(type="button" :disabled="order.orderStatus === 'preparing'" @click="markPreparing(order.id)") 標記製作中
-        button.quick-action(type="button" :disabled="order.orderStatus === 'ready'" @click="markReady(order.id)") 標記可出餐
+        button.quick-action(type="button" :disabled="order.orderStatus === 'preparing' || isKitchenStatusLocked(order.orderStatus)" @click="markPreparing(order.id)") 標記製作中
+        button.quick-action(type="button" :disabled="order.orderStatus === 'ready' || isKitchenStatusLocked(order.orderStatus)" @click="markReady(order.id)") 標記可出餐
         button.quick-action(type="button" :disabled="order.paymentStatus === 'paid'" @click="markPaid(order.id)") 標記已付款
         RouterLink.detail-link(:to="`/staff/counter/orders/${order.id}`") 查看明細
 

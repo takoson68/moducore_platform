@@ -673,6 +673,44 @@ function appendAuditHistory(state, payload = {}) {
   })
 }
 
+function normalizeVisitorStatsRange(range) {
+  const safeRange = String(range || '').trim()
+  return safeRange === '7d' || safeRange === '30d' ? safeRange : 'today'
+}
+
+function normalizeVisitorStatsPath(pathLike) {
+  const raw = String(pathLike || '').trim()
+  if (!raw) return '/'
+
+  let normalized = raw.split('?')[0] || '/'
+  if (!normalized.startsWith('/')) {
+    normalized = `/${normalized}`
+  }
+  if (normalized !== '/' && normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1)
+  }
+
+  return normalized || '/'
+}
+
+function resolveMockVisitorSourceTag(search = '') {
+  const params = new URLSearchParams(String(search || '').replace(/^\?/, ''))
+  return params.get('k') === '9d2f' ? 'tagged' : 'direct'
+}
+
+function resolveMockVisitorRangeStart(range) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (range === '7d') {
+    today.setDate(today.getDate() - 6)
+  } else if (range === '30d') {
+    today.setDate(today.getDate() - 29)
+  }
+
+  return today
+}
+
 const handlers = {
   async 'entry/context'({ tableCode, orderingSessionToken }) {
     await waitForMock()
@@ -720,7 +758,8 @@ const handlers = {
         id: staffUser.id,
         account: staffUser.account,
         name: staffUser.name,
-        role: staffUser.role
+        role: staffUser.role,
+        isSuperAdmin: Boolean(staffUser.isSuperAdmin)
       }
 
       return cloneMockValue({
@@ -737,6 +776,84 @@ const handlers = {
       return {
         ok: true
       }
+    })
+  },
+  async 'visitor-stats/track'({ path = '/', search = '' }) {
+    await waitForMock()
+
+    return writeMockState(state => {
+      const today = new Date().toISOString().slice(0, 10)
+      const safePath = normalizeVisitorStatsPath(path)
+      const sourceTag = resolveMockVisitorSourceTag(search)
+      const ipAddress = '127.0.0.1'
+      const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+
+      state.visitorStatsDaily ||= []
+
+      const existing = state.visitorStatsDaily.find(
+        row =>
+          row.visit_date === today &&
+          row.ip_address === ipAddress &&
+          row.path === safePath &&
+          row.source_tag === sourceTag
+      )
+
+      if (existing) {
+        existing.visit_count = Number(existing.visit_count || 0) + 1
+        existing.last_visited_at = now
+      } else {
+        state.visitorStatsDaily.push({
+          visit_date: today,
+          ip_address: ipAddress,
+          path: safePath,
+          source_tag: sourceTag,
+          visit_count: 1,
+          first_visited_at: now,
+          last_visited_at: now
+        })
+      }
+
+      return cloneMockValue({
+        visitDate: today,
+        path: safePath,
+        sourceTag: sourceTag
+      })
+    })
+  },
+  async 'visitor-stats/list'({ range = 'today' }) {
+    await waitForMock()
+
+    return readMockState(state => {
+      const session = ensureStaffSession(state)
+      if (!session.isSuperAdmin) {
+        throw new Error('STAFF_ROLE_FORBIDDEN')
+      }
+
+      const safeRange = normalizeVisitorStatsRange(range)
+      const startDate = resolveMockVisitorRangeStart(safeRange)
+      const rows = (state.visitorStatsDaily || [])
+        .filter(row => new Date(`${row.visit_date}T00:00:00`) >= startDate)
+        .sort((left, right) => {
+          if (left.visit_date !== right.visit_date) {
+            return right.visit_date.localeCompare(left.visit_date)
+          }
+
+          return String(right.last_visited_at || '').localeCompare(String(left.last_visited_at || ''))
+        })
+        .map(row => ({
+          visitDate: row.visit_date,
+          ipAddress: row.ip_address,
+          path: row.path,
+          sourceTag: row.source_tag === 'tagged' ? 'tagged' : 'direct',
+          visitCount: Number(row.visit_count || 0),
+          firstVisitedAt: row.first_visited_at || '',
+          lastVisitedAt: row.last_visited_at || ''
+        }))
+
+      return cloneMockValue({
+        range: safeRange,
+        rows
+      })
     })
   },
   async 'menu/list'({ tableCode, orderingSessionToken }) {
