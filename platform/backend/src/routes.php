@@ -34,9 +34,23 @@ $router->add('GET', '/api/dinecore/staff/reports/summary', 'DineCoreStaffApiCont
 $router->add('GET', '/api/dinecore/staff/reports/orders', 'DineCoreStaffApiController@reportsOrders');
 $router->add('GET', '/api/dinecore/staff/visitor-stats', 'DineCoreVisitorStatsController@staffIndex');
 $router->add('GET', '/api/dinecore/staff/menu/items', 'DineCoreStaffApiController@menuAdminItems');
+$router->add('POST', '/api/dinecore/staff/menu/create-category', 'DineCoreStaffApiController@menuAdminCreateCategory');
+$router->add('POST', '/api/dinecore/staff/menu/update-category', 'DineCoreStaffApiController@menuAdminUpdateCategory');
+$router->add('POST', '/api/dinecore/staff/menu/delete-category', 'DineCoreStaffApiController@menuAdminDeleteCategory');
+$router->add('POST', '/api/dinecore/staff/menu/reorder-categories', 'DineCoreStaffApiController@menuAdminReorderCategories');
 $router->add('POST', '/api/dinecore/staff/menu/create-item', 'DineCoreStaffApiController@menuAdminCreateItem');
+$router->add('POST', '/api/dinecore/staff/menu/update-item-status', 'DineCoreStaffApiController@menuAdminUpdateItemStatus');
+$router->add('POST', '/api/dinecore/staff/menu/update-item-price', 'DineCoreStaffApiController@menuAdminUpdateItemPrice');
 $router->add('POST', '/api/dinecore/staff/menu/update-item-content', 'DineCoreStaffApiController@menuAdminUpdateItemContent');
 $router->add('POST', '/api/dinecore/staff/menu/update-item-image', 'DineCoreStaffApiController@menuAdminUpdateItemImage');
+$router->add('POST', '/api/dinecore/staff/menu/update-item-category', 'DineCoreStaffApiController@menuAdminUpdateItemCategory');
+$router->add('POST', '/api/dinecore/staff/menu/add-option-group', 'DineCoreStaffApiController@menuAdminAddOptionGroup');
+$router->add('POST', '/api/dinecore/staff/menu/update-option-group', 'DineCoreStaffApiController@menuAdminUpdateOptionGroup');
+$router->add('POST', '/api/dinecore/staff/menu/delete-option-group', 'DineCoreStaffApiController@menuAdminDeleteOptionGroup');
+$router->add('POST', '/api/dinecore/staff/menu/add-option', 'DineCoreStaffApiController@menuAdminAddOption');
+$router->add('POST', '/api/dinecore/staff/menu/update-option', 'DineCoreStaffApiController@menuAdminUpdateOption');
+$router->add('POST', '/api/dinecore/staff/menu/delete-option', 'DineCoreStaffApiController@menuAdminDeleteOption');
+$router->add('POST', '/api/dinecore/staff/menu/update-default-options', 'DineCoreStaffApiController@menuAdminUpdateDefaultOptions');
 $router->add('POST', '/api/dinecore/staff/tables/generate-qr', 'DineCoreStaffApiController@generateTableQr');
 // Backward compatibility for environments with older/variant routes.
 $router->add('GET', '/api/dinecore/staff/tables/generate-qr', 'DineCoreStaffApiController@generateTableQr');

@@ -807,12 +807,178 @@ final class DineCoreStaffApiController
         }
 
         try {
-            $response->ok([
-                'categories' => $this->loadMenuAdminCategories(),
-                'items' => $this->loadMenuAdminItems(),
-            ]);
+            $response->ok($this->buildMenuAdminSnapshot());
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_ITEMS_FAILED');
+        }
+    }
+
+    public function menuAdminCreateCategory(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $name = trim((string)($request->body['name'] ?? ''));
+        if ($name === '') {
+            $response->error('MENU_CATEGORY_NAME_REQUIRED', 'MENU_CATEGORY_NAME_REQUIRED', 422);
+            return;
+        }
+
+        try {
+            if ($this->menuCategoryNameExists($name)) {
+                $response->error('MENU_CATEGORY_ALREADY_EXISTS', 'MENU_CATEGORY_ALREADY_EXISTS', 409);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'INSERT INTO dinecore_menu_categories (id, name, sort_order, created_at, updated_at)
+                 VALUES (?, ?, ?, NOW(), NOW())'
+            );
+            $stmt->execute([
+                $this->generateMenuCategoryId(),
+                $name,
+                $this->resolveNextMenuCategorySortOrder(),
+            ]);
+
+            $response->ok($this->buildMenuAdminSnapshot());
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_CREATE_CATEGORY_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateCategory(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $categoryId = trim((string)($request->body['categoryId'] ?? $request->body['category_id'] ?? ''));
+        $name = trim((string)($request->body['name'] ?? ''));
+
+        if ($categoryId === '' || !$this->menuCategoryExists($categoryId)) {
+            $response->error('MENU_CATEGORY_NOT_FOUND', 'MENU_CATEGORY_NOT_FOUND', 404);
+            return;
+        }
+
+        if ($name === '') {
+            $response->error('MENU_CATEGORY_NAME_REQUIRED', 'MENU_CATEGORY_NAME_REQUIRED', 422);
+            return;
+        }
+
+        try {
+            if ($this->menuCategoryNameExists($name, $categoryId)) {
+                $response->error('MENU_CATEGORY_ALREADY_EXISTS', 'MENU_CATEGORY_ALREADY_EXISTS', 409);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'UPDATE dinecore_menu_categories
+                 SET name = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([$name, $categoryId]);
+
+            $response->ok($this->buildMenuAdminSnapshot());
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_CATEGORY_FAILED');
+        }
+    }
+
+    public function menuAdminDeleteCategory(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $categoryId = trim((string)($request->body['categoryId'] ?? $request->body['category_id'] ?? ''));
+        if ($categoryId === '' || !$this->menuCategoryExists($categoryId)) {
+            $response->error('MENU_CATEGORY_NOT_FOUND', 'MENU_CATEGORY_NOT_FOUND', 404);
+            return;
+        }
+
+        try {
+            if ($this->menuCategoryHasItems($categoryId)) {
+                $response->error('MENU_CATEGORY_IN_USE', 'MENU_CATEGORY_IN_USE', 409);
+                return;
+            }
+
+            $stmt = db()->prepare('DELETE FROM dinecore_menu_categories WHERE id = ?');
+            $stmt->execute([$categoryId]);
+            $this->normalizeMenuCategorySortOrders();
+
+            $response->ok($this->buildMenuAdminSnapshot());
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_DELETE_CATEGORY_FAILED');
+        }
+    }
+
+    public function menuAdminReorderCategories(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $categoryIds = $request->body['categoryIds'] ?? $request->body['category_ids'] ?? null;
+        if (!is_array($categoryIds) || $categoryIds === []) {
+            $response->error('MENU_CATEGORY_ORDER_REQUIRED', 'MENU_CATEGORY_ORDER_REQUIRED', 422);
+            return;
+        }
+
+        $normalizedCategoryIds = array_values(array_map(
+            static fn ($id): string => trim((string)$id),
+            $categoryIds
+        ));
+        if (in_array('', $normalizedCategoryIds, true)) {
+            $response->error('MENU_CATEGORY_ORDER_REQUIRED', 'MENU_CATEGORY_ORDER_REQUIRED', 422);
+            return;
+        }
+
+        $existingCategoryIds = array_map(
+            static fn (array $category): string => (string)$category['id'],
+            $this->loadMenuAdminCategories()
+        );
+
+        $sortedRequestedIds = $normalizedCategoryIds;
+        $sortedExistingIds = $existingCategoryIds;
+        sort($sortedRequestedIds);
+        sort($sortedExistingIds);
+        if ($sortedRequestedIds !== $sortedExistingIds) {
+            $response->error('MENU_CATEGORY_REORDER_INVALID', 'MENU_CATEGORY_REORDER_INVALID', 422);
+            return;
+        }
+
+        $pdo = db();
+        $startedTransaction = !$pdo->inTransaction();
+
+        try {
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
+
+            $update = $pdo->prepare(
+                'UPDATE dinecore_menu_categories
+                 SET sort_order = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            foreach ($normalizedCategoryIds as $index => $categoryId) {
+                $update->execute([($index + 1) * 10, $categoryId]);
+            }
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
+            $response->ok($this->buildMenuAdminSnapshot());
+        } catch (Throwable $error) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_REORDER_CATEGORIES_FAILED');
         }
     }
 
@@ -961,12 +1127,99 @@ final class DineCoreStaffApiController
                 '[]',
             ]);
 
-            $response->ok([
-                'categories' => $this->loadMenuAdminCategories(),
-                'items' => $this->loadMenuAdminItems(),
-            ]);
+            $response->ok($this->buildMenuAdminSnapshot());
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_CREATE_ITEM_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateItemStatus(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        if ($itemId === '') {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+
+        $soldOut = $request->body['soldOut'] ?? $request->body['sold_out'] ?? null;
+        $hidden = $request->body['hidden'] ?? null;
+        $nextSoldOut = $this->normalizeOptionalBoolean($soldOut);
+        $nextHidden = $this->normalizeOptionalBoolean($hidden);
+
+        try {
+            if (!$this->menuItemExists($itemId)) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $itemRow = $this->findMenuItemRowForAdmin($itemId);
+            if ($itemRow === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'UPDATE dinecore_menu_items
+                 SET sold_out = ?, hidden = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([
+                $nextSoldOut ?? ((int)$itemRow['sold_out'] === 1),
+                $nextHidden ?? ((int)$itemRow['hidden'] === 1),
+                $itemId,
+            ]);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_ITEM_STATUS_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateItemPrice(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $priceRaw = $request->body['price'] ?? null;
+
+        if ($itemId === '') {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+
+        if (!is_numeric($priceRaw) || (float)$priceRaw < 0) {
+            $response->error('INVALID_MENU_ITEM_PRICE', 'INVALID_MENU_ITEM_PRICE', 422);
+            return;
+        }
+
+        try {
+            if (!$this->menuItemExists($itemId)) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'UPDATE dinecore_menu_items
+                 SET base_price = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([(int)round((float)$priceRaw), $itemId]);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_ITEM_PRICE_FAILED');
         }
     }
 
@@ -1059,6 +1312,436 @@ final class DineCoreStaffApiController
             ]);
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_ITEM_IMAGE_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateItemCategory(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $categoryId = trim((string)($request->body['categoryId'] ?? $request->body['category_id'] ?? ''));
+
+        if ($itemId === '') {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+
+        if ($categoryId === '' || !$this->menuCategoryExists($categoryId)) {
+            $response->error('MENU_CATEGORY_NOT_FOUND', 'MENU_CATEGORY_NOT_FOUND', 404);
+            return;
+        }
+
+        try {
+            if (!$this->menuItemExists($itemId)) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $stmt = db()->prepare(
+                'UPDATE dinecore_menu_items
+                 SET category_id = ?, updated_at = NOW()
+                 WHERE id = ?'
+            );
+            $stmt->execute([$categoryId, $itemId]);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_ITEM_CATEGORY_FAILED');
+        }
+    }
+
+    public function menuAdminAddOptionGroup(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $label = trim((string)($request->body['label'] ?? ''));
+        $type = $this->normalizeMenuOptionGroupType((string)($request->body['type'] ?? 'single'));
+        $required = $request->body['required'] ?? false;
+
+        if ($itemId === '' || !$this->menuItemExists($itemId)) {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+        if ($label === '') {
+            $response->error('MENU_OPTION_GROUP_LABEL_REQUIRED', 'MENU_OPTION_GROUP_LABEL_REQUIRED', 422);
+            return;
+        }
+        if ($type === null) {
+            $response->error('INVALID_OPTION_GROUP_TYPE', 'INVALID_OPTION_GROUP_TYPE', 422);
+            return;
+        }
+
+        try {
+            $itemState = $this->loadMenuAdminItemCustomizationState($itemId);
+            if ($itemState === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $optionGroups = $itemState['optionGroups'];
+            $optionGroups[] = [
+                'id' => $this->generateMenuOptionGroupId($optionGroups),
+                'label' => $label,
+                'type' => $type,
+                'required' => $this->normalizeOptionalBoolean($required) ?? false,
+                'options' => [],
+            ];
+
+            $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds($optionGroups, $itemState['defaultOptionIds']);
+            $this->persistMenuAdminItemCustomization($itemId, $optionGroups, $defaultOptionIds);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_ADD_OPTION_GROUP_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateOptionGroup(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $groupId = trim((string)($request->body['groupId'] ?? $request->body['group_id'] ?? ''));
+        $label = trim((string)($request->body['label'] ?? ''));
+        $type = $this->normalizeMenuOptionGroupType((string)($request->body['type'] ?? 'single'));
+        $required = $request->body['required'] ?? false;
+
+        if ($itemId === '' || !$this->menuItemExists($itemId)) {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+        if ($groupId === '') {
+            $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+            return;
+        }
+        if ($label === '') {
+            $response->error('MENU_OPTION_GROUP_LABEL_REQUIRED', 'MENU_OPTION_GROUP_LABEL_REQUIRED', 422);
+            return;
+        }
+        if ($type === null) {
+            $response->error('INVALID_OPTION_GROUP_TYPE', 'INVALID_OPTION_GROUP_TYPE', 422);
+            return;
+        }
+
+        try {
+            $itemState = $this->loadMenuAdminItemCustomizationState($itemId);
+            if ($itemState === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $groupIndex = $this->findMenuOptionGroupIndex($itemState['optionGroups'], $groupId);
+            if ($groupIndex < 0) {
+                $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+                return;
+            }
+
+            $itemState['optionGroups'][$groupIndex]['label'] = $label;
+            $itemState['optionGroups'][$groupIndex]['type'] = $type;
+            $itemState['optionGroups'][$groupIndex]['required'] = $this->normalizeOptionalBoolean($required) ?? false;
+
+            $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+                $itemState['optionGroups'],
+                $itemState['defaultOptionIds']
+            );
+            $this->persistMenuAdminItemCustomization($itemId, $itemState['optionGroups'], $defaultOptionIds);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_OPTION_GROUP_FAILED');
+        }
+    }
+
+    public function menuAdminDeleteOptionGroup(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $groupId = trim((string)($request->body['groupId'] ?? $request->body['group_id'] ?? ''));
+
+        if ($itemId === '' || !$this->menuItemExists($itemId)) {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+        if ($groupId === '') {
+            $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+            return;
+        }
+
+        try {
+            $itemState = $this->loadMenuAdminItemCustomizationState($itemId);
+            if ($itemState === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $groupIndex = $this->findMenuOptionGroupIndex($itemState['optionGroups'], $groupId);
+            if ($groupIndex < 0) {
+                $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+                return;
+            }
+
+            array_splice($itemState['optionGroups'], $groupIndex, 1);
+            $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+                $itemState['optionGroups'],
+                $itemState['defaultOptionIds']
+            );
+            $this->persistMenuAdminItemCustomization($itemId, $itemState['optionGroups'], $defaultOptionIds);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_DELETE_OPTION_GROUP_FAILED');
+        }
+    }
+
+    public function menuAdminAddOption(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $groupId = trim((string)($request->body['groupId'] ?? $request->body['group_id'] ?? ''));
+        $label = trim((string)($request->body['label'] ?? ''));
+        $priceDeltaRaw = $request->body['priceDelta'] ?? $request->body['price_delta'] ?? 0;
+
+        if ($itemId === '' || !$this->menuItemExists($itemId)) {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+        if ($groupId === '') {
+            $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+            return;
+        }
+        if ($label === '') {
+            $response->error('MENU_OPTION_LABEL_REQUIRED', 'MENU_OPTION_LABEL_REQUIRED', 422);
+            return;
+        }
+        if (!is_numeric($priceDeltaRaw) || (float)$priceDeltaRaw < 0) {
+            $response->error('INVALID_OPTION_PRICE_DELTA', 'INVALID_OPTION_PRICE_DELTA', 422);
+            return;
+        }
+
+        try {
+            $itemState = $this->loadMenuAdminItemCustomizationState($itemId);
+            if ($itemState === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $groupIndex = $this->findMenuOptionGroupIndex($itemState['optionGroups'], $groupId);
+            if ($groupIndex < 0) {
+                $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+                return;
+            }
+
+            $itemState['optionGroups'][$groupIndex]['options'][] = [
+                'id' => $this->generateMenuOptionId($itemState['optionGroups']),
+                'label' => $label,
+                'price_delta' => (int)round((float)$priceDeltaRaw),
+            ];
+
+            $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+                $itemState['optionGroups'],
+                $itemState['defaultOptionIds']
+            );
+            $this->persistMenuAdminItemCustomization($itemId, $itemState['optionGroups'], $defaultOptionIds);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_ADD_OPTION_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateOption(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $groupId = trim((string)($request->body['groupId'] ?? $request->body['group_id'] ?? ''));
+        $optionId = trim((string)($request->body['optionId'] ?? $request->body['option_id'] ?? ''));
+        $label = trim((string)($request->body['label'] ?? ''));
+        $priceDeltaRaw = $request->body['priceDelta'] ?? $request->body['price_delta'] ?? 0;
+
+        if ($itemId === '' || !$this->menuItemExists($itemId)) {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+        if ($groupId === '') {
+            $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+            return;
+        }
+        if ($optionId === '') {
+            $response->error('MENU_OPTION_NOT_FOUND', 'MENU_OPTION_NOT_FOUND', 404);
+            return;
+        }
+        if ($label === '') {
+            $response->error('MENU_OPTION_LABEL_REQUIRED', 'MENU_OPTION_LABEL_REQUIRED', 422);
+            return;
+        }
+        if (!is_numeric($priceDeltaRaw) || (float)$priceDeltaRaw < 0) {
+            $response->error('INVALID_OPTION_PRICE_DELTA', 'INVALID_OPTION_PRICE_DELTA', 422);
+            return;
+        }
+
+        try {
+            $itemState = $this->loadMenuAdminItemCustomizationState($itemId);
+            if ($itemState === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $groupIndex = $this->findMenuOptionGroupIndex($itemState['optionGroups'], $groupId);
+            if ($groupIndex < 0) {
+                $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+                return;
+            }
+
+            $optionIndex = $this->findMenuOptionIndex($itemState['optionGroups'][$groupIndex], $optionId);
+            if ($optionIndex < 0) {
+                $response->error('MENU_OPTION_NOT_FOUND', 'MENU_OPTION_NOT_FOUND', 404);
+                return;
+            }
+
+            $itemState['optionGroups'][$groupIndex]['options'][$optionIndex]['label'] = $label;
+            $itemState['optionGroups'][$groupIndex]['options'][$optionIndex]['price_delta'] = (int)round((float)$priceDeltaRaw);
+
+            $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+                $itemState['optionGroups'],
+                $itemState['defaultOptionIds']
+            );
+            $this->persistMenuAdminItemCustomization($itemId, $itemState['optionGroups'], $defaultOptionIds);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_OPTION_FAILED');
+        }
+    }
+
+    public function menuAdminDeleteOption(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $groupId = trim((string)($request->body['groupId'] ?? $request->body['group_id'] ?? ''));
+        $optionId = trim((string)($request->body['optionId'] ?? $request->body['option_id'] ?? ''));
+
+        if ($itemId === '' || !$this->menuItemExists($itemId)) {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+        if ($groupId === '') {
+            $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+            return;
+        }
+        if ($optionId === '') {
+            $response->error('MENU_OPTION_NOT_FOUND', 'MENU_OPTION_NOT_FOUND', 404);
+            return;
+        }
+
+        try {
+            $itemState = $this->loadMenuAdminItemCustomizationState($itemId);
+            if ($itemState === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $groupIndex = $this->findMenuOptionGroupIndex($itemState['optionGroups'], $groupId);
+            if ($groupIndex < 0) {
+                $response->error('MENU_OPTION_GROUP_NOT_FOUND', 'MENU_OPTION_GROUP_NOT_FOUND', 404);
+                return;
+            }
+
+            $optionIndex = $this->findMenuOptionIndex($itemState['optionGroups'][$groupIndex], $optionId);
+            if ($optionIndex < 0) {
+                $response->error('MENU_OPTION_NOT_FOUND', 'MENU_OPTION_NOT_FOUND', 404);
+                return;
+            }
+
+            array_splice($itemState['optionGroups'][$groupIndex]['options'], $optionIndex, 1);
+            $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+                $itemState['optionGroups'],
+                $itemState['defaultOptionIds']
+            );
+            $this->persistMenuAdminItemCustomization($itemId, $itemState['optionGroups'], $defaultOptionIds);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_DELETE_OPTION_FAILED');
+        }
+    }
+
+    public function menuAdminUpdateDefaultOptions(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $itemId = trim((string)($request->body['itemId'] ?? $request->body['item_id'] ?? ''));
+        $selectedOptionIds = $request->body['selectedOptionIds'] ?? $request->body['selected_option_ids'] ?? [];
+
+        if ($itemId === '' || !$this->menuItemExists($itemId)) {
+            $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+            return;
+        }
+        if (!is_array($selectedOptionIds)) {
+            $selectedOptionIds = [];
+        }
+
+        try {
+            $itemState = $this->loadMenuAdminItemCustomizationState($itemId);
+            if ($itemState === null) {
+                $response->error('MENU_ITEM_NOT_FOUND', 'MENU_ITEM_NOT_FOUND', 404);
+                return;
+            }
+
+            $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+                $itemState['optionGroups'],
+                array_values(array_map(static fn ($id): string => trim((string)$id), $selectedOptionIds))
+            );
+            $this->persistMenuAdminItemCustomization($itemId, $itemState['optionGroups'], $defaultOptionIds);
+
+            $response->ok([
+                'item' => $this->loadMenuAdminItemPayload($itemId),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MENU_ADMIN_UPDATE_DEFAULT_OPTIONS_FAILED');
         }
     }
 
@@ -1585,6 +2268,14 @@ final class DineCoreStaffApiController
         ], $rows);
     }
 
+    private function buildMenuAdminSnapshot(): array
+    {
+        return [
+            'categories' => $this->loadMenuAdminCategories(),
+            'items' => $this->loadMenuAdminItems(),
+        ];
+    }
+
     private function loadMenuAdminItems(): array
     {
         $rows = db()->query(
@@ -1615,34 +2306,22 @@ final class DineCoreStaffApiController
     private function normalizeMenuAdminItem(array $row, array $categoryNameById): array
     {
         $categoryId = (string)$row['category_id'];
-        $optionGroups = [];
-
-        foreach ($this->decodeJsonArray($row['option_groups_json'] ?? '[]') as $group) {
-            if (!is_array($group)) {
-                continue;
-            }
-
-            $options = [];
-            foreach ((array)($group['options'] ?? []) as $option) {
-                if (!is_array($option)) {
-                    continue;
-                }
-
-                $options[] = [
-                    'id' => (string)($option['id'] ?? ''),
-                    'label' => (string)($option['label'] ?? ''),
-                    'priceDelta' => (int)($option['price_delta'] ?? $option['priceDelta'] ?? 0),
-                ];
-            }
-
-            $optionGroups[] = [
-                'id' => (string)($group['id'] ?? ''),
-                'label' => (string)($group['label'] ?? ''),
-                'type' => (string)($group['type'] ?? 'single'),
-                'required' => (bool)($group['required'] ?? false),
-                'options' => $options,
-            ];
-        }
+        $decodedOptionGroups = $this->decodeMenuOptionGroups($row['option_groups_json'] ?? '[]');
+        $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+            $decodedOptionGroups,
+            $this->decodeMenuDefaultOptionIds($row['default_option_ids_json'] ?? '[]')
+        );
+        $optionGroups = array_map(static fn (array $group): array => [
+            'id' => (string)$group['id'],
+            'label' => (string)$group['label'],
+            'type' => (string)$group['type'],
+            'required' => (bool)$group['required'],
+            'options' => array_map(static fn (array $option): array => [
+                'id' => (string)$option['id'],
+                'label' => (string)$option['label'],
+                'priceDelta' => (int)($option['price_delta'] ?? 0),
+            ], (array)($group['options'] ?? [])),
+        ], $decodedOptionGroups);
 
         return [
             'id' => (string)$row['id'],
@@ -1652,14 +2331,22 @@ final class DineCoreStaffApiController
             'description' => (string)($row['description'] ?? ''),
             'price' => (int)$row['base_price'],
             'imageUrl' => (string)($row['image_url'] ?? ''),
-            'defaultOptionIds' => array_values(array_map(
-                static fn ($id): string => (string)$id,
-                $this->decodeJsonArray($row['default_option_ids_json'] ?? '[]')
-            )),
+            'defaultOptionIds' => $defaultOptionIds,
             'optionGroups' => $optionGroups,
             'soldOut' => (int)$row['sold_out'] === 1,
             'hidden' => (int)$row['hidden'] === 1,
         ];
+    }
+
+    private function loadMenuAdminItemPayload(string $itemId): array
+    {
+        $categoryNameById = $this->menuCategoryNameMap();
+        $itemRow = $this->findMenuItemRowForAdmin($itemId);
+        if ($itemRow === null) {
+            throw new \RuntimeException('MENU_ITEM_NOT_FOUND');
+        }
+
+        return $this->normalizeMenuAdminItem($itemRow, $categoryNameById);
     }
 
     private function menuCategoryExists(string $categoryId): bool
@@ -1668,6 +2355,36 @@ final class DineCoreStaffApiController
             'SELECT id
              FROM dinecore_menu_categories
              WHERE id = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$categoryId]);
+        return (bool)$stmt->fetch();
+    }
+
+    private function menuCategoryNameExists(string $name, string $excludeCategoryId = ''): bool
+    {
+        $sql = 'SELECT id
+                FROM dinecore_menu_categories
+                WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))';
+        $params = [$name];
+
+        if ($excludeCategoryId !== '') {
+            $sql .= ' AND id <> ?';
+            $params[] = $excludeCategoryId;
+        }
+
+        $sql .= ' LIMIT 1';
+        $stmt = db()->prepare($sql);
+        $stmt->execute($params);
+        return (bool)$stmt->fetch();
+    }
+
+    private function menuCategoryHasItems(string $categoryId): bool
+    {
+        $stmt = db()->prepare(
+            'SELECT id
+             FROM dinecore_menu_items
+             WHERE category_id = ?
              LIMIT 1'
         );
         $stmt->execute([$categoryId]);
@@ -1686,6 +2403,29 @@ final class DineCoreStaffApiController
         return (bool)$stmt->fetch();
     }
 
+    private function normalizeOptionalBoolean(mixed $value): ?bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if ($normalized === 'true' || $normalized === '1') {
+                return true;
+            }
+            if ($normalized === 'false' || $normalized === '0') {
+                return false;
+            }
+        }
+
+        if (is_int($value)) {
+            return $value === 1 ? true : ($value === 0 ? false : null);
+        }
+
+        return null;
+    }
+
     private function findMenuItemRowForAdmin(string $itemId): ?array
     {
         $stmt = db()->prepare(
@@ -1699,6 +2439,215 @@ final class DineCoreStaffApiController
         return $row ?: null;
     }
 
+    private function loadMenuAdminItemCustomizationState(string $itemId): ?array
+    {
+        $row = $this->findMenuItemRowForAdmin($itemId);
+        if ($row === null) {
+            return null;
+        }
+
+        $optionGroups = $this->decodeMenuOptionGroups($row['option_groups_json'] ?? '[]');
+        $defaultOptionIds = $this->normalizeMenuAdminDefaultOptionIds(
+            $optionGroups,
+            $this->decodeMenuDefaultOptionIds($row['default_option_ids_json'] ?? '[]')
+        );
+
+        return [
+            'row' => $row,
+            'optionGroups' => $optionGroups,
+            'defaultOptionIds' => $defaultOptionIds,
+        ];
+    }
+
+    private function decodeMenuOptionGroups(mixed $raw): array
+    {
+        $decoded = $this->decodeJsonArray($raw);
+        $groups = [];
+        $usedGroupIds = [];
+        $usedOptionIds = [];
+
+        foreach ($decoded as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+
+            $groupId = trim((string)($group['id'] ?? ''));
+            if ($groupId === '' || isset($usedGroupIds[$groupId])) {
+                continue;
+            }
+
+            $type = $this->normalizeMenuOptionGroupType((string)($group['type'] ?? 'single')) ?? 'single';
+            $options = [];
+            foreach ((array)($group['options'] ?? []) as $option) {
+                if (!is_array($option)) {
+                    continue;
+                }
+
+                $optionId = trim((string)($option['id'] ?? ''));
+                if ($optionId === '' || isset($usedOptionIds[$optionId])) {
+                    continue;
+                }
+
+                $priceDeltaRaw = $option['price_delta'] ?? $option['priceDelta'] ?? 0;
+                $options[] = [
+                    'id' => $optionId,
+                    'label' => trim((string)($option['label'] ?? '')),
+                    'price_delta' => is_numeric($priceDeltaRaw) ? max(0, (int)round((float)$priceDeltaRaw)) : 0,
+                ];
+                $usedOptionIds[$optionId] = true;
+            }
+
+            $groups[] = [
+                'id' => $groupId,
+                'label' => trim((string)($group['label'] ?? '')),
+                'type' => $type,
+                'required' => (bool)($group['required'] ?? false),
+                'options' => $options,
+            ];
+            $usedGroupIds[$groupId] = true;
+        }
+
+        return $groups;
+    }
+
+    private function decodeMenuDefaultOptionIds(mixed $raw): array
+    {
+        return array_values(array_filter(
+            array_map(static fn ($id): string => trim((string)$id), $this->decodeJsonArray($raw)),
+            static fn (string $id): bool => $id !== ''
+        ));
+    }
+
+    private function normalizeMenuOptionGroupType(string $type): ?string
+    {
+        $normalized = strtolower(trim($type));
+        return in_array($normalized, ['single', 'multi'], true) ? $normalized : null;
+    }
+
+    private function normalizeMenuAdminDefaultOptionIds(array $optionGroups, array $selectedOptionIds): array
+    {
+        $optionLookup = [];
+        $selectedByGroup = [];
+
+        foreach ($optionGroups as $group) {
+            $groupId = (string)($group['id'] ?? '');
+            if ($groupId === '') {
+                continue;
+            }
+
+            $selectedByGroup[$groupId] = [];
+            foreach ((array)($group['options'] ?? []) as $option) {
+                $optionId = (string)($option['id'] ?? '');
+                if ($optionId === '') {
+                    continue;
+                }
+
+                $optionLookup[$optionId] = [
+                    'groupId' => $groupId,
+                    'groupType' => (string)($group['type'] ?? 'single'),
+                ];
+            }
+        }
+
+        foreach ($selectedOptionIds as $optionId) {
+            $safeOptionId = trim((string)$optionId);
+            if ($safeOptionId === '' || !isset($optionLookup[$safeOptionId])) {
+                continue;
+            }
+
+            $groupId = $optionLookup[$safeOptionId]['groupId'];
+            if (in_array($safeOptionId, $selectedByGroup[$groupId], true)) {
+                continue;
+            }
+
+            if ($optionLookup[$safeOptionId]['groupType'] === 'single') {
+                if ($selectedByGroup[$groupId] === []) {
+                    $selectedByGroup[$groupId] = [$safeOptionId];
+                }
+                continue;
+            }
+
+            $selectedByGroup[$groupId][] = $safeOptionId;
+        }
+
+        $normalized = [];
+        foreach ($optionGroups as $group) {
+            $groupId = (string)($group['id'] ?? '');
+            if ($groupId === '') {
+                continue;
+            }
+
+            foreach ($selectedByGroup[$groupId] ?? [] as $optionId) {
+                $normalized[] = $optionId;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function persistMenuAdminItemCustomization(string $itemId, array $optionGroups, array $defaultOptionIds): void
+    {
+        $stmt = db()->prepare(
+            'UPDATE dinecore_menu_items
+             SET option_groups_json = ?, default_option_ids_json = ?, updated_at = NOW()
+             WHERE id = ?'
+        );
+        $stmt->execute([
+            json_encode($optionGroups, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            json_encode(array_values($defaultOptionIds), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            $itemId,
+        ]);
+    }
+
+    private function findMenuOptionGroupIndex(array $optionGroups, string $groupId): int
+    {
+        foreach ($optionGroups as $index => $group) {
+            if ((string)($group['id'] ?? '') === $groupId) {
+                return $index;
+            }
+        }
+
+        return -1;
+    }
+
+    private function findMenuOptionIndex(array $group, string $optionId): int
+    {
+        foreach ((array)($group['options'] ?? []) as $index => $option) {
+            if ((string)($option['id'] ?? '') === $optionId) {
+                return $index;
+            }
+        }
+
+        return -1;
+    }
+
+    private function generateMenuOptionGroupId(array $optionGroups): string
+    {
+        $existingIds = array_map(static fn (array $group): string => (string)($group['id'] ?? ''), $optionGroups);
+
+        do {
+            $candidate = 'custom-group-' . bin2hex(random_bytes(4));
+        } while (in_array($candidate, $existingIds, true));
+
+        return $candidate;
+    }
+
+    private function generateMenuOptionId(array $optionGroups): string
+    {
+        $existingIds = [];
+        foreach ($optionGroups as $group) {
+            foreach ((array)($group['options'] ?? []) as $option) {
+                $existingIds[] = (string)($option['id'] ?? '');
+            }
+        }
+
+        do {
+            $candidate = 'custom-option-' . bin2hex(random_bytes(4));
+        } while (in_array($candidate, $existingIds, true));
+
+        return $candidate;
+    }
+
     private function generateMenuItemId(): string
     {
         do {
@@ -1709,6 +2658,46 @@ final class DineCoreStaffApiController
         } while ($exists);
 
         return $candidate;
+    }
+
+    private function generateMenuCategoryId(): string
+    {
+        do {
+            $candidate = 'custom-category-' . bin2hex(random_bytes(4));
+            $stmt = db()->prepare('SELECT id FROM dinecore_menu_categories WHERE id = ? LIMIT 1');
+            $stmt->execute([$candidate]);
+            $exists = (bool)$stmt->fetch();
+        } while ($exists);
+
+        return $candidate;
+    }
+
+    private function resolveNextMenuCategorySortOrder(): int
+    {
+        $stmt = db()->query(
+            'SELECT COALESCE(MAX(sort_order), 0) AS max_sort_order
+             FROM dinecore_menu_categories'
+        );
+        return (int)($stmt->fetch()['max_sort_order'] ?? 0) + 10;
+    }
+
+    private function normalizeMenuCategorySortOrders(): void
+    {
+        $rows = db()->query(
+            'SELECT id
+             FROM dinecore_menu_categories
+             ORDER BY sort_order ASC, id ASC'
+        )->fetchAll() ?: [];
+
+        $update = db()->prepare(
+            'UPDATE dinecore_menu_categories
+             SET sort_order = ?, updated_at = NOW()
+             WHERE id = ?'
+        );
+
+        foreach ($rows as $index => $row) {
+            $update->execute([($index + 1) * 10, (string)$row['id']]);
+        }
     }
 
     private function normalizeReportFilters(Request $request): array

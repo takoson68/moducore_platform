@@ -2,14 +2,14 @@
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
-import { getGuestOrderingSessionToken, setGuestOrderingSessionToken } from '@project/api/guestOrderingSession.js'
+import { useDineCoreOrderingFlow } from '@project/services/dineCoreOrderingFlowService.js'
 
 const route = useRoute()
+const orderingFlow = useDineCoreOrderingFlow()
 const trackerStore = world.store('dineCoreOrderTrackerStore')
-const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
 
 const state = computed(() => trackerStore.state)
-const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
+const entryState = orderingFlow.entryState
 
 const statusLabels = {
   draft: '草稿',
@@ -47,17 +47,11 @@ async function refreshTracker() {
   if (!tableCode || !orderId) return
 
   const queryToken = String(route.query.orderingSessionToken || route.query.ordering_session_token || '')
-  const storedToken = getGuestOrderingSessionToken(tableCode)
-  const effectiveToken = String(entryState.value.orderingSessionToken || queryToken || storedToken || '')
 
-  if (effectiveToken) {
-    setGuestOrderingSessionToken(tableCode, effectiveToken)
-  }
-
-  await trackerStore.load({
+  await orderingFlow.loadOrderTracker({
     tableCode,
     orderId,
-    orderingSessionToken: effectiveToken
+    queryToken
   })
 }
 

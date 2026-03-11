@@ -2,14 +2,15 @@
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
+import { useDineCoreOrderingFlow } from '@project/services/dineCoreOrderingFlowService.js'
 
 const route = useRoute()
 const router = useRouter()
+const orderingFlow = useDineCoreOrderingFlow()
 const cartStore = world.store('dineCoreCartStore')
-const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
 
 const state = computed(() => cartStore.state)
-const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
+const entryState = orderingFlow.entryState
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
 
 watch(
@@ -17,13 +18,7 @@ watch(
   ([, orderingSessionToken]) => {
     if (!orderingSessionToken) return
 
-    cartStore.loadFromEntry({
-      tableCode: tableCode.value,
-      orderingSessionToken,
-      orderingCartId: entryState.value.orderingCartId,
-      orderingLabel: entryState.value.orderingLabel,
-      personSlot: entryState.value.personSlot
-    })
+    orderingFlow.syncCartFromEntry(tableCode.value)
   },
   { immediate: true }
 )
@@ -551,4 +546,3 @@ function goToConfirmOrder() {
     right: auto
     bottom: 0
 </style>
-

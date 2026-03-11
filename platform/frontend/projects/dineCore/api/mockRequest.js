@@ -1641,31 +1641,50 @@ const handlers = {
       })
     })
   },
-  async 'menu-admin/reorder-categories'({ categoryId, direction }) {
+  async 'menu-admin/reorder-categories'({ categoryIds = [], categoryId, direction }) {
     await waitForMock()
 
     return writeMockState(state => {
-      const categories = [...state.categories].sort(
+      let categories = [...state.categories].sort(
         (left, right) => Number(left.sort_order || 0) - Number(right.sort_order || 0)
       )
-      const currentIndex = categories.findIndex(category => category.id === categoryId)
 
-      if (currentIndex < 0) {
-        throw new Error('MENU_CATEGORY_NOT_FOUND')
+      if (Array.isArray(categoryIds) && categoryIds.length > 0) {
+        const orderMap = new Map(
+          categoryIds.map((id, index) => [String(id || '').trim(), index])
+        )
+        const ids = categories.map(category => String(category.id || ''))
+
+        if (
+          orderMap.size !== categories.length ||
+          ids.some(id => !orderMap.has(id))
+        ) {
+          throw new Error('MENU_CATEGORY_REORDER_INVALID')
+        }
+
+        categories = [...categories].sort(
+          (left, right) => orderMap.get(String(left.id || '')) - orderMap.get(String(right.id || ''))
+        )
+      } else {
+        const currentIndex = categories.findIndex(category => category.id === categoryId)
+
+        if (currentIndex < 0) {
+          throw new Error('MENU_CATEGORY_NOT_FOUND')
+        }
+
+        const targetIndex =
+          direction === 'up' ? currentIndex - 1 : direction === 'down' ? currentIndex + 1 : currentIndex
+
+        if (targetIndex < 0 || targetIndex >= categories.length || targetIndex === currentIndex) {
+          return cloneMockValue({
+            categories: buildMenuAdminCategories(state),
+            items: buildDashboardMenuItems(state)
+          })
+        }
+
+        const [movedCategory] = categories.splice(currentIndex, 1)
+        categories.splice(targetIndex, 0, movedCategory)
       }
-
-      const targetIndex =
-        direction === 'up' ? currentIndex - 1 : direction === 'down' ? currentIndex + 1 : currentIndex
-
-      if (targetIndex < 0 || targetIndex >= categories.length || targetIndex === currentIndex) {
-        return cloneMockValue({
-          categories: buildMenuAdminCategories(state),
-          items: buildDashboardMenuItems(state)
-        })
-      }
-
-      const [movedCategory] = categories.splice(currentIndex, 1)
-      categories.splice(targetIndex, 0, movedCategory)
       categories.forEach((category, index) => {
         category.sort_order = (index + 1) * 10
       })

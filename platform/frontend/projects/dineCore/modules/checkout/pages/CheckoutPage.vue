@@ -2,15 +2,15 @@
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
+import { useDineCoreOrderingFlow } from '@project/services/dineCoreOrderingFlowService.js'
 
 const route = useRoute()
 const router = useRouter()
+const orderingFlow = useDineCoreOrderingFlow()
 const checkoutStore = world.store('dineCoreCheckoutStore')
-const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
-const cartStore = world.hasStore('dineCoreCartStore') ? world.store('dineCoreCartStore') : null
 
 const state = computed(() => checkoutStore.state)
-const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
+const entryState = orderingFlow.entryState
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
 const submittedBatchCount = computed(() => Math.max(Number(state.value.currentBatchNo || 0) - 1, 0))
 
@@ -19,20 +19,7 @@ watch(
   ([, orderingSessionToken]) => {
     if (!orderingSessionToken) return
 
-    if (cartStore) {
-      cartStore.loadFromEntry({
-        tableCode: tableCode.value,
-        orderingSessionToken,
-        orderingCartId: entryState.value.orderingCartId,
-        orderingLabel: entryState.value.orderingLabel,
-        personSlot: entryState.value.personSlot
-      })
-    }
-
-    checkoutStore.load({
-      tableCode: tableCode.value,
-      orderingSessionToken
-    })
+    orderingFlow.loadCheckout(tableCode.value)
   },
   { immediate: true }
 )
@@ -42,31 +29,7 @@ async function submitOrder() {
     return
   }
 
-  const result = await checkoutStore.submit({
-    tableCode: tableCode.value,
-    orderingSessionToken: entryState.value.orderingSessionToken
-  })
-
-  if (entryStore) {
-    entryStore.setTableContext({
-      tableCode: tableCode.value,
-      orderId: String(result.orderId || ''),
-      orderNo: String(result.orderNo || ''),
-      orderStatus: String(result.orderStatus || 'pending'),
-      currentBatchId: String(result.nextBatchId || ''),
-      currentBatchNo: Number(result.nextBatchNo || 0),
-      currentBatchStatus: 'draft'
-    })
-  }
-
-  if (cartStore) {
-    cartStore.clearForSubmittedOrder({
-      tableCode: tableCode.value,
-      orderingSessionToken: entryState.value.orderingSessionToken,
-      nextBatchId: String(result.nextBatchId || ''),
-      nextBatchNo: Number(result.nextBatchNo || 0)
-    })
-  }
+  const result = await orderingFlow.submitCheckout(tableCode.value)
 
   router.push({
     path: `/t/${tableCode.value}/checkout/success/${result.orderId}`,

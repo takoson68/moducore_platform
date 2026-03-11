@@ -1,12 +1,12 @@
 ﻿<script setup>
 import { computed, reactive, watchEffect } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import world from '@/world.js'
 import { loadCheckoutSuccessSummary } from '../service.js'
+import { useDineCoreOrderingFlow } from '@project/services/dineCoreOrderingFlowService.js'
 
 const route = useRoute()
-const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
-const entryState = computed(() => entryStore?.state || { orderingSessionToken: '' })
+const orderingFlow = useDineCoreOrderingFlow()
+const entryState = orderingFlow.entryState
 
 const statusLabels = {
   pending: '待製作',

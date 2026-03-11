@@ -2,12 +2,12 @@
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
+import { useDineCoreOrderingFlow } from '@project/services/dineCoreOrderingFlowService.js'
 
 const route = useRoute()
+const orderingFlow = useDineCoreOrderingFlow()
 
 const menuStore = world.hasStore('dineCoreMenuStore') ? world.store('dineCoreMenuStore') : null
-const cartStore = world.hasStore('dineCoreCartStore') ? world.store('dineCoreCartStore') : null
-const entryStore = world.hasStore('dineCoreEntryStore') ? world.store('dineCoreEntryStore') : null
 
 const state = computed(() => menuStore?.state || {
   categories: [],
@@ -16,17 +16,11 @@ const state = computed(() => menuStore?.state || {
   errorMessage: '',
   optionDraft: null
 })
-const cartState = computed(() => cartStore?.state || {
-  carts: [],
-  orderingCartId: '',
-  orderingSessionToken: ''
-})
-const entryState = computed(() => entryStore?.state || {
-  orderingSessionToken: ''
-})
+const cartState = orderingFlow.cartState
+const entryState = orderingFlow.entryState
 
 const tableCode = computed(() => String(route.params.tableCode || 'A01'))
-const hasCartCapability = computed(() => Boolean(cartStore))
+const hasCartCapability = computed(() => Boolean(world.hasStore('dineCoreCartStore')))
 const hasMenuContent = computed(() => state.value.items.length > 0)
 const orderingCart = computed(() =>
   cartState.value.carts.find(item => item.id === cartState.value.orderingCartId) || null
@@ -38,29 +32,7 @@ watch(
     if (!orderingSessionToken) return
 
     try {
-      if (menuStore) {
-        const payload = await menuStore.load({
-          tableCode: nextTableCode,
-          orderingSessionToken
-        })
-
-        if (cartStore) {
-          cartStore.setItemSchemas(
-            Object.fromEntries(
-              (payload?.items || [])
-                .filter(item => item?.customization)
-                .map(item => [item.id, item.customization])
-            )
-          )
-          cartStore.loadFromEntry({
-            tableCode: nextTableCode,
-            orderingSessionToken,
-            orderingCartId: entryState.value.orderingCartId,
-            orderingLabel: entryState.value.orderingLabel,
-            personSlot: entryState.value.personSlot
-          })
-        }
-      }
+      await orderingFlow.ensureMenuFlow(nextTableCode)
     } catch (error) {
       console.error('[dineCore/menu] 載入菜單失敗', error)
     }
@@ -128,11 +100,11 @@ function buildImageStyle(item) {
   }
 }
 
-async function confirmAddToCart() {
+function confirmAddToCart() {
   const draft = state.value.optionDraft
-  if (!draft || !cartStore || !menuStore) return
+  if (!draft || !menuStore || !hasCartCapability.value) return
 
-  await cartStore.addMenuItemToOrderingCart({
+  orderingFlow.addMenuItemToOrderingCart({
     tableCode: tableCode.value,
     menuItemId: draft.menuItemId,
     customization: {

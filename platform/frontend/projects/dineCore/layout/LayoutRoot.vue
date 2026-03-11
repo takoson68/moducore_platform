@@ -1,34 +1,30 @@
 ﻿<script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
+import StaffAuthPanel from '@project/components/StaffAuthPanel.vue'
+import { useDineCoreStaffAuth } from '@project/services/dineCoreStaffAuthService.js'
+import { useDineCoreOrderingFlow } from '@project/services/dineCoreOrderingFlowService.js'
+import {
+  buildStaffDevLinks,
+  buildStaffNavItems,
+  canAccessStaffRoute,
+  resolveStaffLandingPath
+} from '@project/services/dineCoreStaffShellService.js'
 
 const route = useRoute()
 const router = useRouter()
+const staffAuth = useDineCoreStaffAuth()
+const orderingFlow = useDineCoreOrderingFlow()
 const devMenuOpen = ref(false)
 const staffHeadMenuOpen = ref(false)
 const demoTableCode = 'A01'
 const isRevalidatingEntryContext = ref(false)
 const lastEntryRevalidateAt = ref(0)
-const visitorStatsRoutePath = '/staff/manager/visitor-stats'
-
-function safeStore(name) {
-  return world.hasStore(name) ? world.store(name) : null
-}
 
 function hasRoute(path) {
   return world.router().getRoutes().some(record => record.path === path)
 }
-
-const cartStore = safeStore('dineCoreCartStore')
-const entryStore = safeStore('dineCoreEntryStore')
-const staffAuthStore = safeStore('dineCoreStaffAuthStore')
-const menuStore = safeStore('dineCoreMenuStore')
-
-const loginForm = reactive({
-  account: 'manager',
-  password: 'manager123'
-})
 
 const guestRouteRegistry = [
   { key: 'entry', label: '入桌', path: '/t/:tableCode', to: tableCode => `/t/${tableCode}` },
@@ -126,34 +122,14 @@ const isStaffRoute = computed(() => route.path.startsWith('/staff/'))
 const currentTableCode = computed(() => String(route.params.tableCode || 'A01'))
 const currentOrderId = computed(() => String(route.params.orderId || 'demo-order'))
 
-const cartState = computed(() => cartStore?.state || { carts: [], orderingSessionToken: '' })
-const entryState = computed(() => entryStore?.state || {
-  orderId: '',
-  orderNo: '',
-  orderingSessionToken: ''
-})
-const authState = computed(() => staffAuthStore?.state || {
-  initialized: true,
-  isSubmitting: false,
-  errorMessage: '',
-  session: null
-})
+const entryState = orderingFlow.entryState
+const authState = computed(() => staffAuth.state)
+const staffSession = staffAuth.session
+const isStaffAuthenticated = staffAuth.isAuthenticated
 
-const staffSession = computed(() => authState.value.session || null)
-const isStaffAuthenticated = computed(() => Boolean(staffSession.value))
-const currentStaffRole = computed(() => String(staffSession.value?.role || ''))
-const isSuperAdmin = computed(() => Boolean(staffSession.value?.isSuperAdmin))
-
-const cartItemCount = computed(() =>
-  (cartState.value.carts || []).reduce((sum, cart) => sum + Number(cart.itemCount || 0), 0)
-)
-
-const orderId = computed(() => String(entryState.value.orderId || '').trim())
-const orderNo = computed(() => String(entryState.value.orderNo || '').trim())
-const orderStatus = computed(() => String(entryState.value.orderStatus || '').trim().toLowerCase())
-const canTrackOrder = computed(() =>
-  Boolean(orderId.value) && orderStatus.value !== 'draft'
-)
+const orderId = computed(() => String(orderingFlow.guestShellState.value.orderId || '').trim())
+const orderNo = computed(() => String(orderingFlow.guestShellState.value.orderNo || '').trim())
+const canTrackOrder = computed(() => Boolean(orderingFlow.guestShellState.value.canTrackOrder))
 
 const guestNavItems = computed(() => {
   const items = []
@@ -171,7 +147,9 @@ const guestNavItems = computed(() => {
       key: 'cart',
       label: '購物車',
       to: `/t/${currentTableCode.value}/cart`,
-      badge: cartItemCount.value > 0 ? String(cartItemCount.value) : ''
+      badge: orderingFlow.guestShellState.value.cartItemCount > 0
+        ? String(orderingFlow.guestShellState.value.cartItemCount)
+        : ''
     })
   }
 
@@ -189,8 +167,8 @@ const guestNavItems = computed(() => {
 })
 
 const isMenuRoute = computed(() => route.path.endsWith('/menu'))
-const menuCategories = computed(() => menuStore?.state?.categories || [])
-const activeMenuCategoryId = computed(() => menuStore?.state?.activeCategoryId || 'all')
+const menuCategories = computed(() => orderingFlow.guestShellState.value.categories || [])
+const activeMenuCategoryId = computed(() => orderingFlow.guestShellState.value.activeCategoryId || 'all')
 const showCategoryRow = computed(() => isMenuRoute.value && menuCategories.value.length > 0)
 
 function resolveAppRelativePath(pathLike) {
@@ -217,24 +195,7 @@ const demoEntryUrl = computed(() => getAppAbsoluteUrl(`t/${demoTableCode}`))
 const staffNavItems = computed(() => {
   if (!staffSession.value) return []
 
-  const plannedKeys = new Set(['dashboard', 'reports', 'audit-close'])
-
-  return staffRouteRegistry
-    .filter(item => hasRoute(item.path))
-    .filter(item => {
-      if (item.superAdminOnly) {
-        return isSuperAdmin.value
-      }
-
-      return item.roles.includes(currentStaffRole.value)
-    })
-    .filter(item => !item.path.includes(':orderId'))
-    .map(item => ({
-      key: item.key,
-      label: item.label,
-      to: typeof item.to === 'function' ? item.to(currentOrderId.value) : item.to,
-      disabled: plannedKeys.has(item.key)
-    }))
+  return buildStaffNavItems(router, staffSession.value, currentOrderId.value)
 })
 
 const activeStaffNavItems = computed(() =>
@@ -256,44 +217,20 @@ const devGuestLinks = computed(() =>
     }))
 )
 
-const devStaffLinks = computed(() =>
-  staffRouteRegistry
-    .filter(item => hasRoute(item.path))
-    .map(item => ({
-      key: item.key,
-      label: item.label,
-      to: typeof item.to === 'function' ? item.to(currentOrderId.value) : item.to
-    }))
-)
+const devStaffLinks = computed(() => buildStaffDevLinks(router, currentOrderId.value))
 
 watch(
   [() => isStaffRoute.value, () => currentTableCode.value],
   async ([isStaff, tableCode]) => {
-    if (isStaff || !entryStore) return
-
-    await entryStore.loadTableContext({
-      tableCode,
-      orderingSessionToken: entryState.value.orderingSessionToken
-    })
-
-    if (cartStore) {
-      cartStore.loadFromEntry({
-        tableCode,
-        orderingSessionToken: entryStore.state.orderingSessionToken,
-        orderingCartId: entryStore.state.orderingCartId,
-        orderingLabel: entryStore.state.orderingLabel,
-        personSlot: entryStore.state.personSlot
-      })
+    if (isStaff) {
+      await staffAuth.bootstrap()
+      return
     }
+
+    await orderingFlow.ensureEntryContext(tableCode, entryState.value.orderingSessionToken)
   },
   { immediate: true }
 )
-
-watchEffect(() => {
-  if (staffAuthStore && !authState.value.initialized) {
-    staffAuthStore.loadSession()
-  }
-})
 
 watch(
   () => route.fullPath,
@@ -314,55 +251,26 @@ watch(
   { immediate: true }
 )
 
-function resolvePostLoginPath(session) {
-  if (!session) return ''
-  if (Boolean(session.isSuperAdmin) && hasRoute(visitorStatsRoutePath)) {
-    return visitorStatsRoutePath
-  }
-
-  return ''
-}
-
-async function redirectAfterStaffLogin(session) {
-  const targetPath = resolvePostLoginPath(session)
-  if (!targetPath || route.path === targetPath) return
-  await router.replace(targetPath)
-}
-
 watch(
-  () => staffSession.value,
-  session => {
-    if (!isStaffRoute.value || !session) return
+  [() => staffSession.value, () => route.matched.at(-1)?.path || ''],
+  ([session, matchedPath]) => {
+    if (!isStaffRoute.value || !session || !matchedPath) return
+    if (canAccessStaffRoute(router, matchedPath, session)) return
 
-    const targetPath = resolvePostLoginPath(session)
+    const targetPath = resolveStaffLandingPath(router, session)
     if (!targetPath || route.path === targetPath) return
 
     router.replace(targetPath)
   }
 )
 
-async function submitStaffLogin() {
-  if (!staffAuthStore) return
-
-  await staffAuthStore.login({
-    account: loginForm.account,
-    password: loginForm.password
-  })
-
-  await redirectAfterStaffLogin(staffAuthStore.state.session || null)
-}
-
-async function logout() {
-  if (!staffAuthStore) return
-
-  await staffAuthStore.logout()
+async function handleStaffLogout() {
+  await staffAuth.signOut()
   staffHeadMenuOpen.value = false
-  loginForm.account = 'manager'
-  loginForm.password = 'manager123'
 }
 
 async function revalidateEntryContextOnResume() {
-  if (isStaffRoute.value || !entryStore) return
+  if (isStaffRoute.value) return
 
   const now = Date.now()
   if (isRevalidatingEntryContext.value || now - lastEntryRevalidateAt.value < 1500) {
@@ -373,10 +281,7 @@ async function revalidateEntryContextOnResume() {
   lastEntryRevalidateAt.value = now
 
   try {
-    await entryStore.loadTableContext({
-      tableCode: currentTableCode.value,
-      orderingSessionToken: entryState.value.orderingSessionToken
-    })
+    await orderingFlow.revalidateEntryContext(currentTableCode.value)
   } finally {
     isRevalidatingEntryContext.value = false
   }
@@ -404,11 +309,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
-function clearLoginError() {
-  if (!staffAuthStore) return
-  staffAuthStore.clearError()
-}
-
 function toggleDevMenu() {
   devMenuOpen.value = !devMenuOpen.value
 }
@@ -431,8 +331,7 @@ function scrollGuestViewportToTop() {
 }
 
 function handleGuestCategorySelect(categoryId) {
-  if (!menuStore) return
-  menuStore.setActiveCategory(categoryId)
+  orderingFlow.setGuestMenuCategory(categoryId)
   scrollGuestViewportToTop()
 }
 </script>
@@ -440,7 +339,7 @@ function handleGuestCategorySelect(categoryId) {
 <template lang="pug">
 .dine-root(:class="{ 'is-staff': isStaffRoute, 'is-guest-shell': !isStaffRoute }")
   template(v-if="isStaffRoute")
-    .staff-shell(v-if="isStaffAuthenticated || !staffAuthStore")
+    .staff-shell(v-if="isStaffAuthenticated || !authState.initialized")
       button.staff-shell__mobile-toggle(
         v-if="staffSession"
         type="button"
@@ -458,7 +357,7 @@ function handleGuestCategorySelect(categoryId) {
             span.staff-shell__meta(v-else) 尚未登入員工帳號
 
           .staff-shell__actions(v-if="staffSession")
-            button.staff-shell__logout(type="button" @click="logout()") 登出
+            button.staff-shell__logout(type="button" @click="handleStaffLogout()") 登出
         nav.staff-shell__nav(v-if="staffNavItems.length > 0")
           RouterLink.staff-shell__nav-item(
             v-for="item in activeStaffNavItems"
@@ -477,44 +376,13 @@ function handleGuestCategorySelect(categoryId) {
       main.staff-shell__body
         RouterView
 
-    .staff-auth-full(v-else)
-      .staff-auth-full__panel
-        .staff-auth-copy
-          p.staff-auth-copy__eyebrow 員工登入
-          h1.staff-auth-copy__title DineCore 後台登入
-          p.staff-auth-copy__lead QRC 點餐系統 DEMO，使用 PHP + MySQL + Vue.js 建構。請使用 manager 帳號登入後台操作。
-        form.staff-auth-form(@submit.prevent="submitStaffLogin()")
-          label.staff-auth-form__field
-            span.staff-auth-form__label 帳號
-            input.staff-auth-form__input(
-              v-model="loginForm.account"
-              type="text"
-              autocomplete="username"
-              placeholder="請輸入員工帳號"
-              @input="clearLoginError()"
-            )
-          label.staff-auth-form__field
-            span.staff-auth-form__label 密碼
-            input.staff-auth-form__input(
-              v-model="loginForm.password"
-              type="password"
-              autocomplete="current-password"
-              placeholder="請輸入登入密碼"
-              @input="clearLoginError()"
-            )
-          p.staff-auth-form__error(v-if="authState.errorMessage") {{ authState.errorMessage }}
-          button.staff-auth-form__submit(type="submit" :disabled="authState.isSubmitting")
-            | {{ authState.isSubmitting ? '登入中...' : '登入' }}
-          .staff-auth-form__hint
-            span 測試帳號：
-            code manager / manager123
-      .staff-demo-qr.staff-demo-qr--floating
-        h2.staff-demo-qr__title 桌號 {{ demoTableCode }} 手機點餐入口
-        img.staff-demo-qr__image(
-          :src="demoQrImageUrl"
-          :alt="`桌號 ${demoTableCode} QR`"
-        )
-        a.staff-demo-qr__link(:href="demoEntryPath" target="_blank" rel="noopener noreferrer") {{ demoEntryUrl }}
+    StaffAuthPanel(
+      v-else
+      :demo-table-code="demoTableCode"
+      :demo-qr-image-url="demoQrImageUrl"
+      :demo-entry-path="demoEntryPath"
+      :demo-entry-url="demoEntryUrl"
+    )
 
   template(v-else)
     .guest-shell

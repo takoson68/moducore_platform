@@ -15,8 +15,7 @@ export default {
     'visitor-stats',
     'audit-close',
     'menu-admin',
-    'table-admin',
-    'staff-auth'
+    'table-admin'
   ],
   description: '以餐廳手機點餐為核心，並提供櫃台、廚房、營運管理等後台工作流程的前端專案。',
   scenario: '顧客以桌邊固定桌號入口進入點餐流程；商家以櫃台、廚房、店長後台處理訂單、商品與桌位管理。',

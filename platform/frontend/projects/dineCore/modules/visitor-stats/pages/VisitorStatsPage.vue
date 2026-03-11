@@ -1,14 +1,13 @@
 <script setup>
 import { computed, watch } from 'vue'
 import world from '@/world.js'
+import { useDineCoreStaffAuth } from '@project/services/dineCoreStaffAuthService.js'
 
 const visitorStatsStore = world.store('dineCoreVisitorStatsStore')
-const staffAuthStore = world.store('dineCoreStaffAuthStore')
+const staffAuth = useDineCoreStaffAuth()
 
 const state = computed(() => visitorStatsStore.state)
-const authState = computed(() => staffAuthStore.state)
-const staffSession = computed(() => authState.value.session || null)
-const isSuperAdmin = computed(() => Boolean(staffSession.value?.isSuperAdmin))
+const isSuperAdmin = staffAuth.isSuperAdmin
 
 watch(
   () => state.value.range,

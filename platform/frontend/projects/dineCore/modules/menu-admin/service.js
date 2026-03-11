@@ -33,18 +33,42 @@ export async function loadMenuAdminItems() {
 }
 
 export async function createMenuAdminCategory(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/create-category', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/create-category', payload)
 }
 
 export async function updateMenuAdminCategory(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/update-category', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/update-category', payload)
 }
 
 export async function deleteMenuAdminCategory(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/delete-category', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/delete-category', payload)
 }
 
 export async function reorderMenuAdminCategories(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/reorder-categories', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/reorder-categories', payload)
 }
 
@@ -59,10 +83,22 @@ export async function createMenuAdminItem(payload) {
 }
 
 export async function updateMenuAdminItemStatus(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/update-item-status', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/update-item-status', payload)
 }
 
 export async function updateMenuAdminItemPrice(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/update-item-price', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/update-item-price', payload)
 }
 
@@ -87,33 +123,81 @@ export async function updateMenuAdminItemImage(payload) {
 }
 
 export async function updateMenuAdminItemCategory(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/update-item-category', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/update-item-category', payload)
 }
 
 export async function addMenuAdminOptionGroup(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/add-option-group', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/add-option-group', payload)
 }
 
 export async function addMenuAdminOption(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/add-option', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/add-option', payload)
 }
 
 export async function updateMenuAdminOptionGroup(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/update-option-group', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/update-option-group', payload)
 }
 
 export async function deleteMenuAdminOptionGroup(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/delete-option-group', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/delete-option-group', payload)
 }
 
 export async function updateMenuAdminOption(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/update-option', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/update-option', payload)
 }
 
 export async function deleteMenuAdminOption(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/delete-option', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/delete-option', payload)
 }
 
 export async function updateMenuAdminDefaultOptions(payload) {
+  if (world.apiMode() === 'real') {
+    return unwrapResult(
+      await world.http().post('/api/dinecore/staff/menu/update-default-options', payload, { tokenQuery: true })
+    )
+  }
+
   return mockApiRequest('menu-admin/update-default-options', payload)
 }

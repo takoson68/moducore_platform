@@ -50,14 +50,11 @@ export function createCheckoutStore() {
       persons: []
     },
     actions: {
-      load(store, input) {
-        const cartStore = world.store('dineCoreCartStore')
-        const cartState = cartStore.state
+      load(store, input = {}) {
+        const cartState = input?.cartState || {}
         const summary = buildCheckoutSummaryFromLocalCart(cartState)
         const orderingSessionToken =
-          typeof input === 'string'
-            ? String(cartState.orderingSessionToken || '')
-            : String(input?.orderingSessionToken || cartState.orderingSessionToken || '')
+          String(input?.orderingSessionToken || cartState.orderingSessionToken || '')
 
         store.set({
           ...store.get(),
@@ -81,13 +78,11 @@ export function createCheckoutStore() {
         })
       },
       async submit(store, input) {
-        const cartStore = world.store('dineCoreCartStore')
-        const cartState = cartStore.state
-        const tableCode = typeof input === 'string' ? input : input?.tableCode
-        const orderingSessionToken =
-          typeof input === 'string'
-            ? store.get().orderingSessionToken
-            : String(input?.orderingSessionToken || store.get().orderingSessionToken || '')
+        const cartState = input?.cartState || {}
+        const tableCode = input?.tableCode
+        const orderingSessionToken = String(
+          input?.orderingSessionToken || store.get().orderingSessionToken || ''
+        )
         const clientSubmissionId = createClientSubmissionId()
 
         store.setSubmitting(true)
@@ -132,4 +127,3 @@ export function createCheckoutStore() {
     }
   })
 }
-

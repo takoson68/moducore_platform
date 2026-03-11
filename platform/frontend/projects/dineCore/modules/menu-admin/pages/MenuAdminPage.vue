@@ -163,6 +163,36 @@ async function runSafely(task) {
       return
     }
 
+    if (message === 'MENU_OPTION_GROUP_NOT_FOUND' || message === 'OPTION_GROUP_NOT_FOUND') {
+      window.alert('找不到指定客製群組，請重新整理後再試。')
+      return
+    }
+
+    if (message === 'MENU_OPTION_NOT_FOUND' || message === 'OPTION_NOT_FOUND') {
+      window.alert('找不到指定選項，請重新整理後再試。')
+      return
+    }
+
+    if (message === 'MENU_OPTION_GROUP_LABEL_REQUIRED' || message === 'OPTION_GROUP_LABEL_REQUIRED') {
+      window.alert('請輸入客製群組名稱。')
+      return
+    }
+
+    if (message === 'MENU_OPTION_LABEL_REQUIRED' || message === 'OPTION_LABEL_REQUIRED') {
+      window.alert('請輸入選項名稱。')
+      return
+    }
+
+    if (message === 'INVALID_OPTION_GROUP_TYPE') {
+      window.alert('客製群組類型無效，請改用單選或多選。')
+      return
+    }
+
+    if (message === 'INVALID_OPTION_PRICE_DELTA') {
+      window.alert('選項加價必須是大於或等於 0 的數字。')
+      return
+    }
+
     if (message === 'MENU_IMAGE_URL_REQUIRED') {
       window.alert('請輸入圖片網址。')
       return
@@ -213,9 +243,22 @@ async function saveCategory(category) {
 
 async function moveCategory(category, direction) {
   await runSafely(async () => {
+    const categories = [...(state.value.categories || [])]
+    const currentIndex = categories.findIndex(entry => entry.id === category.id)
+    if (currentIndex < 0) return
+
+    const targetIndex =
+      direction === 'up' ? currentIndex - 1 : direction === 'down' ? currentIndex + 1 : currentIndex
+
+    if (targetIndex < 0 || targetIndex >= categories.length || targetIndex === currentIndex) {
+      return
+    }
+
+    const [movedCategory] = categories.splice(currentIndex, 1)
+    categories.splice(targetIndex, 0, movedCategory)
+
     await menuAdminStore.reorderCategories({
-      categoryId: category.id,
-      direction
+      categoryIds: categories.map(entry => entry.id)
     })
   })
 }
@@ -251,26 +294,32 @@ async function createItem() {
 }
 
 async function saveItemBasics(item) {
+  const nextImageUrl = String(draftImages[item.id] || '').trim()
+  const nextTitle = String(draftTitles[item.id] || '').trim()
+  const nextDescription = String(draftDescriptions[item.id] || '').trim()
+  const nextPrice = Number(draftPrices[item.id] || item.price)
+  const nextCategoryId = draftCategoryIds[item.id]
+
   await runSafely(async () => {
     await menuAdminStore.updateItemImage({
       itemId: item.id,
-      imageUrl: String(draftImages[item.id] || '').trim()
+      imageUrl: nextImageUrl
     })
 
     await menuAdminStore.updateItemContent({
       itemId: item.id,
-      title: String(draftTitles[item.id] || '').trim(),
-      description: String(draftDescriptions[item.id] || '').trim()
+      title: nextTitle,
+      description: nextDescription
     })
 
     await menuAdminStore.updateItemPrice({
       itemId: item.id,
-      price: Number(draftPrices[item.id] || item.price)
+      price: nextPrice
     })
 
     await menuAdminStore.updateItemCategory({
       itemId: item.id,
-      categoryId: draftCategoryIds[item.id]
+      categoryId: nextCategoryId
     })
   })
 }
@@ -315,11 +364,6 @@ async function saveOptionGroup(item, group) {
       label: form.label,
       type: form.type,
       required: Boolean(form.required)
-    })
-
-    await menuAdminStore.updateDefaultOptions({
-      itemId: item.id,
-      selectedOptionIds: collectDefaultOptionIds(item)
     })
   })
 }

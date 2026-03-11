@@ -1,5 +1,6 @@
 import world from '@/world.js'
 import { mockApiRequest } from '@project/api/mockRequest.js'
+import { staffApiRequest } from '@project/api/staffApiRequest.js'
 
 function unwrapResult(result) {
   if (result?.ok && result?.data?.ok) return result.data.data
@@ -30,17 +31,10 @@ export async function loadVisitorStats(range = 'today') {
     return mockApiRequest('visitor-stats/list', { range })
   }
 
-  const staffAuthStore = world.hasStore('dineCoreStaffAuthStore')
-    ? world.store('dineCoreStaffAuthStore')
-    : null
-  const sessionToken = String(staffAuthStore?.state?.session?.token || '').trim()
-  const query = new URLSearchParams({ range: String(range || 'today') })
-
-  if (sessionToken) {
-    query.set('token', sessionToken)
-  }
-
-  return unwrapResult(
-    await world.http().get(`/api/dinecore/staff/visitor-stats?${query.toString()}`)
-  )
+  return staffApiRequest('visitor-stats/list', {
+    path: '/api/dinecore/staff/visitor-stats',
+    query: {
+      range: String(range || 'today')
+    }
+  })
 }
