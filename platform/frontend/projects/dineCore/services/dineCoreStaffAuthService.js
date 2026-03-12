@@ -8,6 +8,7 @@ import {
 const state = reactive({
   session: null,
   initialized: false,
+  isBootstrapping: false,
   isSubmitting: false,
   errorMessage: ''
 })
@@ -29,11 +30,17 @@ async function loadSession({ force = false } = {}) {
   if (loadPromise && !force) return loadPromise
 
   loadPromise = (async () => {
-    const payload = await getStaffSession()
-    state.session = payload.session || null
-    state.initialized = true
-    state.errorMessage = ''
-    return state.session
+    state.isBootstrapping = true
+
+    try {
+      const payload = await getStaffSession()
+      state.session = payload.session || null
+      state.initialized = true
+      state.errorMessage = ''
+      return state.session
+    } finally {
+      state.isBootstrapping = false
+    }
   })()
 
   try {

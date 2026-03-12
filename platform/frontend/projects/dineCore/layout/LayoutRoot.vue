@@ -126,6 +126,9 @@ const entryState = orderingFlow.entryState
 const authState = computed(() => staffAuth.state)
 const staffSession = staffAuth.session
 const isStaffAuthenticated = staffAuth.isAuthenticated
+const showStaffAuthMask = computed(() =>
+  isStaffRoute.value && (!authState.value.initialized || authState.value.isBootstrapping)
+)
 
 const orderId = computed(() => String(orderingFlow.guestShellState.value.orderId || '').trim())
 const orderNo = computed(() => String(orderingFlow.guestShellState.value.orderNo || '').trim())
@@ -339,7 +342,13 @@ function handleGuestCategorySelect(categoryId) {
 <template lang="pug">
 .dine-root(:class="{ 'is-staff': isStaffRoute, 'is-guest-shell': !isStaffRoute }")
   template(v-if="isStaffRoute")
-    .staff-shell(v-if="isStaffAuthenticated || !authState.initialized")
+    .staff-auth-mask(v-if="showStaffAuthMask")
+      .staff-auth-mask__panel
+        .staff-auth-mask__spinner
+        p.staff-auth-mask__title 正在確認員工登入狀態
+        p.staff-auth-mask__copy 請稍候，系統正在載入後台工作環境。
+
+    .staff-shell(v-else-if="isStaffAuthenticated")
       button.staff-shell__mobile-toggle(
         v-if="staffSession"
         type="button"
@@ -474,6 +483,44 @@ function handleGuestCategorySelect(categoryId) {
 .staff-shell__mobile-toggle,
 .staff-shell__mobile-backdrop
   display: none
+
+.staff-auth-mask
+  min-height: 100vh
+  display: grid
+  place-items: center
+  padding: 32px
+  background: linear-gradient(180deg, rgba(238, 244, 246, 0.98) 0%, rgba(227, 239, 241, 0.98) 100%)
+
+.staff-auth-mask__panel
+  width: min(420px, 100%)
+  padding: 28px 24px
+  border-radius: 24px
+  background: rgba(255, 255, 255, 0.92)
+  border: 1px solid rgba(109, 180, 177, 0.18)
+  box-shadow: 0 24px 56px rgba(21, 36, 44, 0.12)
+  display: grid
+  justify-items: center
+  gap: 12px
+  text-align: center
+
+.staff-auth-mask__spinner
+  width: 44px
+  height: 44px
+  border-radius: 999px
+  border: 4px solid rgba(109, 180, 177, 0.2)
+  border-top-color: #58b8b1
+  animation: staff-auth-mask-spin 0.8s linear infinite
+
+.staff-auth-mask__title
+  margin: 0
+  color: #21393d
+  font-size: 18px
+  font-weight: 800
+
+.staff-auth-mask__copy
+  margin: 0
+  color: #62797d
+  line-height: 1.6
 
 .staff-auth-full
   min-height: 100vh
@@ -1072,4 +1119,10 @@ function handleGuestCategorySelect(categoryId) {
   border-radius: 0
   border-bottom-width: 2px
   border-bottom-style: solid
+
+@keyframes staff-auth-mask-spin
+  from
+    transform: rotate(0deg)
+  to
+    transform: rotate(360deg)
 </style>
