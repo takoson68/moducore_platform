@@ -5,11 +5,11 @@ function translateDashboardError(error) {
 
   switch (code) {
     case 'STAFF_SESSION_REQUIRED':
-      return '請先登入具備權限的員工帳號再查看營運總覽。'
+      return '尚未取得員工登入狀態，請重新登入後再試。'
     case 'STAFF_ROLE_FORBIDDEN':
-      return '目前帳號沒有查看營運總覽的權限。'
+      return '目前角色無法查看營運儀表板。'
     default:
-      return code || '營運總覽資料載入失敗。'
+      return code || '儀表板資料載入失敗。'
   }
 }
 
@@ -51,9 +51,31 @@ function normalizeTopItems(items = []) {
     : []
 }
 
-export async function loadDashboardSummary() {
+async function settleDashboardSection(label, task) {
   try {
-    const [reportsSummary, counterOrders, kitchenOrders] = await Promise.all([
+    return {
+      ok: true,
+      label,
+      data: await task()
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      label,
+      error: error instanceof Error ? error : new Error(String(error || 'API_ERROR'))
+    }
+  }
+}
+
+function buildDashboardWarnings(results = []) {
+  return results
+    .filter(result => !result.ok)
+    .map(result => `${result.label} 暫時無法載入`)
+}
+
+export async function loadDashboardSummary() {
+  const [reportsResult, counterResult, kitchenResult] = await Promise.all([
+    settleDashboardSection('營收摘要', () =>
       staffApiRequest('reports/summary', {
         path: '/api/dinecore/staff/reports/summary',
         method: 'GET',
@@ -65,55 +87,70 @@ export async function loadDashboardSummary() {
           payment_method: 'all',
           keyword: ''
         }
-      }),
+      })
+    ),
+    settleDashboardSection('最新訂單', () =>
       staffApiRequest('counter/orders', {
         path: '/api/dinecore/staff/counter/orders',
         method: 'GET'
-      }),
+      })
+    ),
+    settleDashboardSection('廚房批次', () =>
       staffApiRequest('kitchen/orders', {
         path: '/api/dinecore/staff/kitchen/orders',
         method: 'GET'
       })
-    ])
+    )
+  ])
 
-    const summary = reportsSummary.summary || {}
-    const recentOrders = normalizeRecentOrders(counterOrders)
-    const actionableBatches = Array.isArray(kitchenOrders) ? kitchenOrders : []
+  const results = [reportsResult, counterResult, kitchenResult]
+  const firstFailure = results.find(result => !result.ok)
+  const hasSuccess = results.some(result => result.ok)
 
-    return {
-      businessDate: summary.businessDate || '',
-      dailyOrderCount: Number(summary.orderCount || 0),
-      dailyRevenueTotal: Number(summary.grossSales || 0),
-      paidAmount: Number(summary.paidAmount || 0),
-      unpaidAmount: Number(summary.unpaidAmount || 0),
-      completedOrderCount: Number(summary.completedOrderCount || 0),
-      cancelledOrderCount: Number(summary.cancelledOrderCount || 0),
-      averageOrderValue: Number(summary.averageOrderValue || 0),
-      orderStatusBreakdown: normalizeBreakdown(reportsSummary.statusBreakdown, {
-        pending: 0,
-        preparing: 0,
-        ready: 0,
-        picked_up: 0,
-        cancelled: 0
-      }),
-      paymentMethodBreakdown: normalizeBreakdown(reportsSummary.paymentBreakdown, {
-        cash: 0,
-        counter_card: 0,
-        other: 0,
-        unpaid: 0
-      }),
-      batchSnapshot: {
-        activeBatchCount: actionableBatches.length,
-        submittedCount: actionableBatches.filter(item => item.orderStatus === 'submitted' || item.orderStatus === 'pending').length,
-        preparingCount: actionableBatches.filter(item => item.orderStatus === 'preparing').length,
-        readyCount: actionableBatches.filter(item => item.orderStatus === 'ready').length,
-        draftOrderCount: recentOrders.filter(item => item.latestBatchStatus === 'draft').length,
-        unpaidOrderCount: recentOrders.filter(item => item.paymentStatus !== 'paid').length
-      },
-      topSellingItems: normalizeTopItems(reportsSummary.topItems),
-      recentOrders
-    }
-  } catch (error) {
-    throw new Error(translateDashboardError(error))
+  if (!hasSuccess && firstFailure) {
+    throw new Error(translateDashboardError(firstFailure.error))
+  }
+
+  const reportsSummary = reportsResult.ok ? reportsResult.data : {}
+  const summary = reportsSummary.summary || {}
+  const recentOrders = normalizeRecentOrders(counterResult.ok ? counterResult.data : [])
+  const actionableBatches = Array.isArray(kitchenResult.ok ? kitchenResult.data : null)
+    ? kitchenResult.data
+    : []
+
+  return {
+    businessDate: summary.businessDate || '',
+    paidAmount: Number(summary.paidAmount || 0),
+    dailyOrderCount: Number(summary.orderCount || 0),
+    dailyRevenueTotal: Number(summary.paidAmount || 0),
+    dailyOrderGrossTotal: Number(summary.grossSales || 0),
+    unpaidAmount: Number(summary.unpaidAmount || 0),
+    completedOrderCount: Number(summary.completedOrderCount || 0),
+    cancelledOrderCount: Number(summary.cancelledOrderCount || 0),
+    averageOrderValue: Number(summary.averageOrderValue || 0),
+    orderStatusBreakdown: normalizeBreakdown(reportsSummary.statusBreakdown, {
+      pending: 0,
+      preparing: 0,
+      ready: 0,
+      picked_up: 0,
+      cancelled: 0
+    }),
+    paymentMethodBreakdown: normalizeBreakdown(reportsSummary.paymentBreakdown, {
+      cash: 0,
+      counter_card: 0,
+      other: 0,
+      unpaid: 0
+    }),
+    batchSnapshot: {
+      activeBatchCount: actionableBatches.length,
+      submittedCount: actionableBatches.filter(item => item.orderStatus === 'submitted' || item.orderStatus === 'pending').length,
+      preparingCount: actionableBatches.filter(item => item.orderStatus === 'preparing').length,
+      readyCount: actionableBatches.filter(item => item.orderStatus === 'ready').length,
+      draftOrderCount: recentOrders.filter(item => item.latestBatchStatus === 'draft').length,
+      unpaidOrderCount: recentOrders.filter(item => item.paymentStatus !== 'paid').length
+    },
+    topSellingItems: normalizeTopItems(reportsSummary.topItems),
+    recentOrders,
+    warnings: buildDashboardWarnings(results)
   }
 }

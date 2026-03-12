@@ -356,14 +356,44 @@ async function createOptionGroup(item) {
 async function saveOptionGroup(item, group) {
   const groupKey = buildGroupKey(item.id, group.id)
   const form = optionGroupEditForms[groupKey]
+  const nextGroup = {
+    label: String(form?.label || '').trim(),
+    type: String(form?.type || 'single'),
+    required: Boolean(form?.required)
+  }
+  const nextOptions = (group.options || []).map(option => {
+    const optionForm = optionEditForms[buildOptionKey(item.id, group.id, option.id)]
+
+    return {
+      optionId: option.id,
+      label: String(optionForm?.label || '').trim(),
+      priceDelta: Number(optionForm?.priceDelta || 0)
+    }
+  })
+  const nextDefaultOptionIds = collectGroupDefaultOptionIds(item, group)
 
   await runSafely(async () => {
     await menuAdminStore.updateOptionGroup({
       itemId: item.id,
       groupId: group.id,
-      label: form.label,
-      type: form.type,
-      required: Boolean(form.required)
+      label: nextGroup.label,
+      type: nextGroup.type,
+      required: nextGroup.required
+    })
+
+    for (const option of nextOptions) {
+      await menuAdminStore.updateOption({
+        itemId: item.id,
+        groupId: group.id,
+        optionId: option.optionId,
+        label: option.label,
+        priceDelta: option.priceDelta
+      })
+    }
+
+    await menuAdminStore.updateDefaultOptions({
+      itemId: item.id,
+      selectedOptionIds: nextDefaultOptionIds
     })
   })
 }
@@ -396,36 +426,12 @@ async function createOption(item, group) {
   })
 }
 
-async function saveOption(item, group, option) {
-  const optionKey = buildOptionKey(item.id, group.id, option.id)
-  const form = optionEditForms[optionKey]
-
-  await runSafely(async () => {
-    await menuAdminStore.updateOption({
-      itemId: item.id,
-      groupId: group.id,
-      optionId: option.id,
-      label: form.label,
-      priceDelta: Number(form.priceDelta || 0)
-    })
-  })
-}
-
 async function removeOption(item, group, option) {
   await runSafely(async () => {
     await menuAdminStore.deleteOption({
       itemId: item.id,
       groupId: group.id,
       optionId: option.id
-    })
-  })
-}
-
-async function saveDefaultOptions(item) {
-  await runSafely(async () => {
-    await menuAdminStore.updateDefaultOptions({
-      itemId: item.id,
-      selectedOptionIds: collectDefaultOptionIds(item)
     })
   })
 }
@@ -440,6 +446,27 @@ function collectDefaultOptionIds(item) {
       .filter(optionId => selectedOptionIds.includes(optionId))
 
     if (form?.type === 'single') {
+      return validOptionIds.slice(0, 1)
+    }
+
+    return validOptionIds
+  })
+}
+
+function collectGroupDefaultOptionIds(item, targetGroup) {
+  return (item.optionGroups || []).flatMap(group => {
+    const groupKey = buildGroupKey(item.id, group.id)
+    const form = optionGroupEditForms[groupKey]
+    const selectedOptionIds = Array.isArray(form?.defaultOptionIds) ? form.defaultOptionIds : []
+    const validOptionIds = group.options
+      .map(option => option.id)
+      .filter(optionId => selectedOptionIds.includes(optionId))
+
+    if (group.id !== targetGroup.id) {
+      return []
+    }
+
+    if ((form?.type || group.type) === 'single') {
       return validOptionIds.slice(0, 1)
     }
 
@@ -620,9 +647,6 @@ function toggleDefaultOption(item, group, optionId, checked) {
                   )
                   p.option-group-card__subtitle
                     | 單選群組僅可設定一個預設值，多選群組可設定多個預設值。
-                .option-group-card__actions
-                  button.action-chip.is-muted(type="button" @click="saveOptionGroup(item, group)") 儲存群組
-                  button.action-chip.is-danger(type="button" @click="removeOptionGroup(item, group)") 刪除群組
 
               .option-group-card__settings
                 label.form-field
@@ -647,7 +671,6 @@ function toggleDefaultOption(item, group, optionId, checked) {
                       @change="toggleDefaultOption(item, group, option.id, $event.target.checked)"
                     )
                     span {{ option.label }}
-                button.action-chip.is-muted(type="button" @click="saveDefaultOptions(item)") 儲存預設
 
               .option-list
                 article.option-row(v-for="option in group.options" :key="option.id")
@@ -661,7 +684,6 @@ function toggleDefaultOption(item, group, optionId, checked) {
                     min="0"
                     step="1"
                   )
-                  button.action-chip.is-muted(type="button" @click="saveOption(item, group, option)") 儲存
                   button.action-chip.is-danger(type="button" @click="removeOption(item, group, option)") 刪除
 
               .option-create
@@ -678,6 +700,10 @@ function toggleDefaultOption(item, group, optionId, checked) {
                   placeholder="加價"
                 )
                 button.action-chip.is-muted(type="button" @click="createOption(item, group)") 新增選項
+
+              .option-group-card__actions
+                button.action-chip.is-muted(type="button" @click="saveOptionGroup(item, group)") 儲存此群組
+                button.action-chip.is-danger(type="button" @click="removeOptionGroup(item, group)") 刪除群組
 
           p.customization-card__empty(v-if="!isCustomizationCollapsed(item.id) && (!item.optionGroups || item.optionGroups.length === 0)") 尚未設定客製規則，請先新增群組。
 
@@ -1067,7 +1093,7 @@ function toggleDefaultOption(item, group, optionId, checked) {
   display: flex
   gap: 8px
   flex-wrap: wrap
-  justify-content: end
+  justify-content: center
 
 .option-group-card__settings
   display: grid

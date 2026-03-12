@@ -1,6 +1,7 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import world from '@/world.js'
+import { useDineCoreStaffAuth } from '@project/services/dineCoreStaffAuthService.js'
 import {
   buildReportsCsv,
   reportPaymentMethodLabels,
@@ -10,13 +11,32 @@ import {
 
 const reportsStore = world.store('dineCoreReportsStore')
 const state = computed(() => reportsStore.state)
+const staffAuth = useDineCoreStaffAuth()
+
+function loadReports() {
+  if (!staffAuth.isAuthenticated.value) return
+  reportsStore.load()
+}
+
+onMounted(async () => {
+  await staffAuth.bootstrap()
+  loadReports()
+})
 
 watch(
   () => ({ ...state.value.filters }),
   () => {
-    reportsStore.load()
+    loadReports()
   },
-  { immediate: true, deep: true }
+  { immediate: false, deep: true }
+)
+
+watch(
+  () => staffAuth.isAuthenticated.value,
+  isAuthenticated => {
+    if (!isAuthenticated) return
+    loadReports()
+  }
 )
 
 function downloadCsv() {
@@ -44,87 +64,96 @@ function downloadCsv() {
       .panel-card__copy
         p.eyebrow 營運報表
         h2 營運報表
-        p.lead 可依日期、訂單狀態與付款條件過濾主單資料，並匯出 CSV 供後續對帳或管理分析。
+        p.lead 集中查看指定日期區間的訂單、付款與熱門品項表現，並支援匯出 CSV 做進一步整理。
       button.ghost-button(type="button" :disabled="state.orderRows.length === 0" @click="downloadCsv()") 匯出 CSV
 
-  section.filter-grid
-    label.field-card
-      span.info-label 開始日期
-      input.field-input(
-        type="date"
-        :value="state.filters.dateFrom"
-        @input="reportsStore.setFilters({ dateFrom: $event.target.value })"
-      )
-    label.field-card
-      span.info-label 結束日期
-      input.field-input(
-        type="date"
-        :value="state.filters.dateTo"
-        @input="reportsStore.setFilters({ dateTo: $event.target.value })"
-      )
-    label.field-card
-      span.info-label 訂單狀態
-      select.field-input(
-        :value="state.filters.status"
-        @change="reportsStore.setFilters({ status: $event.target.value })"
-      )
-        option(value="all") 全部
-        option(value="pending") 待處理
-        option(value="preparing") 備餐中
-        option(value="ready") 可取餐
-        option(value="picked_up") 已取餐
-        option(value="cancelled") 已取消
-    label.field-card
-      span.info-label 付款狀態
-      select.field-input(
-        :value="state.filters.paymentStatus"
-        @change="reportsStore.setFilters({ paymentStatus: $event.target.value })"
-      )
-        option(value="all") 全部
-        option(value="unpaid") 未付款
-        option(value="paid") 已付款
-    label.field-card
-      span.info-label 付款方式
-      select.field-input(
-        :value="state.filters.paymentMethod"
-        @change="reportsStore.setFilters({ paymentMethod: $event.target.value })"
-      )
-        option(value="all") 全部
-        option(value="cash") 現金
-        option(value="counter_card") 櫃台刷卡
-        option(value="other") 其他
-    label.field-card.field-card--wide
-      span.info-label 關鍵字
-      input.field-input(
-        type="text"
-        :value="state.filters.keyword"
-        placeholder="可搜尋訂單編號或桌號"
-        @input="reportsStore.setFilters({ keyword: $event.target.value })"
-      )
-    .filter-actions
-      button.ghost-button(type="button" @click="reportsStore.resetFilters()") 重設條件
-      span.filter-hint(v-if="state.lastLoadedAt") {{ `最後更新：${state.lastLoadedAt}` }}
+  section.filter-card
+    .filter-card__head
+      .filter-card__copy
+        span.info-label 篩選條件
+        h3.filter-card__title 日期與報表條件
+
+    .filter-grid
+      .field-card.field-card--date-range
+        span.info-label 日期區間
+        .date-range-inline
+          label.field-card__segment
+            span.field-card__segment-label 起始日期
+            input.field-input(
+              type="date"
+              :value="state.filters.dateFrom"
+              @input="reportsStore.setFilters({ dateFrom: $event.target.value })"
+            )
+          label.field-card__segment
+            span.field-card__segment-label 結束日期
+            input.field-input(
+              type="date"
+              :value="state.filters.dateTo"
+              @input="reportsStore.setFilters({ dateTo: $event.target.value })"
+            )
+      label.field-card
+        span.info-label 訂單狀態
+        select.field-input(
+          :value="state.filters.status"
+          @change="reportsStore.setFilters({ status: $event.target.value })"
+        )
+          option(value="all") 全部
+          option(value="pending") 待處理
+          option(value="preparing") 製作中
+          option(value="ready") 可取餐
+          option(value="picked_up") 已取餐
+          option(value="cancelled") 已取消
+      label.field-card
+        span.info-label 付款狀態
+        select.field-input(
+          :value="state.filters.paymentStatus"
+          @change="reportsStore.setFilters({ paymentStatus: $event.target.value })"
+        )
+          option(value="all") 全部
+          option(value="unpaid") 未付款
+          option(value="paid") 已付款
+      label.field-card
+        span.info-label 付款方式
+        select.field-input(
+          :value="state.filters.paymentMethod"
+          @change="reportsStore.setFilters({ paymentMethod: $event.target.value })"
+        )
+          option(value="all") 全部
+          option(value="cash") 現金
+          option(value="counter_card") 櫃台刷卡
+          option(value="other") 其他
+      label.field-card.field-card--wide
+        span.info-label 關鍵字
+        input.field-input(
+          type="text"
+          :value="state.filters.keyword"
+          placeholder="可搜尋桌號、訂單編號或備註"
+          @input="reportsStore.setFilters({ keyword: $event.target.value })"
+        )
+      .filter-inline-actions
+        button.ghost-button(type="button" @click="reportsStore.resetFilters()") 重設篩選
+        span.filter-hint(v-if="state.lastLoadedAt") {{ `最後更新 ${state.lastLoadedAt}` }}
 
   section.loading-card(v-if="state.loading")
-    p 正在載入報表資料...
+    p 報表資料載入中...
 
   section.error-card(v-else-if="state.error")
-    p {{ `報表載入失敗：${state.error}` }}
+    p {{ `報表資料載入失敗：${state.error}` }}
 
   template(v-else)
     section.stat-grid
       article.info-card
-        span.info-label 營業日
-        strong.info-value {{ state.summary.businessDate || '未指定' }}
+        span.info-label 營運日期
+        strong.info-value {{ state.summary.businessDate || '尚無資料' }}
       article.info-card
-        span.info-label 總營收
+        span.info-label 今日營收
+        strong.info-value {{ `NT$ ${state.summary.paidAmount}` }}
+      article.info-card
+        span.info-label 訂單總額
         strong.info-value {{ `NT$ ${state.summary.grossSales}` }}
       article.info-card
-        span.info-label 主單數
+        span.info-label 訂單數
         strong.info-value {{ state.summary.orderCount }}
-      article.info-card
-        span.info-label 已付款金額
-        strong.info-value {{ `NT$ ${state.summary.paidAmount}` }}
       article.info-card
         span.info-label 未付款金額
         strong.info-value {{ `NT$ ${state.summary.unpaidAmount}` }}
@@ -152,7 +181,7 @@ function downloadCsv() {
           span {{ `${item.quantity} 份` }}
         strong.rank-item__value {{ `NT$ ${item.grossSales}` }}
     section.empty-card(v-else)
-      p 目前沒有符合條件的熱門品項資料。
+      p 目前沒有可顯示的熱門品項資料。
 
     section.table-card(v-if="state.orderRows.length > 0")
       .table-card__head
@@ -165,7 +194,7 @@ function downloadCsv() {
           span 訂單狀態
           span 付款資訊
           span 建立時間
-          span 總金額
+          span 訂單金額
         .report-table__row(v-for="order in state.orderRows" :key="order.orderId")
           strong {{ order.orderNo }}
           span {{ order.tableCode }}
@@ -174,7 +203,7 @@ function downloadCsv() {
           span {{ order.createdAt }}
           strong {{ `NT$ ${order.totalAmount}` }}
     section.empty-card(v-else)
-      p 目前沒有符合條件的報表主單資料。
+      p 目前沒有符合條件的訂單資料。
 </template>
 
 <style lang="sass">
@@ -182,7 +211,7 @@ function downloadCsv() {
   display: grid
   gap: 18px
 
-.panel-card, .field-card, .info-card, .breakdown-card, .rank-card, .table-card, .loading-card, .error-card, .empty-card
+.panel-card, .filter-card, .field-card, .info-card, .breakdown-card, .rank-card, .table-card, .loading-card, .error-card, .empty-card
   padding: 22px
   border-radius: 22px
   background: rgba(255, 255, 255, 0.9)
@@ -199,28 +228,55 @@ function downloadCsv() {
 .panel-card h2
   margin: 0 0 10px
 
-.panel-card__head
+.panel-card__head, .filter-card__head
   display: flex
   justify-content: space-between
   align-items: flex-start
   gap: 12px
 
-.panel-card__copy
+.panel-card__copy, .filter-card__copy
   display: grid
+  gap: 4px
 
 .lead
   margin: 0
   color: #6f5b43
   line-height: 1.7
 
+.filter-card
+  display: grid
+  gap: 18px
+
+.filter-card__title
+  margin: 0
+  color: #243a3e
+
 .filter-grid
   display: grid
-  grid-template-columns: repeat(4, minmax(0, 1fr))
+  grid-template-columns: repeat(5, minmax(0, 1fr))
   gap: 12px
 
 .field-card
   display: grid
   gap: 8px
+
+.field-card--date-range
+  min-width: 0
+  grid-column: span 2
+
+.date-range-inline
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 10px
+
+.field-card__segment
+  display: grid
+  gap: 6px
+  min-width: 0
+
+.field-card__segment-label
+  color: #8c7b65
+  font-size: 12px
 
 .field-card--wide
   grid-column: span 2
@@ -233,16 +289,23 @@ function downloadCsv() {
   width: 100%
   border: 0
   border-radius: 14px
-  padding: 12px 14px
+  padding: 9px 4px
   background: rgba(121, 214, 207, 0.12)
   color: #2f2416
 
 .filter-actions
   display: flex
   align-items: center
-  justify-content: space-between
+  justify-content: flex-end
   gap: 12px
-  padding: 16px 4px 0
+
+.filter-inline-actions
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  gap: 12px
+  flex-wrap: nowrap
+  white-space: nowrap
 
 .ghost-button
   border: 0
@@ -350,7 +413,7 @@ function downloadCsv() {
 
 @media (max-width: 1100px)
   .filter-grid
-    grid-template-columns: repeat(2, minmax(0, 1fr))
+    grid-template-columns: repeat(3, minmax(0, 1fr))
 
   .field-card--wide
     grid-column: span 2
@@ -365,9 +428,15 @@ function downloadCsv() {
   .filter-grid
     grid-template-columns: 1fr
 
+  .date-range-inline
+    grid-template-columns: 1fr
+
+  .field-card--date-range
+    grid-column: span 1
+
   .field-card--wide
     grid-column: span 1
 
-  .panel-card__head, .filter-actions
+  .panel-card__head, .filter-card__head, .filter-actions, .filter-inline-actions
     display: grid
 </style>

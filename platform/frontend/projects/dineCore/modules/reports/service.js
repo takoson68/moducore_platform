@@ -2,7 +2,7 @@ import { loadReportOrders, loadReportsSummary } from './api/reportsApi.js'
 
 const reportStatusLabels = {
   pending: '待處理',
-  preparing: '備餐中',
+  preparing: '製作中',
   ready: '可取餐',
   picked_up: '已取餐',
   cancelled: '已取消'
@@ -26,11 +26,11 @@ function translateReportsError(error) {
 
   switch (code) {
     case 'STAFF_SESSION_REQUIRED':
-      return '請先登入具備權限的員工帳號再查看營運報表。'
+      return '尚未取得員工登入狀態，請重新登入後再試。'
     case 'STAFF_ROLE_FORBIDDEN':
-      return '目前帳號沒有查看營運報表的權限。'
+      return '目前角色無法查看營運報表。'
     default:
-      return code || '營運報表資料載入失敗。'
+      return code || '營運報表載入失敗。'
   }
 }
 
@@ -96,7 +96,7 @@ function escapeCsvValue(value) {
 }
 
 function normalizeFilterLabel(key, value) {
-  if (!value) return '未指定'
+  if (!value) return '未設定'
 
   switch (key) {
     case 'status':
@@ -113,15 +113,15 @@ function normalizeFilterLabel(key, value) {
 export function buildReportsCsv({ orderRows = [], summary = {}, filters = {} } = {}) {
   const metaRows = [
     ['報表名稱', 'DineCore 營運報表匯出'],
-    ['營業日', summary.businessDate || '未指定'],
-    ['開始日期', normalizeFilterLabel('dateFrom', filters.dateFrom || '')],
+    ['營運日期', summary.businessDate || '未設定'],
+    ['起始日期', normalizeFilterLabel('dateFrom', filters.dateFrom || '')],
     ['結束日期', normalizeFilterLabel('dateTo', filters.dateTo || '')],
     ['訂單狀態', normalizeFilterLabel('status', filters.status || 'all')],
     ['付款狀態', normalizeFilterLabel('paymentStatus', filters.paymentStatus || 'all')],
     ['付款方式', normalizeFilterLabel('paymentMethod', filters.paymentMethod || 'all')],
     ['關鍵字', normalizeFilterLabel('keyword', filters.keyword || '')],
-    ['總營收', summary.grossSales ?? 0],
-    ['已付款金額', summary.paidAmount ?? 0],
+    ['今日營收', summary.paidAmount ?? 0],
+    ['訂單總額', summary.grossSales ?? 0],
     ['未付款金額', summary.unpaidAmount ?? 0],
     ['訂單數', summary.orderCount ?? 0],
     ['平均客單價', summary.averageOrderValue ?? 0],
@@ -135,9 +135,9 @@ export function buildReportsCsv({ orderRows = [], summary = {}, filters = {} } =
     '訂單狀態',
     '付款狀態',
     '付款方式',
-    '總金額',
+    '訂單金額',
     '品項數',
-    '最新備註'
+    '備註摘要'
   ]
 
   const rows = Array.isArray(orderRows)

@@ -1,7 +1,7 @@
-import { dineCoreRequest } from '@project/api/dineCoreRequest.js'
+import { staffApiRequest } from '@project/api/staffApiRequest.js'
 
 export async function loadReportsSummary(filters = {}) {
-  return dineCoreRequest('reports/summary', {
+  return staffApiRequest('reports/summary', {
     path: '/api/dinecore/staff/reports/summary',
     method: 'GET',
     mockPayload: { filters },
@@ -17,7 +17,7 @@ export async function loadReportsSummary(filters = {}) {
 }
 
 export async function loadReportOrders(filters = {}) {
-  return dineCoreRequest('reports/orders', {
+  return staffApiRequest('reports/orders', {
     path: '/api/dinecore/staff/reports/orders',
     method: 'GET',
     mockPayload: { filters },

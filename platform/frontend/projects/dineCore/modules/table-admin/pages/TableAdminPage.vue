@@ -1,9 +1,12 @@
 ﻿<script setup>
-import { computed, reactive, ref, watchEffect } from 'vue'
+import { computed, onMounted, reactive, ref, watch, watchEffect } from 'vue'
 import world from '@/world.js'
+import { useDineCoreStaffAuth } from '@project/services/dineCoreStaffAuthService.js'
 
 const tableAdminStore = world.store('dineCoreTableAdminStore')
 const state = computed(() => tableAdminStore.state)
+const staffAuth = useDineCoreStaffAuth()
+const hasLoadedOnce = ref(false)
 
 const copiedTableCode = ref('')
 const qrImageUrlByTableCode = reactive({})
@@ -16,11 +19,28 @@ const createForm = reactive({
   dineMode: 'dine_in'
 })
 
-watchEffect(() => {
-  tableAdminStore.load().catch(error => {
+async function loadTables() {
+  try {
+    await tableAdminStore.load()
+    hasLoadedOnce.value = true
+  } catch (error) {
     window.alert(resolveTableAdminErrorMessage(error))
-  })
+  }
+}
+
+onMounted(async () => {
+  await staffAuth.bootstrap()
+  if (!staffAuth.isAuthenticated.value) return
+  await loadTables()
 })
+
+watch(
+  () => staffAuth.isAuthenticated.value,
+  async isAuthenticated => {
+    if (!isAuthenticated || hasLoadedOnce.value) return
+    await loadTables()
+  }
+)
 
 watchEffect(() => {
   for (const table of state.value.tables || []) {

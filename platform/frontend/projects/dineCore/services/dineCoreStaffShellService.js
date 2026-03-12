@@ -1,5 +1,11 @@
 const staffRouteRegistry = [
   {
+    key: 'dashboard',
+    label: '營運總覽',
+    path: '/staff/manager/dashboard',
+    to: '/staff/manager/dashboard'
+  },
+  {
     key: 'counter',
     label: '櫃台訂單',
     path: '/staff/counter/orders',
@@ -18,31 +24,10 @@ const staffRouteRegistry = [
     to: '/staff/kitchen/board'
   },
   {
-    key: 'dashboard',
-    label: '營運總覽',
-    path: '/staff/manager/dashboard',
-    to: '/staff/manager/dashboard',
-    planned: true
-  },
-  {
-    key: 'reports',
-    label: '營運報表',
-    path: '/staff/manager/reports',
-    to: '/staff/manager/reports',
-    planned: true
-  },
-  {
     key: 'visitor-stats',
-    label: '每日 IP 訪客統計',
+    label: '訪客 IP 觀測',
     path: '/staff/manager/visitor-stats',
     to: '/staff/manager/visitor-stats'
-  },
-  {
-    key: 'audit-close',
-    label: '關帳與稽核',
-    path: '/staff/manager/audit-close',
-    to: '/staff/manager/audit-close',
-    planned: true
   },
   {
     key: 'menu-admin',
@@ -55,6 +40,18 @@ const staffRouteRegistry = [
     label: '桌位管理',
     path: '/staff/manager/tables',
     to: '/staff/manager/tables'
+  },
+  {
+    key: 'reports',
+    label: '營運報表',
+    path: '/staff/manager/reports',
+    to: '/staff/manager/reports'
+  },
+  {
+    key: 'audit-close',
+    label: '關帳作業',
+    path: '/staff/manager/audit-close',
+    to: '/staff/manager/audit-close'
   }
 ]
 

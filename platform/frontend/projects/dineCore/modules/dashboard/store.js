@@ -10,6 +10,7 @@ export function createDashboardStore() {
       businessDate: '',
       dailyOrderCount: 0,
       dailyRevenueTotal: 0,
+      dailyOrderGrossTotal: 0,
       paidAmount: 0,
       unpaidAmount: 0,
       completedOrderCount: 0,
@@ -36,6 +37,7 @@ export function createDashboardStore() {
         draftOrderCount: 0,
         unpaidOrderCount: 0
       },
+      warnings: [],
       topSellingItems: [],
       recentOrders: []
     },
@@ -45,7 +47,8 @@ export function createDashboardStore() {
         store.set({
           ...state,
           loading: true,
-          error: ''
+          error: '',
+          warnings: []
         })
 
         try {

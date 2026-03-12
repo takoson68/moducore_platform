@@ -1,7 +1,7 @@
-import { dineCoreRequest } from '@project/api/dineCoreRequest.js'
+import { staffApiRequest } from '@project/api/staffApiRequest.js'
 
 export async function loadAuditCloseSummary(businessDate) {
-  return dineCoreRequest('audit-close/summary', {
+  return staffApiRequest('audit-close/summary', {
     path: '/api/dinecore/staff/audit-close/summary',
     method: 'GET',
     mockPayload: { businessDate },
@@ -12,7 +12,7 @@ export async function loadAuditCloseSummary(businessDate) {
 }
 
 export async function loadAuditCloseHistory(businessDate) {
-  return dineCoreRequest('audit-close/history', {
+  return staffApiRequest('audit-close/history', {
     path: '/api/dinecore/staff/audit-close/history',
     method: 'GET',
     mockPayload: { businessDate },
@@ -23,7 +23,7 @@ export async function loadAuditCloseHistory(businessDate) {
 }
 
 export async function closeBusinessDate(businessDate, reason = '', reasonType = 'daily_close') {
-  return dineCoreRequest('audit-close/close', {
+  return staffApiRequest('audit-close/close', {
     path: '/api/dinecore/staff/audit-close/close',
     method: 'POST',
     mockPayload: { businessDate, reason, reasonType },
@@ -36,7 +36,7 @@ export async function closeBusinessDate(businessDate, reason = '', reasonType = 
 }
 
 export async function unlockBusinessDate(businessDate, reason = '', reasonType = 'correction') {
-  return dineCoreRequest('audit-close/unlock', {
+  return staffApiRequest('audit-close/unlock', {
     path: '/api/dinecore/staff/audit-close/unlock',
     method: 'POST',
     mockPayload: { businessDate, reason, reasonType },
