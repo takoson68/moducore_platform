@@ -39,7 +39,6 @@ async function loadAuditClose() {
 }
 
 onMounted(async () => {
-  await staffAuth.bootstrap()
   await loadAuditClose()
 })
 

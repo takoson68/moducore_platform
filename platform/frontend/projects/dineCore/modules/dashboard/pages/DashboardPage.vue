@@ -29,8 +29,7 @@ function reloadDashboard() {
   dashboardStore.load()
 }
 
-onMounted(async () => {
-  await staffAuth.bootstrap()
+onMounted(() => {
   reloadDashboard()
 })
 

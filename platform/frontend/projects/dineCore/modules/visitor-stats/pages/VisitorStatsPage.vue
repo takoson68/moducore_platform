@@ -7,12 +7,13 @@ const visitorStatsStore = world.store('dineCoreVisitorStatsStore')
 const staffAuth = useDineCoreStaffAuth()
 
 const state = computed(() => visitorStatsStore.state)
+const authStatus = staffAuth.status
 const isSuperAdmin = staffAuth.isSuperAdmin
 
 watch(
-  () => state.value.range,
-  range => {
-    if (!isSuperAdmin.value) return
+  [() => authStatus.value, () => isSuperAdmin.value, () => state.value.range],
+  ([status, superAdmin, range]) => {
+    if (status !== 'auth' || !superAdmin) return
     visitorStatsStore.load(range)
   },
   { immediate: true }

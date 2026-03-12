@@ -29,7 +29,6 @@ async function loadTables() {
 }
 
 onMounted(async () => {
-  await staffAuth.bootstrap()
   if (!staffAuth.isAuthenticated.value) return
   await loadTables()
 })

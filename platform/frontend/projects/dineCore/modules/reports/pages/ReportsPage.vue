@@ -18,8 +18,7 @@ function loadReports() {
   reportsStore.load()
 }
 
-onMounted(async () => {
-  await staffAuth.bootstrap()
+onMounted(() => {
   loadReports()
 })
 

@@ -123,12 +123,11 @@ const currentTableCode = computed(() => String(route.params.tableCode || 'A01'))
 const currentOrderId = computed(() => String(route.params.orderId || 'demo-order'))
 
 const entryState = orderingFlow.entryState
-const authState = computed(() => staffAuth.state)
+const staffAuthStatus = staffAuth.status
 const staffSession = staffAuth.session
-const isStaffAuthenticated = staffAuth.isAuthenticated
-const showStaffAuthMask = computed(() =>
-  isStaffRoute.value && (!authState.value.initialized || authState.value.isBootstrapping)
-)
+const isStaffAuthChecking = staffAuth.isChecking
+const isStaffGuest = staffAuth.isGuest
+const showStaffAuthMask = computed(() => isStaffRoute.value && isStaffAuthChecking.value)
 
 const orderId = computed(() => String(orderingFlow.guestShellState.value.orderId || '').trim())
 const orderNo = computed(() => String(orderingFlow.guestShellState.value.orderNo || '').trim())
@@ -255,9 +254,9 @@ watch(
 )
 
 watch(
-  [() => staffSession.value, () => route.matched.at(-1)?.path || ''],
-  ([session, matchedPath]) => {
-    if (!isStaffRoute.value || !session || !matchedPath) return
+  [() => staffAuthStatus.value, () => staffSession.value, () => route.matched.at(-1)?.path || ''],
+  ([status, session, matchedPath]) => {
+    if (!isStaffRoute.value || status !== 'auth' || !session || !matchedPath) return
     if (canAccessStaffRoute(router, matchedPath, session)) return
 
     const targetPath = resolveStaffLandingPath(router, session)
@@ -348,7 +347,7 @@ function handleGuestCategorySelect(categoryId) {
         p.staff-auth-mask__title 正在確認員工登入狀態
         p.staff-auth-mask__copy 請稍候，系統正在載入後台工作環境。
 
-    .staff-shell(v-else-if="isStaffAuthenticated")
+    .staff-shell(v-else-if="staffAuthStatus === 'auth'")
       button.staff-shell__mobile-toggle(
         v-if="staffSession"
         type="button"
@@ -386,7 +385,7 @@ function handleGuestCategorySelect(categoryId) {
         RouterView
 
     StaffAuthPanel(
-      v-else
+      v-else-if="isStaffGuest"
       :demo-table-code="demoTableCode"
       :demo-qr-image-url="demoQrImageUrl"
       :demo-entry-path="demoEntryPath"
