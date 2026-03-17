@@ -62,6 +62,36 @@ platform/frontend/projects/dineCore/docs/餐廳地圖產生器.md 幫我重新�
 滑鼠只到背景應該要出現小手手  這樣能知道拖曳可以拉動拉霸
 
 
+將 sidebar-card 餐廳地圖產生器 （新增地圖）還有 地圖清單。這兩個卡片裡的功能拿到。 toolbar-card > toolbar-row 裡面 ，這樣我的繪圖ＵＩ就可以大一點
+
+
+將草稿清單以及新增地圖。拿到 workspace-card__head 這裡，然後操搞清單使用下拉選單表示
+
+
+移除 餐廳地圖產生器 字樣 只留 小字 地圖管理   
+
+workspace-view-controls這整組固定到畫布的右上角。固定在最上面
+
+
+workspace-corner-controls顯示百分比 應該固定在 workspace-surface.is-pannable > 下嗎中層故定在右上角。
+
+
+
+.workspace-surface.is-pannable.is-panning > workspace-corner-controls顯示百分比 放在這一層 固定在有上方
+
+
+我懂了，會這樣的問題是因為程式控制了 外框導致 顯示百分比的位置一直被重新定位，雖然看起來一直是right: 16px 但是一直被重算所以他就沒有真正固定在可見區域的右上角
+
+
+地圖管理toolbar-card 這裡好像只有地圖管理這四格字是必要存在其他感覺可以不需要。，將地圖管理日個字拿到workspace-card 將toolbar-card刪除吧
+
+
+現在整理 workspace-map-summary   
+
+
+
+
+
 
 
 

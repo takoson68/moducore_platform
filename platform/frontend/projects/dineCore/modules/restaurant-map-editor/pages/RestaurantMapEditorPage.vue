@@ -552,51 +552,21 @@ onBeforeUnmount(() => {
 <template lang="pug">
 .map-editor-page
   section.editor-shell
-    aside.editor-sidebar
-      .sidebar-card
-        .sidebar-card__head
-          div
-            p.eyebrow 地圖管理
-            h2 餐廳地圖產生器
-          button.primary-button(type="button" @click="openCreateMapForm") 新增地圖
-        p.sidebar-note
-          | 使用新模組管理餐廳地圖，不直接修改既有桌位管理模組。
-      .sidebar-card
-        h3.sidebar-title 地圖清單
-        p.empty-hint(v-if="state.maps.length === 0") 目前尚未建立地圖。
-        ul.map-list(v-else)
-          li.map-list__item(v-for="map in state.maps" :key="map.id" :class="{ 'is-active': map.id === state.activeMapId }")
-            button.map-list__button(type="button" @click="setActiveMap(map.id)")
-              strong {{ map.name }}
-              span {{ `${map.width} x ${map.height}` }}
-              small(v-if="state.dirtyMapIds.includes(map.id)") 未儲存
     main.editor-main
-      section.toolbar-card
-        .toolbar-row
-          .toolbar-group
-            button.ghost-button(type="button" :class="{ 'is-active': state.mode === 'view' }" @click="setMode('view')") View Mode
-            button.ghost-button(type="button" :class="{ 'is-active': state.mode === 'edit' }" @click="setMode('edit')" :disabled="!activeMap") Edit Mode
-          .toolbar-group
-            button.ghost-button(type="button" :class="{ 'is-active': state.workingMode === 'map' }" @click="setWorkingMode('map')" :disabled="state.mode !== 'edit' || !activeMap") Map Edit Mode
-            button.ghost-button(type="button" :class="{ 'is-active': state.workingMode === 'table' }" @click="setWorkingMode('table')" :disabled="state.mode !== 'edit' || !activeMap") Table Edit Mode
-          .toolbar-group
-            button.ghost-button(type="button" @click="saveDraft" :disabled="!activeMap") 草稿存檔
-            button.primary-button(type="button" @click="saveFinal" :disabled="!activeMap") 正式儲存
-            button.danger-button(type="button" @click="deleteActiveMap" :disabled="!activeMap") 刪除地圖
-        .toolbar-row
-          .status-bar(v-if="activeMap")
-            span {{ activeMap.name }}
-            span {{ state.mode === 'edit' ? 'Edit Mode' : 'View Mode' }}
-            span {{ state.workingMode === 'map' ? 'Map Edit Mode' : 'Table Edit Mode' }}
-            span(v-if="state.activeTool") {{ `Tool: ${state.activeTool}` }}
-            span(v-if="activeObject") Object Edit Mode
-            span(v-if="activeMapIsDirty") 未儲存變更
-            span(v-if="pendingPolyline.length > 0") {{ `Pending Polyline: ${pendingPolyline.length} 點` }}
-            span(v-if="pendingShape") {{ `Pending ${pendingShape.type}` }}
-            span 草稿：{{ formatStamp(activeMap.draftSavedAt) }}
-            span 正式：{{ formatStamp(activeMap.savedAt) }}
       section.workspace-card(v-if="activeMap")
+        .workspace-card__topbar
+          p.eyebrow 地圖管理
+          .workspace-map-top-actions
+            .workspace-map-selector
+              select.workspace-map-select(:value="state.activeMapId || ''" @change="setActiveMap($event.target.value)")
+                option(v-for="map in state.maps" :key="map.id" :value="map.id") {{ `${map.name}${state.dirtyMapIds.includes(map.id) ? '（未儲存）' : ''}` }}
+            button.primary-button.primary-button--add-map(type="button" @click="openCreateMapForm") 新增地圖
         .workspace-card__head
+          .workspace-corner-controls
+            .workspace-view-controls
+              button.ghost-button(type="button" @click="zoomOut") -
+              button.workspace-view-scale(type="button" @click="resetZoom") {{ scalePercent }}
+              button.ghost-button(type="button" @click="zoomIn") +
           .workspace-map-summary
             input.workspace-map-name-input(type="text" v-model="mapMetaForm.name" placeholder="地圖名稱")
             .workspace-map-size-form
@@ -604,11 +574,11 @@ onBeforeUnmount(() => {
               span.workspace-map-size-separator x
               input.workspace-map-size-input(type="number" min="1" step="1" v-model="mapMetaForm.height")
               button.ghost-button(type="button" @click="submitMapMeta") 套用
+              span.workspace-inline-divider(aria-hidden="true")
+              button.ghost-button(type="button" @click="saveDraft" :disabled="!activeMap") 草稿存檔
+              button.primary-button(type="button" @click="saveFinal" :disabled="!activeMap") 正式儲存
+              button.danger-button(type="button" @click="deleteActiveMap" :disabled="!activeMap") 刪除
           .workspace-head-toolbar
-            .workspace-view-controls
-              button.ghost-button(type="button" @click="zoomOut") -
-              button.ghost-button(type="button" @click="resetZoom") {{ scalePercent }}
-              button.ghost-button(type="button" @click="zoomIn") +
             .tool-chips
               button.tool-chip(
                 v-for="tool in toolOptions"
@@ -703,36 +673,28 @@ onBeforeUnmount(() => {
 
 .editor-shell
   display: grid
-  grid-template-columns: 300px minmax(0, 1fr)
+  grid-template-columns: minmax(0, 1fr)
   gap: 18px
   align-items: start
 
-.editor-sidebar, .editor-main
+.editor-main
   display: grid
   gap: 18px
 
-.sidebar-card, .toolbar-card, .workspace-card, .modal-card
+.workspace-card, .modal-card
   border-radius: 24px
   background: rgba(255, 255, 255, 0.92)
   border: 1px solid rgba(19, 56, 63, 0.12)
   box-shadow: 0 22px 60px rgba(37, 27, 14, 0.08)
 
-.sidebar-card, .toolbar-card, .workspace-card
+.workspace-card
   padding: 20px
 
-.sidebar-card__head, .toolbar-row, .workspace-card__head, .modal-card__head, .modal-actions
+.workspace-card__head, .modal-card__head, .modal-actions
   display: flex
   justify-content: space-between
   align-items: center
   gap: 12px
-
-.toolbar-card
-  display: grid
-  gap: 14px
-
-.toolbar-row
-  flex-wrap: wrap
-  align-items: start
 
 .toolbar-group, .status-bar, .workspace-head-toolbar
   display: flex
@@ -757,8 +719,22 @@ onBeforeUnmount(() => {
   text-transform: uppercase
 
 .workspace-card__head
+  position: relative
   display: grid
   gap: 14px
+
+.workspace-card__topbar
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+
+.workspace-map-top-actions
+  display: flex
+  justify-content: flex-end
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
 
 .workspace-head-toolbar
   display: flex
@@ -785,6 +761,20 @@ onBeforeUnmount(() => {
   align-items: center
   gap: 12px
   flex-wrap: wrap
+
+.workspace-map-selector
+  display: flex
+  align-items: center
+
+.workspace-map-select
+  min-width: 220px
+  max-width: 320px
+  border: 1px solid rgba(19, 56, 63, 0.18)
+  border-radius: 8px
+  padding: 4px 8px
+  font: inherit
+  background: #fff
+  color: #243a3e
 
 .workspace-map-name-input
   min-width: 220px
@@ -820,46 +810,24 @@ onBeforeUnmount(() => {
   color: #6f5b43
   font-weight: 700
 
-.sidebar-card h2, .workspace-card h3, .modal-card h3
+.workspace-inline-divider
+  width: 1px
+  height: 36px
+  background: rgba(19, 56, 63, 0.38)
+  align-self: center
+
+h2, .workspace-card h3, .modal-card h3
   margin: 0
   color: #243a3e
 
-.sidebar-note, .workspace-meta, .empty-hint
+.empty-hint
   margin: 0
   color: #6f5b43
   line-height: 1.7
 
-.sidebar-title, .empty-title
+.empty-title
   margin: 0 0 10px
   color: #243a3e
-
-.map-list
-  margin: 0
-  padding: 0
-  list-style: none
-  display: grid
-  gap: 10px
-
-.map-list__button
-  width: 100%
-  border: 1px solid rgba(19, 56, 63, 0.12)
-  border-radius: 18px
-  background: #fff
-  padding: 14px
-  display: grid
-  gap: 4px
-  text-align: left
-  cursor: pointer
-
-.map-list__item.is-active .map-list__button
-  border-color: rgba(23, 56, 63, 0.4)
-  background: rgba(23, 56, 63, 0.06)
-
-.map-list__button strong
-  color: #243a3e
-
-.map-list__button span, .map-list__button small
-  color: #7a6954
 
 .primary-button, .ghost-button, .danger-button, .tool-chip, .icon-button
   border: 0
@@ -871,6 +839,9 @@ onBeforeUnmount(() => {
 .primary-button
   background: #17383f
   color: #fff
+
+.primary-button--add-map
+  background: #009688
 
 .ghost-button, .tool-chip
   background: rgba(23, 56, 63, 0.08)
@@ -900,10 +871,6 @@ onBeforeUnmount(() => {
 .primary-button:disabled, .ghost-button:disabled, .danger-button:disabled, .tool-chip:disabled
   opacity: 0.45
   cursor: not-allowed
-.workspace-view-controls
-  display: inline-flex
-  gap: 6px
-
 .workspace-surface.is-pannable
   cursor: grab
 
@@ -918,6 +885,7 @@ onBeforeUnmount(() => {
   gap: 18px
 
 .workspace-surface
+  position: relative
   padding: 18px
   border-radius: 22px
   background: linear-gradient(180deg, rgba(246, 241, 232, 0.96), rgba(231, 224, 211, 0.92))
@@ -928,6 +896,35 @@ onBeforeUnmount(() => {
   position: relative
   width: min-content
   min-width: 100%
+
+.workspace-corner-controls
+  position: absolute
+  right: 16px
+  bottom: -80px
+  z-index: 3
+  pointer-events: none
+
+.workspace-view-controls
+  display: inline-flex
+  gap: 0
+  pointer-events: auto
+  border-radius: 8px
+  overflow: hidden
+  border: 1px solid rgba(19, 56, 63, 0.12)
+  box-shadow: 0 10px 24px rgba(37, 27, 14, 0.12)
+
+.workspace-view-controls .ghost-button
+  border-radius: 0
+
+.workspace-view-scale
+  border: 0
+  padding: 4px 8px
+  font-weight: 700
+  cursor: pointer
+  background: rgba(255, 255, 255, 0.92)
+  color: #17383f
+  border-left: 1px solid rgba(19, 56, 63, 0.12)
+  border-right: 1px solid rgba(19, 56, 63, 0.12)
 
 .workspace-svg
   display: block
@@ -1104,18 +1101,16 @@ onBeforeUnmount(() => {
   .workspace-svg
     max-width: 100%
     height: auto
+
+@media (max-width: 720px)
+  .workspace-card__topbar
+    flex-direction: column
+    align-items: stretch
+
+  .workspace-map-top-actions
+    justify-content: stretch
+
+  .workspace-corner-controls
+    right: 16px
+    bottom: -80px
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
