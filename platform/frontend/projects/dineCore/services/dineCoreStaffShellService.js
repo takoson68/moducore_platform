@@ -1,4 +1,4 @@
-const staffRouteRegistry = [
+﻿const staffRouteRegistry = [
   {
     key: 'dashboard',
     label: '營運總覽',
@@ -40,6 +40,12 @@ const staffRouteRegistry = [
     label: '桌位管理',
     path: '/staff/manager/tables',
     to: '/staff/manager/tables'
+  },
+  {
+    key: 'restaurant-map-editor',
+    label: '餐廳地圖產生器',
+    path: '/staff/manager/map-editor',
+    to: '/staff/manager/map-editor'
   },
   {
     key: 'reports',
