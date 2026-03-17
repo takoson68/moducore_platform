@@ -13,9 +13,10 @@ https://images.pexels.com/photos/4669298/pexels-photo-4669298.jpeg 這張圖片�
 的被請圖片，請將他當成 .staff-auth-full 的背景，並且半透明顯示
 
 
+現在第一版的功能大致完成，所以幫我整理本專案platform/frontend/projects/dineCore/docs/  
+將內容整理到完成的舊檔案，我之後要再做2.0的版本規劃，所以這裡需要乾淨
 
-
-
+platform/frontend/projects/dineCore/docs/餐廳地圖產生器.md 幫我重新用md方式書寫
 
 
 
