@@ -89,7 +89,7 @@ workspace-corner-controls顯示百分比 應該固定在 workspace-surface.is-pa
 現在整理 workspace-map-summary   
 
 
-
+將 .staff-shell 下面 grid-template-columns 設定改成 220px minmax(0, 1fr) 
 
 
 

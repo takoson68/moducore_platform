@@ -474,7 +474,7 @@ function handleGuestCategorySelect(categoryId) {
   grid-template-rows: auto 1fr
 
 .staff-shell
-  grid-template-columns: 260px minmax(0, 1fr)
+  grid-template-columns: 220px minmax(0, 1fr)
   gap: 0
   align-items: stretch
   background: #eef4f6
@@ -1158,4 +1158,3 @@ function handleGuestCategorySelect(categoryId) {
   to
     transform: rotate(360deg)
 </style>
-
