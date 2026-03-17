@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import world from '@/world.js'
@@ -526,6 +526,18 @@ function handleGuestCategorySelect(categoryId) {
   display: grid
   place-items: center
   padding: 32px
+  position: relative
+  overflow: hidden
+  isolation: isolate
+  background: #000
+
+.staff-auth-full::before
+  content: ''
+  position: absolute
+  inset: 0
+  z-index: 0
+  background: linear-gradient(180deg, rgba(17, 36, 40, 0.48) 0%, rgba(17, 36, 40, 0.36) 100%), url('https://images.pexels.com/photos/4669298/pexels-photo-4669298.jpeg') center / cover no-repeat
+  opacity: 0.58
 
 .staff-auth-full__panel
   width: min(520px, 100%)
@@ -656,11 +668,32 @@ function handleGuestCategorySelect(categoryId) {
   color: #6e8083
   font-size: 12px
 
-.staff-auth-form__hint code
+.staff-auth-form__demo-fill
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 0
+  border: 0
+  background: transparent
+  color: inherit
+  cursor: pointer
+
+.staff-auth-form__demo-fill code
   padding: 4px 8px
   border-radius: 999px
   background: rgba(121, 214, 207, 0.14)
   color: #486c70
+
+.staff-auth-form__demo-fill span
+  color: #4b8a85
+  font-weight: 700
+
+.staff-auth-form__demo-fill:hover code
+  background: rgba(121, 214, 207, 0.24)
+
+.staff-auth-form__demo-fill:focus-visible
+  outline: 2px solid rgba(98, 201, 195, 0.45)
+  outline-offset: 4px
 
 .staff-shell__head,
 .guest-shell__head
@@ -1125,3 +1158,4 @@ function handleGuestCategorySelect(categoryId) {
   to
     transform: rotate(360deg)
 </style>
+

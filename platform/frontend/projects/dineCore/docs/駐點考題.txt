@@ -1,0 +1,420 @@
+/* All following exams please using Javascript only 20241220 */
+1.
+/**
+There is an array, each item has such format:
+{firstName: 'xxx', lastName: 'xxx', customerID: 'xxx', note: 'xxx', profession: ‘xxx’}
+lastName, note can be empty, customerID can only be a set of digital numbers.
+profession can only have ‘student’, ‘freelancer’, ‘productOwner’, ‘engineer’ or
+‘systemAnalytics’.
+**/
+/**
+Q1. Please follow the principle (‘firstName’ + ‘lastName’ + ‘customerID’) to sort this
+array and print it out.
+**/
+function sortUserName(user) {
+  return user.sort((a, b) => {
+    const valueA = `${a.firstName || ''}${a.lastName || ''}${a.customerID || ''}`;
+    const valueB = `${b.firstName || ''}${b.lastName || ''}${b.customerID || ''}`;
+
+    if (valueA > valueB) return 1;
+    if (valueA < valueB) return -1;
+    return 0;
+  });
+}
+/**
+Q2. Please sort by ‘profession’ to follow the principle.
+(‘systemAnalytics’ > ‘engineer’ > ‘productOwner’ > ‘freelancer’ > ‘student’’)
+**/
+function sortByType(user) {
+  const professionOrder = {
+    systemAnalytics: 5,
+    engineer: 4,
+    productOwner: 3,
+    freelancer: 2,
+    student: 1
+  };
+
+  return user.sort((a, b) => {
+    return professionOrder[b.profession] - professionOrder[a.profession];
+  });
+}
+
+
+
+
+2.
+/** HTML
+<div class="container">
+ <div class="header">5/8 外出確認表</div>
+ <div class="content">
+ <ol class="shop-list">
+ <li class="item">麵包</li>
+ <li class="item">短袖衣服</li>
+ <li class="item">飲用水</li>
+ <li class="item">帳篷</li>
+ </ol>
+ <ul class="shop-list">
+ <li class="item">暈車藥</li>
+ <li class="item">感冒藥</li>
+ <li class="item">丹木斯</li>
+ <li class="item">咳嗽糖漿</li>
+ </ul>
+ </div>
+ <div class="footer">以上僅共參考</div>
+ </div>
+**/
+/** CSS
+.container {
+ font-size: 14px;
+}
+.container .header {
+ font-size: 18px;
+}
+.container .shop-list {
+ list-style: none;
+ margin-left: -15px;
+}
+.container .shop-list li.item {
+ color: green;
+}
+.container .shop-list .item {
+ Q1. /* Explain why does this color not works, and how to fix make it work on 1st list */
+ /* 
+因為 `.container .shop-list li.item` 比 `.container .shop-list .item` 更具體，所以 `color: green` 生效。
+
+ Simple fix:
+ .container ol.shop-list li.item {
+   color: blue;
+ }
+ */
+ color: blue;
+}
+Q2. /* Write styling make every other line give background color to next one */
+/*
+.container .shop-list li:nth-child(even) {
+  background-color: #f2f2f2;
+}
+*/
+**/
+
+
+
+3.
+/**
+let items = [1, 1, 1, 5, 2, 3, 4, 3, 3, 3, 3, 3, 3, 7, 8, 5, 4, 9, 0, 1, 3, 2, 6, 7, 5,
+4, 4, 7, 8, 8, 0, 1, 2, 3, 1];
+Please write down a function to console log unique value from this array.
+**/
+function getUniqueNumber (items) {
+  const result = [...new Set(items)];
+  console.log(result);
+}
+
+
+
+4.
+/** What is virtual DOM and what purpose does it aim to solve?? **/
+/**
+作答：
+用JavaScript 物件表示出來的 DOM 結構。
+當資料改變時，框架會先更新 Virtual DOM，比對前後差異，
+再把真正有變動的部分更新到真實 DOM。
+
+達到 減少直接操作真實DOM、提升畫面更新效能、讓UI更新更容易管理
+**/
+
+
+
+
+5.
+/** Can you explain about the type of never and what is the differ with void? **/
+/**
+
+作答：
+void  表示函式回傳「空值」（或 undefined）
+
+never  表示函式「永遠不會回傳」或是無窮迴圈。
+
+**/
+
+
+
+6.
+/** What is difference between framework base website and normal website (none
+framework) **/
+/**
+作答：
+使用框架的網站：
+1. 會用元件化方式開發
+2. 通常有明確的狀態管理方式
+3. 比較適合中大型專案
+
+一般非框架網站：
+DOM 驅動，手動操作元素，輕量、SEO 友好，但難以維護大型應用
+**/
+
+
+
+
+7.
+/** Read the code below, please figure out why after “Switch Person” button clicked, the
+tasks state doesn’t update correctly, and how to make it update as we expected **/
+/** Code block start */
+import { useState } from 'react';
+export default function TaskManager() {
+const [isPersonAlice, setIsPersonAlice] = useState(true);
+return (
+<div>
+{isPersonAlice ? (
+<TaskCounter name="Alice" />
+) : (
+<TaskCounter name="Bob" />
+)}
+<button onClick={() => {
+setIsPersonAlice(!isPersonAlice);
+}}>
+Switch Person
+</button>
+</div>
+);
+}
+function TaskCounter({ name }) {
+const [tasks, setTasks] = useState(0);
+return (
+<>
+<h1>{name}'s tasks: {tasks}</h1>
+<button onClick={() => setTasks(tasks + 1)}>
+Complete Task
+</button>
+</>
+);
+}
+/** Code block end */
+/**
+作答：
+原因：
+React 看到的是同一個位置上的同一個 TaskCounter 元件，
+所以會沿用原本的元件實例，內部的 tasks state 也會被保留。
+
+修正方式：
+給不同的人不同的 key，這樣 React 就會重新掛載元件。
+
+Example:
+{isPersonAlice ? (
+  <TaskCounter key="Alice" name="Alice" />
+) : (
+  <TaskCounter key="Bob" name="Bob" />
+)}
+**/
+
+
+
+
+8.
+/** Read about the code below, please describe the issues and how you will be going to
+improve it **/
+/** Code block start */
+const TodoList = () => {
+ const [todos, setTodos] = useState([
+ { id: 1, text: '學習 React', completed: false, studyPoint: 3 },
+ { id: 2, text: '建立專案', completed: false, studyPoint: 1 }
+ ]);
+ const { id, text, studyPoint } = todos;
+const [basePoints, setbasePoints] = useState(3);
+const [sumPoints, setSumPoints] = useState(0);
+ const toggleTodo = (id) => {
+ const todo = todos.find(t => t.id === id);
+ todo.completed = !todo.completed;
+ setTodos(todos);
+ };
+ const handleStudyPointsChange = (e) => {
+ basePoints(e.target.value);
+ setSumPoints(parseInt(value1) + parseInt(e.target.value));
+ };
+ return (
+ <div>
+ <p>課程名稱: {text}</p>
+ <label>學習點數: </label>
+ <input type="number" value={studyPoint} onChange={handleStudyPointsChange} />
+ <p>總累積點數: {sumPoints}</p>
+ <button onClick={toggleTodo(id)}>篩選課程</button>
+ </div>
+ );
+}
+/** Code block end */
+/**
+作答：
+問題：
+1. `todos` 是陣列，但程式卻用物件解構：`const { id, text, studyPoint } = todos;`
+2. `basePoints(e.target.value)` 寫錯了，應該要呼叫 setter。
+3. `value1` 沒有定義。
+4. `toggleTodo` 直接修改原本的物件。
+5. `setTodos(todos)` 還是同一個陣列參考，React 可能不會正確更新。
+6. `onClick={toggleTodo(id)}` 會在 render 當下直接執行。
+7. input 的 value 來源也取錯了。
+
+改善方式：
+1. 用不可變的方式更新資料
+2. 使用正確的 setter function
+3. `onClick` 要傳 callback
+4. 正確取得目前要操作的 todo 資料
+
+簡單寫法：
+const TodoList = () => {
+  const [todos, setTodos] = useState([
+    { id: 1, text: 'Study React', completed: false, studyPoint: 3 },
+    { id: 2, text: 'Learn JS', completed: false, studyPoint: 1 }
+  ]);
+  const [basePoints, setBasePoints] = useState(3);
+  const [sumPoints, setSumPoints] = useState(0);
+
+  const todo = todos[0];
+
+  const toggleTodo = (id) => {
+    setTodos(todos.map(item =>
+      item.id === id ? { ...item, completed: !item.completed } : item
+    ));
+  };
+
+  const handleStudyPointsChange = (e) => {
+    const value = Number(e.target.value);
+    setBasePoints(value);
+    setSumPoints(basePoints + value);
+  };
+
+  return (
+    <div>
+      <p>{todo.text}</p>
+      <label>Study Points: </label>
+      <input type="number" value={todo.studyPoint} onChange={handleStudyPointsChange} />
+      <p>Total Points: {sumPoints}</p>
+      <button onClick={() => toggleTodo(todo.id)}>Toggle Todo</button>
+    </div>
+  );
+}
+**/
+
+
+
+
+9.
+/** Read about the code below, suggest how to improve the code **/
+/** Code block start */
+function ParentComponent() {
+ const [name, setName] = useState("Naro");
+ const [age, setAge] = useState(12);
+
+ return (
+ <div>
+ <ChildComponent name={name} age={age} />
+ <GrandchildComponent name={name} age={age} />
+ </div>
+ );
+ }
+ function ChildComponent({ name, age }) {
+ return (
+ <div>
+ <p>Name: {name}</p>
+ <GrandchildComponent name={name} age={age} />
+ </div>
+ );
+ }
+ function GrandchildComponent({ name, age }) {
+ return (
+ <div>
+ <p>Name: {name}</p>
+ <p>Age: {age}</p>
+ </div>
+ );
+}
+/** Code block end */
+/**
+作答：
+主要問題是 prop drilling。
+`name` 和 `age` 一層一層往下傳。
+
+改善方式：
+1. 如果很多層都要用同一份資料，可以用 Context API
+2. 或者把資料盡量放在真正需要使用的地方附近
+3. 避免把不必要的 props 一直往中間元件傳下去
+**/
+
+
+
+
+10.
+/** Read about the code below, achieving that make input element in “SearchInput” to be
+focused while search button on click **/
+/** Code block start */
+function SearchButton() {
+return (
+<button> Search </button>
+);
+}
+function SearchInput() {
+return (
+<input/>
+);
+}
+export default function Page() {
+return (
+<>
+<nav>
+<SearchButton />
+</nav>
+<SearchInput />
+</>
+);
+}
+/** Code block end */
+/**
+作答：
+最常見的作法是用 `useRef`。
+
+Example:
+import { useRef } from 'react';
+
+function SearchButton({ onSearch }) {
+  return (
+    <button onClick={onSearch}> Search </button>
+  );
+}
+
+function SearchInput({ inputRef }) {
+  return (
+    <input ref={inputRef} />
+  );
+}
+
+export default function Page() {
+  const inputRef = useRef(null);
+
+  const handleSearchClick = () => {
+    inputRef.current.focus();
+  };
+
+  return (
+    <>
+      <nav>
+        <SearchButton onSearch={handleSearchClick} />
+      </nav>
+      <SearchInput inputRef={inputRef} />
+    </>
+  );
+}
+**/
+Developer Code Quality Test
+Please fork the code base below and return it as answer, we
+will read through the code after we got the answer.
+URL: https://codesandbox.io/p/devbox/pre-testtask-management-3rz3sd
+/**
+作答：
+如果這是一份正式作業，我會先 fork sandbox，再用最常見的方式去整理：
+1. 整理元件結構
+2. 避免直接修改 state
+3. 把重複 UI 拆成可重用元件
+4. 讓 state 更新方式更可預期
+5. 改善命名與可讀性
+6. 補上基本錯誤處理
+7. 移除不必要的 rerender 邏輯
+**/

@@ -23,9 +23,12 @@ const props = defineProps({
 
 const staffAuth = useDineCoreStaffAuth()
 const loginForm = reactive({
-  account: 'manager',
-  password: 'manager123'
+  account: '',
+  password: ''
 })
+
+const demoAccount = 'manager'
+const demoPassword = 'manager123'
 
 async function submitStaffLogin() {
   await staffAuth.signIn({
@@ -37,6 +40,12 @@ async function submitStaffLogin() {
 function clearLoginError() {
   staffAuth.clearError()
 }
+
+function fillDemoCredentials() {
+  loginForm.account = demoAccount
+  loginForm.password = demoPassword
+  clearLoginError()
+}
 </script>
 
 <template lang="pug">
@@ -46,6 +55,10 @@ function clearLoginError() {
       p.staff-auth-copy__eyebrow 員工登入
       h1.staff-auth-copy__title DineCore 後台登入
       p.staff-auth-copy__lead QRC 點餐系統 DEMO，使用 PHP + MySQL + Vue.js 建構。請使用 manager 帳號登入後台操作。
+        //- br 
+        small( style="color: #aaa;") 若要測試點餐流程，請使用下方連結或右上角手機 QR Code 進入點餐頁面。
+        br
+        a(href="http://moducore_platform.test/t/A01" style="color: #007bff; text-decoration: underline;" target="_blank") 桌號 A01 點餐入口
     form.staff-auth-form(@submit.prevent="submitStaffLogin()")
       label.staff-auth-form__field
         span.staff-auth-form__label 帳號
@@ -70,7 +83,9 @@ function clearLoginError() {
         | {{ staffAuth.state.isSubmitting ? '登入中...' : '登入' }}
       .staff-auth-form__hint
         span 測試帳號：
-        code manager / manager123
+        button.staff-auth-form__demo-fill(type="button" @click="fillDemoCredentials()")
+          code {{ `${demoAccount} / ${demoPassword}` }}
+          span （點擊填入資料）
   .staff-demo-qr.staff-demo-qr--floating
     h2.staff-demo-qr__title 桌號 {{ props.demoTableCode }} 手機點餐入口
     img.staff-demo-qr__image(
