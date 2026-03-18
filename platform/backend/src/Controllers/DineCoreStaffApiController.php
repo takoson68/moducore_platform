@@ -238,6 +238,75 @@ final class DineCoreStaffApiController
         }
     }
 
+    public function saveMapEditorDraft(Request $request, Response $response): void
+    {
+        $this->saveMapEditorFile($request, $response, 'draft');
+    }
+
+    public function saveMapEditorFinal(Request $request, Response $response): void
+    {
+        $this->saveMapEditorFile($request, $response, 'final');
+    }
+
+    public function listMapEditorFiles(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $response->ok([
+                'maps' => $this->listMapEditorSummaries(),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MAP_FILE_LIST_FAILED');
+        }
+    }
+
+    public function loadMapEditorFile(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $mapId = trim((string)($request->query['map_id'] ?? $request->query['mapId'] ?? ''));
+        $status = trim((string)($request->query['status'] ?? 'draft'));
+        if ($mapId === '') {
+            $response->validation('MAP_ID_REQUIRED');
+            return;
+        }
+
+        if (!in_array($status, ['draft', 'final'], true)) {
+            $status = 'draft';
+        }
+
+        try {
+            $path = $this->buildMapEditorFilePath($mapId, $status);
+            if (!is_file($path)) {
+                $response->notFound('MAP_FILE_NOT_FOUND');
+                return;
+            }
+
+            $raw = @file_get_contents($path);
+            if (!is_string($raw) || trim($raw) === '') {
+                $response->internal('MAP_FILE_READ_FAILED');
+                return;
+            }
+
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded)) {
+                $response->internal('MAP_FILE_DECODE_FAILED');
+                return;
+            }
+
+            $response->ok($decoded);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MAP_FILE_LOAD_FAILED');
+        }
+    }
+
     public function counterOrders(Request $request, Response $response): void
     {
         $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
@@ -2117,6 +2186,316 @@ final class DineCoreStaffApiController
         return ((int)($stmt->fetch()['max_sort'] ?? 0)) + 1;
     }
 
+    private function saveMapEditorFile(Request $request, Response $response, string $status): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $map = $request->body['map'] ?? null;
+        if (!is_array($map)) {
+            $response->validation('MAP_PAYLOAD_REQUIRED');
+            return;
+        }
+
+        $mapId = trim((string)($map['id'] ?? $request->body['mapId'] ?? $request->body['map_id'] ?? ''));
+        $name = trim((string)($map['name'] ?? $request->body['name'] ?? ''));
+        if ($mapId === '') {
+            $response->validation('MAP_ID_REQUIRED');
+            return;
+        }
+        if ($name === '') {
+            $response->validation('MAP_NAME_REQUIRED');
+            return;
+        }
+
+        $safeStatus = in_array($status, ['draft', 'final'], true) ? $status : 'draft';
+        $savedAt = date('c');
+        $normalizedMap = $this->normalizeMapEditorMapPayload($map);
+        $draftState = $safeStatus === 'draft'
+            ? $this->normalizeMapEditorDraftState($request->body['draftState'] ?? [])
+            : [];
+        $record = [
+            'id' => $mapId,
+            'mapId' => $mapId,
+            'name' => $name,
+            'status' => $safeStatus,
+            'version' => 1,
+            'payloadVersion' => 1,
+            'updatedAt' => $savedAt,
+            'savedAt' => $savedAt,
+            'editorUpdatedAt' => (string)($map['updatedAt'] ?? ''),
+            'savedBy' => [
+                'userId' => (int)($context['user_id'] ?? 0),
+                'username' => (string)($context['username'] ?? ''),
+                'displayName' => (string)($context['display_name'] ?? ''),
+                'role' => (string)($context['role'] ?? ''),
+            ],
+            'map' => $normalizedMap,
+            'payload' => $normalizedMap,
+            'draftState' => $draftState,
+        ];
+
+        try {
+            $dir = $this->resolveMapEditorStorageDir($safeStatus);
+            if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+                $response->internal('MAP_FILE_DIR_CREATE_FAILED');
+                return;
+            }
+            if (!is_writable($dir)) {
+                $response->internal('MAP_FILE_DIR_NOT_WRITABLE');
+                return;
+            }
+
+            $path = $this->buildMapEditorFilePath($mapId, $safeStatus);
+            $json = json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($json) || $json === '') {
+                $response->internal('MAP_FILE_ENCODE_FAILED');
+                return;
+            }
+
+            $written = @file_put_contents($path, $json, LOCK_EX);
+            if ($written === false || $written <= 0) {
+                $response->internal('MAP_FILE_SAVE_FAILED');
+                return;
+            }
+
+            $response->ok([
+                'id' => $record['id'],
+                'mapId' => $record['mapId'],
+                'name' => $record['name'],
+                'status' => $record['status'],
+                'savedAt' => $record['savedAt'],
+                'updatedAt' => $record['updatedAt'],
+                'fileName' => basename($path),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MAP_FILE_SAVE_FAILED');
+        }
+    }
+
+    private function resolveMapEditorStorageDir(string $status = 'draft'): string
+    {
+        $safeStatus = in_array($status, ['draft', 'final'], true) ? $status : 'draft';
+        return BASE_PATH . '/api/dinecore/map-editor-files/' . $safeStatus;
+    }
+
+    private function buildMapEditorFilePath(string $mapId, string $status = 'draft'): string
+    {
+        return $this->resolveMapEditorStorageDir($status) . '/' . $this->sanitizeMapEditorFileName($mapId) . '.json';
+    }
+
+    private function listMapEditorSummaries(): array
+    {
+        $drafts = $this->readMapEditorSummaryDir('draft');
+        $finals = $this->readMapEditorSummaryDir('final');
+        $maps = [];
+
+        foreach ($drafts as $summary) {
+            $mapId = (string)($summary['mapId'] ?? '');
+            if ($mapId === '') {
+                continue;
+            }
+
+            $maps[$mapId] = [
+                'id' => $mapId,
+                'mapId' => $mapId,
+                'name' => (string)($summary['name'] ?? ''),
+                'width' => (int)($summary['width'] ?? 0),
+                'height' => (int)($summary['height'] ?? 0),
+                'createdAt' => (string)($summary['createdAt'] ?? ''),
+                'updatedAt' => (string)($summary['updatedAt'] ?? ''),
+                'savedAt' => '',
+                'draftSavedAt' => (string)($summary['savedAt'] ?? ''),
+                'availableStatuses' => ['draft'],
+            ];
+        }
+
+        foreach ($finals as $summary) {
+            $mapId = (string)($summary['mapId'] ?? '');
+            if ($mapId === '') {
+                continue;
+            }
+
+            if (!isset($maps[$mapId])) {
+                $maps[$mapId] = [
+                    'id' => $mapId,
+                    'mapId' => $mapId,
+                    'name' => (string)($summary['name'] ?? ''),
+                    'width' => (int)($summary['width'] ?? 0),
+                    'height' => (int)($summary['height'] ?? 0),
+                    'createdAt' => (string)($summary['createdAt'] ?? ''),
+                    'updatedAt' => (string)($summary['updatedAt'] ?? ''),
+                    'savedAt' => (string)($summary['savedAt'] ?? ''),
+                    'draftSavedAt' => '',
+                    'availableStatuses' => ['final'],
+                ];
+                continue;
+            }
+
+            $maps[$mapId]['savedAt'] = (string)($summary['savedAt'] ?? '');
+            $maps[$mapId]['availableStatuses'] = array_values(array_unique([
+                ...$maps[$mapId]['availableStatuses'],
+                'final',
+            ]));
+
+            if ((string)$maps[$mapId]['name'] === '') {
+                $maps[$mapId]['name'] = (string)($summary['name'] ?? '');
+            }
+            if ((int)$maps[$mapId]['width'] <= 0) {
+                $maps[$mapId]['width'] = (int)($summary['width'] ?? 0);
+            }
+            if ((int)$maps[$mapId]['height'] <= 0) {
+                $maps[$mapId]['height'] = (int)($summary['height'] ?? 0);
+            }
+            if ((string)$maps[$mapId]['createdAt'] === '') {
+                $maps[$mapId]['createdAt'] = (string)($summary['createdAt'] ?? '');
+            }
+            if ((string)$maps[$mapId]['updatedAt'] === '') {
+                $maps[$mapId]['updatedAt'] = (string)($summary['updatedAt'] ?? '');
+            }
+        }
+
+        uasort($maps, function (array $left, array $right): int {
+            $leftTime = strtotime((string)($left['updatedAt'] ?? $left['draftSavedAt'] ?? $left['savedAt'] ?? '')) ?: 0;
+            $rightTime = strtotime((string)($right['updatedAt'] ?? $right['draftSavedAt'] ?? $right['savedAt'] ?? '')) ?: 0;
+            return $rightTime <=> $leftTime;
+        });
+
+        return array_values($maps);
+    }
+
+    private function readMapEditorSummaryDir(string $status): array
+    {
+        $dir = $this->resolveMapEditorStorageDir($status);
+        if (!is_dir($dir)) {
+            return [];
+        }
+
+        $paths = glob($dir . '/*.json') ?: [];
+        $items = [];
+        foreach ($paths as $path) {
+            if (!is_string($path) || !is_file($path)) {
+                continue;
+            }
+
+            $raw = @file_get_contents($path);
+            if (!is_string($raw) || trim($raw) === '') {
+                continue;
+            }
+
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $payload = is_array($decoded['payload'] ?? null) ? $decoded['payload'] : [];
+            $mapId = trim((string)($decoded['mapId'] ?? $decoded['id'] ?? $payload['id'] ?? ''));
+            if ($mapId === '') {
+                continue;
+            }
+
+            $items[] = [
+                'mapId' => $mapId,
+                'name' => (string)($decoded['name'] ?? $payload['name'] ?? ''),
+                'width' => (int)($payload['width'] ?? 0),
+                'height' => (int)($payload['height'] ?? 0),
+                'createdAt' => (string)($payload['createdAt'] ?? ''),
+                'updatedAt' => (string)($decoded['updatedAt'] ?? $payload['updatedAt'] ?? ''),
+                'savedAt' => (string)($decoded['savedAt'] ?? ''),
+                'status' => $status,
+            ];
+        }
+
+        return $items;
+    }
+
+    private function normalizeMapEditorDraftState(mixed $draftState): array
+    {
+        if (!is_array($draftState)) {
+            return [];
+        }
+
+        return [
+            'mode' => trim((string)($draftState['mode'] ?? '')),
+            'workingMode' => trim((string)($draftState['workingMode'] ?? '')),
+            'tool' => trim((string)($draftState['tool'] ?? $draftState['activeTool'] ?? '')),
+            'activeObjectId' => trim((string)($draftState['activeObjectId'] ?? '')),
+            'activeTableId' => trim((string)($draftState['activeTableId'] ?? '')),
+            'toolbarLocked' => (bool)($draftState['toolbarLocked'] ?? false),
+            'pendingPolyline' => array_values(array_map(
+                fn (array $point): array => [
+                    'x' => (float)($point['x'] ?? 0),
+                    'y' => (float)($point['y'] ?? 0),
+                ],
+                array_values(array_filter(
+                    is_array($draftState['pendingPolyline'] ?? null) ? $draftState['pendingPolyline'] : [],
+                    fn (mixed $point): bool => is_array($point)
+                ))
+            )),
+            'pendingShape' => is_array($draftState['pendingShape'] ?? null) ? $draftState['pendingShape'] : null,
+            'pendingText' => is_array($draftState['pendingText'] ?? null) ? $draftState['pendingText'] : null,
+        ];
+    }
+    private function sanitizeMapEditorFileName(string $value): string
+    {
+        $sanitized = preg_replace('/[^A-Za-z0-9_-]+/', '_', $value) ?? '';
+        $sanitized = trim($sanitized, '_');
+        return $sanitized !== '' ? $sanitized : 'map_draft';
+    }
+
+    private function normalizeMapEditorMapPayload(array $map): array
+    {
+        $objects = array_values(array_filter(
+            array_map(fn (mixed $item): ?array => is_array($item) ? $this->normalizeMapEditorObject($item) : null, $map['objects'] ?? []),
+            fn (?array $item): bool => $item !== null
+        ));
+        $tables = array_values(array_filter(
+            array_map(fn (mixed $item): ?array => is_array($item) ? $this->normalizeMapEditorTable($item) : null, $map['tables'] ?? []),
+            fn (?array $item): bool => $item !== null
+        ));
+
+        return [
+            'id' => trim((string)($map['id'] ?? '')),
+            'name' => trim((string)($map['name'] ?? '')),
+            'width' => max(0, (int)($map['width'] ?? 0)),
+            'height' => max(0, (int)($map['height'] ?? 0)),
+            'objects' => $objects,
+            'tables' => $tables,
+            'createdAt' => (string)($map['createdAt'] ?? ''),
+            'updatedAt' => (string)($map['updatedAt'] ?? ''),
+            'savedAt' => (string)($map['savedAt'] ?? ''),
+            'draftSavedAt' => (string)($map['draftSavedAt'] ?? ''),
+        ];
+    }
+
+    private function normalizeMapEditorObject(array $item): array
+    {
+        return [
+            'id' => trim((string)($item['id'] ?? '')),
+            'type' => trim((string)($item['type'] ?? '')),
+            'data' => is_array($item['data'] ?? null) ? $item['data'] : [],
+            'createdAt' => (string)($item['createdAt'] ?? ''),
+            'updatedAt' => (string)($item['updatedAt'] ?? ''),
+        ];
+    }
+
+    private function normalizeMapEditorTable(array $item): array
+    {
+        return [
+            'id' => trim((string)($item['id'] ?? '')),
+            'label' => trim((string)($item['label'] ?? '')),
+            'x' => (float)($item['x'] ?? 0),
+            'y' => (float)($item['y'] ?? 0),
+            'width' => (float)($item['width'] ?? 0),
+            'height' => (float)($item['height'] ?? 0),
+            'rotation' => (float)($item['rotation'] ?? 0),
+            'createdAt' => (string)($item['createdAt'] ?? ''),
+            'updatedAt' => (string)($item['updatedAt'] ?? ''),
+        ];
+    }
+
     private function normalizeTableSortOrders(): void
     {
         $rows = db()->query(
@@ -3564,3 +3943,4 @@ final class DineCoreStaffApiController
         };
     }
 }
+

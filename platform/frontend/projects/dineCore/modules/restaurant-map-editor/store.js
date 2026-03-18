@@ -1,4 +1,4 @@
-﻿import world from '@/world.js'
+import world from '@/world.js'
 
 const STORAGE_KEY = 'dinecore-restaurant-map-editor-draft-v1'
 
@@ -236,6 +236,70 @@ export function createRestaurantMapEditorStore() {
               : map
           )),
           dirtyMapIds: markDirty(state, mapId)
+        })
+      },
+      hydrateMap(store, payload = {}) {
+        const state = store.get()
+        const map = payload.map && typeof payload.map === 'object' ? normalizeMap(payload.map) : null
+        if (!map || !map.id) return
+
+        store.set({
+          ...state,
+          maps: state.maps.map(item => (item.id === map.id ? map : item))
+        })
+      },
+      hydrateDraftSession(store, payload = {}) {
+        const state = store.get()
+        const draftState = normalizeDraftState(payload.draftState)
+        const mode = String(payload.mode || payload.draftState?.mode || state.mode || 'view')
+        const workingMode = String(payload.workingMode || payload.draftState?.workingMode || state.workingMode || 'map')
+        const activeTool = String(payload.activeTool || payload.draftState?.tool || state.activeTool || '')
+        const activeObjectId = String(payload.activeObjectId || payload.draftState?.activeObjectId || '') || null
+        const activeTableId = String(payload.activeTableId || payload.draftState?.activeTableId || '') || null
+        const toolbarLocked = Boolean(payload.toolbarLocked ?? payload.draftState?.toolbarLocked ?? state.toolbarLocked)
+
+        store.set({
+          ...state,
+          mode,
+          workingMode,
+          activeTool,
+          activeObjectId,
+          activeTableId,
+          toolbarLocked,
+          draftState
+        })
+      },
+      mergeMapsFromBackend(store, payload = {}) {
+        const state = store.get()
+        const incomingMaps = Array.isArray(payload.maps) ? payload.maps.map(normalizeMap).filter(map => map.id) : []
+        if (!incomingMaps.length) return
+
+        const localMaps = Array.isArray(state.maps) ? state.maps : []
+        const dirtyIds = new Set(Array.isArray(state.dirtyMapIds) ? state.dirtyMapIds : [])
+        const localMapById = new Map(localMaps.map(map => [map.id, map]))
+        const mergedMaps = incomingMaps.map(map => {
+          const localMap = localMapById.get(map.id)
+          if (localMap && dirtyIds.has(map.id)) return localMap
+          return localMap ? { ...localMap, ...map, objects: localMap.objects, tables: localMap.tables } : map
+        })
+
+
+
+        for (const localMap of localMaps) {
+          if (!incomingMaps.some(map => map.id === localMap.id)) {
+            mergedMaps.push(localMap)
+          }
+        }
+
+        const activeMapId = mergedMaps.some(map => map.id === state.activeMapId)
+          ? state.activeMapId
+          : (mergedMaps[0]?.id || null)
+
+        store.set({
+          ...state,
+          maps: mergedMaps,
+          activeMapId,
+          mode: activeMapId ? state.mode : 'view'
         })
       },
       deleteMap(store, mapId) {
@@ -486,6 +550,99 @@ export function createRestaurantMapEditorStore() {
 
         return targetIndex + 1
       },
+      createTable(store, payload = {}) {
+        const state = store.get()
+        const activeMapId = state.activeMapId
+        const data = payload.data && typeof payload.data === 'object' ? cloneValue(payload.data) : null
+        if (!activeMapId || !data) return null
+
+        const activeMap = state.maps.find(map => map.id === activeMapId)
+        const next = nextObjectId(state)
+        const stamp = new Date().toISOString()
+        const label = String(payload.label || '').trim() || `T${Number(activeMap?.tables?.length || 0) + 1}`
+        const table = {
+          id: `table_${next.objectSequence}`,
+          label,
+          x: Number(data.x || 0),
+          y: Number(data.y || 0),
+          width: Number(data.width || 80),
+          height: Number(data.height || 80),
+          rotation: Number(data.rotation || 0),
+          createdAt: stamp,
+          updatedAt: stamp
+        }
+
+        store.set({
+          ...state,
+          objectSequence: next.objectSequence,
+          maps: state.maps.map(map => (
+            map.id === activeMapId
+              ? { ...map, updatedAt: stamp, tables: [...(map.tables || []), table] }
+              : map
+          )),
+          activeTableId: null,
+          dirtyMapIds: markDirty(state, activeMapId)
+        })
+
+        return table.id
+      },
+      selectTable(store, tableId = '') {
+        const state = store.get()
+        store.set({
+          ...state,
+          activeTableId: tableId || null,
+          activeObjectId: null,
+          toolbarLocked: Boolean(tableId)
+        })
+      },
+      clearActiveTable(store) {
+        const state = store.get()
+        store.set({ ...state, activeTableId: null, toolbarLocked: false })
+      },
+      updateTableData(store, payload = {}) {
+        const state = store.get()
+        const activeMapId = state.activeMapId
+        const tableId = String(payload.tableId || '')
+        const data = payload.data && typeof payload.data === 'object' ? payload.data : null
+        if (!activeMapId || !tableId || !data) return
+
+        const stamp = new Date().toISOString()
+        store.set({
+          ...state,
+          maps: state.maps.map(map => (
+            map.id === activeMapId
+              ? {
+                  ...map,
+                  updatedAt: stamp,
+                  tables: (map.tables || []).map(item => (
+                    item.id === tableId
+                      ? { ...item, updatedAt: stamp, ...data }
+                      : item
+                  ))
+                }
+              : map
+          )),
+          dirtyMapIds: markDirty(state, activeMapId)
+        })
+      },
+      deleteTable(store, tableId = '') {
+        const state = store.get()
+        const activeMapId = state.activeMapId
+        if (!activeMapId || !tableId) return
+
+        const stamp = new Date().toISOString()
+        store.set({
+          ...state,
+          maps: state.maps.map(map => (
+            map.id === activeMapId
+              ? { ...map, updatedAt: stamp, tables: (map.tables || []).filter(item => item.id !== tableId) }
+              : map
+          )),
+          activeTableId: state.activeTableId === tableId ? null : state.activeTableId,
+          toolbarLocked: state.activeTableId === tableId ? false : state.toolbarLocked,
+          dirtyMapIds: markDirty(state, activeMapId)
+        })
+      },
       saveDraft(store) {
         const state = store.get()
         const activeMapId = state.activeMapId
@@ -521,5 +678,9 @@ export function createRestaurantMapEditorStore() {
     }
   })
 }
+
+
+
+
 
 

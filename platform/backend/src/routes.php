@@ -22,6 +22,10 @@ $router->add('POST', '/api/dinecore/staff/tables/create', 'DineCoreStaffApiContr
 $router->add('POST', '/api/dinecore/staff/tables/update', 'DineCoreStaffApiController@updateStaffTable');
 $router->add('POST', '/api/dinecore/staff/tables/delete', 'DineCoreStaffApiController@deleteStaffTable');
 $router->add('POST', '/api/dinecore/staff/tables/reorder', 'DineCoreStaffApiController@reorderStaffTables');
+$router->add('POST', '/api/dinecore/staff/map-editor/save-draft', 'DineCoreStaffApiController@saveMapEditorDraft');
+$router->add('POST', '/api/dinecore/staff/map-editor/save-final', 'DineCoreStaffApiController@saveMapEditorFinal');
+$router->add('GET', '/api/dinecore/staff/map-editor/list', 'DineCoreStaffApiController@listMapEditorFiles');
+$router->add('GET', '/api/dinecore/staff/map-editor/load', 'DineCoreStaffApiController@loadMapEditorFile');
 $router->add('GET', '/api/dinecore/staff/counter/orders', 'DineCoreStaffApiController@counterOrders');
 $router->add('GET', '/api/dinecore/staff/counter/order-detail', 'DineCoreStaffApiController@counterOrderDetail');
 $router->add('GET', '/api/dinecore/staff/counter/merge-candidates', 'DineCoreStaffApiController@counterMergeCandidates');

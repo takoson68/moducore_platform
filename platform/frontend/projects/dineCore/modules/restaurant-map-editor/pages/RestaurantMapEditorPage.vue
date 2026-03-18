@@ -1,6 +1,23 @@
-﻿<script setup>
+<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import world from '@/world.js'
+import MapEditorCanvas from './components/MapEditorCanvas.vue'
+import MapEditorHeader from './components/MapEditorHeader.vue'
+import {
+  applyPolylineNodeSnap,
+  applyPolylineSnap,
+  applyRotationSnap,
+  buildObjectTransform,
+  formatStamp,
+  getObjectBox,
+  getObjectCenter,
+  getObjectRotation,
+  normalizeBoxFromPoints,
+  normalizeRotation,
+  polylinePointsToString,
+  resolveRotationFromPoint,
+  rotatePoint
+} from '../utils/editorGeometry.js'
 
 const SNAP_THRESHOLD = 14
 const MIN_SHAPE_SIZE = 8
@@ -11,13 +28,14 @@ const ROTATION_SNAP_THRESHOLD = 6
 const CIRCLE_SNAP_THRESHOLD = 18
 const editorStore = world.store('dineCoreRestaurantMapEditorStore')
 const state = computed(() => editorStore.state)
-const svgRef = ref(null)
+const mapCanvasRef = ref(null)
 const workspaceSurfaceRef = ref(null)
 const hoverWorldPoint = ref(null)
 const selectedNodeIndex = ref(null)
 const dragState = ref(null)
 const pendingShape = ref(null)
 const textEditValue = ref('')
+const tableLabelValue = ref('')
 const objectLayerOrder = ref('')
 const viewScale = ref(1)
 const didPan = ref(false)
@@ -35,10 +53,17 @@ const mapMetaForm = reactive({
   height: 800
 })
 const toolOptions = [
-  { id: 'polyline', label: '折線' },
-  { id: 'rect', label: '矩形' },
-  { id: 'circle', label: '圓形' },
-  { id: 'text', label: '文字' }
+  { id: 'polyline', label: '\u6298\u7dda' },
+  { id: 'rect', label: '\u77e9\u5f62' },
+  { id: 'circle', label: '\u5713\u5f62' },
+  { id: 'text', label: '\u6587\u5b57' }
+]
+const tableToolOptions = [
+  { id: 'table', label: '\u684c\u4f4d' }
+]
+const workingModeOptions = [
+  { id: 'map', label: '\u5730\u5716\u7de8\u8f2f' },
+  { id: 'table', label: '\u684c\u4f4d\u7de8\u8f2f' }
 ]
 
 const activeMap = computed(() => state.value.maps.find(map => map.id === state.value.activeMapId) || null)
@@ -46,6 +71,7 @@ const activeMapIsDirty = computed(() => Boolean(activeMap.value && state.value.d
 const mapObjects = computed(() => Array.isArray(activeMap.value?.objects) ? activeMap.value.objects : [])
 const mapPolylines = computed(() => mapObjects.value.filter(item => item?.type === 'polyline'))
 const drawableObjects = computed(() => mapObjects.value.filter(item => item?.type !== 'polyline'))
+const mapTables = computed(() => Array.isArray(activeMap.value?.tables) ? activeMap.value.tables : [])
 const activeObject = computed(() => mapObjects.value.find(item => item.id === state.value.activeObjectId) || null)
 const activeObjectOrder = computed(() => {
   if (!activeObject.value) return null
@@ -54,6 +80,7 @@ const activeObjectOrder = computed(() => {
 })
 const activePolyline = computed(() => activeObject.value?.type === 'polyline' ? activeObject.value : null)
 const activeShapeObject = computed(() => activeObject.value?.type && activeObject.value.type !== 'polyline' ? activeObject.value : null)
+const activeTable = computed(() => mapTables.value.find(item => item.id === state.value.activeTableId) || null)
 const pendingPolyline = computed(() => Array.isArray(state.value.draftState?.pendingPolyline) ? state.value.draftState.pendingPolyline : [])
 const activePolylinePoints = computed(() => Array.isArray(activePolyline.value?.data?.points) ? activePolyline.value.data.points : [])
 
@@ -105,15 +132,185 @@ const activeObjectRotateHandle = computed(() => {
   return rotatePoint({ x: box.x + box.width + 34, y: box.y + box.height }, center, rotation)
 })
 
+const activeTableBox = computed(() => activeTable.value ? getTableBox(activeTable.value) : null)
+const activeTableCenter = computed(() => activeTable.value ? getTableCenter(activeTable.value) : null)
+const activeTableRotation = computed(() => activeTable.value ? getTableRotation(activeTable.value) : 0)
+const activeTableTransform = computed(() => buildTableTransform(activeTable.value))
+const activeTableHandles = computed(() => {
+  const box = activeTableBox.value
+  const center = activeTableCenter.value
+  const rotation = activeTableRotation.value
+  if (!box || !center) return []
+  return [
+    { key: 'nw', x: box.x, y: box.y },
+    { key: 'ne', x: box.x + box.width, y: box.y },
+    { key: 'sw', x: box.x, y: box.y + box.height },
+    { key: 'se', x: box.x + box.width, y: box.y + box.height }
+  ].map(handle => ({ ...handle, ...rotatePoint(handle, center, rotation) }))
+})
+const activeTableRotateHandle = computed(() => {
+  const box = activeTableBox.value
+  const center = activeTableCenter.value
+  const rotation = activeTableRotation.value
+  if (!box || !center) return null
+  return rotatePoint({ x: box.x + box.width + 34, y: box.y + box.height }, center, rotation)
+})
+
 const isPolylineDrawing = computed(() => state.value.mode === 'edit' && state.value.workingMode === 'map' && state.value.activeTool === 'polyline')
 const isShapeDrawing = computed(() => state.value.mode === 'edit' && state.value.workingMode === 'map' && ['rect', 'circle'].includes(state.value.activeTool))
+const isTableDrawing = computed(() => state.value.mode === 'edit' && state.value.workingMode === 'table' && state.value.activeTool === 'table')
+const currentToolOptions = computed(() => state.value.workingMode === 'table' ? tableToolOptions : toolOptions)
 const scalePercent = computed(() => `${Math.round(viewScale.value * 100)}%`)
-const canPanSurface = computed(() => !state.value.activeTool && !activeObject.value && !pendingShape.value)
+const canPanSurface = computed(() => !state.value.activeTool && !activeObject.value && !activeTable.value && !pendingShape.value)
 
 function openCreateMapForm() { editorStore.openCreateMapForm() }
 function closeCreateMapForm() { editorStore.closeCreateMapForm() }
-function saveDraft() { editorStore.saveDraft() }
-function saveFinal() { editorStore.saveFinal() }
+
+function unwrapEditorApiResult(result, fallbackCode = 'MAP_EDITOR_API_FAILED') {
+  const isSuccess = Boolean(result?.ok && result?.data?.ok)
+  if (!isSuccess) {
+    const code = String(result?.data?.error?.code || result?.data?.data?.error?.code || result?.status || fallbackCode)
+    const message = String(result?.data?.error?.message || result?.data?.data?.error?.message || result?.data?.message || '').trim()
+    throw new Error(message && message !== code ? `${code}: ${message}` : code)
+  }
+
+  return result.data.data || null
+}
+
+async function loadMapListFromBackend() {
+  if (world.apiMode() !== 'real') return false
+
+  const result = await world.http().get('/api/dinecore/staff/map-editor/list', { tokenQuery: true })
+  const data = unwrapEditorApiResult(result, 'MAP_FILE_LIST_FAILED')
+  const maps = Array.isArray(data?.maps) ? data.maps : []
+  if (!maps.length) return false
+
+  editorStore.mergeMapsFromBackend({ maps })
+  return true
+}
+
+async function loadMapFromBackend(mapId, preferredStatus = 'draft') {
+  if (!mapId || world.apiMode() !== 'real') return false
+
+  const statuses = preferredStatus === 'final' ? ['final', 'draft'] : ['draft', 'final']
+  for (const status of statuses) {
+    try {
+      const result = await world.http().get(
+        `/api/dinecore/staff/map-editor/load?map_id=${encodeURIComponent(mapId)}&status=${encodeURIComponent(status)}`,
+        { tokenQuery: true }
+      )
+      const data = unwrapEditorApiResult(result, 'MAP_FILE_LOAD_FAILED')
+      const mapPayload = data?.map?.id ? data.map : data?.payload
+      if (mapPayload?.id) {
+        editorStore.hydrateMap({ map: mapPayload })
+        editorStore.hydrateDraftSession({
+          mode: data?.draftState?.mode,
+          workingMode: data?.draftState?.workingMode,
+          activeTool: data?.draftState?.tool,
+          activeObjectId: data?.draftState?.activeObjectId,
+          activeTableId: data?.draftState?.activeTableId,
+          toolbarLocked: data?.draftState?.toolbarLocked,
+          draftState: {
+            pendingPolyline: data?.draftState?.pendingPolyline,
+            pendingShape: data?.draftState?.pendingShape,
+            pendingText: data?.draftState?.pendingText
+          }
+        })
+        pendingShape.value = data?.draftState?.pendingShape || null
+        return true
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      const isNotFound = message.includes('MAP_FILE_NOT_FOUND') || message.includes('NOT_FOUND')
+      if (!isNotFound) throw error
+    }
+  }
+
+  return false
+}
+
+async function confirmProceedWithUnsavedChanges(actionLabel = '繼續操作') {
+  if (!activeMapIsDirty.value) return true
+
+  const shouldSave = window.confirm(`目前地圖「${activeMap.value?.name || ''}」有未儲存變更。\n按「確定」會先草稿存檔，再${actionLabel}。\n按「取消」可選擇不儲存直接${actionLabel}或取消。`)
+  if (shouldSave) {
+    return await saveDraft()
+  }
+
+  const shouldDiscard = window.confirm(`按「確定」會不儲存直接${actionLabel}。\n按「取消」則中止本次操作。`)
+  return shouldDiscard
+}
+
+function buildDraftSnapshot() {
+  return {
+    mode: state.value.mode,
+    workingMode: state.value.workingMode,
+    tool: state.value.activeTool,
+    activeObjectId: state.value.activeObjectId,
+    activeTableId: state.value.activeTableId,
+    toolbarLocked: state.value.toolbarLocked,
+    pendingPolyline: state.value.draftState?.pendingPolyline || [],
+    pendingShape: pendingShape.value,
+    pendingText: state.value.draftState?.pendingText || null
+  }
+}
+
+async function saveDraft() {
+  if (!activeMap.value) return false
+
+  if (world.apiMode() !== 'real') {
+    editorStore.saveDraft()
+    return true
+  }
+
+  try {
+    const result = await world.http().post(
+      '/api/dinecore/staff/map-editor/save-draft',
+      {
+        map: activeMap.value,
+        status: 'draft',
+        draftState: buildDraftSnapshot()
+      },
+      { tokenQuery: true }
+    )
+
+    unwrapEditorApiResult(result, 'MAP_DRAFT_SAVE_FAILED')
+    editorStore.saveDraft()
+    return true
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'MAP_DRAFT_SAVE_FAILED'
+    window.alert(`草稿存檔失敗：${message}`)
+    return false
+  }
+}
+
+async function saveFinal() {
+  if (!activeMap.value) return false
+
+  if (world.apiMode() !== 'real') {
+    editorStore.saveFinal()
+    return true
+  }
+
+  try {
+    const result = await world.http().post(
+      '/api/dinecore/staff/map-editor/save-final',
+      {
+        map: activeMap.value,
+        status: 'final'
+      },
+      { tokenQuery: true }
+    )
+
+    unwrapEditorApiResult(result, 'MAP_FINAL_SAVE_FAILED')
+    editorStore.saveFinal()
+    return true
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'MAP_FINAL_SAVE_FAILED'
+    window.alert(`正式存檔失敗：${message}`)
+    return false
+  }
+}
 
 function submitCreateMap() {
   if (!isCreateFormValid()) return
@@ -124,9 +321,23 @@ function isCreateFormValid() {
   return String(createForm.name || '').trim() && Number(createForm.width) > 0 && Number(createForm.height) > 0
 }
 
-function setActiveMap(mapId) {
+async function setActiveMap(mapId) {
+  if (!mapId || mapId === state.value.activeMapId) return
+
+  const canProceed = await confirmProceedWithUnsavedChanges('切換地圖')
+  if (!canProceed) return
+
   editorStore.setActiveMap(mapId)
   resetLocalState()
+
+  if (state.value.dirtyMapIds.includes(mapId)) return
+
+  try {
+    await loadMapFromBackend(mapId, 'draft')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'MAP_FILE_LOAD_FAILED'
+    window.alert(`地圖讀取失敗：${message}`)
+  }
 }
 
 
@@ -145,9 +356,13 @@ function submitMapMeta() {
   })
 }
 
-function deleteActiveMap() {
+async function deleteActiveMap() {
   if (!activeMap.value) return
-  if (!window.confirm(`確定要刪除地圖「${activeMap.value.name}」嗎？`)) return
+
+  const canProceed = await confirmProceedWithUnsavedChanges('刪除地圖')
+  if (!canProceed) return
+  if (!window.confirm(`\u78ba\u5b9a\u8981\u522a\u9664\u5730\u5716\u300c${activeMap.value.name}\u300d\u55ce\uff1f`)) return
+
   editorStore.deleteMap(activeMap.value.id)
   resetLocalState()
 }
@@ -178,11 +393,48 @@ function deleteActiveObject() {
   resetLocalState()
 }
 
+function clearActiveTable() {
+  editorStore.clearActiveTable()
+}
+
+function deleteActiveTable() {
+  if (!activeTable.value) return
+  editorStore.deleteTable(activeTable.value.id)
+  resetLocalState()
+}
+
+function selectTable(tableId) {
+  if (state.value.mode !== 'edit' || state.value.workingMode !== 'table') return
+  editorStore.selectTable(tableId)
+}
+
+function setObjectLayerOrder(value) {
+  objectLayerOrder.value = String(value || '')
+}
+
+function setTextEditValue(value) {
+  textEditValue.value = String(value || '')
+}
+
+function setTableLabelValue(value) {
+  tableLabelValue.value = String(value || '')
+}
+
 function handleActiveTextInput() {
   if (!activeShapeObject.value || activeShapeObject.value.type !== 'text') return
   editorStore.updateObjectData({
     objectId: activeShapeObject.value.id,
     data: { content: String(textEditValue.value || '').trim() }
+  })
+}
+
+function handleActiveTableLabelInput() {
+  if (!activeTable.value) return
+  const label = String(tableLabelValue.value || '').trim()
+  if (!label) return
+  editorStore.updateTableData({
+    tableId: activeTable.value.id,
+    data: { label }
   })
 }
 
@@ -211,13 +463,8 @@ function zoomOut() {
 function resetZoom() {
   setViewScale(1)
 }
-function formatStamp(value) {
-  if (!value) return '尚未儲存'
-  return new Date(value).toLocaleString('zh-TW', { hour12: false })
-}
-
 function resolveWorldPoint(event) {
-  const svgElement = svgRef.value
+  const svgElement = mapCanvasRef.value?.getSvgElement?.() || null
   if (!svgElement || !activeMap.value) return null
   const bounds = svgElement.getBoundingClientRect()
   if (!bounds.width || !bounds.height) return null
@@ -236,90 +483,22 @@ function clampToMap(point = null) {
   }
 }
 
-function applyPolylineSnap(point, points = []) {
-  if (!point) return null
-  const nextPoint = { ...point }
-  const lastPoint = points.at(-1)
-  const firstPoint = points[0]
-
-  if (lastPoint) {
-    const dx = Math.abs(nextPoint.x - lastPoint.x)
-    const dy = Math.abs(nextPoint.y - lastPoint.y)
-    if (dx <= SNAP_THRESHOLD && dx <= dy) nextPoint.x = lastPoint.x
-    if (dy <= SNAP_THRESHOLD && dy < dx) nextPoint.y = lastPoint.y
-  }
-
-  if (firstPoint && points.length >= 2) {
-    const firstDx = Math.abs(nextPoint.x - firstPoint.x)
-    const firstDy = Math.abs(nextPoint.y - firstPoint.y)
-    if (firstDx <= SNAP_THRESHOLD) nextPoint.x = firstPoint.x
-    if (firstDy <= SNAP_THRESHOLD) nextPoint.y = firstPoint.y
-  }
-
-  return nextPoint
-}
-
-function resolveClosestAxisSnapValue(currentValue, candidates = []) {
-  let snappedValue = currentValue
-  let closestDistance = Number.POSITIVE_INFINITY
-
-  candidates.forEach(candidate => {
-    if (!Number.isFinite(candidate)) return
-    const distance = Math.abs(currentValue - candidate)
-    if (distance > SNAP_THRESHOLD) return
-    if (distance >= closestDistance) return
-    snappedValue = candidate
-    closestDistance = distance
-  })
-
-  return snappedValue
-}
-
-function applyPolylineNodeSnap(point, points = [], index = -1) {
-  if (!point || !Array.isArray(points) || index < 0 || index >= points.length) return point
-
-  const previousPoint = index > 0 ? points[index - 1] : null
-  const nextPoint = index < points.length - 1 ? points[index + 1] : null
-  const firstPoint = points[0] || null
-  const lastPoint = points.at(-1) || null
-  const oppositeEndpoint = index === 0 ? lastPoint : (index === points.length - 1 ? firstPoint : null)
-
-  const axisCandidatesX = [previousPoint?.x, nextPoint?.x, oppositeEndpoint?.x]
-  const axisCandidatesY = [previousPoint?.y, nextPoint?.y, oppositeEndpoint?.y]
-
+function getTableBox(table) {
+  if (!table) return null
   return {
-    x: Number(resolveClosestAxisSnapValue(point.x, axisCandidatesX).toFixed(2)),
-    y: Number(resolveClosestAxisSnapValue(point.y, axisCandidatesY).toFixed(2))
+    x: Number(table.x || 0),
+    y: Number(table.y || 0),
+    width: Number(table.width || 0),
+    height: Number(table.height || 0)
   }
 }
 
-function normalizeBoxFromPoints(start, end) {
-  const safeStart = start || { x: 0, y: 0 }
-  const safeEnd = end || safeStart
-  return {
-    x: Number(Math.min(safeStart.x, safeEnd.x).toFixed(2)),
-    y: Number(Math.min(safeStart.y, safeEnd.y).toFixed(2)),
-    width: Number(Math.abs(safeEnd.x - safeStart.x).toFixed(2)),
-    height: Number(Math.abs(safeEnd.y - safeStart.y).toFixed(2))
-  }
+function getTableRotation(table) {
+  return Number(table?.rotation || 0)
 }
 
-function getObjectBox(object) {
-  if (!object?.data) return null
-  return {
-    x: Number(object.data.x || 0),
-    y: Number(object.data.y || 0),
-    width: Number(object.data.width || 0),
-    height: Number(object.data.height || 0)
-  }
-}
-
-function getObjectRotation(object) {
-  return Number(object?.data?.rotation || 0)
-}
-
-function getObjectCenter(object) {
-  const box = getObjectBox(object)
+function getTableCenter(table) {
+  const box = getTableBox(table)
   if (!box) return null
   return {
     x: Number((box.x + box.width / 2).toFixed(2)),
@@ -327,50 +506,13 @@ function getObjectCenter(object) {
   }
 }
 
-function buildRotateTransform(rotation, center) {
+function buildTableTransform(table) {
+  const center = getTableCenter(table)
+  const rotation = getTableRotation(table)
   if (!center || !rotation) return ''
   return `rotate(${rotation} ${center.x} ${center.y})`
 }
 
-function buildObjectTransform(object) {
-  const center = getObjectCenter(object)
-  const rotation = getObjectRotation(object)
-  return buildRotateTransform(rotation, center)
-}
-
-function rotatePoint(point, center, rotation) {
-  if (!point || !center || !rotation) return point
-  const radians = rotation * Math.PI / 180
-  const cos = Math.cos(radians)
-  const sin = Math.sin(radians)
-  const dx = point.x - center.x
-  const dy = point.y - center.y
-  return {
-    x: Number((center.x + dx * cos - dy * sin).toFixed(2)),
-    y: Number((center.y + dx * sin + dy * cos).toFixed(2))
-  }
-}
-
-function resolveRotationFromPoint(center, point) {
-  if (!center || !point) return 0
-  return Math.atan2(point.y - center.y, point.x - center.x) * 180 / Math.PI
-}
-
-function normalizeRotation(rotation) {
-  let nextRotation = Number(rotation || 0)
-  while (nextRotation > 180) nextRotation -= 360
-  while (nextRotation <= -180) nextRotation += 360
-  return Number(nextRotation.toFixed(2))
-}
-
-function applyRotationSnap(rotation) {
-  const normalizedRotation = normalizeRotation(rotation)
-  const snappedRotation = Math.round(normalizedRotation / ROTATION_SNAP_STEP) * ROTATION_SNAP_STEP
-  if (Math.abs(normalizedRotation - snappedRotation) > ROTATION_SNAP_THRESHOLD) {
-    return normalizedRotation
-  }
-  return normalizeRotation(snappedRotation)
-}
 
 function beginShapeDraw(toolType, event) {
   const start = resolveWorldPoint(event)
@@ -390,7 +532,7 @@ function commitPendingShape() {
 function createTextObject(event) {
   const point = resolveWorldPoint(event)
   if (!point) return
-  const raw = window.prompt('請輸入文字內容', '區域標示')
+  const raw = window.prompt('\u8acb\u8f38\u5165\u6587\u5b57\u5167\u5bb9', '\u5340\u57df\u6a19\u793a')
   if (raw === null) return
   const content = String(raw).trim()
   if (!content) return
@@ -400,18 +542,36 @@ function createTextObject(event) {
   })
 }
 
+
+function createTableObject(event) {
+  const point = resolveWorldPoint(event)
+  if (!point || !activeMap.value) return
+  const width = 80
+  const height = 80
+  const x = Number(Math.max(0, Math.min(activeMap.value.width - width, point.x - width / 2)).toFixed(2))
+  const y = Number(Math.max(0, Math.min(activeMap.value.height - height, point.y - height / 2)).toFixed(2))
+  editorStore.createTable({ data: { x, y, width, height, rotation: 0 } })
+}
 function handleSvgClick(event) {
   if (didPan.value) {
     didPan.value = false
     return
   }
-  if (state.value.mode !== 'edit' || state.value.workingMode !== 'map' || !activeMap.value) return
+  if (state.value.mode !== 'edit' || !activeMap.value) return
+
+  if (state.value.workingMode === 'table') {
+    if (state.value.activeTool === 'table' && !state.value.toolbarLocked) {
+      createTableObject(event)
+    }
+    return
+  }
+
   if (state.value.activeTool === 'text' && !state.value.toolbarLocked) {
     createTextObject(event)
     return
   }
   if (!isPolylineDrawing.value) return
-  const point = applyPolylineSnap(resolveWorldPoint(event), pendingPolyline.value)
+  const point = applyPolylineSnap(resolveWorldPoint(event), pendingPolyline.value, SNAP_THRESHOLD)
   if (!point) return
   editorStore.appendPendingPolylinePoint(point)
 }
@@ -456,9 +616,24 @@ function handleSvgDoubleClick(event) {
     event.preventDefault()
     clearActiveObject()
   }
+  if (activeTable.value) {
+    event.preventDefault()
+    clearActiveTable()
+  }
+}
+
+function isTypingTarget(event) {
+  const target = event?.target
+  if (!target) return false
+  const tagName = String(target.tagName || '').toUpperCase()
+  return tagName === 'INPUT' || tagName === 'TEXTAREA' || Boolean(target.isContentEditable)
 }
 
 function handleWindowKeydown(event) {
+  if (isTypingTarget(event) && event.key === 'Delete') {
+    return
+  }
+
   if (event.key === 'Escape') {
     if (dragState.value) {
       dragState.value = null
@@ -476,6 +651,12 @@ function handleWindowKeydown(event) {
     if (activeObject.value) {
       event.preventDefault()
       clearActiveObject()
+      return
+    }
+    if (activeTable.value) {
+      event.preventDefault()
+      clearActiveTable()
+      return
     }
     return
   }
@@ -486,14 +667,19 @@ function handleWindowKeydown(event) {
     return
   }
 
-  if (!activeObject.value) return
-  if (event.key === 'Delete' || event.key === 'Backspace') {
+  if (activeObject.value && event.key === 'Delete') {
     event.preventDefault()
     if (activePolyline.value && Number.isInteger(selectedNodeIndex.value)) {
       deleteSelectedNode()
       return
     }
     deleteActiveObject()
+    return
+  }
+
+  if (activeTable.value && event.key === 'Delete') {
+    event.preventDefault()
+    deleteActiveTable()
   }
 }
 
@@ -566,9 +752,46 @@ function handleWindowPointerMove(event) {
     const point = resolveWorldPoint(event)
     if (!point) return
     const currentAngle = resolveRotationFromPoint(dragState.value.center, point)
-    const nextRotation = applyRotationSnap(dragState.value.startRotation + currentAngle - dragState.value.startAngle)
+    const nextRotation = applyRotationSnap(dragState.value.startRotation + currentAngle - dragState.value.startAngle, ROTATION_SNAP_STEP, ROTATION_SNAP_THRESHOLD)
     editorStore.updateObjectData({
       objectId: dragState.value.objectId,
+      data: { rotation: nextRotation }
+    })
+    return
+  }
+
+  if (dragState.value.kind === 'table-move' && activeTable.value?.id === dragState.value.tableId) {
+    const point = resolveWorldPoint(event)
+    if (!point || !activeMap.value) return
+    const dx = point.x - dragState.value.startPoint.x
+    const dy = point.y - dragState.value.startPoint.y
+    const original = dragState.value.originalBox
+    editorStore.updateTableData({
+      tableId: dragState.value.tableId,
+      data: {
+        x: Number(Math.max(0, Math.min(activeMap.value.width - original.width, original.x + dx)).toFixed(2)),
+        y: Number(Math.max(0, Math.min(activeMap.value.height - original.height, original.y + dy)).toFixed(2))
+      }
+    })
+    return
+  }
+
+  if (dragState.value.kind === 'table-resize' && activeTable.value?.id === dragState.value.tableId) {
+    const point = resolveWorldPoint(event)
+    if (!point) return
+    const nextBox = resizeBoxFromHandle(dragState.value.originalBox, dragState.value.handle, point, 'table')
+    if (!nextBox) return
+    editorStore.updateTableData({ tableId: dragState.value.tableId, data: nextBox })
+    return
+  }
+
+  if (dragState.value.kind === 'table-rotate' && activeTable.value?.id === dragState.value.tableId) {
+    const point = resolveWorldPoint(event)
+    if (!point) return
+    const currentAngle = resolveRotationFromPoint(dragState.value.center, point)
+    const nextRotation = applyRotationSnap(dragState.value.startRotation + currentAngle - dragState.value.startAngle, ROTATION_SNAP_STEP, ROTATION_SNAP_THRESHOLD)
+    editorStore.updateTableData({
+      tableId: dragState.value.tableId,
       data: { rotation: nextRotation }
     })
   }
@@ -579,12 +802,8 @@ function handleWindowPointerUp() {
   dragState.value = null
 }
 
-function polylinePointsToString(points = []) {
-  return points.map(point => `${point.x},${point.y}`).join(' ')
-}
-
 function selectObject(objectId) {
-  if (isPolylineDrawing.value) return
+  if (state.value.workingMode !== 'map' || isPolylineDrawing.value) return
   editorStore.selectObject(objectId)
   selectedNodeIndex.value = null
 }
@@ -625,6 +844,16 @@ function startObjectMove(object, event) {
   dragState.value = { kind: 'object-move', objectId: object.id, startPoint, originalBox }
 }
 
+function startTableMove(table, event) {
+  if (state.value.mode !== 'edit' || state.value.workingMode !== 'table') return
+  event.stopPropagation()
+  selectTable(table.id)
+  const startPoint = resolveWorldPoint(event)
+  const originalBox = getTableBox(table)
+  if (!startPoint || !originalBox) return
+  dragState.value = { kind: 'table-move', tableId: table.id, startPoint, originalBox }
+}
+
 function startResize(handleKey, event) {
   if (!activeShapeObject.value) return
   event.stopPropagation()
@@ -634,6 +863,32 @@ function startResize(handleKey, event) {
     objectType: activeShapeObject.value.type,
     handle: handleKey,
     originalBox: getObjectBox(activeShapeObject.value)
+  }
+}
+
+function startTableResize(handleKey, event) {
+  if (!activeTable.value) return
+  event.stopPropagation()
+  dragState.value = {
+    kind: 'table-resize',
+    tableId: activeTable.value.id,
+    handle: handleKey,
+    originalBox: getTableBox(activeTable.value)
+  }
+}
+
+function startTableRotate(event) {
+  if (!activeTable.value) return
+  const center = getTableCenter(activeTable.value)
+  const point = resolveWorldPoint(event)
+  if (!center || !point) return
+  event.stopPropagation()
+  dragState.value = {
+    kind: 'table-rotate',
+    tableId: activeTable.value.id,
+    center,
+    startAngle: resolveRotationFromPoint(center, point),
+    startRotation: getTableRotation(activeTable.value)
   }
 }
 
@@ -738,6 +993,12 @@ function resetLocalState() {
   pendingShape.value = null
 }
 
+function handleBeforeUnload(event) {
+  if (!state.value.dirtyMapIds.length) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
 
 watch(activeMap, map => {
   mapMetaForm.name = String(map?.name || '')
@@ -748,20 +1009,41 @@ watch(activeMap, map => {
 watch(activeShapeObject, object => {
   textEditValue.value = object?.type === 'text' ? String(object.data?.content || '') : ''
 }, { immediate: true })
+watch(activeTable, table => {
+  tableLabelValue.value = table ? String(table.label || '') : ''
+}, { immediate: true })
 watch(activeObjectOrder, order => {
   objectLayerOrder.value = order ? String(order) : ''
 }, { immediate: true })
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('keydown', handleWindowKeydown)
   window.addEventListener('pointermove', handleWindowPointerMove)
   window.addEventListener('pointerup', handleWindowPointerUp)
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
+  try {
+    await loadMapListFromBackend()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'MAP_FILE_LIST_FAILED'
+    window.alert(`地圖列表讀取失敗：${message}`)
+  }
+
+  if (activeMap.value?.id && !state.value.dirtyMapIds.includes(activeMap.value.id)) {
+    try {
+      await loadMapFromBackend(activeMap.value.id, 'draft')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'MAP_FILE_LOAD_FAILED'
+      window.alert(`地圖讀取失敗：${message}`)
+    }
+  }
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleWindowKeydown)
   window.removeEventListener('pointermove', handleWindowPointerMove)
   window.removeEventListener('pointerup', handleWindowPointerUp)
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 <template lang="pug">
@@ -769,629 +1051,142 @@ onBeforeUnmount(() => {
   section.editor-shell
     main.editor-main
       section.workspace-card(v-if="activeMap")
-        .workspace-card__topbar
-          p.eyebrow 地圖管理
-          .workspace-map-top-actions
-            .workspace-map-selector
-              select.workspace-map-select(:value="state.activeMapId || ''" @change="setActiveMap($event.target.value)")
-                option(v-for="map in state.maps" :key="map.id" :value="map.id") {{ `${map.name}${state.dirtyMapIds.includes(map.id) ? '（未儲存）' : ''}` }}
-            button.primary-button.primary-button--add-map(type="button" @click="openCreateMapForm") 新增地圖
-        .workspace-card__head
-          .workspace-corner-controls
-            .workspace-view-controls
-              button.ghost-button(type="button" @click="zoomOut") -
-              button.workspace-view-scale(type="button" @click="resetZoom") {{ scalePercent }}
-              button.ghost-button(type="button" @click="zoomIn") +
-          .workspace-map-summary
-            input.workspace-map-name-input(type="text" v-model="mapMetaForm.name" placeholder="地圖名稱")
-            .workspace-map-size-form
-              input.workspace-map-size-input(type="number" min="1" step="1" v-model="mapMetaForm.width")
-              span.workspace-map-size-separator x
-              input.workspace-map-size-input(type="number" min="1" step="1" v-model="mapMetaForm.height")
-              button.ghost-button(type="button" @click="submitMapMeta") 套用
-              span.workspace-inline-divider(aria-hidden="true")
-              button.ghost-button(type="button" @click="saveDraft" :disabled="!activeMap") 草稿存檔
-              button.primary-button(type="button" @click="saveFinal" :disabled="!activeMap") 正式儲存
-              button.danger-button(type="button" @click="deleteActiveMap" :disabled="!activeMap") 刪除
-          .workspace-head-toolbar
-            .tool-chips
-              button.tool-chip(
-                v-for="tool in toolOptions"
-                :key="tool.id"
-                type="button"
-                :class="{ 'is-active': state.activeTool === tool.id }"
-                :disabled="state.mode !== 'edit' || state.workingMode !== 'map' || !activeMap || state.toolbarLocked"
-                @click="setTool(tool.id)"
-              ) {{ tool.label }}
-            .toolbar-group.workspace-object-actions(v-if="activeObject")
-              .workspace-layer-control
-                input.workspace-layer-input(type="number" min="1" :max="mapObjects.length" v-model="objectLayerOrder" @change="applyActiveObjectLayerOrder" placeholder="層級")
-                button.workspace-layer-apply(type="button" @click="applyActiveObjectLayerOrder") 套用層級
-              input.workspace-text-edit-input(v-if="activeShapeObject && activeShapeObject.type === 'text'" type="text" v-model="textEditValue" @input="handleActiveTextInput" placeholder="輸入文字內容")
+        MapEditorHeader(
+          :state="state"
+          :active-map="activeMap"
+          :tool-options="currentToolOptions"
+          :working-mode-options="workingModeOptions"
+          :scale-percent="scalePercent"
+          :map-meta-form="mapMetaForm"
+          :active-object="activeObject"
+          :active-shape-object="activeShapeObject"
+          :active-table="activeTable"
+          :map-objects-length="mapObjects.length"
+          :object-layer-order="objectLayerOrder"
+          :text-edit-value="textEditValue"
+          :table-label-value="tableLabelValue"
+          :set-active-map="setActiveMap"
+          :open-create-map-form="openCreateMapForm"
+          :zoom-out="zoomOut"
+          :reset-zoom="resetZoom"
+          :zoom-in="zoomIn"
+          :submit-map-meta="submitMapMeta"
+          :save-draft="saveDraft"
+          :save-final="saveFinal"
+          :delete-active-map="deleteActiveMap"
+          :delete-active-object="deleteActiveObject"
+          :delete-active-table="deleteActiveTable"
+          :set-working-mode="setWorkingMode"
+          :set-tool="setTool"
+          :set-object-layer-order="setObjectLayerOrder"
+          :apply-active-object-layer-order="applyActiveObjectLayerOrder"
+          :set-text-edit-value="setTextEditValue"
+          :set-table-label-value="setTableLabelValue"
+          :handle-active-text-input="handleActiveTextInput"
+          :handle-active-table-label-input="handleActiveTableLabelInput"
+        )
         .workspace-surface(ref="workspaceSurfaceRef" :class="{ 'is-pannable': canPanSurface, 'is-panning': dragState?.kind === 'pan' }")
-          .workspace-grid(:style="{ '--map-width': `${activeMap.width * viewScale}px`, '--map-height': `${activeMap.height * viewScale}px` }")
-            svg.workspace-svg(
-              ref="svgRef"
-              :viewBox="`0 0 ${activeMap.width} ${activeMap.height}`"
-              role="img"
-              aria-label="地圖編輯區"
-              @click="handleSvgClick"
-              @pointerdown="handleSvgPointerDown"
-              @mousemove="handleSvgMove"
-              @mouseleave="handleSvgLeave"
-              @dblclick="handleSvgDoubleClick"
-            )
-              defs
-                pattern#map-grid-pattern(width="40" height="40" patternUnits="userSpaceOnUse")
-                  path(d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(90, 106, 123, 0.18)" stroke-width="1")
-              rect(x="0" y="0" :width="activeMap.width" :height="activeMap.height" fill="#fffdf7")
-              rect(x="0" y="0" :width="activeMap.width" :height="activeMap.height" fill="url(#map-grid-pattern)" @pointerdown="handleBackgroundPointerDown")
-              g.map-layer
-                template(v-for="item in mapPolylines" :key="item.id")
-                  polyline.map-polyline-hit(:points="polylinePointsToString(item.data.points || [])" @click.stop="selectPolyline(item.id)")
-                  polyline.map-polyline(:class="{ 'is-active': item.id === state.activeObjectId }" :points="polylinePointsToString(item.data.points || [])" @click.stop="selectPolyline(item.id)")
-                template(v-for="item in drawableObjects" :key="item.id")
-                  template(v-if="item.type === 'rect'")
-                    g(:transform="buildObjectTransform(item)")
-                      rect.map-shape-hit(:x="item.data.x" :y="item.data.y" :width="item.data.width" :height="item.data.height" @click.stop="selectObject(item.id)" @pointerdown.stop="startObjectMove(item, $event)")
-                      rect.map-shape(:class="{ 'is-active': item.id === state.activeObjectId }" :x="item.data.x" :y="item.data.y" :width="item.data.width" :height="item.data.height" rx="10" ry="10" @click.stop="selectObject(item.id)" @pointerdown.stop="startObjectMove(item, $event)")
-                  template(v-else-if="item.type === 'circle'")
-                    g(:transform="buildObjectTransform(item)")
-                      ellipse.map-shape-hit(:cx="item.data.x + item.data.width / 2" :cy="item.data.y + item.data.height / 2" :rx="item.data.width / 2" :ry="item.data.height / 2" @click.stop="selectObject(item.id)" @pointerdown.stop="startObjectMove(item, $event)")
-                      ellipse.map-shape.map-shape--circle(:class="{ 'is-active': item.id === state.activeObjectId }" :cx="item.data.x + item.data.width / 2" :cy="item.data.y + item.data.height / 2" :rx="item.data.width / 2" :ry="item.data.height / 2" @click.stop="selectObject(item.id)" @pointerdown.stop="startObjectMove(item, $event)")
-                  template(v-else-if="item.type === 'text'")
-                    g(:transform="buildObjectTransform(item)")
-                      rect.map-shape-hit(:x="item.data.x" :y="item.data.y" :width="item.data.width" :height="item.data.height" @click.stop="selectObject(item.id)" @pointerdown.stop="startObjectMove(item, $event)")
-                      rect.map-text-box(:class="{ 'is-active': item.id === state.activeObjectId }" :x="item.data.x" :y="item.data.y" :width="item.data.width" :height="item.data.height" rx="10" ry="10" @click.stop="selectObject(item.id)" @pointerdown.stop="startObjectMove(item, $event)")
-                      text.map-text(:class="{ 'is-active': item.id === state.activeObjectId }" :x="item.data.x + item.data.width / 2" :y="item.data.y + item.data.height / 2" text-anchor="middle" dominant-baseline="middle" @click.stop="selectObject(item.id)" @pointerdown.stop="startObjectMove(item, $event)") {{ item.data.content }}
-                template(v-if="activePolyline")
-                  line.map-segment-hit(v-for="segment in activePolylineSegments" :key="`segment-${segment.index}`" :x1="segment.start.x" :y1="segment.start.y" :x2="segment.end.x" :y2="segment.end.y" @click.stop="insertPointAtSegment(segment.index, $event)")
-                  g.map-polyline-move-control(v-if="activePolylineCenter" @pointerdown.stop="startPolylineMove($event)")
-                    circle.map-polyline-move-control__dot(:cx="activePolylineCenter.x" :cy="activePolylineCenter.y" r="10")
-                    text.map-polyline-move-control__label(:x="activePolylineCenter.x" :y="activePolylineCenter.y" text-anchor="middle" dominant-baseline="middle") +
-                  circle.map-point.map-point--active(v-for="(point, index) in activePolylinePoints" :key="`active-${index}`" :class="{ 'is-selected': selectedNodeIndex === index }" :cx="point.x" :cy="point.y" r="6" @click.stop="selectNode(index, $event)" @pointerdown.stop="startNodeDrag(index, $event)")
-                template(v-if="activeShapeObject && activeObjectBox")
-                  g(:transform="activeObjectTransform")
-                    rect.map-selection-box(:x="activeObjectBox.x" :y="activeObjectBox.y" :width="activeObjectBox.width" :height="activeObjectBox.height" rx="10" ry="10")
-                  circle.map-resize-handle(v-for="handle in activeObjectHandles" :key="handle.key" :cx="handle.x" :cy="handle.y" r="6" @pointerdown.stop="startResize(handle.key, $event)")
-                  circle.map-rotate-handle(v-if="activeObjectRotateHandle" :cx="activeObjectRotateHandle.x" :cy="activeObjectRotateHandle.y" r="6" @pointerdown.stop="startRotate($event)")
-                template(v-if="pendingShape")
-                  rect.map-shape.map-shape--draft(v-if="pendingShape.type === 'rect'" :x="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).x" :y="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).y" :width="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).width" :height="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).height" rx="10" ry="10")
-                  ellipse.map-shape.map-shape--draft(v-else-if="pendingShape.type === 'circle'" :cx="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).x + normalizeBoxFromPoints(pendingShape.start, pendingShape.current).width / 2" :cy="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).y + normalizeBoxFromPoints(pendingShape.start, pendingShape.current).height / 2" :rx="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).width / 2" :ry="normalizeBoxFromPoints(pendingShape.start, pendingShape.current).height / 2")
-                polyline.map-polyline.map-polyline--draft(v-if="pendingPolyline.length > 0" :points="pendingPolylinePointsString")
-                circle.map-point(v-for="(point, index) in pendingPolyline" :key="`pending-${index}`" :cx="point.x" :cy="point.y" r="5")
-                circle.map-point.map-point--hover(v-if="hoverWorldPoint && pendingPolyline.length > 0" :cx="hoverWorldPoint.x" :cy="hoverWorldPoint.y" r="4")
-            .workspace-overlay
-              .overlay-pill SVG Root
-              .overlay-pill Map Layer
-              .overlay-pill Table Layer
-              .overlay-pill UI Layer / Overlay Layer
+          MapEditorCanvas(
+            ref="mapCanvasRef"
+            :active-map="activeMap"
+            :view-scale="viewScale"
+            :map-polylines="mapPolylines"
+            :drawable-objects="drawableObjects"
+            :map-tables="mapTables"
+            :active-object-id="state.activeObjectId"
+            :active-table-id="state.activeTableId"
+            :active-polyline="activePolyline"
+            :active-polyline-segments="activePolylineSegments"
+            :active-polyline-center="activePolylineCenter"
+            :active-polyline-points="activePolylinePoints"
+            :selected-node-index="selectedNodeIndex"
+            :active-shape-object="activeShapeObject"
+            :active-object-box="activeObjectBox"
+            :active-object-transform="activeObjectTransform"
+            :active-object-handles="activeObjectHandles"
+            :active-object-rotate-handle="activeObjectRotateHandle"
+            :active-table="activeTable"
+            :active-table-box="activeTableBox"
+            :active-table-transform="activeTableTransform"
+            :active-table-handles="activeTableHandles"
+            :active-table-rotate-handle="activeTableRotateHandle"
+            :pending-shape="pendingShape"
+            :pending-polyline="pendingPolyline"
+            :pending-polyline-points-string="pendingPolylinePointsString"
+            :hover-world-point="hoverWorldPoint"
+            :polyline-points-to-string="polylinePointsToString"
+            :build-object-transform="buildObjectTransform"
+            :normalize-box-from-points="normalizeBoxFromPoints"
+            :handle-svg-click="handleSvgClick"
+            :handle-svg-pointer-down="handleSvgPointerDown"
+            :handle-svg-move="handleSvgMove"
+            :handle-svg-leave="handleSvgLeave"
+            :handle-svg-double-click="handleSvgDoubleClick"
+            :handle-background-pointer-down="handleBackgroundPointerDown"
+            :select-polyline="selectPolyline"
+            :select-object="selectObject"
+            :start-object-move="startObjectMove"
+            :insert-point-at-segment="insertPointAtSegment"
+            :start-polyline-move="startPolylineMove"
+            :select-node="selectNode"
+            :start-node-drag="startNodeDrag"
+            :start-resize="startResize"
+            :start-rotate="startRotate"
+            :select-table="selectTable"
+            :start-table-move="startTableMove"
+            :start-table-resize="startTableResize"
+            :start-table-rotate="startTableRotate"
+          )
       section.workspace-card.workspace-card--empty(v-else)
-        p.empty-title 尚未選擇地圖
-        p.empty-hint 先建立第一張地圖，系統會自動切到 Map Edit Mode。
+        p.empty-title &#x5c1a;&#x672a;&#x9078;&#x64c7;&#x5730;&#x5716;
+        p.empty-hint &#x5148;&#x5efa;&#x7acb;&#x7b2c;&#x4e00;&#x5f35;&#x5730;&#x5716;&#xff0c;&#x7cfb;&#x7d71;&#x6703;&#x81ea;&#x52d5;&#x5207;&#x5230; Map Edit Mode&#x3002;
 
   .modal-backdrop(v-if="state.isCreateMapFormOpen")
     .modal-card
       .modal-card__head
         div
-          p.eyebrow 建立新地圖
-          h3 新增地圖
-        button.icon-button(type="button" @click="closeCreateMapForm") ×
+          p.eyebrow &#x5efa;&#x7acb;&#x65b0;&#x5730;&#x5716;
+          h3 &#x65b0;&#x589e;&#x5730;&#x5716;
+        button.icon-button(type="button" @click="closeCreateMapForm") &times;
       .form-grid
         label.form-field
-          span 地圖名稱
-          input(type="text" v-model="createForm.name" placeholder="例如：一樓內用區")
+          span &#x5730;&#x5716;&#x540d;&#x7a31;
+          input(type="text" v-model="createForm.name" placeholder="&#x4f8b;&#x5982;&#xff1a;&#x4e00;&#x6a13;&#x5167;&#x7528;&#x5340;")
         label.form-field
-          span 地圖寬度
+          span &#x5730;&#x5716;&#x5bec;&#x5ea6;
           input(type="number" min="1" step="1" v-model="createForm.width")
         label.form-field
-          span 地圖高度
+          span &#x5730;&#x5716;&#x9ad8;&#x5ea6;
           input(type="number" min="1" step="1" v-model="createForm.height")
       .modal-actions
-        button.ghost-button(type="button" @click="closeCreateMapForm") 取消
-        button.primary-button(type="button" @click="submitCreateMap" :disabled="!isCreateFormValid()") 建立地圖
+        button.ghost-button(type="button" @click="closeCreateMapForm") &#x53d6;&#x6d88;
+        button.primary-button(type="button" @click="submitCreateMap" :disabled="!isCreateFormValid()") &#x5efa;&#x7acb;&#x5730;&#x5716;
 </template>
 
 <style lang="sass">
-.map-editor-page
-  display: grid
-  gap: 18px
-
-.editor-shell
-  display: grid
-  grid-template-columns: minmax(0, 1fr)
-  gap: 18px
-  align-items: start
-
-.editor-main
-  display: grid
-  gap: 18px
-
-.workspace-card, .modal-card
-  border-radius: 24px
-  background: rgba(255, 255, 255, 0.92)
-  border: 1px solid rgba(19, 56, 63, 0.12)
-  box-shadow: 0 22px 60px rgba(37, 27, 14, 0.08)
-
-.workspace-card
-  padding: 20px
-
-.workspace-card__head, .modal-card__head, .modal-actions
-  display: flex
-  justify-content: space-between
-  align-items: center
-  gap: 12px
-
-.toolbar-group, .status-bar, .workspace-head-toolbar
-  display: flex
-  gap: 10px
-  flex-wrap: wrap
-
-.tool-chips
-  display: inline-flex
-  gap: 0
-  flex-wrap: nowrap
-  border: 1px solid rgba(23, 56, 63, 0.14)
-  border-radius: 8px
-  overflow: hidden
-  background: rgba(23, 56, 63, 0.03)
-
-.eyebrow
-  margin: 0 0 6px
-  color: #8c5a1f
-  font-size: 12px
-  font-weight: 700
-  letter-spacing: 0.08em
-  text-transform: uppercase
-
-.workspace-card__head
-  position: relative
-  display: grid
-  gap: 14px
-
-.workspace-card__topbar
-  display: flex
-  justify-content: space-between
-  align-items: center
-  gap: 12px
-
-.workspace-map-top-actions
-  display: flex
-  justify-content: flex-end
-  align-items: center
-  gap: 12px
-  flex-wrap: wrap
-
-.workspace-head-toolbar
-  display: flex
-  justify-content: space-between
-  align-items: flex-start
-  gap: 12px
-  flex-wrap: wrap
-
-.workspace-object-actions
-  margin-left: auto
-
-.workspace-layer-control
-  display: inline-flex
-  align-items: stretch
-  border: 1px solid rgba(19, 56, 63, 0.18)
-  border-radius: 8px
-  overflow: hidden
-  background: #fff
-
-.workspace-layer-input, .workspace-text-edit-input
-  border: 1px solid rgba(19, 56, 63, 0.18)
-  border-radius: 8px
-  padding: 4px 8px
-  font: inherit
-  background: #fff
-  color: #243a3e
-
-.workspace-layer-input
-  width: 50px
-  border: 0
-  border-radius: 8px 0 0 8px
-
-  border: 0
-  border-radius: 8px 0 0 8px
-
-.workspace-layer-apply
-  border: 0
-  border-left: 1px solid rgba(19, 56, 63, 0.12)
-  border-radius: 0 8px 8px 0
-  padding: 4px 10px
-  font: inherit
-  font-weight: 700
-  background: rgba(23, 56, 63, 0.08)
-  color: #17383f
-  cursor: pointer
-
-.workspace-layer-apply:hover
-  background: rgba(23, 56, 63, 0.14)
-
-.workspace-text-edit-input
-  min-width: 220px
-
-
-.workspace-map-summary
-  display: flex
-  align-items: center
-  gap: 12px
-  flex-wrap: wrap
-
-.workspace-map-selector
-  display: flex
-  align-items: center
-
-.workspace-map-select
-  min-width: 220px
-  max-width: 320px
-  border: 1px solid rgba(19, 56, 63, 0.18)
-  border-radius: 8px
-  padding: 4px 8px
-  font: inherit
-  background: #fff
-  color: #243a3e
-
-.workspace-map-name-input
-  min-width: 220px
-  border: 1px solid rgba(19, 56, 63, 0.18)
-  border-radius: 8px
-  padding: 4px 8px
-  font: inherit
-  font-size: 20px
-  font-weight: 700
-  background: #fff
-  color: #243a3e
-
-.workspace-map-name-input::placeholder
-  color: #8b7c6b
-
-
-.workspace-map-size-form
-  display: flex
-  align-items: center
-  gap: 8px
-  flex-wrap: wrap
-
-.workspace-map-size-input
-  width: 88px
-  border: 1px solid rgba(19, 56, 63, 0.18)
-  border-radius: 8px
-  padding: 4px 8px
-  font: inherit
-  background: #fff
-  color: #243a3e
-
-.workspace-map-size-separator
-  color: #6f5b43
-  font-weight: 700
-
-.workspace-inline-divider
-  width: 1px
-  height: 36px
-  background: rgba(19, 56, 63, 0.38)
-  align-self: center
-
-h2, .workspace-card h3, .modal-card h3
-  margin: 0
-  color: #243a3e
-
-.empty-hint
-  margin: 0
-  color: #6f5b43
-  line-height: 1.7
-
-.empty-title
-  margin: 0 0 10px
-  color: #243a3e
-
-.primary-button, .ghost-button, .danger-button, .tool-chip, .icon-button
-  border: 0
-  border-radius: 8px
-  padding: 4px 8px
-  font-weight: 700
-  cursor: pointer
-
-.primary-button
-  background: #17383f
-  color: #fff
-
-.primary-button--add-map
-  background: #009688
-
-.ghost-button, .tool-chip
-  background: rgba(23, 56, 63, 0.08)
-  color: #17383f
-
-.tool-chip
-  border-radius: 0
-  border-right: 1px solid rgba(23, 56, 63, 0.12)
-
-.tool-chip:first-child
-  border-top-left-radius: 8px
-  border-bottom-left-radius: 8px
-
-.tool-chip:last-child
-  border-top-right-radius: 8px
-  border-bottom-right-radius: 8px
-  border-right: 0
-
-.danger-button
-  background: rgba(164, 67, 44, 0.12)
-  color: #a4432c
-
-.ghost-button.is-active, .tool-chip.is-active
-  background: #17383f
-  color: #fff
-
-.primary-button:disabled, .ghost-button:disabled, .danger-button:disabled, .tool-chip:disabled
-  opacity: 0.45
-  cursor: not-allowed
-.workspace-surface.is-pannable
-  cursor: grab
-
-.workspace-surface.is-panning
-  cursor: grabbing
-
-.workspace-surface.is-panning .workspace-svg
-  cursor: grabbing
-
-.workspace-card
-  display: grid
-  gap: 18px
-
-.workspace-surface
-  position: relative
-  padding: 18px
-  border-radius: 22px
-  background: linear-gradient(180deg, rgba(246, 241, 232, 0.96), rgba(231, 224, 211, 0.92))
-  border: 1px solid rgba(140, 90, 31, 0.14)
-  overflow: auto
-
-.workspace-grid
-  position: relative
-  width: min-content
-  min-width: 100%
-
-.workspace-corner-controls
-  position: absolute
-  right: 16px
-  bottom: -80px
-  z-index: 3
-  pointer-events: none
-
-.workspace-view-controls
-  display: inline-flex
-  gap: 0
-  pointer-events: auto
-  border-radius: 8px
-  overflow: hidden
-  border: 1px solid rgba(19, 56, 63, 0.12)
-  box-shadow: 0 10px 24px rgba(37, 27, 14, 0.12)
-
-.workspace-view-controls .ghost-button
-  border-radius: 0
-
-.workspace-view-scale
-  border: 0
-  padding: 4px 8px
-  font-weight: 700
-  cursor: pointer
-  background: rgba(255, 255, 255, 0.92)
-  color: #17383f
-  border-left: 1px solid rgba(19, 56, 63, 0.12)
-  border-right: 1px solid rgba(19, 56, 63, 0.12)
-
-.workspace-svg
-  display: block
-  width: var(--map-width)
-  height: var(--map-height)
-  border-radius: 18px
-  overflow: hidden
-  box-shadow: inset 0 0 0 1px rgba(19, 56, 63, 0.12)
-  cursor: crosshair
-
-.map-polyline
-  fill: none
-  stroke: #17383f
-  stroke-width: 3
-  stroke-linecap: round
-  stroke-linejoin: round
-
-.map-polyline.is-active
-  stroke: #c06b2d
-  stroke-width: 4
-
-.map-polyline-hit
-  fill: none
-  stroke: transparent
-  stroke-width: 18
-  cursor: pointer
-
-.map-segment-hit
-  stroke: transparent
-  stroke-width: 16
-  cursor: copy
-
-.map-shape
-  fill: rgba(23, 56, 63, 0.12)
-  stroke: #17383f
-  stroke-width: 2.5
-  cursor: move
-
-.map-shape.is-active
-  stroke: #c06b2d
-  fill: rgba(192, 107, 45, 0.12)
-
-.map-shape-hit
-  fill: transparent
-  stroke: transparent
-  stroke-width: 12
-  cursor: pointer
-
-.map-shape--draft
-  stroke: #c06b2d
-  fill: rgba(192, 107, 45, 0.12)
-  stroke-dasharray: 10 8
-
-.map-text-box
-  fill: rgba(255, 255, 255, 0.72)
-  stroke: rgba(23, 56, 63, 0.2)
-  stroke-width: 1.5
-  cursor: move
-
-.map-text-box.is-active
-  stroke: #c06b2d
-  fill: rgba(255, 245, 233, 0.9)
-
-.map-text
-  fill: #17383f
-  font-size: 18px
-  font-weight: 700
-  user-select: none
-  cursor: move
-
-.map-text.is-active
-  fill: #c06b2d
-
-.map-selection-box
-  fill: none
-  stroke: #c06b2d
-  stroke-width: 2
-  stroke-dasharray: 8 6
-  pointer-events: none
-
-.map-resize-handle
-  fill: #fff
-  stroke: #c06b2d
-  stroke-width: 3
-  cursor: nwse-resize
-
-.map-rotate-handle
-  fill: #c06b2d
-  stroke: #fff
-  stroke-width: 3
-  cursor: grab
-
-.map-polyline--draft
-  stroke: #c06b2d
-  stroke-dasharray: 10 8
-
-.map-point
-  fill: #17383f
-  stroke: #fff
-  stroke-width: 2
-
-.map-point--hover
-  fill: #c06b2d
-
-.map-point--active
-  fill: #fff
-  stroke: #c06b2d
-  stroke-width: 3
-  cursor: grab
-
-.map-point--active.is-selected
-  fill: #c06b2d
-
-.map-polyline-move-control
-  cursor: grab
-
-.map-polyline-move-control__dot
-  fill: rgba(255, 255, 255, 0.94)
-  stroke: #c06b2d
-  stroke-width: 3
-
-.map-polyline-move-control__label
-  fill: #c06b2d
-  font-size: 16px
-  font-weight: 700
-  user-select: none
-  pointer-events: none
-.workspace-overlay
-  position: absolute
-  top: 16px
-  left: 16px
-  display: flex
-  gap: 8px
-  flex-wrap: wrap
-  pointer-events: none
-
-.overlay-pill, .status-bar span
-  border-radius: 8px
-  background: rgba(255, 255, 255, 0.86)
-  border: 1px solid rgba(19, 56, 63, 0.08)
-  padding: 6px 10px
-  color: #243a3e
-  font-size: 12px
-  font-weight: 700
-
-.workspace-card--empty
-  min-height: 420px
-  place-items: center
-  text-align: center
-
-.modal-backdrop
-  position: fixed
-  inset: 0
-  background: rgba(22, 16, 11, 0.42)
-  display: grid
-  place-items: center
-  padding: 24px
-  z-index: 50
-
-.modal-card
-  width: min(520px, 100%)
-  padding: 24px
-  display: grid
-  gap: 18px
-
-.form-grid
-  display: grid
-  gap: 14px
-
-.form-field
-  display: grid
-  gap: 8px
-  color: #243a3e
-  font-weight: 700
-
-.form-field input
-  border: 1px solid rgba(19, 56, 63, 0.18)
-  border-radius: 14px
-  padding: 12px 14px
-  font: inherit
-  background: #fff
-
-.icon-button
-  width: 40px
-  height: 40px
-  padding: 0
-  background: rgba(23, 56, 63, 0.08)
-  color: #17383f
-
-@media (max-width: 1080px)
-  .editor-shell
-    grid-template-columns: 1fr
-
-  .workspace-svg
-    max-width: 100%
-    height: auto
-
-@media (max-width: 720px)
-  .workspace-card__topbar
-    flex-direction: column
-    align-items: stretch
-
-  .workspace-map-top-actions
-    justify-content: stretch
-
-  .workspace-corner-controls
-    right: 16px
-    bottom: -80px
+@use './RestaurantMapEditorPage.sass'
 </style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,172 @@
+{
+    "id": "map_1773733349981_1",
+    "mapId": "map_1773733349981_1",
+    "name": "餐廳一樓大廳",
+    "status": "draft",
+    "payloadVersion": 1,
+    "updatedAt": "2026-03-18T11:39:56+08:00",
+    "savedAt": "2026-03-18T11:39:56+08:00",
+    "editorUpdatedAt": "2026-03-18T03:39:54.591Z",
+    "savedBy": {
+        "userId": 105,
+        "username": "manager",
+        "displayName": "管理者",
+        "role": "manager"
+    },
+    "payload": {
+        "id": "map_1773733349981_1",
+        "name": "餐廳一樓大廳",
+        "width": 1200,
+        "height": 800,
+        "objects": [
+            {
+                "id": "obj_1",
+                "type": "polyline",
+                "data": {
+                    "points": [
+                        {
+                            "x": 120,
+                            "y": 119.81
+                        },
+                        {
+                            "x": 1002,
+                            "y": 119.81
+                        },
+                        {
+                            "x": 1002,
+                            "y": 482.81
+                        },
+                        {
+                            "x": 120,
+                            "y": 482.81
+                        },
+                        {
+                            "x": 120,
+                            "y": 119.81
+                        },
+                        {
+                            "x": 120,
+                            "y": 119.81
+                        },
+                        {
+                            "x": 120,
+                            "y": 119.81
+                        }
+                    ]
+                },
+                "createdAt": "2026-03-17T07:42:55.534Z",
+                "updatedAt": "2026-03-17T07:42:55.534Z"
+            },
+            {
+                "id": "obj_2",
+                "type": "rect",
+                "data": {
+                    "x": 111,
+                    "y": 312,
+                    "width": 25,
+                    "height": 145
+                },
+                "createdAt": "2026-03-17T07:43:07.190Z",
+                "updatedAt": "2026-03-18T03:39:43.009Z"
+            },
+            {
+                "id": "obj_3",
+                "type": "circle",
+                "data": {
+                    "x": 565,
+                    "y": 123.81,
+                    "width": 90,
+                    "height": 90
+                },
+                "createdAt": "2026-03-17T07:43:17.494Z",
+                "updatedAt": "2026-03-18T03:39:17.400Z"
+            },
+            {
+                "id": "obj_4",
+                "type": "text",
+                "data": {
+                    "x": 58,
+                    "y": 380.81,
+                    "width": 87,
+                    "height": 21.19,
+                    "content": "電動門"
+                },
+                "createdAt": "2026-03-17T07:43:29.653Z",
+                "updatedAt": "2026-03-18T03:39:44.480Z"
+            },
+            {
+                "id": "obj_23",
+                "type": "text",
+                "data": {
+                    "x": 583,
+                    "y": 156,
+                    "width": 55,
+                    "height": 26,
+                    "content": "柱子",
+                    "rotation": 0
+                },
+                "createdAt": "2026-03-18T03:37:04.210Z",
+                "updatedAt": "2026-03-18T03:39:20.088Z"
+            },
+            {
+                "id": "obj_24",
+                "type": "rect",
+                "data": {
+                    "x": 737,
+                    "y": 343,
+                    "width": 248,
+                    "height": 129,
+                    "rotation": 0
+                },
+                "createdAt": "2026-03-18T03:37:27.776Z",
+                "updatedAt": "2026-03-18T03:37:27.776Z"
+            },
+            {
+                "id": "obj_25",
+                "type": "text",
+                "data": {
+                    "x": 792,
+                    "y": 385,
+                    "width": 160,
+                    "height": 48,
+                    "content": "樓梯區域",
+                    "rotation": 0
+                },
+                "createdAt": "2026-03-18T03:37:41.906Z",
+                "updatedAt": "2026-03-18T03:37:45.169Z"
+            },
+            {
+                "id": "obj_26",
+                "type": "rect",
+                "data": {
+                    "x": 132,
+                    "y": 129,
+                    "width": 339,
+                    "height": 124,
+                    "rotation": 0
+                },
+                "createdAt": "2026-03-18T03:39:01.224Z",
+                "updatedAt": "2026-03-18T03:39:37.856Z"
+            },
+            {
+                "id": "obj_27",
+                "type": "text",
+                "data": {
+                    "x": 223,
+                    "y": 162,
+                    "width": 160,
+                    "height": 48,
+                    "content": "櫃台區域",
+                    "rotation": 0
+                },
+                "createdAt": "2026-03-18T03:39:31.680Z",
+                "updatedAt": "2026-03-18T03:39:39.952Z"
+            }
+        ],
+        "tables": [],
+        "createdAt": "2026-03-17T07:42:29.981Z",
+        "updatedAt": "2026-03-18T03:39:54.591Z",
+        "savedAt": "2026-03-17T08:22:56.575Z",
+        "draftSavedAt": "2026-03-18T03:39:54.591Z"
+    }
+}

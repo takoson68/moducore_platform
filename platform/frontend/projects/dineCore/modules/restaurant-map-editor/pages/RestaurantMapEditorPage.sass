@@ -1,0 +1,528 @@
+.map-editor-page
+  display: grid
+  gap: 18px
+
+.editor-shell
+  display: grid
+  grid-template-columns: minmax(0, 1fr)
+  gap: 18px
+  align-items: start
+
+.editor-main
+  display: grid
+  gap: 18px
+
+.workspace-card, .modal-card
+  border-radius: 24px
+  background: rgba(255, 255, 255, 0.92)
+  border: 1px solid rgba(19, 56, 63, 0.12)
+  box-shadow: 0 22px 60px rgba(37, 27, 14, 0.08)
+
+.workspace-card
+  padding: 20px
+
+.workspace-card__head, .modal-card__head, .modal-actions
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+
+.toolbar-group, .status-bar, .workspace-head-toolbar
+  display: flex
+  gap: 10px
+  flex-wrap: wrap
+
+.tool-chips
+  display: inline-flex
+  gap: 0
+  flex-wrap: nowrap
+  border: 1px solid rgba(23, 56, 63, 0.14)
+  border-radius: 8px
+  overflow: hidden
+  background: rgba(23, 56, 63, 0.03)
+
+.eyebrow
+  margin: 0 0 6px
+  color: #8c5a1f
+  font-size: 12px
+  font-weight: 700
+  letter-spacing: 0.08em
+  text-transform: uppercase
+
+.workspace-card__head
+  position: relative
+  display: grid
+  gap: 14px
+
+.workspace-card__topbar
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+
+.workspace-map-top-actions
+  display: flex
+  justify-content: flex-end
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.workspace-head-toolbar
+  display: flex
+  justify-content: space-between
+  align-items: flex-start
+  gap: 12px
+  flex-wrap: wrap
+
+.workspace-object-actions
+  margin-left: auto
+
+.workspace-layer-control
+  display: inline-flex
+  align-items: stretch
+  border: 1px solid rgba(19, 56, 63, 0.18)
+  border-radius: 8px
+  overflow: hidden
+  background: #fff
+
+.workspace-layer-input, .workspace-text-edit-input
+  border: 1px solid rgba(19, 56, 63, 0.18)
+  border-radius: 8px
+  padding: 4px 8px
+  font: inherit
+  background: #fff
+  color: #243a3e
+
+.workspace-layer-input
+  width: 50px
+  border: 0
+  border-radius: 8px 0 0 8px
+
+  border: 0
+  border-radius: 8px 0 0 8px
+
+.workspace-layer-apply
+  border: 0
+  border-left: 1px solid rgba(19, 56, 63, 0.12)
+  border-radius: 0 8px 8px 0
+  padding: 4px 10px
+  font: inherit
+  font-weight: 700
+  background: rgba(23, 56, 63, 0.08)
+  color: #17383f
+  cursor: pointer
+
+.workspace-layer-apply:hover
+  background: rgba(23, 56, 63, 0.14)
+
+.workspace-text-edit-input
+  min-width: 220px
+
+
+.workspace-map-summary
+  display: flex
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.workspace-map-selector
+  display: flex
+  align-items: center
+
+.workspace-map-select
+  min-width: 220px
+  max-width: 320px
+  border: 1px solid rgba(19, 56, 63, 0.18)
+  border-radius: 8px
+  padding: 4px 8px
+  font: inherit
+  background: #fff
+  color: #243a3e
+
+.workspace-map-name-input
+  min-width: 220px
+  border: 1px solid rgba(19, 56, 63, 0.18)
+  border-radius: 8px
+  padding: 4px 8px
+  font: inherit
+  font-size: 20px
+  font-weight: 700
+  background: #fff
+  color: #243a3e
+
+.workspace-map-name-input::placeholder
+  color: #8b7c6b
+
+
+.workspace-map-size-form
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-wrap: wrap
+
+.workspace-map-size-input
+  width: 88px
+  border: 1px solid rgba(19, 56, 63, 0.18)
+  border-radius: 8px
+  padding: 4px 8px
+  font: inherit
+  background: #fff
+  color: #243a3e
+
+.workspace-map-size-separator
+  color: #6f5b43
+  font-weight: 700
+
+.workspace-inline-divider
+  width: 1px
+  height: 36px
+  background: rgba(19, 56, 63, 0.38)
+  align-self: center
+
+h2, .workspace-card h3, .modal-card h3
+  margin: 0
+  color: #243a3e
+
+.empty-hint
+  margin: 0
+  color: #6f5b43
+  line-height: 1.7
+
+.empty-title
+  margin: 0 0 10px
+  color: #243a3e
+
+.primary-button, .ghost-button, .danger-button, .tool-chip, .icon-button
+  border: 0
+  border-radius: 8px
+  padding: 4px 8px
+  font-weight: 700
+  cursor: pointer
+
+.primary-button
+  background: #17383f
+  color: #fff
+
+.primary-button--add-map
+  background: #009688
+
+.ghost-button, .tool-chip
+  background: rgba(23, 56, 63, 0.08)
+  color: #17383f
+
+.tool-chip
+  border-radius: 0
+  border-right: 1px solid rgba(23, 56, 63, 0.12)
+
+.tool-chip:first-child
+  border-top-left-radius: 8px
+  border-bottom-left-radius: 8px
+
+.tool-chip:last-child
+  border-top-right-radius: 8px
+  border-bottom-right-radius: 8px
+  border-right: 0
+
+.danger-button
+  background: rgba(164, 67, 44, 0.12)
+  color: #a4432c
+
+.ghost-button.is-active, .tool-chip.is-active
+  background: #17383f
+  color: #fff
+
+.primary-button:disabled, .ghost-button:disabled, .danger-button:disabled, .tool-chip:disabled
+  opacity: 0.45
+  cursor: not-allowed
+.workspace-surface.is-pannable
+  cursor: grab
+
+.workspace-surface.is-panning
+  cursor: grabbing
+
+.workspace-surface.is-panning .workspace-svg
+  cursor: grabbing
+
+.workspace-card
+  display: grid
+  gap: 18px
+
+.workspace-surface
+  position: relative
+  padding: 18px
+  border-radius: 22px
+  background: linear-gradient(180deg, rgba(246, 241, 232, 0.96), rgba(231, 224, 211, 0.92))
+  border: 1px solid rgba(140, 90, 31, 0.14)
+  overflow: auto
+
+.workspace-grid
+  position: relative
+  width: min-content
+  min-width: 100%
+
+.workspace-corner-controls
+  position: absolute
+  right: 16px
+  bottom: -80px
+  z-index: 3
+  pointer-events: none
+
+.workspace-view-controls
+  display: inline-flex
+  gap: 0
+  pointer-events: auto
+  border-radius: 8px
+  overflow: hidden
+  border: 1px solid rgba(19, 56, 63, 0.12)
+  box-shadow: 0 10px 24px rgba(37, 27, 14, 0.12)
+
+.workspace-view-controls .ghost-button
+  border-radius: 0
+
+.workspace-view-scale
+  border: 0
+  padding: 4px 8px
+  font-weight: 700
+  cursor: pointer
+  background: rgba(255, 255, 255, 0.92)
+  color: #17383f
+  border-left: 1px solid rgba(19, 56, 63, 0.12)
+  border-right: 1px solid rgba(19, 56, 63, 0.12)
+
+.workspace-svg
+  display: block
+  width: var(--map-width)
+  height: var(--map-height)
+  border-radius: 18px
+  overflow: hidden
+  box-shadow: inset 0 0 0 1px rgba(19, 56, 63, 0.12)
+  cursor: crosshair
+
+.map-polyline
+  fill: none
+  stroke: #17383f
+  stroke-width: 3
+  stroke-linecap: round
+  stroke-linejoin: round
+
+.map-polyline.is-active
+  stroke: #c06b2d
+  stroke-width: 4
+
+.map-polyline-hit
+  fill: none
+  stroke: transparent
+  stroke-width: 18
+  cursor: pointer
+
+.map-segment-hit
+  stroke: transparent
+  stroke-width: 16
+  cursor: copy
+
+.map-shape
+  fill: rgba(23, 56, 63, 0.12)
+  stroke: #17383f
+  stroke-width: 2.5
+  cursor: move
+
+.map-shape.is-active
+  stroke: #c06b2d
+  fill: rgba(192, 107, 45, 0.12)
+
+.map-shape-hit
+  fill: transparent
+  stroke: transparent
+  stroke-width: 12
+  cursor: pointer
+
+.map-shape--draft
+  stroke: #c06b2d
+  fill: rgba(192, 107, 45, 0.12)
+  stroke-dasharray: 10 8
+
+.map-text-box
+  fill: rgba(255, 255, 255, 0.72)
+  stroke: rgba(23, 56, 63, 0.2)
+  stroke-width: 1.5
+  cursor: move
+
+.map-text-box.is-active
+  stroke: #c06b2d
+  fill: rgba(255, 245, 233, 0.9)
+
+.map-text
+  fill: #17383f
+  font-size: 18px
+  font-weight: 700
+  user-select: none
+  cursor: move
+
+.map-text.is-active
+  fill: #c06b2d
+
+.map-selection-box
+  fill: none
+  stroke: #c06b2d
+  stroke-width: 2
+  stroke-dasharray: 8 6
+  pointer-events: none
+
+.map-resize-handle
+  fill: #fff
+  stroke: #c06b2d
+  stroke-width: 3
+  cursor: nwse-resize
+
+.map-rotate-handle
+  fill: #c06b2d
+  stroke: #fff
+  stroke-width: 3
+  cursor: grab
+
+.map-polyline--draft
+  stroke: #c06b2d
+  stroke-dasharray: 10 8
+
+.map-point
+  fill: #17383f
+  stroke: #fff
+  stroke-width: 2
+
+.map-point--hover
+  fill: #c06b2d
+
+.map-point--active
+  fill: #fff
+  stroke: #c06b2d
+  stroke-width: 3
+  cursor: grab
+
+.map-point--active.is-selected
+  fill: #c06b2d
+
+.map-polyline-move-control
+  cursor: grab
+
+.map-polyline-move-control__dot
+  fill: rgba(255, 255, 255, 0.94)
+  stroke: #c06b2d
+  stroke-width: 3
+
+.map-polyline-move-control__label
+  fill: #c06b2d
+  font-size: 16px
+  font-weight: 700
+  user-select: none
+  pointer-events: none
+.workspace-overlay
+  position: absolute
+  top: 16px
+  left: 16px
+  display: flex
+  gap: 8px
+  flex-wrap: wrap
+  pointer-events: none
+
+.overlay-pill, .status-bar span
+  border-radius: 8px
+  background: rgba(255, 255, 255, 0.86)
+  border: 1px solid rgba(19, 56, 63, 0.08)
+  padding: 6px 10px
+  color: #243a3e
+  font-size: 12px
+  font-weight: 700
+
+.workspace-card--empty
+  min-height: 420px
+  place-items: center
+  text-align: center
+
+.modal-backdrop
+  position: fixed
+  inset: 0
+  background: rgba(22, 16, 11, 0.42)
+  display: grid
+  place-items: center
+  padding: 24px
+  z-index: 50
+
+.modal-card
+  width: min(520px, 100%)
+  padding: 24px
+  display: grid
+  gap: 18px
+
+.form-grid
+  display: grid
+  gap: 14px
+
+.form-field
+  display: grid
+  gap: 8px
+  color: #243a3e
+  font-weight: 700
+
+.form-field input
+  border: 1px solid rgba(19, 56, 63, 0.18)
+  border-radius: 14px
+  padding: 12px 14px
+  font: inherit
+  background: #fff
+
+.icon-button
+  width: 40px
+  height: 40px
+  padding: 0
+  background: rgba(23, 56, 63, 0.08)
+  color: #17383f
+
+@media (max-width: 1080px)
+  .editor-shell
+    grid-template-columns: 1fr
+
+  .workspace-svg
+    max-width: 100%
+    height: auto
+
+@media (max-width: 720px)
+  .workspace-card__topbar
+    flex-direction: column
+    align-items: stretch
+
+  .workspace-map-top-actions
+    justify-content: stretch
+
+  .workspace-corner-controls
+    right: 16px
+    bottom: -80px
+.workspace-table-badge
+  padding: 4px 10px
+  border-radius: 999px
+  background: rgba(0, 150, 136, 0.12)
+  color: #0a5f57
+  font-weight: 700
+
+.map-table
+  fill: rgba(0, 150, 136, 0.14)
+  stroke: #0a5f57
+  stroke-width: 2.5
+  cursor: move
+
+.map-table.is-active
+  fill: rgba(192, 107, 45, 0.14)
+  stroke: #c06b2d
+
+.map-table-hit
+  fill: transparent
+  stroke: transparent
+  stroke-width: 12
+  cursor: pointer
+
+.map-table-label
+  fill: #0a5f57
+  font-size: 18px
+  font-weight: 700
+  user-select: none
+  cursor: move
+  pointer-events: none
