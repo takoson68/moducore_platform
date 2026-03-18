@@ -455,6 +455,37 @@ export function createRestaurantMapEditorStore() {
           dirtyMapIds: markDirty(state, activeMapId)
         })
       },
+      reorderObject(store, payload = {}) {
+        const state = store.get()
+        const activeMapId = state.activeMapId
+        const objectId = String(payload.objectId || '')
+        const rawTargetOrder = Number(payload.targetOrder || 0)
+        if (!activeMapId || !objectId || !rawTargetOrder) return null
+
+        const activeMap = state.maps.find(map => map.id === activeMapId)
+        const objects = Array.isArray(activeMap?.objects) ? [...activeMap.objects] : []
+        const currentIndex = objects.findIndex(item => item.id === objectId)
+        if (currentIndex < 0) return null
+
+        const targetIndex = Math.max(0, Math.min(objects.length - 1, rawTargetOrder - 1))
+        if (currentIndex === targetIndex) return currentIndex + 1
+
+        const stamp = new Date().toISOString()
+        const [object] = objects.splice(currentIndex, 1)
+        objects.splice(targetIndex, 0, object)
+
+        store.set({
+          ...state,
+          maps: state.maps.map(map => (
+            map.id === activeMapId
+              ? { ...map, updatedAt: stamp, objects }
+              : map
+          )),
+          dirtyMapIds: markDirty(state, activeMapId)
+        })
+
+        return targetIndex + 1
+      },
       saveDraft(store) {
         const state = store.get()
         const activeMapId = state.activeMapId
@@ -490,4 +521,5 @@ export function createRestaurantMapEditorStore() {
     }
   })
 }
+
 
