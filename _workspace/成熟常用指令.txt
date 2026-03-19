@@ -19,6 +19,29 @@ moducore_platform/   platform/frontend/projects/dineCore/docs/
 engineering/  
 
 
+方案 A：降低詢問，但維持相對安全
+codex exec --full-auto "執行你的工程執行書內容"
+
+
+
+方案 B：真的盡量不問，直接做完
+codex exec --sandbox danger-full-access --config approval_policy=\"never\" "執行你的工程執行書內容"
+
+
+
+方案 C：把設定寫死，之後每次都不用重打
+你可以做一個專門給「執行工程執行書」的設定：
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+如果你只想在特定專案生效，就放在專案的 .codex/config.toml。
+
+
+
+
+
+
+
 
 
 

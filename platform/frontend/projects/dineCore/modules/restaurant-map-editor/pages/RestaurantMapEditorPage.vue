@@ -7,11 +7,19 @@ import {
   applyPolylineNodeSnap,
   applyPolylineSnap,
   applyRotationSnap,
+  applyCurveHandleSnap,
+  buildPolylinePath,
+  buildPolylineSegmentPath,
   buildObjectTransform,
+  constrainCurveHandlePoint,
   formatStamp,
   getObjectBox,
   getObjectCenter,
   getObjectRotation,
+  getQuadraticControlFromHandlePoint,
+  getPolylineSegmentHandlePoint,
+  projectPointToPolylineSegment,
+  splitQuadraticSegment,
   normalizeBoxFromPoints,
   normalizeRotation,
   polylinePointsToString,
@@ -31,11 +39,13 @@ const state = computed(() => editorStore.state)
 const mapCanvasRef = ref(null)
 const workspaceSurfaceRef = ref(null)
 const hoverWorldPoint = ref(null)
+const hoveredSegmentIndex = ref(null)
 const selectedNodeIndex = ref(null)
 const dragState = ref(null)
 const pendingShape = ref(null)
+const tableSnapGuides = ref({ vertical: null, horizontal: null })
 const textEditValue = ref('')
-const tableLabelValue = ref('')
+const tableNoteValue = ref('')
 const objectLayerOrder = ref('')
 const viewScale = ref(1)
 const didPan = ref(false)
@@ -50,7 +60,8 @@ const createForm = reactive({
 const mapMetaForm = reactive({
   name: '',
   width: 1200,
-  height: 800
+  height: 800,
+  tablePrefix: ''
 })
 const toolOptions = [
   { id: 'polyline', label: '\u6298\u7dda' },
@@ -72,17 +83,25 @@ const mapObjects = computed(() => Array.isArray(activeMap.value?.objects) ? acti
 const mapPolylines = computed(() => mapObjects.value.filter(item => item?.type === 'polyline'))
 const drawableObjects = computed(() => mapObjects.value.filter(item => item?.type !== 'polyline'))
 const mapTables = computed(() => Array.isArray(activeMap.value?.tables) ? activeMap.value.tables : [])
-const activeObject = computed(() => mapObjects.value.find(item => item.id === state.value.activeObjectId) || null)
+const selectedObjectIds = computed(() => Array.isArray(state.value.selectedObjectIds) ? state.value.selectedObjectIds : [])
+const selectedObjects = computed(() => mapObjects.value.filter(item => selectedObjectIds.value.includes(item.id)))
+const selectedTableIds = computed(() => Array.isArray(state.value.selectedTableIds) ? state.value.selectedTableIds : [])
+const selectedTables = computed(() => mapTables.value.filter(item => selectedTableIds.value.includes(item.id)))
+const hasGroupSelection = computed(() => selectedObjectIds.value.length + selectedTableIds.value.length > 1)
+const rawActiveObject = computed(() => mapObjects.value.find(item => item.id === state.value.activeObjectId) || null)
+const activeObject = computed(() => hasGroupSelection.value ? null : rawActiveObject.value)
 const activeObjectOrder = computed(() => {
-  if (!activeObject.value) return null
-  const index = mapObjects.value.findIndex(item => item.id === activeObject.value.id)
+  if (!rawActiveObject.value) return null
+  const index = mapObjects.value.findIndex(item => item.id === rawActiveObject.value.id)
   return index >= 0 ? index + 1 : null
 })
 const activePolyline = computed(() => activeObject.value?.type === 'polyline' ? activeObject.value : null)
 const activeShapeObject = computed(() => activeObject.value?.type && activeObject.value.type !== 'polyline' ? activeObject.value : null)
-const activeTable = computed(() => mapTables.value.find(item => item.id === state.value.activeTableId) || null)
+const rawActiveTable = computed(() => mapTables.value.find(item => item.id === state.value.activeTableId) || null)
+const activeTable = computed(() => hasGroupSelection.value ? null : rawActiveTable.value)
 const pendingPolyline = computed(() => Array.isArray(state.value.draftState?.pendingPolyline) ? state.value.draftState.pendingPolyline : [])
 const activePolylinePoints = computed(() => Array.isArray(activePolyline.value?.data?.points) ? activePolyline.value.data.points : [])
+const activePolylineDataSegments = computed(() => Array.isArray(activePolyline.value?.data?.segments) ? activePolyline.value.data.segments : [])
 
 const pendingPolylinePointsString = computed(() => {
   const points = [...pendingPolyline.value]
@@ -94,10 +113,20 @@ const activePolylineSegments = computed(() => {
   const points = activePolylinePoints.value
   const segments = []
   for (let index = 0; index < points.length - 1; index += 1) {
-    segments.push({ index, start: points[index], end: points[index + 1] })
+    const segment = activePolylineDataSegments.value[index] || { type: 'line' }
+    segments.push({
+      index,
+      start: points[index],
+      end: points[index + 1],
+      type: segment.type || 'line',
+      control: segment.control || null,
+      path: buildPolylineSegmentPath(points[index], points[index + 1], segment),
+      handlePoint: getPolylineSegmentHandlePoint(points[index], points[index + 1], segment)
+    })
   }
   return segments
 })
+const activePolylinePath = computed(() => buildPolylinePath(activePolylinePoints.value, activePolylineDataSegments.value))
 const activePolylineCenter = computed(() => {
   const points = activePolylinePoints.value
   if (!points.length) return null
@@ -108,6 +137,7 @@ const activePolylineCenter = computed(() => {
     y: Number(((Math.min(...ys) + Math.max(...ys)) / 2).toFixed(2))
   }
 })
+const activeHoveredSegment = computed(() => activePolylineSegments.value.find(segment => segment.index === hoveredSegmentIndex.value) || null)
 const activeObjectBox = computed(() => activeShapeObject.value ? getObjectBox(activeShapeObject.value) : null)
 const activeObjectCenter = computed(() => activeShapeObject.value ? getObjectCenter(activeShapeObject.value) : null)
 const activeObjectRotation = computed(() => activeShapeObject.value ? getObjectRotation(activeShapeObject.value) : 0)
@@ -154,6 +184,57 @@ const activeTableRotateHandle = computed(() => {
   const rotation = activeTableRotation.value
   if (!box || !center) return null
   return rotatePoint({ x: box.x + box.width + 34, y: box.y + box.height }, center, rotation)
+})
+const groupSelectionItems = computed(() => {
+  const objectItems = selectedObjects.value.map(item => {
+    if (item.type === 'polyline') {
+      const points = Array.isArray(item.data?.points) ? item.data.points : []
+      return {
+        left: Math.min(...points.map(point => Number(point.x || 0))),
+        top: Math.min(...points.map(point => Number(point.y || 0))),
+        right: Math.max(...points.map(point => Number(point.x || 0))),
+        bottom: Math.max(...points.map(point => Number(point.y || 0)))
+      }
+    }
+
+    const box = getObjectBox(item)
+    return {
+      left: box.x,
+      top: box.y,
+      right: box.x + box.width,
+      bottom: box.y + box.height
+    }
+  })
+  const tableItems = selectedTables.value.map(item => ({
+    left: item.x,
+    top: item.y,
+    right: item.x + item.width,
+    bottom: item.y + item.height
+  }))
+  return [...objectItems, ...tableItems].filter(item => Number.isFinite(item.left) && Number.isFinite(item.top) && Number.isFinite(item.right) && Number.isFinite(item.bottom))
+})
+const groupSelectionBox = computed(() => {
+  if (!hasGroupSelection.value || !groupSelectionItems.value.length) return null
+  const left = Math.min(...groupSelectionItems.value.map(item => item.left))
+  const top = Math.min(...groupSelectionItems.value.map(item => item.top))
+  const right = Math.max(...groupSelectionItems.value.map(item => item.right))
+  const bottom = Math.max(...groupSelectionItems.value.map(item => item.bottom))
+  return {
+    x: Number(left.toFixed(2)),
+    y: Number(top.toFixed(2)),
+    width: Number((right - left).toFixed(2)),
+    height: Number((bottom - top).toFixed(2))
+  }
+})
+const groupSelectionHandles = computed(() => {
+  const box = groupSelectionBox.value
+  if (!box) return []
+  return [
+    { key: 'nw', x: box.x, y: box.y },
+    { key: 'ne', x: box.x + box.width, y: box.y },
+    { key: 'sw', x: box.x, y: box.y + box.height },
+    { key: 'se', x: box.x + box.width, y: box.y + box.height }
+  ]
 })
 
 const isPolylineDrawing = computed(() => state.value.mode === 'edit' && state.value.workingMode === 'map' && state.value.activeTool === 'polyline')
@@ -347,12 +428,14 @@ function submitMapMeta() {
   const name = String(mapMetaForm.name || '').trim()
   const width = Number(mapMetaForm.width)
   const height = Number(mapMetaForm.height)
+  const tablePrefix = String(mapMetaForm.tablePrefix || '').trim()
 
   editorStore.updateMapMeta({
     mapId: activeMap.value.id,
     name,
     width,
-    height
+    height,
+    tablePrefix
   })
 }
 
@@ -403,6 +486,23 @@ function deleteActiveTable() {
   resetLocalState()
 }
 
+function duplicateActiveTable() {
+  if (!activeTable.value) return
+  editorStore.duplicateTable({ tableId: activeTable.value.id })
+}
+
+function selectAllInCurrentMode() {
+  if (state.value.workingMode === 'table') {
+    editorStore.selectAllTables()
+    return
+  }
+  editorStore.selectAllObjects()
+}
+
+function selectEntireScene() {
+  editorStore.selectEntireScene()
+}
+
 function selectTable(tableId) {
   if (state.value.mode !== 'edit' || state.value.workingMode !== 'table') return
   editorStore.selectTable(tableId)
@@ -416,8 +516,8 @@ function setTextEditValue(value) {
   textEditValue.value = String(value || '')
 }
 
-function setTableLabelValue(value) {
-  tableLabelValue.value = String(value || '')
+function setTableNoteValue(value) {
+  tableNoteValue.value = String(value || '')
 }
 
 function handleActiveTextInput() {
@@ -428,13 +528,12 @@ function handleActiveTextInput() {
   })
 }
 
-function handleActiveTableLabelInput() {
+function handleActiveTableNoteInput() {
   if (!activeTable.value) return
-  const label = String(tableLabelValue.value || '').trim()
-  if (!label) return
+  const note = String(tableNoteValue.value || '').trim()
   editorStore.updateTableData({
     tableId: activeTable.value.id,
-    data: { label }
+    data: { note }
   })
 }
 
@@ -511,6 +610,68 @@ function buildTableTransform(table) {
   const rotation = getTableRotation(table)
   if (!center || !rotation) return ''
   return `rotate(${rotation} ${center.x} ${center.y})`
+}
+
+function resolveTableMoveSnap(box, tableId) {
+  if (!box) return { box, guides: { vertical: null, horizontal: null } }
+
+  const otherTables = mapTables.value.filter(table => table.id !== tableId)
+  const xCandidates = []
+  const yCandidates = []
+
+  otherTables.forEach(table => {
+    const otherBox = getTableBox(table)
+    if (!otherBox) return
+
+    const otherCenterX = otherBox.x + otherBox.width / 2
+    const otherCenterY = otherBox.y + otherBox.height / 2
+
+    xCandidates.push(
+      { value: otherBox.x, line: otherBox.x },
+      { value: Number((otherCenterX - box.width / 2).toFixed(2)), line: Number(otherCenterX.toFixed(2)) },
+      { value: Number((otherBox.x + otherBox.width - box.width).toFixed(2)), line: Number((otherBox.x + otherBox.width).toFixed(2)) }
+    )
+    yCandidates.push(
+      { value: otherBox.y, line: otherBox.y },
+      { value: Number((otherCenterY - box.height / 2).toFixed(2)), line: Number(otherCenterY.toFixed(2)) },
+      { value: Number((otherBox.y + otherBox.height - box.height).toFixed(2)), line: Number((otherBox.y + otherBox.height).toFixed(2)) }
+    )
+  })
+
+  let snappedX = box.x
+  let snappedY = box.y
+  let verticalGuide = null
+  let horizontalGuide = null
+  let bestXDistance = Number.POSITIVE_INFINITY
+  let bestYDistance = Number.POSITIVE_INFINITY
+
+  xCandidates.forEach(candidate => {
+    const distance = Math.abs(box.x - candidate.value)
+    if (distance > SNAP_THRESHOLD || distance >= bestXDistance) return
+    bestXDistance = distance
+    snappedX = candidate.value
+    verticalGuide = candidate.line
+  })
+
+  yCandidates.forEach(candidate => {
+    const distance = Math.abs(box.y - candidate.value)
+    if (distance > SNAP_THRESHOLD || distance >= bestYDistance) return
+    bestYDistance = distance
+    snappedY = candidate.value
+    horizontalGuide = candidate.line
+  })
+
+  return {
+    box: {
+      ...box,
+      x: Number(snappedX.toFixed(2)),
+      y: Number(snappedY.toFixed(2))
+    },
+    guides: {
+      vertical: verticalGuide === null ? null : Number(verticalGuide.toFixed(2)),
+      horizontal: horizontalGuide === null ? null : Number(horizontalGuide.toFixed(2))
+    }
+  }
 }
 
 
@@ -601,7 +762,10 @@ function handleSvgMove(event) {
   }
 }
 
-function handleSvgLeave() { hoverWorldPoint.value = null }
+function handleSvgLeave() {
+  hoverWorldPoint.value = null
+  if (dragState.value?.kind !== 'polyline-control') hoveredSegmentIndex.value = null
+}
 function commitPendingPolyline() { if (editorStore.commitPendingPolyline()) hoverWorldPoint.value = null }
 function cancelPendingPolyline() { editorStore.cancelPendingPolyline(); hoverWorldPoint.value = null }
 
@@ -709,7 +873,11 @@ function handleWindowPointerMove(event) {
     const nextPoints = activePolylinePoints.value.map((item, index) => (
       index === dragState.value.index ? snappedPoint : item
     ))
-    editorStore.updatePolylinePoints({ objectId: activePolyline.value.id, points: nextPoints })
+    editorStore.updatePolylineGeometry({
+      objectId: activePolyline.value.id,
+      points: nextPoints,
+      segments: activePolylineDataSegments.value
+    })
     return
   }
 
@@ -722,7 +890,42 @@ function handleWindowPointerMove(event) {
       x: Number((item.x + dx).toFixed(2)),
       y: Number((item.y + dy).toFixed(2))
     }))
-    editorStore.updatePolylinePoints({ objectId: activePolyline.value.id, points: nextPoints })
+    const nextSegments = dragState.value.originalSegments.map(segment => (
+      segment.type === 'quadratic' && segment.control
+        ? {
+            type: 'quadratic',
+            control: {
+              x: Number((segment.control.x + dx).toFixed(2)),
+              y: Number((segment.control.y + dy).toFixed(2))
+            }
+          }
+        : { type: 'line' }
+    ))
+    editorStore.updatePolylineGeometry({ objectId: activePolyline.value.id, points: nextPoints, segments: nextSegments })
+    return
+  }
+
+  if (dragState.value.kind === 'polyline-control' && activePolyline.value?.id === dragState.value.objectId) {
+    const point = resolveWorldPoint(event)
+    if (!point) return
+    const targetSegment = activePolylineSegments.value.find(segment => segment.index === dragState.value.segmentIndex)
+    if (!targetSegment) return
+    const clampedPoint = clampToMap(point)
+    if (!clampedPoint) return
+    const snappedHandlePoint = applyCurveHandleSnap(clampedPoint, targetSegment.start, targetSegment.end, SNAP_THRESHOLD)
+    const constrainedHandlePoint = constrainCurveHandlePoint(snappedHandlePoint, targetSegment.start, targetSegment.end)
+    const control = getQuadraticControlFromHandlePoint(targetSegment.start, targetSegment.end, constrainedHandlePoint)
+    if (!control) return
+    const nextSegments = activePolylineDataSegments.value.map((segment, index) => (
+      index === dragState.value.segmentIndex
+        ? { type: 'quadratic', control }
+        : segment
+    ))
+    editorStore.updatePolylineGeometry({
+      objectId: activePolyline.value.id,
+      points: activePolylinePoints.value,
+      segments: nextSegments
+    })
     return
   }
 
@@ -735,6 +938,100 @@ function handleWindowPointerMove(event) {
     editorStore.updateObjectData({
       objectId: dragState.value.objectId,
       data: { x: Number((original.x + dx).toFixed(2)), y: Number((original.y + dy).toFixed(2)) }
+    })
+    return
+  }
+
+  if (dragState.value.kind === 'object-group-move' && activeMap.value) {
+    const point = resolveWorldPoint(event)
+    if (!point) return
+    const rawDx = point.x - dragState.value.startPoint.x
+    const rawDy = point.y - dragState.value.startPoint.y
+    const dx = Math.max(dragState.value.minDx, Math.min(dragState.value.maxDx, rawDx))
+    const dy = Math.max(dragState.value.minDy, Math.min(dragState.value.maxDy, rawDy))
+
+    dragState.value.originalObjects.forEach(item => {
+      if (item.type === 'polyline') {
+        editorStore.updatePolylineGeometry({
+          objectId: item.id,
+          points: item.points.map(pointItem => ({
+            x: Number((pointItem.x + dx).toFixed(2)),
+            y: Number((pointItem.y + dy).toFixed(2))
+          })),
+          segments: item.segments.map(segment => (
+            segment.type === 'quadratic' && segment.control
+              ? {
+                  type: 'quadratic',
+                  control: {
+                    x: Number((segment.control.x + dx).toFixed(2)),
+                    y: Number((segment.control.y + dy).toFixed(2))
+                  }
+                }
+              : { type: 'line' }
+          ))
+        })
+        return
+      }
+
+      editorStore.updateObjectData({
+        objectId: item.id,
+        data: {
+          x: Number((item.box.x + dx).toFixed(2)),
+          y: Number((item.box.y + dy).toFixed(2))
+        }
+      })
+    })
+    return
+  }
+
+  if (dragState.value.kind === 'scene-group-move' && activeMap.value) {
+    const point = resolveWorldPoint(event)
+    if (!point) return
+    const rawDx = point.x - dragState.value.startPoint.x
+    const rawDy = point.y - dragState.value.startPoint.y
+    const dx = Math.max(dragState.value.minDx, Math.min(dragState.value.maxDx, rawDx))
+    const dy = Math.max(dragState.value.minDy, Math.min(dragState.value.maxDy, rawDy))
+
+    dragState.value.originalObjects.forEach(item => {
+      if (item.type === 'polyline') {
+        editorStore.updatePolylineGeometry({
+          objectId: item.id,
+          points: item.points.map(pointItem => ({
+            x: Number((pointItem.x + dx).toFixed(2)),
+            y: Number((pointItem.y + dy).toFixed(2))
+          })),
+          segments: item.segments.map(segment => (
+            segment.type === 'quadratic' && segment.control
+              ? {
+                  type: 'quadratic',
+                  control: {
+                    x: Number((segment.control.x + dx).toFixed(2)),
+                    y: Number((segment.control.y + dy).toFixed(2))
+                  }
+                }
+              : { type: 'line' }
+          ))
+        })
+        return
+      }
+
+      editorStore.updateObjectData({
+        objectId: item.id,
+        data: {
+          x: Number((item.box.x + dx).toFixed(2)),
+          y: Number((item.box.y + dy).toFixed(2))
+        }
+      })
+    })
+
+    dragState.value.originalTables.forEach(table => {
+      editorStore.updateTableData({
+        tableId: table.id,
+        data: {
+          x: Number((table.box.x + dx).toFixed(2)),
+          y: Number((table.box.y + dy).toFixed(2))
+        }
+      })
     })
     return
   }
@@ -766,12 +1063,96 @@ function handleWindowPointerMove(event) {
     const dx = point.x - dragState.value.startPoint.x
     const dy = point.y - dragState.value.startPoint.y
     const original = dragState.value.originalBox
+    const nextBox = {
+      x: Number(Math.max(0, Math.min(activeMap.value.width - original.width, original.x + dx)).toFixed(2)),
+      y: Number(Math.max(0, Math.min(activeMap.value.height - original.height, original.y + dy)).toFixed(2)),
+      width: original.width,
+      height: original.height
+    }
+    const snapped = resolveTableMoveSnap(nextBox, dragState.value.tableId)
+    tableSnapGuides.value = snapped.guides
     editorStore.updateTableData({
       tableId: dragState.value.tableId,
       data: {
-        x: Number(Math.max(0, Math.min(activeMap.value.width - original.width, original.x + dx)).toFixed(2)),
-        y: Number(Math.max(0, Math.min(activeMap.value.height - original.height, original.y + dy)).toFixed(2))
+        x: snapped.box.x,
+        y: snapped.box.y
       }
+    })
+    return
+  }
+
+  if (dragState.value.kind === 'table-group-move' && activeMap.value) {
+    const point = resolveWorldPoint(event)
+    if (!point) return
+    const rawDx = point.x - dragState.value.startPoint.x
+    const rawDy = point.y - dragState.value.startPoint.y
+    const dx = Math.max(dragState.value.minDx, Math.min(dragState.value.maxDx, rawDx))
+    const dy = Math.max(dragState.value.minDy, Math.min(dragState.value.maxDy, rawDy))
+
+    dragState.value.originalTables.forEach(table => {
+      editorStore.updateTableData({
+        tableId: table.id,
+        data: {
+          x: Number((table.box.x + dx).toFixed(2)),
+          y: Number((table.box.y + dy).toFixed(2))
+        }
+      })
+    })
+    return
+  }
+
+  if (dragState.value.kind === 'group-resize' && activeMap.value) {
+    const point = resolveWorldPoint(event)
+    if (!point) return
+    const nextBox = resizeSelectionBoxFromHandle(dragState.value.originalBounds, dragState.value.handle, point)
+    if (!nextBox) return
+    const scaleX = nextBox.width / dragState.value.originalBounds.width
+    const scaleY = nextBox.height / dragState.value.originalBounds.height
+
+    dragState.value.originalObjects.forEach(item => {
+      if (item.type === 'polyline') {
+        editorStore.updatePolylineGeometry({
+          objectId: item.id,
+          points: item.points.map(pointItem => ({
+            x: Number((nextBox.x + (pointItem.x - dragState.value.originalBounds.x) * scaleX).toFixed(2)),
+            y: Number((nextBox.y + (pointItem.y - dragState.value.originalBounds.y) * scaleY).toFixed(2))
+          })),
+          segments: item.segments.map(segment => (
+            segment.type === 'quadratic' && segment.control
+              ? {
+                  type: 'quadratic',
+                  control: {
+                    x: Number((nextBox.x + (segment.control.x - dragState.value.originalBounds.x) * scaleX).toFixed(2)),
+                    y: Number((nextBox.y + (segment.control.y - dragState.value.originalBounds.y) * scaleY).toFixed(2))
+                  }
+                }
+              : { type: 'line' }
+          ))
+        })
+        return
+      }
+
+      editorStore.updateObjectData({
+        objectId: item.id,
+        data: {
+          x: Number((nextBox.x + (item.box.x - dragState.value.originalBounds.x) * scaleX).toFixed(2)),
+          y: Number((nextBox.y + (item.box.y - dragState.value.originalBounds.y) * scaleY).toFixed(2)),
+          width: Number((item.box.width * scaleX).toFixed(2)),
+          height: Number((item.box.height * scaleY).toFixed(2))
+        }
+      })
+    })
+
+    dragState.value.originalTables.forEach(item => {
+      editorStore.updateTableData({
+        tableId: item.id,
+        data: {
+          x: Number((nextBox.x + (item.box.x - dragState.value.originalBounds.x) * scaleX).toFixed(2)),
+          y: Number((nextBox.y + (item.box.y - dragState.value.originalBounds.y) * scaleY).toFixed(2)),
+          width: Number((item.box.width * scaleX).toFixed(2)),
+          height: Number((item.box.height * scaleY).toFixed(2))
+        }
+      })
     })
     return
   }
@@ -800,12 +1181,14 @@ function handleWindowPointerMove(event) {
 function handleWindowPointerUp() {
   if (pendingShape.value) commitPendingShape()
   dragState.value = null
+  tableSnapGuides.value = { vertical: null, horizontal: null }
 }
 
 function selectObject(objectId) {
   if (state.value.workingMode !== 'map' || isPolylineDrawing.value) return
   editorStore.selectObject(objectId)
   selectedNodeIndex.value = null
+  hoveredSegmentIndex.value = null
 }
 
 function selectPolyline(objectId) { selectObject(objectId) }
@@ -825,9 +1208,37 @@ function startPolylineMove(event) {
     kind: 'polyline-move',
     objectId: activePolyline.value.id,
     startPoint,
-    originalPoints: activePolylinePoints.value.map(point => ({ x: point.x, y: point.y }))
+    originalPoints: activePolylinePoints.value.map(point => ({ x: point.x, y: point.y })),
+    originalSegments: activePolylineDataSegments.value.map(segment => (
+      segment.type === 'quadratic' && segment.control
+        ? { type: 'quadratic', control: { x: segment.control.x, y: segment.control.y } }
+        : { type: 'line' }
+    ))
   }
 }
+
+function setHoveredSegment(index) {
+  if (!activePolyline.value) return
+  hoveredSegmentIndex.value = index
+}
+
+function clearHoveredSegment(index = null) {
+  if (dragState.value?.kind === 'polyline-control') return
+  if (index !== null && hoveredSegmentIndex.value !== index) return
+  hoveredSegmentIndex.value = null
+}
+
+function startCurveControlDrag(segmentIndex, event) {
+  if (!activePolyline.value) return
+  event.stopPropagation()
+  hoveredSegmentIndex.value = segmentIndex
+  dragState.value = {
+    kind: 'polyline-control',
+    objectId: activePolyline.value.id,
+    segmentIndex
+  }
+}
+
 function selectNode(index, event) {
   event.stopPropagation()
   selectedNodeIndex.value = index
@@ -836,6 +1247,115 @@ function selectNode(index, event) {
 function startObjectMove(object, event) {
   if (state.value.mode !== 'edit' || state.value.workingMode !== 'map') return
   event.stopPropagation()
+  const shouldSceneMove = selectedObjectIds.value.length > 0 && selectedTableIds.value.length > 0 && selectedObjectIds.value.includes(object.id)
+  if (shouldSceneMove) {
+    const startPoint = resolveWorldPoint(event)
+    if (!startPoint || !activeMap.value) return
+    const objectBoxes = selectedObjects.value.map(item => (
+      item.type === 'polyline'
+        ? {
+            left: Math.min(...(item.data.points || []).map(point => Number(point.x || 0))),
+            top: Math.min(...(item.data.points || []).map(point => Number(point.y || 0))),
+            right: Math.max(...(item.data.points || []).map(point => Number(point.x || 0))),
+            bottom: Math.max(...(item.data.points || []).map(point => Number(point.y || 0)))
+          }
+        : (() => {
+            const box = getObjectBox(item)
+            return { left: box.x, top: box.y, right: box.x + box.width, bottom: box.y + box.height }
+          })()
+    ))
+    const tableBoxes = selectedTables.value.map(item => ({
+      left: item.x,
+      top: item.y,
+      right: item.x + item.width,
+      bottom: item.y + item.height
+    }))
+    const boxes = [...objectBoxes, ...tableBoxes]
+    const left = Math.min(...boxes.map(box => box.left))
+    const top = Math.min(...boxes.map(box => box.top))
+    const right = Math.max(...boxes.map(box => box.right))
+    const bottom = Math.max(...boxes.map(box => box.bottom))
+    dragState.value = {
+      kind: 'scene-group-move',
+      startPoint,
+      minDx: -left,
+      minDy: -top,
+      maxDx: activeMap.value.width - right,
+      maxDy: activeMap.value.height - bottom,
+      originalObjects: selectedObjects.value.map(item => (
+        item.type === 'polyline'
+          ? {
+              id: item.id,
+              type: item.type,
+              points: (item.data.points || []).map(point => ({ x: point.x, y: point.y })),
+              segments: (item.data.segments || []).map(segment => (
+                segment.type === 'quadratic' && segment.control
+                  ? { type: 'quadratic', control: { x: segment.control.x, y: segment.control.y } }
+                  : { type: 'line' }
+              ))
+            }
+          : {
+              id: item.id,
+              type: item.type,
+              box: getObjectBox(item)
+            }
+      )),
+      originalTables: selectedTables.value.map(item => ({
+        id: item.id,
+        box: getTableBox(item)
+      }))
+    }
+    return
+  }
+  const shouldGroupMove = selectedObjectIds.value.length > 1 && selectedObjectIds.value.includes(object.id)
+  if (shouldGroupMove) {
+    const startPoint = resolveWorldPoint(event)
+    if (!startPoint || !activeMap.value) return
+    const boxes = selectedObjects.value.map(item => (
+      item.type === 'polyline'
+        ? {
+            left: Math.min(...(item.data.points || []).map(point => Number(point.x || 0))),
+            top: Math.min(...(item.data.points || []).map(point => Number(point.y || 0))),
+            right: Math.max(...(item.data.points || []).map(point => Number(point.x || 0))),
+            bottom: Math.max(...(item.data.points || []).map(point => Number(point.y || 0)))
+          }
+        : (() => {
+            const box = getObjectBox(item)
+            return { left: box.x, top: box.y, right: box.x + box.width, bottom: box.y + box.height }
+          })()
+    ))
+    const left = Math.min(...boxes.map(box => box.left))
+    const top = Math.min(...boxes.map(box => box.top))
+    const right = Math.max(...boxes.map(box => box.right))
+    const bottom = Math.max(...boxes.map(box => box.bottom))
+    dragState.value = {
+      kind: 'object-group-move',
+      startPoint,
+      minDx: -left,
+      minDy: -top,
+      maxDx: activeMap.value.width - right,
+      maxDy: activeMap.value.height - bottom,
+      originalObjects: selectedObjects.value.map(item => (
+        item.type === 'polyline'
+          ? {
+              id: item.id,
+              type: item.type,
+              points: (item.data.points || []).map(point => ({ x: point.x, y: point.y })),
+              segments: (item.data.segments || []).map(segment => (
+                segment.type === 'quadratic' && segment.control
+                  ? { type: 'quadratic', control: { x: segment.control.x, y: segment.control.y } }
+                  : { type: 'line' }
+              ))
+            }
+          : {
+              id: item.id,
+              type: item.type,
+              box: getObjectBox(item)
+            }
+      ))
+    }
+    return
+  }
   selectObject(object.id)
   if (object.type === 'polyline') return
   const startPoint = resolveWorldPoint(event)
@@ -847,6 +1367,94 @@ function startObjectMove(object, event) {
 function startTableMove(table, event) {
   if (state.value.mode !== 'edit' || state.value.workingMode !== 'table') return
   event.stopPropagation()
+  const shouldSceneMove = selectedObjectIds.value.length > 0 && selectedTableIds.value.length > 0 && selectedTableIds.value.includes(table.id)
+  if (shouldSceneMove) {
+    const startPoint = resolveWorldPoint(event)
+    if (!startPoint || !activeMap.value) return
+    const objectBoxes = selectedObjects.value.map(item => (
+      item.type === 'polyline'
+        ? {
+            left: Math.min(...(item.data.points || []).map(point => Number(point.x || 0))),
+            top: Math.min(...(item.data.points || []).map(point => Number(point.y || 0))),
+            right: Math.max(...(item.data.points || []).map(point => Number(point.x || 0))),
+            bottom: Math.max(...(item.data.points || []).map(point => Number(point.y || 0)))
+          }
+        : (() => {
+            const box = getObjectBox(item)
+            return { left: box.x, top: box.y, right: box.x + box.width, bottom: box.y + box.height }
+          })()
+    ))
+    const tableBoxes = selectedTables.value.map(item => ({
+      left: item.x,
+      top: item.y,
+      right: item.x + item.width,
+      bottom: item.y + item.height
+    }))
+    const boxes = [...objectBoxes, ...tableBoxes]
+    const left = Math.min(...boxes.map(box => box.left))
+    const top = Math.min(...boxes.map(box => box.top))
+    const right = Math.max(...boxes.map(box => box.right))
+    const bottom = Math.max(...boxes.map(box => box.bottom))
+    dragState.value = {
+      kind: 'scene-group-move',
+      startPoint,
+      minDx: -left,
+      minDy: -top,
+      maxDx: activeMap.value.width - right,
+      maxDy: activeMap.value.height - bottom,
+      originalObjects: selectedObjects.value.map(item => (
+        item.type === 'polyline'
+          ? {
+              id: item.id,
+              type: item.type,
+              points: (item.data.points || []).map(point => ({ x: point.x, y: point.y })),
+              segments: (item.data.segments || []).map(segment => (
+                segment.type === 'quadratic' && segment.control
+                  ? { type: 'quadratic', control: { x: segment.control.x, y: segment.control.y } }
+                  : { type: 'line' }
+              ))
+            }
+          : {
+              id: item.id,
+              type: item.type,
+              box: getObjectBox(item)
+            }
+      )),
+      originalTables: selectedTables.value.map(item => ({
+        id: item.id,
+        box: getTableBox(item)
+      }))
+    }
+    return
+  }
+  const shouldGroupMove = selectedTableIds.value.length > 1 && selectedTableIds.value.includes(table.id)
+  if (shouldGroupMove) {
+    const startPoint = resolveWorldPoint(event)
+    if (!startPoint || !activeMap.value) return
+    const boxes = selectedTables.value.map(item => ({
+      left: item.x,
+      top: item.y,
+      right: item.x + item.width,
+      bottom: item.y + item.height
+    }))
+    const left = Math.min(...boxes.map(box => box.left))
+    const top = Math.min(...boxes.map(box => box.top))
+    const right = Math.max(...boxes.map(box => box.right))
+    const bottom = Math.max(...boxes.map(box => box.bottom))
+    dragState.value = {
+      kind: 'table-group-move',
+      startPoint,
+      minDx: -left,
+      minDy: -top,
+      maxDx: activeMap.value.width - right,
+      maxDy: activeMap.value.height - bottom,
+      originalTables: selectedTables.value.map(item => ({
+        id: item.id,
+        box: getTableBox(item)
+      }))
+    }
+    return
+  }
   selectTable(table.id)
   const startPoint = resolveWorldPoint(event)
   const originalBox = getTableBox(table)
@@ -907,25 +1515,60 @@ function startRotate(event) {
   }
 }
 
+function startGroupResize(handleKey, event) {
+  if (!groupSelectionBox.value) return
+  const startPoint = resolveWorldPoint(event)
+  if (!startPoint) return
+  event.stopPropagation()
+  dragState.value = {
+    kind: 'group-resize',
+    handle: handleKey,
+    startPoint,
+    originalBounds: groupSelectionBox.value,
+    originalObjects: selectedObjects.value.map(item => (
+      item.type === 'polyline'
+        ? {
+            id: item.id,
+            type: item.type,
+            points: (item.data.points || []).map(point => ({ x: point.x, y: point.y })),
+            segments: (item.data.segments || []).map(segment => (
+              segment.type === 'quadratic' && segment.control
+                ? { type: 'quadratic', control: { x: segment.control.x, y: segment.control.y } }
+                : { type: 'line' }
+            ))
+          }
+        : {
+            id: item.id,
+            type: item.type,
+            box: getObjectBox(item)
+          }
+    )),
+    originalTables: selectedTables.value.map(item => ({
+      id: item.id,
+      box: getTableBox(item)
+    }))
+  }
+}
+
 function deleteSelectedNode() {
   if (!activePolyline.value || !Number.isInteger(selectedNodeIndex.value)) return
   const nextPoints = activePolylinePoints.value.filter((_, index) => index !== selectedNodeIndex.value)
+  const nextSegments = activePolylineDataSegments.value.filter((_, index) => (
+    index !== selectedNodeIndex.value && index !== selectedNodeIndex.value - 1
+  ))
+  if (selectedNodeIndex.value > 0 && selectedNodeIndex.value < activePolylinePoints.value.length - 1) {
+    nextSegments.splice(selectedNodeIndex.value - 1, 0, { type: 'line' })
+  }
   selectedNodeIndex.value = null
   if (nextPoints.length < 2) {
     deleteActiveObject()
     return
   }
-  editorStore.updatePolylinePoints({ objectId: activePolyline.value.id, points: nextPoints })
-}
-
-function projectPointToSegment(point, start, end) {
-  const dx = end.x - start.x
-  const dy = end.y - start.y
-  const lengthSquared = dx * dx + dy * dy
-  if (lengthSquared === 0) return start
-  const t = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared
-  const clamped = Math.max(0, Math.min(1, t))
-  return { x: Number((start.x + dx * clamped).toFixed(2)), y: Number((start.y + dy * clamped).toFixed(2)) }
+  editorStore.updatePolylineGeometry({
+    objectId: activePolyline.value.id,
+    points: nextPoints,
+    segments: nextSegments
+  })
 }
 
 function insertPointAtSegment(segmentIndex, event) {
@@ -935,10 +1578,20 @@ function insertPointAtSegment(segmentIndex, event) {
   if (!worldPoint) return
   const segment = activePolylineSegments.value.find(item => item.index === segmentIndex)
   if (!segment) return
-  const projected = projectPointToSegment(worldPoint, segment.start, segment.end)
+  const projectedResult = projectPointToPolylineSegment(worldPoint, segment.start, segment.end, segment)
+  if (!projectedResult) return
+  const projected = projectedResult.point
   const nextPoints = [...activePolylinePoints.value]
   nextPoints.splice(segmentIndex + 1, 0, projected)
-  editorStore.updatePolylinePoints({ objectId: activePolyline.value.id, points: nextPoints })
+  const nextSegments = [...activePolylineDataSegments.value]
+  if (segment.type === 'quadratic' && segment.control) {
+    const split = splitQuadraticSegment(segment.start, segment.control, segment.end, projectedResult.t)
+    nextPoints[segmentIndex + 1] = split.anchor
+    nextSegments.splice(segmentIndex, 1, split.segments[0], split.segments[1])
+  } else {
+    nextSegments.splice(segmentIndex, 1, { type: 'line' }, { type: 'line' })
+  }
+  editorStore.updatePolylineGeometry({ objectId: activePolyline.value.id, points: nextPoints, segments: nextSegments })
   selectedNodeIndex.value = segmentIndex + 1
 }
 
@@ -986,11 +1639,35 @@ function resizeBoxFromHandle(originalBox, handle, point, objectType = '') {
   return box
 }
 
+function resizeSelectionBoxFromHandle(originalBox, handle, point) {
+  if (!originalBox || !point || !activeMap.value) return null
+
+  const left = originalBox.x
+  const top = originalBox.y
+  const right = originalBox.x + originalBox.width
+  const bottom = originalBox.y + originalBox.height
+  let nextLeft = left
+  let nextTop = top
+  let nextRight = right
+  let nextBottom = bottom
+
+  if (handle.includes('n')) nextTop = point.y
+  if (handle.includes('s')) nextBottom = point.y
+  if (handle.includes('w')) nextLeft = point.x
+  if (handle.includes('e')) nextRight = point.x
+
+  const box = normalizeBoxFromPoints(clampToMap({ x: nextLeft, y: nextTop }), clampToMap({ x: nextRight, y: nextBottom }))
+  if (!box || box.width < MIN_SHAPE_SIZE || box.height < MIN_SHAPE_SIZE) return null
+  return box
+}
+
 function resetLocalState() {
   hoverWorldPoint.value = null
+  hoveredSegmentIndex.value = null
   selectedNodeIndex.value = null
   dragState.value = null
   pendingShape.value = null
+  tableSnapGuides.value = { vertical: null, horizontal: null }
 }
 
 function handleBeforeUnload(event) {
@@ -1004,13 +1681,14 @@ watch(activeMap, map => {
   mapMetaForm.name = String(map?.name || '')
   mapMetaForm.width = Number(map?.width || 1200)
   mapMetaForm.height = Number(map?.height || 800)
+  mapMetaForm.tablePrefix = String(map?.tablePrefix || '')
 }, { immediate: true })
 
 watch(activeShapeObject, object => {
   textEditValue.value = object?.type === 'text' ? String(object.data?.content || '') : ''
 }, { immediate: true })
 watch(activeTable, table => {
-  tableLabelValue.value = table ? String(table.label || '') : ''
+  tableNoteValue.value = table ? String(table.note || '') : ''
 }, { immediate: true })
 watch(activeObjectOrder, order => {
   objectLayerOrder.value = order ? String(order) : ''
@@ -1064,7 +1742,7 @@ onBeforeUnmount(() => {
           :map-objects-length="mapObjects.length"
           :object-layer-order="objectLayerOrder"
           :text-edit-value="textEditValue"
-          :table-label-value="tableLabelValue"
+          :table-note-value="tableNoteValue"
           :set-active-map="setActiveMap"
           :open-create-map-form="openCreateMapForm"
           :zoom-out="zoomOut"
@@ -1076,14 +1754,19 @@ onBeforeUnmount(() => {
           :delete-active-map="deleteActiveMap"
           :delete-active-object="deleteActiveObject"
           :delete-active-table="deleteActiveTable"
+          :duplicate-active-table="duplicateActiveTable"
+          :select-all-in-current-mode="selectAllInCurrentMode"
+          :select-entire-scene="selectEntireScene"
+          :selected-object-count="selectedObjectIds.length"
+          :selected-table-count="selectedTableIds.length"
           :set-working-mode="setWorkingMode"
           :set-tool="setTool"
           :set-object-layer-order="setObjectLayerOrder"
           :apply-active-object-layer-order="applyActiveObjectLayerOrder"
           :set-text-edit-value="setTextEditValue"
-          :set-table-label-value="setTableLabelValue"
+          :set-table-note-value="setTableNoteValue"
           :handle-active-text-input="handleActiveTextInput"
-          :handle-active-table-label-input="handleActiveTableLabelInput"
+          :handle-active-table-note-input="handleActiveTableNoteInput"
         )
         .workspace-surface(ref="workspaceSurfaceRef" :class="{ 'is-pannable': canPanSurface, 'is-panning': dragState?.kind === 'pan' }")
           MapEditorCanvas(
@@ -1095,10 +1778,14 @@ onBeforeUnmount(() => {
             :map-tables="mapTables"
             :active-object-id="state.activeObjectId"
             :active-table-id="state.activeTableId"
+            :selected-object-ids="selectedObjectIds"
+            :selected-table-ids="selectedTableIds"
             :active-polyline="activePolyline"
+            :active-polyline-path="activePolylinePath"
             :active-polyline-segments="activePolylineSegments"
             :active-polyline-center="activePolylineCenter"
             :active-polyline-points="activePolylinePoints"
+            :active-hovered-segment="activeHoveredSegment"
             :selected-node-index="selectedNodeIndex"
             :active-shape-object="activeShapeObject"
             :active-object-box="activeObjectBox"
@@ -1110,11 +1797,15 @@ onBeforeUnmount(() => {
             :active-table-transform="activeTableTransform"
             :active-table-handles="activeTableHandles"
             :active-table-rotate-handle="activeTableRotateHandle"
+            :table-snap-guides="tableSnapGuides"
+            :group-selection-box="groupSelectionBox"
+            :group-selection-handles="groupSelectionHandles"
             :pending-shape="pendingShape"
             :pending-polyline="pendingPolyline"
             :pending-polyline-points-string="pendingPolylinePointsString"
             :hover-world-point="hoverWorldPoint"
             :polyline-points-to-string="polylinePointsToString"
+            :build-polyline-path="buildPolylinePath"
             :build-object-transform="buildObjectTransform"
             :normalize-box-from-points="normalizeBoxFromPoints"
             :handle-svg-click="handleSvgClick"
@@ -1128,6 +1819,10 @@ onBeforeUnmount(() => {
             :start-object-move="startObjectMove"
             :insert-point-at-segment="insertPointAtSegment"
             :start-polyline-move="startPolylineMove"
+            :set-hovered-segment="setHoveredSegment"
+            :clear-hovered-segment="clearHoveredSegment"
+            :start-curve-control-drag="startCurveControlDrag"
+            :start-group-resize="startGroupResize"
             :select-node="selectNode"
             :start-node-drag="startNodeDrag"
             :start-resize="startResize"
@@ -1166,22 +1861,6 @@ onBeforeUnmount(() => {
 <style lang="sass">
 @use './RestaurantMapEditorPage.sass'
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

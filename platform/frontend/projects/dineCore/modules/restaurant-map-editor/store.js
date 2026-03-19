@@ -14,6 +14,7 @@ function createMapRecord(payload = {}, sequence = 1) {
   const width = Number(payload.width || 0)
   const height = Number(payload.height || 0)
   const name = String(payload.name || '').trim()
+  const tablePrefix = String(payload.tablePrefix || '').trim()
   const stamp = new Date().toISOString()
 
   return {
@@ -21,6 +22,7 @@ function createMapRecord(payload = {}, sequence = 1) {
     name,
     width,
     height,
+    tablePrefix,
     objects: [],
     tables: [],
     createdAt: stamp,
@@ -48,6 +50,8 @@ function createBaseState() {
     activeTool: '',
     activeObjectId: null,
     activeTableId: null,
+    selectedObjectIds: [],
+    selectedTableIds: [],
     toolbarLocked: false,
     draftState: createDefaultDraftState(),
     dirtyMapIds: [],
@@ -73,11 +77,37 @@ function normalizeDraftState(draftState = {}) {
   }
 }
 
+function normalizePolylineSegments(points = [], segments = []) {
+  const sourceSegments = Array.isArray(segments) ? segments : []
+  return Array.from({ length: Math.max(0, points.length - 1) }, (_, index) => {
+    const segment = sourceSegments[index]
+    if (segment?.type === 'quadratic' && segment.control) {
+      return {
+        type: 'quadratic',
+        control: normalizePoint(segment.control)
+      }
+    }
+    return { type: 'line' }
+  })
+}
+
+function normalizePolylineData(data = {}) {
+  const points = Array.isArray(data.points) ? data.points.map(normalizePoint) : []
+  return {
+    ...cloneValue(data),
+    points,
+    segments: normalizePolylineSegments(points, data.segments)
+  }
+}
+
 function normalizeObject(item = {}) {
+  const type = String(item.type || '')
   return {
     id: String(item.id || ''),
-    type: String(item.type || ''),
-    data: item.data && typeof item.data === 'object' ? cloneValue(item.data) : {},
+    type,
+    data: item.data && typeof item.data === 'object'
+      ? (type === 'polyline' ? normalizePolylineData(item.data) : cloneValue(item.data))
+      : {},
     createdAt: String(item.createdAt || ''),
     updatedAt: String(item.updatedAt || '')
   }
@@ -89,12 +119,53 @@ function normalizeMap(map = {}) {
     name: String(map.name || ''),
     width: Number(map.width || 0),
     height: Number(map.height || 0),
+    tablePrefix: String(map.tablePrefix || '').trim(),
     objects: Array.isArray(map.objects) ? map.objects.map(normalizeObject) : [],
-    tables: Array.isArray(map.tables) ? cloneValue(map.tables) : [],
+    tables: Array.isArray(map.tables) ? map.tables.map(normalizeTable) : [],
     createdAt: String(map.createdAt || ''),
     updatedAt: String(map.updatedAt || ''),
     savedAt: String(map.savedAt || ''),
     draftSavedAt: String(map.draftSavedAt || '')
+  }
+}
+
+function normalizeTable(table = {}) {
+  return {
+    ...cloneValue(table),
+    id: String(table.id || ''),
+    label: String(table.label || '').trim(),
+    note: String(table.note || '').trim(),
+    x: Number(table.x || 0),
+    y: Number(table.y || 0),
+    width: Number(table.width || 80),
+    height: Number(table.height || 80),
+    rotation: Number(table.rotation || 0),
+    createdAt: String(table.createdAt || ''),
+    updatedAt: String(table.updatedAt || '')
+  }
+}
+
+function formatTableLabel(prefix = '', sequence = 1) {
+  return `${String(prefix || '').trim()}${String(sequence).padStart(2, '0')}`
+}
+
+function relabelTables(tables = [], prefix = '') {
+  return (Array.isArray(tables) ? tables : []).map((table, index) => ({
+    ...normalizeTable(table),
+    label: formatTableLabel(prefix, index + 1)
+  }))
+}
+
+function clampTablePosition(data = {}, map = null) {
+  const width = Number(data.width || 80)
+  const height = Number(data.height || 80)
+  const maxX = Math.max(0, Number(map?.width || width) - width)
+  const maxY = Math.max(0, Number(map?.height || height) - height)
+
+  return {
+    ...data,
+    x: Number(Math.max(0, Math.min(maxX, Number(data.x || 0))).toFixed(2)),
+    y: Number(Math.max(0, Math.min(maxY, Number(data.y || 0))).toFixed(2))
   }
 }
 
@@ -118,6 +189,8 @@ function buildPersistedState(state = {}) {
     activeTool: state.activeTool || '',
     activeObjectId: state.activeObjectId || null,
     activeTableId: state.activeTableId || null,
+    selectedObjectIds: Array.isArray(state.selectedObjectIds) ? [...state.selectedObjectIds] : [],
+    selectedTableIds: Array.isArray(state.selectedTableIds) ? [...state.selectedTableIds] : [],
     toolbarLocked: Boolean(state.toolbarLocked),
     draftState: normalizeDraftState(state.draftState),
     dirtyMapIds: Array.isArray(state.dirtyMapIds) ? [...state.dirtyMapIds] : [],
@@ -154,6 +227,8 @@ function loadPersistedState() {
       activeTool: String(parsed.activeTool || ''),
       activeObjectId: String(parsed.activeObjectId || '') || null,
       activeTableId: String(parsed.activeTableId || '') || null,
+      selectedObjectIds: Array.isArray(parsed.selectedObjectIds) ? parsed.selectedObjectIds.map(id => String(id || '')).filter(Boolean) : [],
+      selectedTableIds: Array.isArray(parsed.selectedTableIds) ? parsed.selectedTableIds.map(id => String(id || '')).filter(Boolean) : [],
       toolbarLocked: Boolean(parsed.toolbarLocked),
       draftState: normalizeDraftState(parsed.draftState),
       dirtyMapIds: Array.isArray(parsed.dirtyMapIds) ? parsed.dirtyMapIds.filter(id => maps.some(map => map.id === id)) : [],
@@ -194,6 +269,8 @@ export function createRestaurantMapEditorStore() {
           activeTool: '',
           activeObjectId: null,
           activeTableId: null,
+          selectedObjectIds: [],
+          selectedTableIds: [],
           toolbarLocked: false,
           draftState: createDefaultDraftState(),
           dirtyMapIds: markDirty(state, map.id)
@@ -208,6 +285,8 @@ export function createRestaurantMapEditorStore() {
           activeMapId: mapId,
           activeObjectId: null,
           activeTableId: null,
+          selectedObjectIds: [],
+          selectedTableIds: [],
           activeTool: '',
           toolbarLocked: false,
           draftState: createDefaultDraftState()
@@ -219,6 +298,7 @@ export function createRestaurantMapEditorStore() {
         const name = String(payload.name || '').trim()
         const width = Number(payload.width || 0)
         const height = Number(payload.height || 0)
+        const tablePrefix = String(payload.tablePrefix || '').trim()
         if (!mapId || !width || !height) return
 
         const stamp = new Date().toISOString()
@@ -231,6 +311,8 @@ export function createRestaurantMapEditorStore() {
                   name: name || map.name,
                   width,
                   height,
+                  tablePrefix,
+                  tables: relabelTables(map.tables, tablePrefix),
                   updatedAt: stamp
                 }
               : map
@@ -256,6 +338,8 @@ export function createRestaurantMapEditorStore() {
         const activeTool = String(payload.activeTool || payload.draftState?.tool || state.activeTool || '')
         const activeObjectId = String(payload.activeObjectId || payload.draftState?.activeObjectId || '') || null
         const activeTableId = String(payload.activeTableId || payload.draftState?.activeTableId || '') || null
+        const selectedObjectIds = Array.isArray(payload.selectedObjectIds) ? payload.selectedObjectIds.map(id => String(id || '')).filter(Boolean) : (activeObjectId ? [activeObjectId] : [])
+        const selectedTableIds = Array.isArray(payload.selectedTableIds) ? payload.selectedTableIds.map(id => String(id || '')).filter(Boolean) : (activeTableId ? [activeTableId] : [])
         const toolbarLocked = Boolean(payload.toolbarLocked ?? payload.draftState?.toolbarLocked ?? state.toolbarLocked)
 
         store.set({
@@ -265,6 +349,8 @@ export function createRestaurantMapEditorStore() {
           activeTool,
           activeObjectId,
           activeTableId,
+          selectedObjectIds,
+          selectedTableIds,
           toolbarLocked,
           draftState
         })
@@ -313,6 +399,8 @@ export function createRestaurantMapEditorStore() {
           activeMapId,
           activeObjectId: null,
           activeTableId: null,
+          selectedObjectIds: [],
+          selectedTableIds: [],
           activeTool: '',
           toolbarLocked: false,
           draftState: createDefaultDraftState(),
@@ -328,6 +416,8 @@ export function createRestaurantMapEditorStore() {
           mode,
           activeObjectId: null,
           activeTableId: null,
+          selectedObjectIds: [],
+          selectedTableIds: [],
           activeTool: '',
           toolbarLocked: false,
           draftState: createDefaultDraftState()
@@ -340,6 +430,8 @@ export function createRestaurantMapEditorStore() {
           workingMode,
           activeObjectId: null,
           activeTableId: null,
+          selectedObjectIds: [],
+          selectedTableIds: [],
           activeTool: '',
           toolbarLocked: false,
           draftState: createDefaultDraftState()
@@ -387,7 +479,8 @@ export function createRestaurantMapEditorStore() {
           id: next.id,
           type: 'polyline',
           data: {
-            points: pendingPolyline.map(normalizePoint)
+            points: pendingPolyline.map(normalizePoint),
+            segments: normalizePolylineSegments(pendingPolyline)
           },
           createdAt: stamp,
           updatedAt: stamp
@@ -430,6 +523,8 @@ export function createRestaurantMapEditorStore() {
               : map
           )),
           activeObjectId: object.id,
+          selectedObjectIds: [object.id],
+          selectedTableIds: [],
           toolbarLocked: true,
           dirtyMapIds: markDirty(state, state.activeMapId)
         })
@@ -442,12 +537,27 @@ export function createRestaurantMapEditorStore() {
           ...state,
           activeObjectId: objectId,
           activeTableId: null,
+          selectedObjectIds: objectId ? [objectId] : [],
+          selectedTableIds: [],
           toolbarLocked: Boolean(objectId)
+        })
+      },
+      selectAllObjects(store) {
+        const state = store.get()
+        const activeMap = state.maps.find(map => map.id === state.activeMapId)
+        const selectedObjectIds = Array.isArray(activeMap?.objects) ? activeMap.objects.map(item => item.id).filter(Boolean) : []
+        store.set({
+          ...state,
+          activeObjectId: selectedObjectIds[0] || null,
+          activeTableId: null,
+          selectedObjectIds,
+          selectedTableIds: [],
+          toolbarLocked: Boolean(selectedObjectIds.length)
         })
       },
       clearActiveObject(store) {
         const state = store.get()
-        store.set({ ...state, activeObjectId: null, toolbarLocked: false })
+        store.set({ ...state, activeObjectId: null, selectedObjectIds: [], toolbarLocked: false })
       },
       updateObjectData(store, payload = {}) {
         const state = store.get()
@@ -482,6 +592,14 @@ export function createRestaurantMapEditorStore() {
         const points = Array.isArray(payload.points) ? payload.points.map(normalizePoint) : []
         if (!activeMapId || !objectId) return
 
+        const activeMap = state.maps.find(map => map.id === activeMapId)
+        const targetObject = activeMap?.objects?.find(item => item.id === objectId)
+        const nextData = normalizePolylineData({
+          ...(targetObject?.data || {}),
+          points,
+          segments: payload.segments ?? targetObject?.data?.segments
+        })
+
         const stamp = new Date().toISOString()
         store.set({
           ...state,
@@ -492,7 +610,36 @@ export function createRestaurantMapEditorStore() {
                   updatedAt: stamp,
                   objects: (map.objects || []).map(item => (
                     item.id === objectId
-                      ? { ...item, updatedAt: stamp, data: { ...item.data, points } }
+                      ? { ...item, updatedAt: stamp, data: nextData }
+                      : item
+                  ))
+                }
+              : map
+          )),
+          dirtyMapIds: markDirty(state, activeMapId)
+        })
+      },
+      updatePolylineGeometry(store, payload = {}) {
+        const state = store.get()
+        const activeMapId = state.activeMapId
+        const objectId = String(payload.objectId || '')
+        const points = Array.isArray(payload.points) ? payload.points.map(normalizePoint) : []
+        const segments = Array.isArray(payload.segments) ? payload.segments : []
+        if (!activeMapId || !objectId) return
+
+        const nextData = normalizePolylineData({ points, segments })
+
+        const stamp = new Date().toISOString()
+        store.set({
+          ...state,
+          maps: state.maps.map(map => (
+            map.id === activeMapId
+              ? {
+                  ...map,
+                  updatedAt: stamp,
+                  objects: (map.objects || []).map(item => (
+                    item.id === objectId
+                      ? { ...item, updatedAt: stamp, data: nextData }
                       : item
                   ))
                 }
@@ -515,6 +662,7 @@ export function createRestaurantMapEditorStore() {
               : map
           )),
           activeObjectId: state.activeObjectId === objectId ? null : state.activeObjectId,
+          selectedObjectIds: (state.selectedObjectIds || []).filter(id => id !== objectId),
           toolbarLocked: state.activeObjectId === objectId ? false : state.toolbarLocked,
           dirtyMapIds: markDirty(state, activeMapId)
         })
@@ -559,32 +707,77 @@ export function createRestaurantMapEditorStore() {
         const activeMap = state.maps.find(map => map.id === activeMapId)
         const next = nextObjectId(state)
         const stamp = new Date().toISOString()
-        const label = String(payload.label || '').trim() || `T${Number(activeMap?.tables?.length || 0) + 1}`
-        const table = {
-          id: `table_${next.objectSequence}`,
-          label,
-          x: Number(data.x || 0),
-          y: Number(data.y || 0),
-          width: Number(data.width || 80),
-          height: Number(data.height || 80),
-          rotation: Number(data.rotation || 0),
-          createdAt: stamp,
-          updatedAt: stamp
-        }
+        const nextTables = relabelTables([
+          ...(activeMap?.tables || []),
+          {
+            id: `table_${next.objectSequence}`,
+            x: Number(data.x || 0),
+            y: Number(data.y || 0),
+            width: Number(data.width || 80),
+            height: Number(data.height || 80),
+            rotation: Number(data.rotation || 0),
+            note: '',
+            createdAt: stamp,
+            updatedAt: stamp
+          }
+        ], activeMap?.tablePrefix || '')
+        const table = nextTables.at(-1)
 
         store.set({
           ...state,
           objectSequence: next.objectSequence,
           maps: state.maps.map(map => (
             map.id === activeMapId
-              ? { ...map, updatedAt: stamp, tables: [...(map.tables || []), table] }
+              ? { ...map, updatedAt: stamp, tables: nextTables }
               : map
           )),
           activeTableId: null,
+          selectedTableIds: [],
           dirtyMapIds: markDirty(state, activeMapId)
         })
 
         return table.id
+      },
+      duplicateTable(store, payload = {}) {
+        const state = store.get()
+        const activeMapId = state.activeMapId
+        const tableId = String(payload.tableId || '')
+        if (!activeMapId || !tableId) return null
+
+        const activeMap = state.maps.find(map => map.id === activeMapId)
+        const sourceTable = activeMap?.tables?.find(table => table.id === tableId)
+        if (!activeMap || !sourceTable) return null
+
+        const next = nextObjectId(state)
+        const stamp = new Date().toISOString()
+        const duplicatedTable = normalizeTable({
+          ...sourceTable,
+          id: `table_${next.objectSequence}`,
+          x: Number(sourceTable.x || 0) + 24,
+          y: Number(sourceTable.y || 0) + 24,
+          note: '',
+          createdAt: stamp,
+          updatedAt: stamp
+        })
+        const clampedTable = clampTablePosition(duplicatedTable, activeMap)
+        const nextTables = relabelTables([...(activeMap.tables || []), clampedTable], activeMap.tablePrefix || '')
+        const createdTable = nextTables.at(-1)
+
+        store.set({
+          ...state,
+          objectSequence: next.objectSequence,
+          maps: state.maps.map(map => (
+            map.id === activeMapId
+              ? { ...map, updatedAt: stamp, tables: nextTables }
+              : map
+          )),
+          activeTableId: createdTable?.id || null,
+          selectedTableIds: createdTable?.id ? [createdTable.id] : [],
+          toolbarLocked: true,
+          dirtyMapIds: markDirty(state, activeMapId)
+        })
+
+        return createdTable?.id || null
       },
       selectTable(store, tableId = '') {
         const state = store.get()
@@ -592,12 +785,43 @@ export function createRestaurantMapEditorStore() {
           ...state,
           activeTableId: tableId || null,
           activeObjectId: null,
+          selectedTableIds: tableId ? [tableId] : [],
+          selectedObjectIds: [],
           toolbarLocked: Boolean(tableId)
+        })
+      },
+      selectAllTables(store) {
+        const state = store.get()
+        const activeMap = state.maps.find(map => map.id === state.activeMapId)
+        const selectedTableIds = Array.isArray(activeMap?.tables) ? activeMap.tables.map(item => item.id).filter(Boolean) : []
+        store.set({
+          ...state,
+          activeTableId: selectedTableIds[0] || null,
+          activeObjectId: null,
+          selectedTableIds,
+          selectedObjectIds: [],
+          toolbarLocked: Boolean(selectedTableIds.length)
+        })
+      },
+      selectEntireScene(store) {
+        const state = store.get()
+        const activeMap = state.maps.find(map => map.id === state.activeMapId)
+        const selectedObjectIds = Array.isArray(activeMap?.objects) ? activeMap.objects.map(item => item.id).filter(Boolean) : []
+        const selectedTableIds = Array.isArray(activeMap?.tables) ? activeMap.tables.map(item => item.id).filter(Boolean) : []
+        const hasSelection = Boolean(selectedObjectIds.length || selectedTableIds.length)
+
+        store.set({
+          ...state,
+          activeObjectId: null,
+          activeTableId: null,
+          selectedObjectIds,
+          selectedTableIds,
+          toolbarLocked: hasSelection
         })
       },
       clearActiveTable(store) {
         const state = store.get()
-        store.set({ ...state, activeTableId: null, toolbarLocked: false })
+        store.set({ ...state, activeTableId: null, selectedTableIds: [], toolbarLocked: false })
       },
       updateTableData(store, payload = {}) {
         const state = store.get()
@@ -616,7 +840,7 @@ export function createRestaurantMapEditorStore() {
                   updatedAt: stamp,
                   tables: (map.tables || []).map(item => (
                     item.id === tableId
-                      ? { ...item, updatedAt: stamp, ...data }
+                      ? { ...item, updatedAt: stamp, ...data, label: item.label }
                       : item
                   ))
                 }
@@ -635,10 +859,15 @@ export function createRestaurantMapEditorStore() {
           ...state,
           maps: state.maps.map(map => (
             map.id === activeMapId
-              ? { ...map, updatedAt: stamp, tables: (map.tables || []).filter(item => item.id !== tableId) }
+              ? {
+                  ...map,
+                  updatedAt: stamp,
+                  tables: relabelTables((map.tables || []).filter(item => item.id !== tableId), map.tablePrefix)
+                }
               : map
           )),
           activeTableId: state.activeTableId === tableId ? null : state.activeTableId,
+          selectedTableIds: (state.selectedTableIds || []).filter(id => id !== tableId),
           toolbarLocked: state.activeTableId === tableId ? false : state.toolbarLocked,
           dirtyMapIds: markDirty(state, activeMapId)
         })
@@ -678,9 +907,3 @@ export function createRestaurantMapEditorStore() {
     }
   })
 }
-
-
-
-
-
-

@@ -1,0 +1,422 @@
+{
+    "id": "map_1773748044838_1",
+    "mapId": "map_1773748044838_1",
+    "name": "餐廳一樓大廳",
+    "status": "draft",
+    "version": 1,
+    "payloadVersion": 1,
+    "updatedAt": "2026-03-19T22:49:41+08:00",
+    "savedAt": "2026-03-19T22:49:41+08:00",
+    "editorUpdatedAt": "2026-03-19T14:49:28.394Z",
+    "savedBy": {
+        "userId": 31,
+        "username": "manager",
+        "displayName": "管理者",
+        "role": "manager"
+    },
+    "map": {
+        "id": "map_1773748044838_1",
+        "name": "餐廳一樓大廳",
+        "width": 1040,
+        "height": 500,
+        "objects": [
+            {
+                "id": "obj_1",
+                "type": "polyline",
+                "data": {
+                    "points": [
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        },
+                        {
+                            "x": 695.39,
+                            "y": 74.21
+                        },
+                        {
+                            "x": 695.54,
+                            "y": 147.17
+                        },
+                        {
+                            "x": 987.47,
+                            "y": 148.61
+                        },
+                        {
+                            "x": 988.63,
+                            "y": 489.39
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 489.5
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        }
+                    ],
+                    "segments": [
+                        {
+                            "type": "quadratic",
+                            "control": {
+                                "x": 376.33,
+                                "y": -45.07
+                            }
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        }
+                    ]
+                },
+                "createdAt": "2026-03-17T11:48:09.681Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_2",
+                "type": "rect",
+                "data": {
+                    "x": 38.46,
+                    "y": 201.08,
+                    "width": 36.81,
+                    "height": 150.13
+                },
+                "createdAt": "2026-03-17T11:48:15.903Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_3",
+                "type": "circle",
+                "data": {
+                    "x": 70.5,
+                    "y": 346.47,
+                    "width": 129.3,
+                    "height": 127.25
+                },
+                "createdAt": "2026-03-17T11:48:25.819Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_4",
+                "type": "text",
+                "data": {
+                    "x": 84.37,
+                    "y": 388.16,
+                    "width": 99.81,
+                    "height": 45.81,
+                    "content": "柱子"
+                },
+                "createdAt": "2026-03-17T11:48:36.441Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_5",
+                "type": "rect",
+                "data": {
+                    "x": 798.76,
+                    "y": 163.68,
+                    "width": 171.36,
+                    "height": 313.97
+                },
+                "createdAt": "2026-03-17T11:51:59.687Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_14",
+                "type": "text",
+                "data": {
+                    "x": 817.92,
+                    "y": 299.6,
+                    "width": 133.67,
+                    "height": 54.19,
+                    "content": "樓梯區域",
+                    "rotation": 0
+                },
+                "createdAt": "2026-03-19T14:33:43.283Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            }
+        ],
+        "tables": [
+            {
+                "id": "table_10",
+                "label": "01",
+                "x": 250.46,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:18:48.238Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            },
+            {
+                "id": "table_11",
+                "label": "02",
+                "x": 376.6,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:28:03.768Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            },
+            {
+                "id": "table_12",
+                "label": "03",
+                "x": 500.86,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:28:07.751Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            },
+            {
+                "id": "table_13",
+                "label": "04",
+                "x": 631.35,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:28:17.215Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            }
+        ],
+        "createdAt": "2026-03-17T11:47:24.836Z",
+        "updatedAt": "2026-03-19T14:49:28.394Z",
+        "savedAt": "2026-03-17T11:53:41.943Z",
+        "draftSavedAt": "2026-03-19T14:47:29.278Z"
+    },
+    "payload": {
+        "id": "map_1773748044838_1",
+        "name": "餐廳一樓大廳",
+        "width": 1040,
+        "height": 500,
+        "objects": [
+            {
+                "id": "obj_1",
+                "type": "polyline",
+                "data": {
+                    "points": [
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        },
+                        {
+                            "x": 695.39,
+                            "y": 74.21
+                        },
+                        {
+                            "x": 695.54,
+                            "y": 147.17
+                        },
+                        {
+                            "x": 987.47,
+                            "y": 148.61
+                        },
+                        {
+                            "x": 988.63,
+                            "y": 489.39
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 489.5
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        },
+                        {
+                            "x": 57.28,
+                            "y": 72.93
+                        }
+                    ],
+                    "segments": [
+                        {
+                            "type": "quadratic",
+                            "control": {
+                                "x": 376.33,
+                                "y": -45.07
+                            }
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        },
+                        {
+                            "type": "line"
+                        }
+                    ]
+                },
+                "createdAt": "2026-03-17T11:48:09.681Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_2",
+                "type": "rect",
+                "data": {
+                    "x": 38.46,
+                    "y": 201.08,
+                    "width": 36.81,
+                    "height": 150.13
+                },
+                "createdAt": "2026-03-17T11:48:15.903Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_3",
+                "type": "circle",
+                "data": {
+                    "x": 70.5,
+                    "y": 346.47,
+                    "width": 129.3,
+                    "height": 127.25
+                },
+                "createdAt": "2026-03-17T11:48:25.819Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_4",
+                "type": "text",
+                "data": {
+                    "x": 84.37,
+                    "y": 388.16,
+                    "width": 99.81,
+                    "height": 45.81,
+                    "content": "柱子"
+                },
+                "createdAt": "2026-03-17T11:48:36.441Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_5",
+                "type": "rect",
+                "data": {
+                    "x": 798.76,
+                    "y": 163.68,
+                    "width": 171.36,
+                    "height": 313.97
+                },
+                "createdAt": "2026-03-17T11:51:59.687Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            },
+            {
+                "id": "obj_14",
+                "type": "text",
+                "data": {
+                    "x": 817.92,
+                    "y": 299.6,
+                    "width": 133.67,
+                    "height": 54.19,
+                    "content": "樓梯區域",
+                    "rotation": 0
+                },
+                "createdAt": "2026-03-19T14:33:43.283Z",
+                "updatedAt": "2026-03-19T14:49:28.394Z"
+            }
+        ],
+        "tables": [
+            {
+                "id": "table_10",
+                "label": "01",
+                "x": 250.46,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:18:48.238Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            },
+            {
+                "id": "table_11",
+                "label": "02",
+                "x": 376.6,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:28:03.768Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            },
+            {
+                "id": "table_12",
+                "label": "03",
+                "x": 500.86,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:28:07.751Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            },
+            {
+                "id": "table_13",
+                "label": "04",
+                "x": 631.35,
+                "y": 383.66,
+                "width": 84.09,
+                "height": 62.8,
+                "rotation": 0,
+                "createdAt": "2026-03-19T14:28:17.215Z",
+                "updatedAt": "2026-03-19T14:46:47.411Z"
+            }
+        ],
+        "createdAt": "2026-03-17T11:47:24.836Z",
+        "updatedAt": "2026-03-19T14:49:28.394Z",
+        "savedAt": "2026-03-17T11:53:41.943Z",
+        "draftSavedAt": "2026-03-19T14:47:29.278Z"
+    },
+    "draftState": {
+        "mode": "edit",
+        "workingMode": "map",
+        "tool": "",
+        "activeObjectId": "",
+        "activeTableId": "",
+        "toolbarLocked": false,
+        "pendingPolyline": [],
+        "pendingShape": null,
+        "pendingText": null
+    }
+}

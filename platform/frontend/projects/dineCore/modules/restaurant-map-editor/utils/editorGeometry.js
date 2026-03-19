@@ -142,3 +142,199 @@ export function applyRotationSnap(rotation, step = 15, threshold = 6) {
 export function polylinePointsToString(points = []) {
   return points.map(point => `${point.x},${point.y}`).join(' ')
 }
+
+function normalizePoint(point = {}) {
+  return {
+    x: Number(point.x || 0),
+    y: Number(point.y || 0)
+  }
+}
+
+export function normalizePolylineSegments(points = [], segments = []) {
+  const segmentCount = Math.max(0, points.length - 1)
+  const sourceSegments = Array.isArray(segments) ? segments : []
+
+  return Array.from({ length: segmentCount }, (_, index) => {
+    const segment = sourceSegments[index]
+    if (segment?.type === 'quadratic' && segment.control) {
+      return {
+        type: 'quadratic',
+        control: normalizePoint(segment.control)
+      }
+    }
+
+    return { type: 'line' }
+  })
+}
+
+export function buildPolylinePath(points = [], segments = []) {
+  if (!Array.isArray(points) || points.length === 0) return ''
+
+  const normalizedSegments = normalizePolylineSegments(points, segments)
+  const commands = [`M ${points[0].x} ${points[0].y}`]
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const end = points[index + 1]
+    const segment = normalizedSegments[index]
+    if (segment?.type === 'quadratic' && segment.control) {
+      commands.push(`Q ${segment.control.x} ${segment.control.y} ${end.x} ${end.y}`)
+      continue
+    }
+
+    commands.push(`L ${end.x} ${end.y}`)
+  }
+
+  return commands.join(' ')
+}
+
+export function buildPolylineSegmentPath(start, end, segment = {}) {
+  if (!start || !end) return ''
+  if (segment?.type === 'quadratic' && segment.control) {
+    return `M ${start.x} ${start.y} Q ${segment.control.x} ${segment.control.y} ${end.x} ${end.y}`
+  }
+  return `M ${start.x} ${start.y} L ${end.x} ${end.y}`
+}
+
+export function getQuadraticPointAt(start, control, end, t = 0.5) {
+  const safeT = Math.max(0, Math.min(1, Number(t || 0)))
+  const inverse = 1 - safeT
+  return {
+    x: Number((inverse * inverse * start.x + 2 * inverse * safeT * control.x + safeT * safeT * end.x).toFixed(2)),
+    y: Number((inverse * inverse * start.y + 2 * inverse * safeT * control.y + safeT * safeT * end.y).toFixed(2))
+  }
+}
+
+export function getPolylineSegmentHandlePoint(start, end, segment = {}) {
+  if (!start || !end) return null
+  if (segment?.type === 'quadratic' && segment.control) {
+    return getQuadraticPointAt(start, segment.control, end, 0.5)
+  }
+
+  return {
+    x: Number(((start.x + end.x) / 2).toFixed(2)),
+    y: Number(((start.y + end.y) / 2).toFixed(2))
+  }
+}
+
+export function getQuadraticControlFromHandlePoint(start, end, handlePoint) {
+  if (!start || !end || !handlePoint) return null
+  return {
+    x: Number((2 * handlePoint.x - 0.5 * start.x - 0.5 * end.x).toFixed(2)),
+    y: Number((2 * handlePoint.y - 0.5 * start.y - 0.5 * end.y).toFixed(2))
+  }
+}
+
+export function applyCurveHandleSnap(point, start, end, threshold = 14) {
+  if (!point || !start || !end) return point
+
+  const midpoint = {
+    x: Number(((start.x + end.x) / 2).toFixed(2)),
+    y: Number(((start.y + end.y) / 2).toFixed(2))
+  }
+
+  return {
+    x: Number(resolveClosestAxisSnapValue(point.x, [midpoint.x, start.x, end.x], threshold).toFixed(2)),
+    y: Number(resolveClosestAxisSnapValue(point.y, [midpoint.y, start.y, end.y], threshold).toFixed(2))
+  }
+}
+
+export function constrainCurveHandlePoint(point, start, end) {
+  if (!point || !start || !end) return point
+
+  const midpoint = {
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2
+  }
+  const dx = point.x - midpoint.x
+  const dy = point.y - midpoint.y
+  const distance = Math.hypot(dx, dy)
+  const segmentLength = Math.hypot(end.x - start.x, end.y - start.y)
+  const maxDistance = Math.max(48, Math.min(180, segmentLength * 0.85))
+
+  if (!distance || distance <= maxDistance) {
+    return {
+      x: Number(point.x.toFixed(2)),
+      y: Number(point.y.toFixed(2))
+    }
+  }
+
+  const scale = maxDistance / distance
+  return {
+    x: Number((midpoint.x + dx * scale).toFixed(2)),
+    y: Number((midpoint.y + dy * scale).toFixed(2))
+  }
+}
+
+export function projectPointToPolylineSegment(point, start, end, segment = {}) {
+  if (!point || !start || !end) return null
+
+  if (segment?.type === 'quadratic' && segment.control) {
+    const steps = 48
+    let bestPoint = start
+    let bestT = 0
+    let bestDistance = Number.POSITIVE_INFINITY
+
+    for (let step = 0; step <= steps; step += 1) {
+      const t = step / steps
+      const candidate = getQuadraticPointAt(start, segment.control, end, t)
+      const dx = point.x - candidate.x
+      const dy = point.y - candidate.y
+      const distance = dx * dx + dy * dy
+      if (distance < bestDistance) {
+        bestDistance = distance
+        bestPoint = candidate
+        bestT = t
+      }
+    }
+
+    return { point: bestPoint, t: Number(bestT.toFixed(4)) }
+  }
+
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const lengthSquared = dx * dx + dy * dy
+  if (lengthSquared === 0) {
+    return { point: normalizePoint(start), t: 0 }
+  }
+
+  const t = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared
+  const clamped = Math.max(0, Math.min(1, t))
+
+  return {
+    point: {
+      x: Number((start.x + dx * clamped).toFixed(2)),
+      y: Number((start.y + dy * clamped).toFixed(2))
+    },
+    t: Number(clamped.toFixed(4))
+  }
+}
+
+export function splitQuadraticSegment(start, control, end, t = 0.5) {
+  const safeT = Math.max(0.05, Math.min(0.95, Number(t || 0.5)))
+  const leftBridge = {
+    x: Number((start.x + (control.x - start.x) * safeT).toFixed(2)),
+    y: Number((start.y + (control.y - start.y) * safeT).toFixed(2))
+  }
+  const rightBridge = {
+    x: Number((control.x + (end.x - control.x) * safeT).toFixed(2)),
+    y: Number((control.y + (end.y - control.y) * safeT).toFixed(2))
+  }
+  const anchor = {
+    x: Number((leftBridge.x + (rightBridge.x - leftBridge.x) * safeT).toFixed(2)),
+    y: Number((leftBridge.y + (rightBridge.y - leftBridge.y) * safeT).toFixed(2))
+  }
+
+  return {
+    anchor,
+    segments: [
+      {
+        type: 'quadratic',
+        control: leftBridge
+      },
+      {
+        type: 'quadratic',
+        control: rightBridge
+      }
+    ]
+  }
+}

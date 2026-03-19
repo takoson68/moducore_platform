@@ -12,7 +12,7 @@ const props = defineProps({
   mapObjectsLength: { type: Number, default: 0 },
   objectLayerOrder: { type: String, default: '' },
   textEditValue: { type: String, default: '' },
-  tableLabelValue: { type: String, default: '' },
+  tableNoteValue: { type: String, default: '' },
   setActiveMap: { type: Function, required: true },
   openCreateMapForm: { type: Function, required: true },
   zoomOut: { type: Function, required: true },
@@ -24,14 +24,19 @@ const props = defineProps({
   deleteActiveMap: { type: Function, required: true },
   deleteActiveObject: { type: Function, required: true },
   deleteActiveTable: { type: Function, required: true },
+  duplicateActiveTable: { type: Function, required: true },
+  selectAllInCurrentMode: { type: Function, required: true },
+  selectEntireScene: { type: Function, required: true },
+  selectedObjectCount: { type: Number, default: 0 },
+  selectedTableCount: { type: Number, default: 0 },
   setWorkingMode: { type: Function, required: true },
   setTool: { type: Function, required: true },
   setObjectLayerOrder: { type: Function, required: true },
   applyActiveObjectLayerOrder: { type: Function, required: true },
   setTextEditValue: { type: Function, required: true },
-  setTableLabelValue: { type: Function, required: true },
+  setTableNoteValue: { type: Function, required: true },
   handleActiveTextInput: { type: Function, required: true },
-  handleActiveTableLabelInput: { type: Function, required: true }
+  handleActiveTableNoteInput: { type: Function, required: true }
 })
 </script>
 
@@ -55,6 +60,7 @@ const props = defineProps({
       input.workspace-map-size-input(type="number" min="1" step="1" v-model="props.mapMetaForm.width")
       span.workspace-map-size-separator x
       input.workspace-map-size-input(type="number" min="1" step="1" v-model="props.mapMetaForm.height")
+      input.workspace-map-size-input(type="text" v-model="props.mapMetaForm.tablePrefix" placeholder="桌位前綴，例如 A2")
       button.ghost-button(type="button" @click="props.submitMapMeta") 套用
       span.workspace-inline-divider(aria-hidden="true")
       button.ghost-button(type="button" @click="props.saveDraft" :disabled="!props.activeMap") 草稿存檔
@@ -80,6 +86,16 @@ const props = defineProps({
           :disabled="props.state.mode !== 'edit' || !props.activeMap || props.state.toolbarLocked"
           @click="props.setTool(tool.id)"
         ) {{ tool.label }}
+      button.ghost-button(
+        type="button"
+        :disabled="props.state.mode !== 'edit' || !props.activeMap || props.state.toolbarLocked"
+        @click="props.selectAllInCurrentMode"
+      ) {{ props.state.workingMode === 'table' ? `全選桌位${props.selectedTableCount ? `（${props.selectedTableCount}）` : ''}` : `全選元件${props.selectedObjectCount ? `（${props.selectedObjectCount}）` : ''}` }}
+      button.ghost-button(
+        type="button"
+        :disabled="props.state.mode !== 'edit' || !props.activeMap || props.state.toolbarLocked"
+        @click="props.selectEntireScene"
+      ) 全選地圖和桌位
     .toolbar-group.workspace-object-actions(v-if="props.activeObject && props.state.workingMode === 'map'")
       .workspace-layer-control
         input.workspace-layer-input(
@@ -101,11 +117,12 @@ const props = defineProps({
         placeholder="輸入文字內容"
       )
     .toolbar-group.workspace-object-actions(v-else-if="props.activeTable && props.state.workingMode === 'table'")
+      button.ghost-button(type="button" @click="props.duplicateActiveTable") 複製桌位
       input.workspace-text-edit-input(
         type="text"
-        :value="props.tableLabelValue"
-        @input="props.setTableLabelValue($event.target.value); props.handleActiveTableLabelInput()"
-        placeholder="輸入桌位名稱"
+        :value="props.tableNoteValue"
+        @input="props.setTableNoteValue($event.target.value); props.handleActiveTableNoteInput()"
+        placeholder="輸入桌位備註"
       )
       button.danger-button(type="button" @click="props.deleteActiveTable") 刪除此元件
 </template>
