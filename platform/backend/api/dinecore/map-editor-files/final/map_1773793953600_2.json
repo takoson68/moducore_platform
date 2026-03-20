@@ -2,12 +2,12 @@
     "id": "map_1773793953600_2",
     "mapId": "map_1773793953600_2",
     "name": "餐廳二樓桌位",
-    "status": "draft",
+    "status": "final",
     "version": 1,
     "payloadVersion": 1,
-    "updatedAt": "2026-03-20T14:46:40+08:00",
-    "savedAt": "2026-03-20T14:46:40+08:00",
-    "editorUpdatedAt": "2026-03-20T06:46:40.422Z",
+    "updatedAt": "2026-03-20T14:46:41+08:00",
+    "savedAt": "2026-03-20T14:46:41+08:00",
+    "editorUpdatedAt": "2026-03-20T06:46:41.006Z",
     "savedBy": {
         "userId": 105,
         "username": "manager",
@@ -206,7 +206,7 @@
                 "height": 72.57,
                 "rotation": 0,
                 "createdAt": "2026-03-18T02:47:51.819Z",
-                "updatedAt": "2026-03-20T06:46:40.422Z"
+                "updatedAt": "2026-03-20T06:46:41.006Z"
             },
             {
                 "id": "table_14",
@@ -294,9 +294,9 @@
             }
         ],
         "createdAt": "2026-03-18T00:32:33.600Z",
-        "updatedAt": "2026-03-20T06:46:40.422Z",
+        "updatedAt": "2026-03-20T06:46:41.006Z",
         "savedAt": "2026-03-20T06:45:26.360Z",
-        "draftSavedAt": "2026-03-20T06:45:52.995Z"
+        "draftSavedAt": "2026-03-20T06:46:40.455Z"
     },
     "payload": {
         "id": "map_1773793953600_2",
@@ -490,7 +490,7 @@
                 "height": 72.57,
                 "rotation": 0,
                 "createdAt": "2026-03-18T02:47:51.819Z",
-                "updatedAt": "2026-03-20T06:46:40.422Z"
+                "updatedAt": "2026-03-20T06:46:41.006Z"
             },
             {
                 "id": "table_14",
@@ -578,19 +578,9 @@
             }
         ],
         "createdAt": "2026-03-18T00:32:33.600Z",
-        "updatedAt": "2026-03-20T06:46:40.422Z",
+        "updatedAt": "2026-03-20T06:46:41.006Z",
         "savedAt": "2026-03-20T06:45:26.360Z",
-        "draftSavedAt": "2026-03-20T06:45:52.995Z"
+        "draftSavedAt": "2026-03-20T06:46:40.455Z"
     },
-    "draftState": {
-        "mode": "edit",
-        "workingMode": "table",
-        "tool": "",
-        "activeObjectId": "",
-        "activeTableId": "table_11",
-        "toolbarLocked": true,
-        "pendingPolyline": [],
-        "pendingShape": null,
-        "pendingText": null
-    }
+    "draftState": []
 }

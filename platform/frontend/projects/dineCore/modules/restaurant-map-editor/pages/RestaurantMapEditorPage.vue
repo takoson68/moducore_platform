@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import world from '@/world.js'
 import MapEditorCanvas from './components/MapEditorCanvas.vue'
@@ -46,6 +46,7 @@ const pendingShape = ref(null)
 const tableSnapGuides = ref({ vertical: null, horizontal: null })
 const textEditValue = ref('')
 const tableNoteValue = ref('')
+const tableMaxActiveOrdersValue = ref('1')
 const objectLayerOrder = ref('')
 const viewScale = ref(1)
 const didPan = ref(false)
@@ -60,8 +61,7 @@ const createForm = reactive({
 const mapMetaForm = reactive({
   name: '',
   width: 1200,
-  height: 800,
-  tablePrefix: ''
+  height: 800
 })
 const toolOptions = [
   { id: 'polyline', label: '\u6298\u7dda' },
@@ -270,9 +270,35 @@ async function loadMapListFromBackend() {
   return true
 }
 
-async function loadMapFromBackend(mapId, preferredStatus = 'draft') {
-  if (!mapId || world.apiMode() !== 'real') return false
+function resolvePreferredLoadStatus(mapId) {
+  const targetMap = (state.value.maps || []).find(map => map.id === mapId)
+  const draftSavedAt = Date.parse(String(targetMap?.draftSavedAt || '')) || 0
+  const finalSavedAt = Date.parse(String(targetMap?.savedAt || '')) || 0
+  if (draftSavedAt <= 0 && finalSavedAt <= 0) return 'draft'
+  return draftSavedAt >= finalSavedAt ? 'draft' : 'final'
+}
 
+function applyDraftSessionPayload(data = null) {
+  editorStore.hydrateDraftSession({
+    mode: data?.draftState?.mode,
+    workingMode: data?.draftState?.workingMode,
+    activeTool: data?.draftState?.tool,
+    activeObjectId: data?.draftState?.activeObjectId,
+    activeTableId: data?.draftState?.activeTableId,
+    toolbarLocked: data?.draftState?.toolbarLocked,
+    draftState: {
+      pendingPolyline: data?.draftState?.pendingPolyline,
+      pendingShape: data?.draftState?.pendingShape,
+      pendingText: data?.draftState?.pendingText
+    }
+  })
+  pendingShape.value = data?.draftState?.pendingShape || null
+}
+
+async function loadMapFromBackend(mapId, preferredStatus = 'draft', options = {}) {
+  if (!mapId || world.apiMode() !== 'real') return null
+
+  const shouldHydrateSession = options?.hydrateSession !== false
   const statuses = preferredStatus === 'final' ? ['final', 'draft'] : ['draft', 'final']
   for (const status of statuses) {
     try {
@@ -284,21 +310,8 @@ async function loadMapFromBackend(mapId, preferredStatus = 'draft') {
       const mapPayload = data?.map?.id ? data.map : data?.payload
       if (mapPayload?.id) {
         editorStore.hydrateMap({ map: mapPayload })
-        editorStore.hydrateDraftSession({
-          mode: data?.draftState?.mode,
-          workingMode: data?.draftState?.workingMode,
-          activeTool: data?.draftState?.tool,
-          activeObjectId: data?.draftState?.activeObjectId,
-          activeTableId: data?.draftState?.activeTableId,
-          toolbarLocked: data?.draftState?.toolbarLocked,
-          draftState: {
-            pendingPolyline: data?.draftState?.pendingPolyline,
-            pendingShape: data?.draftState?.pendingShape,
-            pendingText: data?.draftState?.pendingText
-          }
-        })
-        pendingShape.value = data?.draftState?.pendingShape || null
-        return true
+        if (shouldHydrateSession) applyDraftSessionPayload(data)
+        return data
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
@@ -307,18 +320,18 @@ async function loadMapFromBackend(mapId, preferredStatus = 'draft') {
     }
   }
 
-  return false
+  return null
 }
 
-async function confirmProceedWithUnsavedChanges(actionLabel = '繼續操作') {
+async function confirmProceedWithUnsavedChanges(actionLabel = 'continue') {
   if (!activeMapIsDirty.value) return true
 
-  const shouldSave = window.confirm(`目前地圖「${activeMap.value?.name || ''}」有未儲存變更。\n按「確定」會先草稿存檔，再${actionLabel}。\n按「取消」可選擇不儲存直接${actionLabel}或取消。`)
+  const shouldSave = window.confirm('Unsaved changes found. Save draft before continuing?')
   if (shouldSave) {
     return await saveDraft()
   }
 
-  const shouldDiscard = window.confirm(`按「確定」會不儲存直接${actionLabel}。\n按「取消」則中止本次操作。`)
+  const shouldDiscard = window.confirm('Discard unsaved changes and continue?')
   return shouldDiscard
 }
 
@@ -336,8 +349,45 @@ function buildDraftSnapshot() {
   }
 }
 
+function syncMapMetaBeforeSave() {
+  if (!activeMap.value) return
+
+  const name = String(mapMetaForm.name || '').trim()
+  const width = Number(mapMetaForm.width)
+  const height = Number(mapMetaForm.height)
+
+  editorStore.updateMapMeta({
+    mapId: activeMap.value.id,
+    name,
+    width,
+    height
+  })
+}
+
+function syncActivePanelBeforeSave() {
+  if (activeShapeObject.value?.type === 'text') {
+    editorStore.updateObjectData({
+      objectId: activeShapeObject.value.id,
+      data: { content: String(textEditValue.value ?? '') }
+    })
+  }
+
+  if (activeTable.value) {
+    editorStore.updateTableData({
+      tableId: activeTable.value.id,
+      data: {
+        note: String(tableNoteValue.value || '').trim(),
+        maxActiveOrders: Math.max(1, Number(tableMaxActiveOrdersValue.value || 1))
+      }
+    })
+  }
+}
+
 async function saveDraft() {
   if (!activeMap.value) return false
+
+  syncMapMetaBeforeSave()
+  syncActivePanelBeforeSave()
 
   if (world.apiMode() !== 'real') {
     editorStore.saveDraft()
@@ -360,13 +410,16 @@ async function saveDraft() {
     return true
   } catch (error) {
     const message = error instanceof Error ? error.message : 'MAP_DRAFT_SAVE_FAILED'
-    window.alert(`草稿存檔失敗：${message}`)
+    window.alert(`草稿儲存失敗：${message}`)
     return false
   }
 }
 
 async function saveFinal() {
   if (!activeMap.value) return false
+
+  syncMapMetaBeforeSave()
+  syncActivePanelBeforeSave()
 
   if (world.apiMode() !== 'real') {
     editorStore.saveFinal()
@@ -388,7 +441,7 @@ async function saveFinal() {
     return true
   } catch (error) {
     const message = error instanceof Error ? error.message : 'MAP_FINAL_SAVE_FAILED'
-    window.alert(`正式存檔失敗：${message}`)
+    window.alert(`正式儲存失敗：${message}`)
     return false
   }
 }
@@ -405,19 +458,25 @@ function isCreateFormValid() {
 async function setActiveMap(mapId) {
   if (!mapId || mapId === state.value.activeMapId) return
 
-  const canProceed = await confirmProceedWithUnsavedChanges('切換地圖')
+  const canProceed = await confirmProceedWithUnsavedChanges('刪除地圖')
   if (!canProceed) return
+
+  let loadedData = null
+  if (!state.value.dirtyMapIds.includes(mapId)) {
+    try {
+      loadedData = await loadMapFromBackend(mapId, resolvePreferredLoadStatus(mapId), { hydrateSession: false })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'MAP_FILE_LOAD_FAILED'
+      window.alert(`載入地圖失敗：${message}`)
+      return
+    }
+  }
 
   editorStore.setActiveMap(mapId)
   resetLocalState()
 
-  if (state.value.dirtyMapIds.includes(mapId)) return
-
-  try {
-    await loadMapFromBackend(mapId, 'draft')
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'MAP_FILE_LOAD_FAILED'
-    window.alert(`地圖讀取失敗：${message}`)
+  if (loadedData) {
+    applyDraftSessionPayload(loadedData)
   }
 }
 
@@ -428,14 +487,12 @@ function submitMapMeta() {
   const name = String(mapMetaForm.name || '').trim()
   const width = Number(mapMetaForm.width)
   const height = Number(mapMetaForm.height)
-  const tablePrefix = String(mapMetaForm.tablePrefix || '').trim()
 
   editorStore.updateMapMeta({
     mapId: activeMap.value.id,
     name,
     width,
-    height,
-    tablePrefix
+    height
   })
 }
 
@@ -520,11 +577,15 @@ function setTableNoteValue(value) {
   tableNoteValue.value = String(value || '')
 }
 
+function setTableMaxActiveOrdersValue(value) {
+  tableMaxActiveOrdersValue.value = String(value || '1')
+}
+
 function handleActiveTextInput() {
   if (!activeShapeObject.value || activeShapeObject.value.type !== 'text') return
   editorStore.updateObjectData({
     objectId: activeShapeObject.value.id,
-    data: { content: String(textEditValue.value || '').trim() }
+    data: { content: String(textEditValue.value ?? '') }
   })
 }
 
@@ -534,6 +595,15 @@ function handleActiveTableNoteInput() {
   editorStore.updateTableData({
     tableId: activeTable.value.id,
     data: { note }
+  })
+}
+
+function handleActiveTableMaxActiveOrdersInput() {
+  if (!activeTable.value) return
+  const maxActiveOrders = Math.max(1, Number(tableMaxActiveOrdersValue.value || 1))
+  editorStore.updateTableData({
+    tableId: activeTable.value.id,
+    data: { maxActiveOrders }
   })
 }
 
@@ -1680,15 +1750,14 @@ function handleBeforeUnload(event) {
 watch(activeMap, map => {
   mapMetaForm.name = String(map?.name || '')
   mapMetaForm.width = Number(map?.width || 1200)
-  mapMetaForm.height = Number(map?.height || 800)
-  mapMetaForm.tablePrefix = String(map?.tablePrefix || '')
-}, { immediate: true })
+  mapMetaForm.height = Number(map?.height || 800)}, { immediate: true })
 
 watch(activeShapeObject, object => {
   textEditValue.value = object?.type === 'text' ? String(object.data?.content || '') : ''
 }, { immediate: true })
 watch(activeTable, table => {
   tableNoteValue.value = table ? String(table.note || '') : ''
+  tableMaxActiveOrdersValue.value = table ? String(Math.max(1, Number(table.maxActiveOrders || 1))) : '1'
 }, { immediate: true })
 watch(activeObjectOrder, order => {
   objectLayerOrder.value = order ? String(order) : ''
@@ -1704,15 +1773,15 @@ onMounted(async () => {
     await loadMapListFromBackend()
   } catch (error) {
     const message = error instanceof Error ? error.message : 'MAP_FILE_LIST_FAILED'
-    window.alert(`地圖列表讀取失敗：${message}`)
+    window.alert(`載入地圖清單失敗：${message}`)
   }
 
   if (activeMap.value?.id && !state.value.dirtyMapIds.includes(activeMap.value.id)) {
     try {
-      await loadMapFromBackend(activeMap.value.id, 'draft')
+      await loadMapFromBackend(activeMap.value.id, resolvePreferredLoadStatus(activeMap.value.id))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'MAP_FILE_LOAD_FAILED'
-      window.alert(`地圖讀取失敗：${message}`)
+      window.alert(`載入地圖失敗：${message}`)
     }
   }
 })
@@ -1743,6 +1812,7 @@ onBeforeUnmount(() => {
           :object-layer-order="objectLayerOrder"
           :text-edit-value="textEditValue"
           :table-note-value="tableNoteValue"
+          :table-max-active-orders-value="tableMaxActiveOrdersValue"
           :set-active-map="setActiveMap"
           :open-create-map-form="openCreateMapForm"
           :zoom-out="zoomOut"
@@ -1765,8 +1835,10 @@ onBeforeUnmount(() => {
           :apply-active-object-layer-order="applyActiveObjectLayerOrder"
           :set-text-edit-value="setTextEditValue"
           :set-table-note-value="setTableNoteValue"
+          :set-table-max-active-orders-value="setTableMaxActiveOrdersValue"
           :handle-active-text-input="handleActiveTextInput"
           :handle-active-table-note-input="handleActiveTableNoteInput"
+          :handle-active-table-max-active-orders-input="handleActiveTableMaxActiveOrdersInput"
         )
         .workspace-surface(ref="workspaceSurfaceRef" :class="{ 'is-pannable': canPanSurface, 'is-panning': dragState?.kind === 'pan' }")
           MapEditorCanvas(
@@ -1861,6 +1933,13 @@ onBeforeUnmount(() => {
 <style lang="sass">
 @use './RestaurantMapEditorPage.sass'
 </style>
+
+
+
+
+
+
+
 
 
 

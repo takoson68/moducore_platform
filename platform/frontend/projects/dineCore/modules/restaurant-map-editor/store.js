@@ -1,6 +1,6 @@
 import world from '@/world.js'
 
-const STORAGE_KEY = 'dinecore-restaurant-map-editor-draft-v1'
+const STORAGE_KEY = 'dinecore-restaurant-map-editor-draft-v2'
 
 function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
@@ -14,7 +14,6 @@ function createMapRecord(payload = {}, sequence = 1) {
   const width = Number(payload.width || 0)
   const height = Number(payload.height || 0)
   const name = String(payload.name || '').trim()
-  const tablePrefix = String(payload.tablePrefix || '').trim()
   const stamp = new Date().toISOString()
 
   return {
@@ -22,7 +21,7 @@ function createMapRecord(payload = {}, sequence = 1) {
     name,
     width,
     height,
-    tablePrefix,
+    mapCode: '',
     objects: [],
     tables: [],
     createdAt: stamp,
@@ -114,14 +113,17 @@ function normalizeObject(item = {}) {
 }
 
 function normalizeMap(map = {}) {
+  const objects = ensureUniqueEntities(Array.isArray(map.objects) ? map.objects.map(normalizeObject) : [], 'obj')
+  const tables = ensureUniqueEntities(Array.isArray(map.tables) ? map.tables.map(normalizeTable) : [], 'table')
+
   return {
     id: String(map.id || ''),
     name: String(map.name || ''),
     width: Number(map.width || 0),
     height: Number(map.height || 0),
-    tablePrefix: String(map.tablePrefix || '').trim(),
-    objects: Array.isArray(map.objects) ? map.objects.map(normalizeObject) : [],
-    tables: Array.isArray(map.tables) ? map.tables.map(normalizeTable) : [],
+    mapCode: String(map.mapCode || deriveMapCodeFromTables(tables) || '').trim().toUpperCase(),
+    objects,
+    tables,
     createdAt: String(map.createdAt || ''),
     updatedAt: String(map.updatedAt || ''),
     savedAt: String(map.savedAt || ''),
@@ -135,6 +137,8 @@ function normalizeTable(table = {}) {
     id: String(table.id || ''),
     label: String(table.label || '').trim(),
     note: String(table.note || '').trim(),
+    tableCode: String(table.tableCode || '').trim().toUpperCase(),
+    maxActiveOrders: Math.max(1, Number(table.maxActiveOrders || 1)),
     x: Number(table.x || 0),
     y: Number(table.y || 0),
     width: Number(table.width || 80),
@@ -145,17 +149,93 @@ function normalizeTable(table = {}) {
   }
 }
 
-function formatTableLabel(prefix = '', sequence = 1) {
-  return `${String(prefix || '').trim()}${String(sequence).padStart(2, '0')}`
+function formatTableLabel(sequence = 1) {
+  return String(sequence).padStart(2, '0')
 }
 
-function relabelTables(tables = [], prefix = '') {
+function relabelTables(tables = []) {
   return (Array.isArray(tables) ? tables : []).map((table, index) => ({
     ...normalizeTable(table),
-    label: formatTableLabel(prefix, index + 1)
+    label: formatTableLabel(index + 1)
   }))
 }
 
+function formatMapCodeFromIndex(index = 0) {
+  const safeIndex = Math.max(0, Number(index || 0))
+  const first = Math.floor(safeIndex / 26)
+  const second = safeIndex % 26
+  return String.fromCharCode(65 + first) + String.fromCharCode(65 + second)
+}
+
+function deriveMapCodeFromTables(tables = []) {
+  for (const table of Array.isArray(tables) ? tables : []) {
+    const code = String(table?.tableCode || '').trim().toUpperCase()
+    const match = code.match(/^([A-Z]{2})-/)
+    if (match) return match[1]
+  }
+  return ''
+}
+
+function ensureUniqueEntities(items = [], prefix = 'item') {
+  const used = new Set()
+  return (Array.isArray(items) ? items : []).map((item, index) => {
+    const normalized = cloneValue(item)
+    let nextId = String(normalized.id || '').trim()
+    if (!nextId || used.has(nextId)) {
+      let sequence = index + 1
+      nextId = `${prefix}_${sequence}`
+      while (used.has(nextId)) {
+        sequence += 1
+        nextId = `${prefix}_${sequence}`
+      }
+    }
+    used.add(nextId)
+    normalized.id = nextId
+    return normalized
+  })
+}
+
+function resolveMapsWithStableCodes(maps = []) {
+  const normalizedMaps = Array.isArray(maps) ? maps.map(map => ({ ...map })) : []
+  const reserved = new Set()
+
+  for (const map of normalizedMaps) {
+    const code = String(map.mapCode || '').trim().toUpperCase() || deriveMapCodeFromTables(map.tables)
+    if (code) {
+      map.mapCode = code
+      reserved.add(code)
+    }
+  }
+
+  let cursor = 0
+  for (const map of normalizedMaps) {
+    if (String(map.mapCode || '').trim()) continue
+    while (reserved.has(formatMapCodeFromIndex(cursor))) {
+      cursor += 1
+    }
+    const nextCode = formatMapCodeFromIndex(cursor)
+    map.mapCode = nextCode
+    reserved.add(nextCode)
+    cursor += 1
+  }
+
+  return normalizedMaps
+}
+
+function resolveMaxObjectSequence(maps = []) {
+  let maxSequence = 0
+  for (const map of Array.isArray(maps) ? maps : []) {
+    for (const item of Array.isArray(map.objects) ? map.objects : []) {
+      const match = String(item?.id || '').match(/^obj_(\d+)$/)
+      if (match) maxSequence = Math.max(maxSequence, Number(match[1] || 0))
+    }
+    for (const table of Array.isArray(map.tables) ? map.tables : []) {
+      const match = String(table?.id || '').match(/^table_(\d+)$/)
+      if (match) maxSequence = Math.max(maxSequence, Number(match[1] || 0))
+    }
+  }
+  return maxSequence
+}
 function clampTablePosition(data = {}, map = null) {
   const width = Number(data.width || 80)
   const height = Number(data.height || 80)
@@ -215,7 +295,7 @@ function loadPersistedState() {
     if (!raw) return base
 
     const parsed = JSON.parse(raw)
-    const maps = Array.isArray(parsed.maps) ? parsed.maps.map(normalizeMap).filter(map => map.id) : []
+    const maps = resolveMapsWithStableCodes(Array.isArray(parsed.maps) ? parsed.maps.map(normalizeMap).filter(map => map.id) : [])
     const activeMapId = maps.some(map => map.id === parsed.activeMapId) ? parsed.activeMapId : maps[0]?.id || null
 
     return {
@@ -233,7 +313,7 @@ function loadPersistedState() {
       draftState: normalizeDraftState(parsed.draftState),
       dirtyMapIds: Array.isArray(parsed.dirtyMapIds) ? parsed.dirtyMapIds.filter(id => maps.some(map => map.id === id)) : [],
       sequence: Number(parsed.sequence || maps.length || 0),
-      objectSequence: Number(parsed.objectSequence || 0),
+      objectSequence: Math.max(Number(parsed.objectSequence || 0), resolveMaxObjectSequence(maps)),
       lastSavedDraftAt: String(parsed.lastSavedDraftAt || ''),
       lastSavedFinalAt: String(parsed.lastSavedFinalAt || '')
     }
@@ -258,10 +338,12 @@ export function createRestaurantMapEditorStore() {
         const sequence = Number(state.sequence || 0) + 1
         const map = createMapRecord(payload, sequence)
 
+        const nextMaps = resolveMapsWithStableCodes([...state.maps, map])
+
         store.set({
           ...state,
           sequence,
-          maps: [...state.maps, map],
+          maps: nextMaps,
           activeMapId: map.id,
           isCreateMapFormOpen: false,
           mode: 'edit',
@@ -298,7 +380,6 @@ export function createRestaurantMapEditorStore() {
         const name = String(payload.name || '').trim()
         const width = Number(payload.width || 0)
         const height = Number(payload.height || 0)
-        const tablePrefix = String(payload.tablePrefix || '').trim()
         if (!mapId || !width || !height) return
 
         const stamp = new Date().toISOString()
@@ -311,8 +392,7 @@ export function createRestaurantMapEditorStore() {
                   name: name || map.name,
                   width,
                   height,
-                  tablePrefix,
-                  tables: relabelTables(map.tables, tablePrefix),
+                  tables: relabelTables(map.tables),
                   updatedAt: stamp
                 }
               : map
@@ -325,9 +405,12 @@ export function createRestaurantMapEditorStore() {
         const map = payload.map && typeof payload.map === 'object' ? normalizeMap(payload.map) : null
         if (!map || !map.id) return
 
+        const nextMaps = resolveMapsWithStableCodes(state.maps.map(item => (item.id === map.id ? map : item)))
+
         store.set({
           ...state,
-          maps: state.maps.map(item => (item.id === map.id ? map : item))
+          maps: nextMaps,
+          objectSequence: Math.max(Number(state.objectSequence || 0), resolveMaxObjectSequence(nextMaps))
         })
       },
       hydrateDraftSession(store, payload = {}) {
@@ -357,10 +440,10 @@ export function createRestaurantMapEditorStore() {
       },
       mergeMapsFromBackend(store, payload = {}) {
         const state = store.get()
-        const incomingMaps = Array.isArray(payload.maps) ? payload.maps.map(normalizeMap).filter(map => map.id) : []
+        const incomingMaps = resolveMapsWithStableCodes(Array.isArray(payload.maps) ? payload.maps.map(normalizeMap).filter(map => map.id) : [])
         if (!incomingMaps.length) return
 
-        const localMaps = Array.isArray(state.maps) ? state.maps : []
+        const localMaps = resolveMapsWithStableCodes(Array.isArray(state.maps) ? state.maps : [])
         const dirtyIds = new Set(Array.isArray(state.dirtyMapIds) ? state.dirtyMapIds : [])
         const localMapById = new Map(localMaps.map(map => [map.id, map]))
         const mergedMaps = incomingMaps.map(map => {
@@ -377,15 +460,18 @@ export function createRestaurantMapEditorStore() {
           }
         }
 
-        const activeMapId = mergedMaps.some(map => map.id === state.activeMapId)
+        const normalizedMergedMaps = resolveMapsWithStableCodes(mergedMaps)
+
+        const activeMapId = normalizedMergedMaps.some(map => map.id === state.activeMapId)
           ? state.activeMapId
-          : (mergedMaps[0]?.id || null)
+          : (normalizedMergedMaps[0]?.id || null)
 
         store.set({
           ...state,
-          maps: mergedMaps,
+          maps: normalizedMergedMaps,
           activeMapId,
-          mode: activeMapId ? state.mode : 'view'
+          mode: activeMapId ? state.mode : 'view',
+          objectSequence: Math.max(Number(state.objectSequence || 0), resolveMaxObjectSequence(normalizedMergedMaps))
         })
       },
       deleteMap(store, mapId) {
@@ -717,10 +803,12 @@ export function createRestaurantMapEditorStore() {
             height: Number(data.height || 80),
             rotation: Number(data.rotation || 0),
             note: '',
+            tableCode: '',
+            maxActiveOrders: 1,
             createdAt: stamp,
             updatedAt: stamp
           }
-        ], activeMap?.tablePrefix || '')
+        ])
         const table = nextTables.at(-1)
 
         store.set({
@@ -756,11 +844,13 @@ export function createRestaurantMapEditorStore() {
           x: Number(sourceTable.x || 0) + 24,
           y: Number(sourceTable.y || 0) + 24,
           note: '',
+          tableCode: '',
+          maxActiveOrders: Math.max(1, Number(sourceTable.maxActiveOrders || 1)),
           createdAt: stamp,
           updatedAt: stamp
         })
         const clampedTable = clampTablePosition(duplicatedTable, activeMap)
-        const nextTables = relabelTables([...(activeMap.tables || []), clampedTable], activeMap.tablePrefix || '')
+        const nextTables = relabelTables([...(activeMap.tables || []), clampedTable])
         const createdTable = nextTables.at(-1)
 
         store.set({
@@ -862,7 +952,7 @@ export function createRestaurantMapEditorStore() {
               ? {
                   ...map,
                   updatedAt: stamp,
-                  tables: relabelTables((map.tables || []).filter(item => item.id !== tableId), map.tablePrefix)
+                  tables: relabelTables((map.tables || []).filter(item => item.id !== tableId))
                 }
               : map
           )),
@@ -907,3 +997,6 @@ export function createRestaurantMapEditorStore() {
     }
   })
 }
+
+
+

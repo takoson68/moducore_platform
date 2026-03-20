@@ -2,12 +2,12 @@
     "id": "map_1773748044838_1",
     "mapId": "map_1773748044838_1",
     "name": "餐廳一樓大廳",
-    "status": "draft",
+    "status": "final",
     "version": 1,
     "payloadVersion": 1,
-    "updatedAt": "2026-03-20T14:04:05+08:00",
-    "savedAt": "2026-03-20T14:04:05+08:00",
-    "editorUpdatedAt": "2026-03-20T05:52:11.877Z",
+    "updatedAt": "2026-03-20T14:04:06+08:00",
+    "savedAt": "2026-03-20T14:04:06+08:00",
+    "editorUpdatedAt": "2026-03-20T06:04:05.828Z",
     "savedBy": {
         "userId": 105,
         "username": "manager",
@@ -317,9 +317,9 @@
             }
         ],
         "createdAt": "2026-03-17T11:47:24.836Z",
-        "updatedAt": "2026-03-20T05:52:11.877Z",
+        "updatedAt": "2026-03-20T06:04:05.828Z",
         "savedAt": "2026-03-17T11:53:41.943Z",
-        "draftSavedAt": "2026-03-20T05:41:41.655Z"
+        "draftSavedAt": "2026-03-20T06:04:05.828Z"
     },
     "payload": {
         "id": "map_1773748044838_1",
@@ -624,13 +624,13 @@
             }
         ],
         "createdAt": "2026-03-17T11:47:24.836Z",
-        "updatedAt": "2026-03-20T05:52:11.877Z",
+        "updatedAt": "2026-03-20T06:04:05.828Z",
         "savedAt": "2026-03-17T11:53:41.943Z",
-        "draftSavedAt": "2026-03-20T05:41:41.655Z"
+        "draftSavedAt": "2026-03-20T06:04:05.828Z"
     },
     "draftState": {
         "mode": "edit",
-        "workingMode": "table",
+        "workingMode": "map",
         "tool": "",
         "activeObjectId": "",
         "activeTableId": "",

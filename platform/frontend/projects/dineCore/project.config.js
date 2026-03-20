@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   name: 'dineCore',
   title: 'DineCore',
   tenant_id: 'dineCore',
@@ -9,6 +9,7 @@
     'checkout',
     'order-tracker',
     'counter',
+    'counter-map',
     'kitchen',
     'dashboard',
     'reports',

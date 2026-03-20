@@ -383,6 +383,7 @@ function handleGuestCategorySelect(categoryId) {
 
       main.staff-shell__body
         RouterView
+        #staff-shell-overlay-root.staff-shell__overlay-root
 
     StaffAuthPanel(
       v-else-if="isStaffGuest"
@@ -933,11 +934,18 @@ function handleGuestCategorySelect(categoryId) {
   gap: 14px
 
 .staff-shell__body
+  position: relative
   width: 100%
   min-width: 0
   margin: 0
   padding: 56px 28px 28px 24px
   box-sizing: border-box
+
+.staff-shell__overlay-root
+  position: absolute
+  inset: 0
+  pointer-events: none
+  z-index: 20
 
 .staff-shell__body,
 .guest-shell__body

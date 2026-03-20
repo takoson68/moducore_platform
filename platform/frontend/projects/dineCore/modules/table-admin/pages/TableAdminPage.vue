@@ -7,21 +7,44 @@ const tableAdminStore = world.store('dineCoreTableAdminStore')
 const state = computed(() => tableAdminStore.state)
 const staffAuth = useDineCoreStaffAuth()
 const hasLoadedOnce = ref(false)
-
+const isImporting = ref(false)
+const isReimporting = ref(false)
 const copiedTableCode = ref('')
 const qrImageUrlByTableCode = reactive({})
 const isGeneratingQrByTableCode = reactive({})
 
-const createForm = reactive({
-  code: '',
-  name: '',
-  areaName: '',
-  dineMode: 'dine_in'
+const selectedMapId = computed({
+  get: () => String(state.value.selectedMapId || ''),
+  set: async value => {
+    await selectMap(value)
+  }
 })
 
-async function loadTables() {
+const selectedMapSummary = computed(() =>
+  (state.value.maps || []).find(map => map.id === state.value.selectedMapId) || null
+)
+
+function resolveTableAdminErrorMessage(error) {
+  const code = String(error?.message || 'UNKNOWN_ERROR').trim()
+
+  switch (code) {
+    case 'MAP_ID_REQUIRED':
+      return '請先選擇正式地圖'
+    case 'MAP_FILE_NOT_FOUND':
+      return '找不到對應的正式地圖檔案'
+    case 'TABLE_CODE_REQUIRED':
+      return '桌位代碼不存在'
+    default:
+      return `發生錯誤：${code}`
+  }
+}
+
+async function boot() {
   try {
-    await tableAdminStore.load()
+    const firstMapId = await tableAdminStore.loadMaps()
+    if (firstMapId) {
+      await tableAdminStore.selectMap({ mapId: firstMapId })
+    }
     hasLoadedOnce.value = true
   } catch (error) {
     window.alert(resolveTableAdminErrorMessage(error))
@@ -30,14 +53,14 @@ async function loadTables() {
 
 onMounted(async () => {
   if (!staffAuth.isAuthenticated.value) return
-  await loadTables()
+  await boot()
 })
 
 watch(
   () => staffAuth.isAuthenticated.value,
   async isAuthenticated => {
     if (!isAuthenticated || hasLoadedOnce.value) return
-    await loadTables()
+    await boot()
   }
 )
 
@@ -53,36 +76,46 @@ watchEffect(() => {
   }
 })
 
-function resolveTableAdminErrorMessage(error) {
-  const code = String(error?.message || 'UNKNOWN_ERROR').trim()
-
-  switch (code) {
-    case 'TABLE_CODE_ALREADY_EXISTS':
-      return '桌號代碼已存在，請改用其他桌號。'
-    case 'TABLE_CODE_REQUIRED':
-      return '請輸入桌號代碼。'
-    case 'TABLE_NAME_REQUIRED':
-      return '請輸入桌位名稱。'
-    default:
-      return `操作失敗：${code}`
+async function selectMap(mapId) {
+  const nextMapId = String(mapId || '').trim()
+  try {
+    await tableAdminStore.selectMap({ mapId: nextMapId })
+  } catch (error) {
+    window.alert(resolveTableAdminErrorMessage(error))
   }
 }
 
-async function createTable() {
-  try {
-    await tableAdminStore.createTable({
-      code: createForm.code,
-      name: createForm.name,
-      areaName: createForm.areaName,
-      dineMode: createForm.dineMode
-    })
+async function importSelectedMap() {
+  if (!state.value.selectedMapId) {
+    window.alert('請先選擇正式地圖')
+    return
+  }
 
-    createForm.code = ''
-    createForm.name = ''
-    createForm.areaName = ''
-    createForm.dineMode = 'dine_in'
+  isImporting.value = true
+  try {
+    const result = await tableAdminStore.importFromMap({ mapId: state.value.selectedMapId })
+    window.alert(`匯入完成，新增 ${result.insertedCount || 0} 筆，更新 ${result.updatedCount || 0} 筆`)
   } catch (error) {
     window.alert(resolveTableAdminErrorMessage(error))
+  } finally {
+    isImporting.value = false
+  }
+}
+
+async function reimportSelectedMap() {
+  if (!state.value.selectedMapId) {
+    window.alert('請先選擇正式地圖')
+    return
+  }
+
+  isReimporting.value = true
+  try {
+    const result = await tableAdminStore.reimportFromMap({ mapId: state.value.selectedMapId })
+    window.alert(`重新匯入完成，新增 ${result.insertedCount || 0} 筆，更新 ${result.updatedCount || 0} 筆`)
+  } catch (error) {
+    window.alert(resolveTableAdminErrorMessage(error))
+  } finally {
+    isReimporting.value = false
   }
 }
 
@@ -97,46 +130,8 @@ async function updateTable(table, patch) {
   }
 }
 
-async function deleteTable(table) {
-  const tableCode = String(table?.code || '').trim().toUpperCase()
-  if (!tableCode) return
-
-  const confirmed = window.confirm(
-    `確定要刪除桌位 ${tableCode} 嗎？\n按下「取消」可保留桌位，按下「確定」才會刪除。`
-  )
-  if (!confirmed) {
-    window.alert(`已取消刪除桌位 ${tableCode}`)
-    return
-  }
-
-  try {
-    await tableAdminStore.deleteTable({
-      code: tableCode
-    })
-
-    window.alert(`已刪除桌位 ${tableCode}`)
-  } catch (error) {
-    window.alert(resolveTableAdminErrorMessage(error))
-  }
-}
-
-async function moveTable(table, direction) {
-  try {
-    await tableAdminStore.reorderTables({
-      code: table.code,
-      direction
-    })
-  } catch (error) {
-    window.alert(resolveTableAdminErrorMessage(error))
-  }
-}
-
 function getEntryPath(tableCode) {
   return resolveAppRelativePath(`t/${tableCode}`)
-}
-
-function toTableCode(value) {
-  return String(value || '').trim().toUpperCase()
 }
 
 function getEntryUrl(tableCode) {
@@ -187,7 +182,7 @@ async function copyEntryUrl(tableCode) {
 }
 
 async function generateQrImage(table) {
-  const tableCode = toTableCode(table?.code)
+  const tableCode = String(table?.code || '').trim().toUpperCase()
   if (!tableCode) return
 
   isGeneratingQrByTableCode[tableCode] = true
@@ -201,28 +196,13 @@ async function generateQrImage(table) {
       payload?.publicUrl || payload?.publicPath || `assets/QRC/${tableCode}.png`
     )
 
-    const isDataUrl = /^data:/i.test(publicUrl)
-    qrImageUrlByTableCode[tableCode] = isDataUrl
-      ? publicUrl
-      : publicUrl.includes('?')
-        ? `${publicUrl}&v=${Date.now()}`
-        : `${publicUrl}?v=${Date.now()}`
-
-    if (payload?.generatedBy === 'frontend-fallback') {
-      window.alert(`已產生 ${tableCode} 的 QR 圖片（本地 fallback）`)
-      return
-    }
+    qrImageUrlByTableCode[tableCode] = publicUrl.includes('?')
+      ? `${publicUrl}&v=${Date.now()}`
+      : `${publicUrl}?v=${Date.now()}`
 
     window.alert(`已產生 ${tableCode} 的 QR 圖片`)
   } catch (error) {
-    const message = String(error?.message || 'UNKNOWN_ERROR')
-
-    if (message === 'REAL_API_REQUIRED') {
-      window.alert('目前為 mock 模式，請切換 real API 後再產生 QR。')
-      return
-    }
-
-    window.alert(`產生 QR 失敗：${message}`)
+    window.alert(resolveTableAdminErrorMessage(error))
   } finally {
     isGeneratingQrByTableCode[tableCode] = false
   }
@@ -233,7 +213,7 @@ function downloadQrImage(table) {
   const imageUrl = getQrImageSrc(tableCode)
 
   if (!imageUrl) {
-    window.alert('請先點擊「產生 QR」再下載。')
+    window.alert('請先產生 QR 圖片再下載')
     return
   }
 
@@ -243,6 +223,30 @@ function downloadQrImage(table) {
   link.click()
 }
 
+function viewCurrentOrders(table) {
+  const tableCode = String(table?.code || '').trim().toUpperCase()
+  if (!tableCode || typeof window === 'undefined') return
+  const path = resolveAppRelativePath(`staff/counter/orders?table_code=${encodeURIComponent(tableCode)}`)
+  window.location.assign(`${window.location.origin}${path}`)
+}
+
+function mapStatusClass(table) {
+  return {
+    'is-paused': table.operationalStatus === 'paused',
+    'is-limit': table.operationalStatus === 'max_active_orders_reached'
+  }
+}
+
+function getOperationalStatusLabel(table) {
+  switch (String(table?.operationalStatus || '')) {
+    case 'paused':
+      return '桌位暫停點餐'
+    case 'max_active_orders_reached':
+      return '已到目前線上最大訂單數'
+    default:
+      return '正常營運'
+  }
+}
 </script>
 
 <template lang="pug">
@@ -251,40 +255,40 @@ function downloadQrImage(table) {
     .table-admin-card__head
       div
         p.eyebrow 桌位管理
-        h2.table-admin-card__title 桌號與入桌連結管理
-        p.table-admin-card__lead 可新增桌位資料、複製入桌連結，並產生對外可掃碼的 QR 圖片。
-    form.create-panel(@submit.prevent="createTable()")
+        h2.table-admin-card__title 正式地圖桌位管理
+        p.table-admin-card__lead 選擇正式地圖後，可匯入桌位、重新匯入、產生 QR、複製入口網址，並管理備註、最大訂單數與暫停點餐。
+    .map-toolbar
       label.form-field
-        span.form-field__label 桌號代碼
-        input.form-field__input(v-model="createForm.code" type="text" placeholder="例如 A02")
-      label.form-field
-        span.form-field__label 桌位名稱
-        input.form-field__input(v-model="createForm.name" type="text" placeholder="例如 A02 桌")
-      label.form-field
-        span.form-field__label 區域
-        input.form-field__input(v-model="createForm.areaName" type="text" placeholder="例如 內用區")
-      label.form-field
-        span.form-field__label 用餐模式
-        select.form-field__input(v-model="createForm.dineMode")
-          option(value="dine_in") 內用
-          option(value="takeout") 外帶
-          option(value="pickup") 自取
-      .create-panel__actions
-        button.action-chip(type="submit") 新增桌位
+        span.form-field__label 正式地圖
+        select.form-field__input(v-model="selectedMapId")
+          option(value="") 請選擇正式地圖
+          option(v-for="map in state.maps" :key="map.id" :value="map.id") {{ map.name || map.id }}
+      .map-toolbar__meta(v-if="selectedMapSummary")
+        span.meta-pill {{ `地圖 ${selectedMapSummary.name || selectedMapSummary.id}` }}
+        span.meta-pill(v-if="state.selectedMap") {{ `正式桌位 ${state.selectedMap.tables?.length || 0} 筆` }}
+        span.meta-pill(v-if="state.tables?.length") {{ `已匯入 ${state.tables.length} 筆` }}
+      .map-toolbar__actions
+        button.action-chip(type="button" @click="importSelectedMap" :disabled="!state.selectedMapId || isImporting") {{ isImporting ? '匯入中...' : '首次匯入' }}
+        button.action-chip.is-muted(type="button" @click="reimportSelectedMap" :disabled="!state.selectedMapId || isReimporting") {{ isReimporting ? '重新匯入中...' : '重新匯入' }}
 
-  section.table-list
-    article.table-row(v-for="(table, index) in state.tables" :key="table.code")
-      .table-row__main
+  section.empty-state(v-if="!state.selectedMapId")
+    h3.empty-state__title 尚未選擇正式地圖
+    p.empty-state__text 請先從上方選擇一張正式地圖，才能查看與管理該地圖的桌位資料。
+  section.empty-state(v-else-if="!state.tables.length")
+    h3.empty-state__title 這張地圖尚未匯入桌位
+    p.empty-state__text 請先執行首次匯入，將正式地圖中的桌位同步到桌位管理。
+  section.table-list(v-else)
+    article.table-row(v-for="table in state.tables" :key="table.code")
+      .table-row__head
         .table-row__title-wrap
-          strong.table-row__title {{ table.name }}
+          strong.table-row__title {{ table.code }}
           span.table-row__code {{ table.code }}
           span.table-row__sort {{ `排序 ${table.sortOrder}` }}
         .table-row__meta
-          span.meta-pill {{ table.areaName }}
-          span.meta-pill {{ table.dineMode === 'dine_in' ? '內用' : table.dineMode === 'takeout' ? '外帶' : '自取' }}
-          span.meta-pill(:class="{ 'is-paused': !table.orderingEnabled }") {{ table.orderingEnabled ? '開放點餐' : '暫停點餐' }}
-          span.meta-pill.is-status {{ table.status === 'active' ? '啟用中' : table.status === 'cleaning' ? '清潔中' : '停用' }}
-
+          span.meta-pill(:class="mapStatusClass(table)") {{ getOperationalStatusLabel(table) }}
+          span.meta-pill {{ `目前未結單 ${table.currentOpenOrderCount}` }}
+          span.meta-pill(v-if="table.activeOrderNo") {{ `目前單號 ${table.activeOrderNo}` }}
+      .table-row__body
         .entry-card
           .entry-card__preview
             img.entry-card__qr(v-if="getQrImageSrc(table.code)" :src="getQrImageSrc(table.code)" :alt="`${table.code} QR`")
@@ -294,54 +298,38 @@ function downloadQrImage(table) {
               code.entry-card__path {{ getEntryPath(table.code) }}
               p.entry-card__url {{ getEntryUrl(table.code) }}
           .entry-card__actions
-            button.action-chip(type="button" @click="generateQrImage(table)" :disabled="isGeneratingQrByTableCode[table.code]") {{ isGeneratingQrByTableCode[table.code] ? '產生中...' : '產生 QR' }}
-            button.action-chip(type="button" @click="copyEntryUrl(table.code)") 複製連結
+            button.action-chip(type="button" @click="generateQrImage(table)" :disabled="isGeneratingQrByTableCode[table.code]") {{ isGeneratingQrByTableCode[table.code] ? '產生中...' : '產生 / 重新產生 QR' }}
+            button.action-chip(type="button" @click="copyEntryUrl(table.code)") 複製入口網址
             button.action-chip.is-muted(type="button" @click="downloadQrImage(table)") 下載 QR
             span.entry-card__copied(v-if="copiedTableCode === table.code") 已複製
-
-      .table-row__controls
-        label.inline-field
-          span.inline-field__label 桌位名稱
-          input.inline-field__input(
-            :value="table.name"
-            type="text"
-            @change="updateTable(table, { name: $event.target.value })"
-          )
-        label.inline-field
-          span.inline-field__label 區域
-          input.inline-field__input(
-            :value="table.areaName"
-            type="text"
-            @change="updateTable(table, { areaName: $event.target.value })"
-          )
-        label.inline-field
-          span.inline-field__label 狀態
-          select.inline-field__input(
-            :value="table.status"
-            @change="updateTable(table, { status: $event.target.value })"
-          )
-            option(value="active") 啟用中
-            option(value="cleaning") 清潔中
-            option(value="inactive") 停用
-
-        .table-row__actions
-          .table-row__sort-actions
-            button.action-chip.is-muted(
-              type="button"
-              @click="moveTable(table, 'up')"
-              :disabled="index === 0"
-            ) 上移
-            button.action-chip.is-muted(
-              type="button"
-              @click="moveTable(table, 'down')"
-              :disabled="index === state.tables.length - 1"
-            ) 下移
-          .table-row__status-actions
+        .table-row__controls
+          label.inline-field
+            span.inline-field__label 桌位名稱
+            .inline-field__readonly {{ table.code }}
+          label.inline-field
+            span.inline-field__label 備註
+            input.inline-field__input(
+              :value="table.note"
+              type="text"
+              placeholder="可填寫清潔、維修或其他補充說明"
+              @change="updateTable(table, { note: $event.target.value })"
+            )
+          label.inline-field
+            span.inline-field__label 最大訂單數
+            input.inline-field__input(
+              :value="table.maxActiveOrders"
+              type="number"
+              min="1"
+              step="1"
+              @change="updateTable(table, { maxActiveOrders: Number($event.target.value || 1) })"
+            )
+          .table-row__actions
             button.action-chip(
               type="button"
               @click="updateTable(table, { orderingEnabled: !table.orderingEnabled })"
             ) {{ table.orderingEnabled ? '暫停點餐' : '恢復點餐' }}
-            button.action-chip.is-danger(type="button" @click="deleteTable(table)") 刪除桌位
+            button.action-chip(type="button" @click="viewCurrentOrders(table)") 查看目前訂單
+            button.action-chip.is-muted(type="button" @click="updateTable(table, { note: table.note, maxActiveOrders: table.maxActiveOrders })") 儲存設定
 </template>
 
 <style lang="sass">
@@ -349,17 +337,18 @@ function downloadQrImage(table) {
   display: grid
   gap: 18px
 
-.table-admin-card
+.table-admin-card,
+.empty-state,
+.table-row
   padding: 22px
   border-radius: 22px
-  background: rgba(255, 255, 255, 0.88)
+  background: rgba(255, 255, 255, 0.9)
   border: 1px solid rgba(140, 90, 31, 0.12)
-  display: grid
-  gap: 16px
 
 .table-admin-card__head
   display: grid
   gap: 8px
+  margin-bottom: 16px
 
 .eyebrow
   margin: 0
@@ -369,34 +358,48 @@ function downloadQrImage(table) {
   letter-spacing: 0.08em
   text-transform: uppercase
 
-.table-admin-card__title
+.table-admin-card__title,
+.empty-state__title
   margin: 0
   color: #243a3e
 
-.table-admin-card__lead
+.table-admin-card__lead,
+.empty-state__text
   margin: 0
   color: #6e8083
   line-height: 1.6
 
-.create-panel
+.map-toolbar
   display: grid
-  grid-template-columns: repeat(4, minmax(0, 1fr))
   gap: 12px
-  padding: 16px
-  border-radius: 18px
-  background: rgba(121, 214, 207, 0.08)
-  border: 1px solid rgba(109, 180, 177, 0.18)
 
-.form-field
+.map-toolbar__meta,
+.table-row__meta,
+.entry-card__actions,
+.table-row__actions
+  display: flex
+  flex-wrap: wrap
+  gap: 8px
+  align-items: center
+
+.map-toolbar__actions
+  display: flex
+  flex-wrap: wrap
+  gap: 10px
+
+.form-field,
+.inline-field
   display: grid
   gap: 8px
 
-.form-field__label
+.form-field__label,
+.inline-field__label
   color: #51686b
   font-size: 13px
   font-weight: 700
 
-.form-field__input
+.form-field__input,
+.inline-field__input
   width: 100%
   border: 1px solid rgba(109, 180, 177, 0.25)
   border-radius: 12px
@@ -405,33 +408,37 @@ function downloadQrImage(table) {
   color: #243a3e
   background: #fff
 
-.create-panel__actions
-  grid-column: 1 / -1
+.inline-field__readonly
+  min-height: 42px
   display: flex
-  justify-content: end
+  align-items: center
+  padding: 10px 12px
+  border-radius: 12px
+  background: rgba(121, 214, 207, 0.08)
+  color: #243a3e
+  font-weight: 700
 
 .table-list
   display: grid
-  gap: 12px
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 14px
+  align-items: start
 
 .table-row
   display: grid
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 520px)
-  gap: 14px
-  padding: 16px
-  border-radius: 18px
-  background: #fff
-  border: 1px solid rgba(109, 180, 177, 0.18)
+  gap: 16px
 
-.table-row__main
+.table-row__head,
+.table-row__body,
+.entry-card
   display: grid
   gap: 12px
 
 .table-row__title-wrap
   display: flex
   flex-wrap: wrap
-  align-items: center
   gap: 10px
+  align-items: center
 
 .table-row__title
   color: #21393d
@@ -440,11 +447,6 @@ function downloadQrImage(table) {
 .table-row__sort
   color: #6e8083
   font-size: 13px
-
-.table-row__meta
-  display: flex
-  flex-wrap: wrap
-  gap: 8px
 
 .meta-pill
   padding: 6px 10px
@@ -455,18 +457,19 @@ function downloadQrImage(table) {
   font-weight: 700
 
 .meta-pill.is-paused
+  background: rgba(214, 123, 108, 0.16)
+  color: #8f3a2f
+
+.meta-pill.is-limit
   background: rgba(241, 164, 76, 0.16)
   color: #9c5d11
 
-.meta-pill.is-status
-  background: rgba(90, 111, 132, 0.14)
-  color: #4c6378
+.table-row__body
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr)
 
 .entry-card
-  display: grid
-  gap: 12px
   padding: 14px
-  border-radius: 16px
+  border-radius: 18px
   background: rgba(121, 214, 207, 0.08)
   border: 1px solid rgba(109, 180, 177, 0.18)
 
@@ -513,12 +516,6 @@ function downloadQrImage(table) {
   color: #6e8083
   word-break: break-all
 
-.entry-card__actions
-  display: flex
-  flex-wrap: wrap
-  gap: 8px
-  align-items: center
-
 .entry-card__copied
   color: #2d6f6d
   font-size: 12px
@@ -526,35 +523,7 @@ function downloadQrImage(table) {
 
 .table-row__controls
   display: grid
-  gap: 10px
-
-.inline-field
-  display: grid
-  gap: 6px
-
-.inline-field__label
-  color: #6e8083
-  font-size: 12px
-  font-weight: 700
-
-.inline-field__input
-  width: 100%
-  border: 1px solid rgba(109, 180, 177, 0.22)
-  border-radius: 10px
-  padding: 8px 10px
-  font: inherit
-  color: #264145
-  background: #fff
-
-.table-row__actions
-  display: grid
-  gap: 10px
-
-.table-row__sort-actions,
-.table-row__status-actions
-  display: flex
-  flex-wrap: wrap
-  gap: 8px
+  gap: 12px
 
 .action-chip
   border: 0
@@ -569,32 +538,24 @@ function downloadQrImage(table) {
   background: rgba(140, 90, 31, 0.1)
   color: #8c5a1f
 
-.action-chip.is-danger
-  background: rgba(214, 123, 108, 0.18)
-  color: #8f3a2f
-
 .action-chip:disabled
   opacity: 0.55
   cursor: not-allowed
 
-@media (max-width: 1100px)
-  .table-row
+@media (max-width: 1200px)
+  .table-list
     grid-template-columns: 1fr
 
-@media (max-width: 860px)
-  .create-panel
-    grid-template-columns: repeat(2, minmax(0, 1fr))
+  .table-row__body
+    grid-template-columns: 1fr
 
 @media (max-width: 640px)
-  .create-panel
-    grid-template-columns: 1fr
-
   .entry-card__preview
     grid-template-columns: 1fr
 
   .entry-card__qr,
   .entry-card__qr-empty
     width: 100%
-    height: auto
     min-height: 124px
+    height: auto
 </style>

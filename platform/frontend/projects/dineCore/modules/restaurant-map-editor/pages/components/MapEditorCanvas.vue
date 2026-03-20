@@ -74,18 +74,25 @@ function getSvgElement() {
   return svgElementRef.value
 }
 
+function getTableDisplayLabel(table = {}) {
+  const label = String(table?.label || '').trim()
+  const tableCode = String(table?.tableCode || '').trim().toUpperCase()
+  const mapCode = String(props.activeMap?.mapCode || '').trim().toUpperCase()
+  const note = String(table?.note || '').trim()
+  const displayCode = /^[A-Z]{2}-\d{3}$/.test(tableCode) ? tableCode.replace(/-/g, '') : (mapCode && label ? mapCode + label : label)
+  return note ? displayCode + ' - ' + note : displayCode
+}
 defineExpose({
   getSvgElement
 })
 </script>
-
 <template lang="pug">
 .workspace-grid(:style="{ '--map-width': `${props.activeMap.width * props.viewScale}px`, '--map-height': `${props.activeMap.height * props.viewScale}px` }")
   svg.workspace-svg(
     ref="svgElementRef"
     :viewBox="`0 0 ${props.activeMap.width} ${props.activeMap.height}`"
     role="img"
-    aria-label="地圖編輯區"
+    aria-label="餐廳地圖編輯畫布"
     @click="props.handleSvgClick"
     @pointerdown="props.handleSvgPointerDown"
     @mousemove="props.handleSvgMove"
@@ -170,7 +177,7 @@ defineExpose({
         g(:transform="props.activeTableId === table.id ? props.activeTableTransform : ''")
           rect.map-table-hit(:x="table.x" :y="table.y" :width="table.width" :height="table.height" rx="14" ry="14" @click.stop="props.selectTable(table.id)" @pointerdown.stop="props.startTableMove(table, $event)")
           rect.map-table(:class="{ 'is-active': table.id === props.activeTableId, 'is-selected': props.selectedTableIds.includes(table.id) }" :x="table.x" :y="table.y" :width="table.width" :height="table.height" rx="14" ry="14" @click.stop="props.selectTable(table.id)" @pointerdown.stop="props.startTableMove(table, $event)")
-          text.map-table-label(:x="table.x + table.width / 2" :y="table.y + table.height / 2" text-anchor="middle" dominant-baseline="middle" @click.stop="props.selectTable(table.id)" @pointerdown.stop="props.startTableMove(table, $event)") {{ table.label }}
+          text.map-table-label(:x="table.x + table.width / 2" :y="table.y + table.height / 2" text-anchor="middle" dominant-baseline="middle" @click.stop="props.selectTable(table.id)" @pointerdown.stop="props.startTableMove(table, $event)") {{ getTableDisplayLabel(table) }}
       TableEditorOverlay(
         :active-table="props.activeTable"
         :active-table-box="props.activeTableBox"
@@ -181,3 +188,5 @@ defineExpose({
         :start-table-rotate="props.startTableRotate"
       )
 </template>
+
+

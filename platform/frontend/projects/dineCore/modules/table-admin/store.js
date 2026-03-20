@@ -1,11 +1,12 @@
 import world from '@/world.js'
 import {
-  createTableAdminTable,
   clearTableAdminGuestSessions,
-  deleteTableAdminTable,
   generateTableAdminQr,
+  importTableAdminTablesFromMap,
+  loadTableAdminMapDetail,
+  loadTableAdminMaps,
   loadTableAdminTables,
-  reorderTableAdminTables,
+  reimportTableAdminTablesFromMap,
   updateTableAdminTable
 } from './service.js'
 
@@ -13,22 +14,83 @@ export function createTableAdminStore() {
   return world.createStore({
     name: 'dineCoreTableAdminStore',
     defaultValue: {
-      tables: []
+      maps: [],
+      selectedMapId: '',
+      selectedMap: null,
+      tables: [],
+      lastImportSummary: null
     },
     actions: {
-      async load(store) {
-        const payload = await loadTableAdminTables()
+      async loadMaps(store) {
+        const payload = await loadTableAdminMaps()
+        const state = store.get()
+        const maps = payload.maps || []
+        const selectedMapId = maps.some(map => map.id === state.selectedMapId)
+          ? state.selectedMapId
+          : (maps[0]?.id || '')
+
         store.set({
-          ...store.get(),
-          tables: payload.tables || []
+          ...state,
+          maps,
+          selectedMapId
+        })
+
+        return selectedMapId
+      },
+      async selectMap(store, payload = {}) {
+        const state = store.get()
+        const mapId = String(payload.mapId || payload.map_id || state.selectedMapId || '').trim()
+        if (!mapId) {
+          store.set({
+            ...state,
+            selectedMapId: '',
+            selectedMap: null,
+            tables: []
+          })
+          return
+        }
+
+        const [selectedMap, tablesPayload] = await Promise.all([
+          loadTableAdminMapDetail(mapId),
+          loadTableAdminTables({ mapId })
+        ])
+
+        store.set({
+          ...state,
+          selectedMapId: mapId,
+          selectedMap,
+          tables: tablesPayload.tables || []
         })
       },
-      async createTable(store, payload = {}) {
-        const nextState = await createTableAdminTable(payload)
+      async importFromMap(store, payload = {}) {
+        const state = store.get()
+        const mapId = String(payload.mapId || payload.map_id || state.selectedMapId || '').trim()
+        const result = await importTableAdminTablesFromMap({ mapId })
+        const tablesPayload = await loadTableAdminTables({ mapId })
+
         store.set({
           ...store.get(),
-          tables: nextState.tables || []
+          selectedMapId: mapId,
+          tables: tablesPayload.tables || [],
+          lastImportSummary: result
         })
+
+        return result
+      },
+      async reimportFromMap(store, payload = {}) {
+        const state = store.get()
+        const mapId = String(payload.mapId || payload.map_id || state.selectedMapId || '').trim()
+        const result = await reimportTableAdminTablesFromMap({ mapId })
+        const tablesPayload = await loadTableAdminTables({ mapId })
+
+        store.set({
+          ...store.get(),
+          selectedMapId: mapId,
+          tables: tablesPayload.tables || [],
+          lastImportSummary: result
+        })
+
+        return result
       },
       async updateTable(store, payload = {}) {
         const updated = await updateTableAdminTable(payload)
@@ -36,20 +98,6 @@ export function createTableAdminStore() {
         store.set({
           ...state,
           tables: state.tables.map(table => (table.code === updated.table.code ? updated.table : table))
-        })
-      },
-      async deleteTable(store, payload = {}) {
-        const nextState = await deleteTableAdminTable(payload)
-        store.set({
-          ...store.get(),
-          tables: nextState.tables || []
-        })
-      },
-      async reorderTables(store, payload = {}) {
-        const nextState = await reorderTableAdminTables(payload)
-        store.set({
-          ...store.get(),
-          tables: nextState.tables || []
         })
       },
       async generateTableQr(_store, payload = {}) {

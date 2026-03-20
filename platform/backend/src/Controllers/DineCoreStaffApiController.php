@@ -20,12 +20,30 @@ final class DineCoreStaffApiController
         }
 
         try {
-            $response->ok($this->loadStaffTables());
+            $mapId = trim((string)($request->query['map_id'] ?? $request->query['mapId'] ?? ''));
+            $response->ok($this->loadStaffTables($mapId !== '' ? $mapId : null));
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'STAFF_TABLES_LOAD_FAILED');
         }
     }
 
+    public function counterMapTableStatuses(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $mapId = trim((string)($request->query['map_id'] ?? $request->query['mapId'] ?? ''));
+            $response->ok([
+                'tables' => $this->loadCounterMapTableStatuses($mapId !== '' ? $mapId : null),
+                'polledAt' => date(DATE_ATOM),
+            ]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'COUNTER_MAP_TABLE_STATUS_LOAD_FAILED');
+        }
+    }
     public function createStaffTable(Request $request, Response $response): void
     {
         $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
@@ -51,8 +69,8 @@ final class DineCoreStaffApiController
             return;
         }
 
-        $safeName = $name !== '' ? $name : sprintf('%s 桌', $code);
-        $safeAreaName = $areaName !== '' ? $areaName : '未分區';
+        $safeName = $name !== '' ? $name : $code;
+        $safeAreaName = $areaName !== '' ? $areaName : '';
         $safeDineMode = in_array($dineMode, ['dine_in', 'takeout', 'pickup'], true) ? $dineMode : 'dine_in';
 
         try {
@@ -92,12 +110,15 @@ final class DineCoreStaffApiController
 
         $name = $request->body['name'] ?? null;
         $areaName = $request->body['areaName'] ?? $request->body['area_name'] ?? null;
+        $note = $request->body['note'] ?? null;
         $dineMode = $request->body['dineMode'] ?? $request->body['dine_mode'] ?? null;
         $status = $request->body['status'] ?? null;
         $orderingEnabled = $request->body['orderingEnabled'] ?? $request->body['ordering_enabled'] ?? null;
+        $maxActiveOrders = $request->body['maxActiveOrders'] ?? $request->body['max_active_orders'] ?? null;
 
         $nextName = is_string($name) ? trim($name) : (string)$table['name'];
-        $nextAreaName = is_string($areaName) ? trim($areaName) : (string)$table['area_name'];
+        $nextAreaName = is_string($areaName) ? trim($areaName) : (string)($table['area_name'] ?? '');
+        $nextNote = is_string($note) ? trim($note) : (string)($table['note'] ?? '');
         $nextDineMode = is_string($dineMode) ? trim($dineMode) : (string)$table['dine_mode'];
         $nextStatus = is_string($status) ? trim($status) : (string)$table['status'];
         $nextOrderingEnabled = is_bool($orderingEnabled)
@@ -114,16 +135,17 @@ final class DineCoreStaffApiController
             $nextStatus = (string)$table['status'];
         }
         if ($nextName === '') {
-            $nextName = sprintf('%s 桌', $code);
+            $nextName = $code;
         }
-        if ($nextAreaName === '') {
-            $nextAreaName = '未分區';
-        }
+
+        $nextMaxActiveOrders = $maxActiveOrders === null
+            ? max(1, (int)($table['max_active_orders'] ?? 1))
+            : max(1, (int)$maxActiveOrders);
 
         try {
             $stmt = db()->prepare(
                 'UPDATE dinecore_tables
-                 SET name = ?, area_name = ?, dine_mode = ?, status = ?, is_ordering_enabled = ?, updated_at = NOW()
+                 SET name = ?, area_name = ?, dine_mode = ?, status = ?, is_ordering_enabled = ?, max_active_orders = ?, note = ?, updated_at = NOW()
                  WHERE code = ?'
             );
             $stmt->execute([
@@ -132,6 +154,8 @@ final class DineCoreStaffApiController
                 $nextDineMode,
                 $nextStatus,
                 $nextOrderingEnabled ? 1 : 0,
+                $nextMaxActiveOrders,
+                $nextNote,
                 $code,
             ]);
 
@@ -148,7 +172,6 @@ final class DineCoreStaffApiController
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'TABLE_UPDATE_FAILED');
         }
     }
-
     public function deleteStaffTable(Request $request, Response $response): void
     {
         $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
@@ -304,6 +327,90 @@ final class DineCoreStaffApiController
             $response->ok($decoded);
         } catch (Throwable $error) {
             $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'MAP_FILE_LOAD_FAILED');
+        }
+    }
+
+    public function listFinalMapEditorFiles(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $maps = array_values(array_filter(
+                $this->listMapEditorSummaries(),
+                fn (array $item): bool => in_array('final', $item['availableStatuses'] ?? [], true)
+            ));
+            $response->ok(['maps' => $maps]);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'FINAL_MAP_FILE_LIST_FAILED');
+        }
+    }
+
+    public function loadFinalMapEditorFile(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $mapId = trim((string)($request->query['map_id'] ?? $request->query['mapId'] ?? ''));
+        if ($mapId === '') {
+            $response->validation('MAP_ID_REQUIRED');
+            return;
+        }
+
+        try {
+            $decoded = $this->readMapEditorFileRecord($mapId, 'final');
+            if ($decoded === null) {
+                $response->notFound('MAP_FILE_NOT_FOUND');
+                return;
+            }
+
+            $response->ok($decoded);
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'FINAL_MAP_FILE_LOAD_FAILED');
+        }
+    }
+
+    public function importStaffTablesFromMap(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $mapId = trim((string)($request->body['map_id'] ?? $request->body['mapId'] ?? ''));
+        if ($mapId === '') {
+            $response->validation('MAP_ID_REQUIRED');
+            return;
+        }
+
+        try {
+            $response->ok($this->importStaffTablesFromFinalMap($mapId, false));
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'TABLE_IMPORT_FROM_MAP_FAILED');
+        }
+    }
+
+    public function reimportStaffTablesFromMap(Request $request, Response $response): void
+    {
+        $context = $this->requireStaffContext($request, $response, ['counter', 'deputy_manager', 'manager']);
+        if ($context === null) {
+            return;
+        }
+
+        $mapId = trim((string)($request->body['map_id'] ?? $request->body['mapId'] ?? ''));
+        if ($mapId === '') {
+            $response->validation('MAP_ID_REQUIRED');
+            return;
+        }
+
+        try {
+            $response->ok($this->importStaffTablesFromFinalMap($mapId, true));
+        } catch (Throwable $error) {
+            $response->internal($error->getMessage() !== '' ? $error->getMessage() : 'TABLE_REIMPORT_FROM_MAP_FAILED');
         }
     }
 
@@ -2150,13 +2257,23 @@ final class DineCoreStaffApiController
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function loadStaffTables(): array
+    private function loadStaffTables(?string $mapId = null): array
     {
-        $stmt = db()->query(
-            'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order
-             FROM dinecore_tables
-             ORDER BY sort_order ASC, id ASC'
-        );
+        if ($mapId !== null && trim($mapId) !== '') {
+            $stmt = db()->prepare(
+                'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order, map_id, map_table_id, max_active_orders, note
+                 FROM dinecore_tables
+                 WHERE map_id = ?
+                 ORDER BY sort_order ASC, id ASC'
+            );
+            $stmt->execute([trim($mapId)]);
+        } else {
+            $stmt = db()->query(
+                'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order, map_id, map_table_id, max_active_orders, note
+                 FROM dinecore_tables
+                 ORDER BY sort_order ASC, id ASC'
+            );
+        }
 
         return array_map(fn (array $table): array => $this->normalizeStaffTable($table), $stmt->fetchAll() ?: []);
     }
@@ -2165,18 +2282,65 @@ final class DineCoreStaffApiController
      * @param array<string, mixed> $table
      * @return array<string, mixed>
      */
+        /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadCounterMapTableStatuses(?string $mapId = null): array
+    {
+        return array_map(
+            static fn (array $table): array => [
+                'id' => (int)($table['id'] ?? 0),
+                'code' => (string)($table['code'] ?? ''),
+                'mapId' => (string)($table['mapId'] ?? ''),
+                'mapTableId' => (string)($table['mapTableId'] ?? ''),
+                'maxActiveOrders' => (int)($table['maxActiveOrders'] ?? 1),
+                'currentOpenOrderCount' => (int)($table['currentOpenOrderCount'] ?? 0),
+                'operationalStatus' => (string)($table['operationalStatus'] ?? 'normal'),
+                'operationalStatusLabel' => (string)($table['operationalStatusLabel'] ?? ''),
+                'hasActiveOrder' => (bool)($table['hasActiveOrder'] ?? false),
+                'activeOrderNo' => (string)($table['activeOrderNo'] ?? ''),
+                'note' => (string)($table['note'] ?? ''),
+            ],
+            $this->loadStaffTables($mapId)
+        );
+    }
+
     private function normalizeStaffTable(array $table): array
     {
+        $code = (string)$table['code'];
+        $maxActiveOrders = max(1, (int)($table['max_active_orders'] ?? 1));
+        $orderingEnabled = (int)$table['is_ordering_enabled'] === 1;
+        $orderSnapshot = $this->loadTableOperationalSnapshot($code);
+        $currentOpenOrderCount = (int)($orderSnapshot['currentOpenOrderCount'] ?? 0);
+        $operationalStatus = !$orderingEnabled
+            ? 'paused'
+            : ($currentOpenOrderCount >= $maxActiveOrders ? 'max_active_orders_reached' : 'normal');
+        $operationalStatusLabel = match ($operationalStatus) {
+            'paused' => '??????',
+            'max_active_orders_reached' => '???????????',
+            default => '????',
+        };
+
         return [
             'id' => (int)$table['id'],
-            'code' => (string)$table['code'],
-            'name' => (string)$table['name'],
-            'areaName' => (string)$table['area_name'],
+            'code' => $code,
+            'name' => (string)($table['name'] ?? ''),
+            'label' => (string)($table['name'] ?? ''),
+            'areaName' => (string)($table['area_name'] ?? ''),
+            'note' => (string)($table['note'] ?? ''),
             'dineMode' => (string)$table['dine_mode'],
             'status' => (string)$table['status'],
-            'orderingEnabled' => (int)$table['is_ordering_enabled'] === 1,
+            'orderingEnabled' => $orderingEnabled,
             'sortOrder' => (int)($table['sort_order'] ?? 0),
-            'qrImageUrl' => $this->resolveTableQrImageUrl((string)$table['code']),
+            'mapId' => (string)($table['map_id'] ?? ''),
+            'mapTableId' => (string)($table['map_table_id'] ?? ''),
+            'maxActiveOrders' => $maxActiveOrders,
+            'currentOpenOrderCount' => $currentOpenOrderCount,
+            'operationalStatus' => $operationalStatus,
+            'operationalStatusLabel' => $operationalStatusLabel,
+            'hasActiveOrder' => $currentOpenOrderCount > 0,
+            'activeOrderNo' => (string)($orderSnapshot['activeOrderNo'] ?? ''),
+            'qrImageUrl' => $this->resolveTableQrImageUrl($code),
         ];
     }
 
@@ -2212,7 +2376,7 @@ final class DineCoreStaffApiController
 
         $safeStatus = in_array($status, ['draft', 'final'], true) ? $status : 'draft';
         $savedAt = date('c');
-        $normalizedMap = $this->normalizeMapEditorMapPayload($map);
+        $normalizedMap = $this->normalizeMapEditorMapPayload($map, $safeStatus === 'final');
         $draftState = $safeStatus === 'draft'
             ? $this->normalizeMapEditorDraftState($request->body['draftState'] ?? [])
             : [];
@@ -2445,7 +2609,7 @@ final class DineCoreStaffApiController
         return $sanitized !== '' ? $sanitized : 'map_draft';
     }
 
-    private function normalizeMapEditorMapPayload(array $map): array
+    private function normalizeMapEditorMapPayload(array $map, bool $isFinal = false): array
     {
         $objects = array_values(array_filter(
             array_map(fn (mixed $item): ?array => is_array($item) ? $this->normalizeMapEditorObject($item) : null, $map['objects'] ?? []),
@@ -2456,9 +2620,18 @@ final class DineCoreStaffApiController
             fn (?array $item): bool => $item !== null
         ));
 
+        $mapCode = strtoupper(trim((string)($map['mapCode'] ?? $map['map_code'] ?? '')));
+
+        if ($isFinal) {
+            $mapCode = $this->resolveMapEditorMapCode(trim((string)($map['id'] ?? '')), $mapCode);
+            $tables = $this->finalizeMapEditorTables($tables, $mapCode);
+        }
+
+
         return [
             'id' => trim((string)($map['id'] ?? '')),
             'name' => trim((string)($map['name'] ?? '')),
+            'mapCode' => $mapCode,
             'width' => max(0, (int)($map['width'] ?? 0)),
             'height' => max(0, (int)($map['height'] ?? 0)),
             'objects' => $objects,
@@ -2486,6 +2659,9 @@ final class DineCoreStaffApiController
         return [
             'id' => trim((string)($item['id'] ?? '')),
             'label' => trim((string)($item['label'] ?? '')),
+            'tableCode' => strtoupper(trim((string)($item['tableCode'] ?? $item['table_code'] ?? ''))),
+            'maxActiveOrders' => max(1, (int)($item['maxActiveOrders'] ?? $item['max_active_orders'] ?? 1)),
+            'note' => trim((string)($item['note'] ?? '')),
             'x' => (float)($item['x'] ?? 0),
             'y' => (float)($item['y'] ?? 0),
             'width' => (float)($item['width'] ?? 0),
@@ -2493,6 +2669,294 @@ final class DineCoreStaffApiController
             'rotation' => (float)($item['rotation'] ?? 0),
             'createdAt' => (string)($item['createdAt'] ?? ''),
             'updatedAt' => (string)($item['updatedAt'] ?? ''),
+        ];
+    }
+
+    private function readMapEditorFileRecord(string $mapId, string $status = 'final'): ?array
+    {
+        $path = $this->buildMapEditorFilePath($mapId, $status);
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $raw = @file_get_contents($path);
+        if (!is_string($raw) || trim($raw) === '') {
+            throw new \RuntimeException('MAP_FILE_READ_FAILED');
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            throw new \RuntimeException('MAP_FILE_DECODE_FAILED');
+        }
+
+        return $decoded;
+    }
+
+    private function finalizeMapEditorTables(array $tables, string $mapCode): array
+    {
+        $existingCodes = $this->collectReservedTableCodes();
+        $usedCodes = [];
+        $sequence = $this->resolveNextGeneratedTableCodeSequenceForMap($tables, $mapCode);
+        $finalized = [];
+
+        foreach ($tables as $index => $table) {
+            $normalized = $this->normalizeMapEditorTable($table);
+            $normalized['id'] = $normalized['id'] !== '' ? $normalized['id'] : sprintf('table_%d', $index + 1);
+            $normalized['label'] = $normalized['label'] !== '' ? $normalized['label'] : str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT);
+            $normalized['maxActiveOrders'] = max(1, (int)($normalized['maxActiveOrders'] ?? 1));
+
+            $candidate = strtoupper(trim((string)($normalized['tableCode'] ?? '')));
+            if ($candidate === '' || !preg_match('/^' . preg_quote($mapCode, '/') . '-\\d{3}$/', $candidate) || isset($usedCodes[$candidate])) {
+                do {
+                    $candidate = sprintf('%s-%03d', $mapCode, $sequence);
+                    $sequence += 1;
+                } while (isset($existingCodes[$candidate]) || isset($usedCodes[$candidate]));
+            }
+
+            $normalized['tableCode'] = $candidate;
+            $usedCodes[$candidate] = true;
+            $existingCodes[$candidate] = true;
+            $finalized[] = $normalized;
+        }
+
+        return $finalized;
+    }
+
+    private function resolveMapEditorMapCode(string $mapId, string $currentMapCode = ''): string
+    {
+        $candidate = strtoupper(trim($currentMapCode));
+        $reserved = $this->collectReservedMapCodes($mapId);
+
+        if ($candidate !== '' && !isset($reserved[$candidate])) {
+            return $candidate;
+        }
+
+        foreach ($this->generateMapCodeSequence() as $nextCode) {
+            if (!isset($reserved[$nextCode])) {
+                return $nextCode;
+            }
+        }
+
+        throw new \RuntimeException('MAP_CODE_POOL_EXHAUSTED');
+    }
+
+    private function collectReservedMapCodes(string $currentMapId = ''): array
+    {
+        $reserved = [];
+        foreach ($this->readMapEditorSummaryDir('final') as $summary) {
+            $mapId = trim((string)($summary['mapId'] ?? ''));
+            if ($mapId === '' || $mapId === $currentMapId) {
+                continue;
+            }
+
+            try {
+                $record = $this->readMapEditorFileRecord($mapId, 'final');
+                $map = is_array($record['map'] ?? null) ? $record['map'] : [];
+                $mapCode = strtoupper(trim((string)($map['mapCode'] ?? '')));
+                if ($mapCode !== '') {
+                    $reserved[$mapCode] = true;
+                }
+            } catch (Throwable) {
+            }
+        }
+
+        return $reserved;
+    }
+
+    private function generateMapCodeSequence(): iterable
+    {
+        for ($first = ord('A'); $first <= ord('Z'); $first += 1) {
+            for ($second = ord('A'); $second <= ord('Z'); $second += 1) {
+                yield chr($first) . chr($second);
+            }
+        }
+    }
+
+    private function collectReservedTableCodes(): array
+    {
+        $reserved = [];
+
+        try {
+            $rows = db()->query('SELECT code FROM dinecore_tables')->fetchAll() ?: [];
+            foreach ($rows as $row) {
+                $code = strtoupper(trim((string)($row['code'] ?? '')));
+                if ($code !== '') {
+                    $reserved[$code] = true;
+                }
+            }
+        } catch (Throwable) {
+        }
+
+        foreach ($this->readMapEditorSummaryDir('final') as $summary) {
+            $existingMapId = trim((string)($summary['mapId'] ?? ''));
+            if ($existingMapId === '') {
+                continue;
+            }
+
+            try {
+                $record = $this->readMapEditorFileRecord($existingMapId, 'final');
+                $tables = is_array($record['map']['tables'] ?? null) ? $record['map']['tables'] : [];
+                foreach ($tables as $table) {
+                    $code = strtoupper(trim((string)($table['tableCode'] ?? '')));
+                    if ($code !== '') {
+                        $reserved[$code] = true;
+                    }
+                }
+            } catch (Throwable) {
+            }
+        }
+
+        return $reserved;
+    }
+
+    private function importStaffTablesFromFinalMap(string $mapId, bool $isReimport): array
+    {
+        $record = $this->readMapEditorFileRecord($mapId, 'final');
+        if ($record === null) {
+            throw new \RuntimeException('MAP_FILE_NOT_FOUND');
+        }
+
+        $map = is_array($record['map'] ?? null) ? $record['map'] : [];
+        $tables = array_values(array_filter(
+            array_map(fn (mixed $item): ?array => is_array($item) ? $this->normalizeMapEditorTable($item) : null, $map['tables'] ?? []),
+            fn (?array $item): bool => $item !== null && (string)($item['id'] ?? '') !== ''
+        ));
+
+        $stmt = db()->prepare(
+            'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order, map_id, map_table_id, max_active_orders, note
+             FROM dinecore_tables
+             WHERE map_id = ?'
+        );
+        $stmt->execute([$mapId]);
+        $existingRows = $stmt->fetchAll() ?: [];
+        $existingByMapTableId = [];
+        foreach ($existingRows as $row) {
+            $existingByMapTableId[(string)($row['map_table_id'] ?? '')] = $row;
+        }
+
+        $inserted = 0;
+        $updated = 0;
+        $unchanged = 0;
+        $seenTableIds = [];
+
+        foreach ($tables as $table) {
+            $mapTableId = (string)$table['id'];
+            $label = trim((string)($table['label'] ?? ''));
+            $tableCode = strtoupper(trim((string)($table['tableCode'] ?? '')));
+            $maxActiveOrders = max(1, (int)($table['maxActiveOrders'] ?? 1));
+            $tableNote = trim((string)($table['note'] ?? ''));
+            $seenTableIds[$mapTableId] = true;
+
+            $existing = $existingByMapTableId[$mapTableId] ?? null;
+            if ($existing === null && $tableCode !== '') {
+                $existing = $this->findTableByCode($tableCode);
+            }
+
+            if ($existing !== null) {
+                $nextCode = $tableCode !== '' ? $tableCode : (string)$existing['code'];
+                $nextMaxActiveOrders = $isReimport
+                    ? max(1, (int)($existing['max_active_orders'] ?? 1))
+                    : $maxActiveOrders;
+                $existingName = trim((string)($existing['name'] ?? ''));
+                $nextLabel = $label !== '' ? $label : $existingName;
+                $nextName = trim(sprintf('%s %s', $nextCode, $nextLabel));
+                $nextAreaName = (string)($existing['area_name'] ?? '');
+                $nextNote = $tableNote !== '' ? $tableNote : (string)($existing['note'] ?? '');
+                $nextDineMode = (string)($existing['dine_mode'] ?? 'dine_in');
+                $nextStatus = (string)($existing['status'] ?? 'active');
+                $nextOrderingEnabled = (int)($existing['is_ordering_enabled'] ?? 1) === 1 ? 1 : 0;
+
+                $update = db()->prepare(
+                    'UPDATE dinecore_tables
+                     SET code = ?, name = ?, area_name = ?, dine_mode = ?, status = ?, is_ordering_enabled = ?, sort_order = ?, map_id = ?, map_table_id = ?, max_active_orders = ?, note = ?, updated_at = NOW()
+                     WHERE id = ?'
+                );
+                $update->execute([
+                    $nextCode,
+                    $nextName,
+                    $nextAreaName,
+                    $nextDineMode,
+                    $nextStatus,
+                    $nextOrderingEnabled,
+                    $this->resolveTableSortOrderForImport($existing),
+                    $mapId,
+                    $mapTableId,
+                    $nextMaxActiveOrders,
+                    $nextNote,
+                    (int)$existing['id'],
+                ]);
+                $updated += 1;
+                continue;
+            }
+
+            $insert = db()->prepare(
+                'INSERT INTO dinecore_tables (code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order, map_id, map_table_id, max_active_orders, note)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+            $insert->execute([
+                $tableCode,
+                trim(sprintf('%s %s', $tableCode, $label !== '' ? $label : $mapTableId)),
+                '',
+                'dine_in',
+                'active',
+                1,
+                $this->resolveNextTableSortOrder(),
+                $mapId,
+                $mapTableId,
+                $maxActiveOrders,
+                $tableNote,
+            ]);
+            $inserted += 1;
+        }
+
+        if ($isReimport) {
+            foreach ($existingRows as $row) {
+                $existingMapTableId = (string)($row['map_table_id'] ?? '');
+                if ($existingMapTableId === '' || isset($seenTableIds[$existingMapTableId])) {
+                    continue;
+                }
+                $unchanged += 1;
+            }
+        }
+
+        return [
+            'mapId' => $mapId,
+            'mapName' => (string)($map['name'] ?? $record['name'] ?? ''),
+            'insertedCount' => $inserted,
+            'updatedCount' => $updated,
+            'unchangedCount' => $unchanged,
+            'tables' => $this->loadStaffTables($mapId),
+        ];
+    }
+
+    private function resolveTableSortOrderForImport(array $existing): int
+    {
+        $sortOrder = (int)($existing['sort_order'] ?? 0);
+        return $sortOrder > 0 ? $sortOrder : $this->resolveNextTableSortOrder();
+    }
+
+    private function loadTableOperationalSnapshot(string $tableCode): array
+    {
+        $stmt = db()->prepare(
+            'SELECT id, order_no
+             FROM dinecore_orders
+             WHERE table_code = ?
+               AND payment_status <> "paid"
+               AND order_status <> "merged"
+               AND EXISTS (
+                   SELECT 1
+                   FROM dinecore_order_batches b
+                   WHERE b.order_id = dinecore_orders.id
+                     AND b.status <> "draft"
+               )
+             ORDER BY created_at DESC, id DESC'
+        );
+        $stmt->execute([$tableCode]);
+        $rows = $stmt->fetchAll() ?: [];
+
+        return [
+            'currentOpenOrderCount' => count($rows),
+            'activeOrderNo' => (string)($rows[0]['order_no'] ?? ''),
         ];
     }
 
@@ -2513,7 +2977,7 @@ final class DineCoreStaffApiController
     private function findTableByCode(string $tableCode): ?array
     {
         $stmt = db()->prepare(
-            'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order
+            'SELECT id, code, name, area_name, dine_mode, status, is_ordering_enabled, sort_order, map_id, map_table_id, max_active_orders, note
              FROM dinecore_tables
              WHERE UPPER(TRIM(code)) = ?
              LIMIT 1'
@@ -3943,4 +4407,16 @@ final class DineCoreStaffApiController
         };
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -1,19 +1,25 @@
 ﻿const staffRouteRegistry = [
   {
     key: 'dashboard',
-    label: '營運總覽',
+    label: '營運儀表板',
     path: '/staff/manager/dashboard',
     to: '/staff/manager/dashboard'
   },
   {
     key: 'counter',
-    label: '櫃台訂單',
+    label: '櫃檯訂單',
     path: '/staff/counter/orders',
     to: '/staff/counter/orders'
   },
   {
+    key: 'counter-map',
+    label: '櫃檯地圖',
+    path: '/staff/counter/map',
+    to: '/staff/counter/map'
+  },
+  {
     key: 'counter-detail',
-    label: '櫃台明細',
+    label: '訂單明細',
     path: '/staff/counter/orders/:orderId',
     to: orderId => `/staff/counter/orders/${orderId}`
   },
@@ -25,13 +31,13 @@
   },
   {
     key: 'visitor-stats',
-    label: '訪客 IP 觀測',
+    label: '訪客 IP 統計',
     path: '/staff/manager/visitor-stats',
     to: '/staff/manager/visitor-stats'
   },
   {
     key: 'menu-admin',
-    label: '商品管理',
+    label: '菜單管理',
     path: '/staff/manager/menu-items',
     to: '/staff/manager/menu-items'
   },
@@ -43,7 +49,7 @@
   },
   {
     key: 'restaurant-map-editor',
-    label: '餐廳地圖產生器',
+    label: '餐廳地圖編輯器',
     path: '/staff/manager/map-editor',
     to: '/staff/manager/map-editor'
   },
@@ -55,7 +61,7 @@
   },
   {
     key: 'audit-close',
-    label: '關帳作業',
+    label: '交班結帳',
     path: '/staff/manager/audit-close',
     to: '/staff/manager/audit-close'
   }
@@ -114,8 +120,6 @@ export function resolveStaffLandingPath(router, session) {
     return '/staff/manager/visitor-stats'
   }
 
-  const firstActiveItem = buildStaffNavItems(router, session)
-    .find(item => !item.disabled)
-
+  const firstActiveItem = buildStaffNavItems(router, session).find(item => !item.disabled)
   return firstActiveItem?.to || ''
 }
