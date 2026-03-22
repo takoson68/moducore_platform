@@ -58,7 +58,12 @@ function fillDemoCredentials() {
         //- br 
         small( style="color: #aaa;") 若要測試點餐流程，請使用下方連結或右上角手機 QR Code 進入點餐頁面。
         br
-        a(href="http://moducore_platform.test/t/A01" style="color: #007bff; text-decoration: underline;" target="_blank") 桌號 A01 點餐入口
+        a(
+          :href="props.demoEntryPath"
+          style="color: #007bff; text-decoration: underline;"
+          target="_blank"
+          rel="noopener noreferrer"
+        ) {{ `桌號 ${props.demoTableCode} 點餐入口` }}
     form.staff-auth-form(@submit.prevent="submitStaffLogin()")
       label.staff-auth-form__field
         span.staff-auth-form__label 帳號

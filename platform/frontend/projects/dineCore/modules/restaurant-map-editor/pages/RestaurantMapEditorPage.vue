@@ -295,6 +295,35 @@ function applyDraftSessionPayload(data = null) {
   pendingShape.value = data?.draftState?.pendingShape || null
 }
 
+function applyLoadedEditorSession(data = null) {
+  const hasDraftSession = Boolean(data?.draftState && typeof data.draftState === 'object')
+
+  if (hasDraftSession) {
+    applyDraftSessionPayload(data)
+    editorStore.hydrateDraftSession({
+      mode: 'edit',
+      workingMode: data?.draftState?.workingMode || 'map',
+      activeTool: data?.draftState?.tool || '',
+      activeObjectId: null,
+      activeTableId: null,
+      selectedObjectIds: [],
+      selectedTableIds: [],
+      toolbarLocked: false,
+      draftState: {
+        pendingPolyline: data?.draftState?.pendingPolyline,
+        pendingShape: data?.draftState?.pendingShape,
+        pendingText: data?.draftState?.pendingText
+      }
+    })
+    resetLocalState()
+    return
+  }
+
+  editorStore.setMode('edit')
+  editorStore.setWorkingMode('map')
+  resetLocalState()
+}
+
 async function loadMapFromBackend(mapId, preferredStatus = 'draft', options = {}) {
   if (!mapId || world.apiMode() !== 'real') return null
 
@@ -476,7 +505,7 @@ async function setActiveMap(mapId) {
   resetLocalState()
 
   if (loadedData) {
-    applyDraftSessionPayload(loadedData)
+    applyLoadedEditorSession(loadedData)
   }
 }
 
@@ -1778,7 +1807,10 @@ onMounted(async () => {
 
   if (activeMap.value?.id && !state.value.dirtyMapIds.includes(activeMap.value.id)) {
     try {
-      await loadMapFromBackend(activeMap.value.id, resolvePreferredLoadStatus(activeMap.value.id))
+      const loadedData = await loadMapFromBackend(activeMap.value.id, resolvePreferredLoadStatus(activeMap.value.id))
+      // 初次進頁先清掉殘留 selection/lock；若後端沒有 draft session，則預設直接進入可編輯模式。
+      editorStore.setActiveMap(activeMap.value.id)
+      applyLoadedEditorSession(loadedData)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'MAP_FILE_LOAD_FAILED'
       window.alert(`載入地圖失敗：${message}`)
@@ -1933,9 +1965,6 @@ onBeforeUnmount(() => {
 <style lang="sass">
 @use './RestaurantMapEditorPage.sass'
 </style>
-
-
-
 
 
 

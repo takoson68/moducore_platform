@@ -18,7 +18,7 @@ const staffAuth = useDineCoreStaffAuth()
 const orderingFlow = useDineCoreOrderingFlow()
 const devMenuOpen = ref(false)
 const staffHeadMenuOpen = ref(false)
-const demoTableCode = 'A01'
+const demoTableCode = 'AB-001'
 const isRevalidatingEntryContext = ref(false)
 const lastEntryRevalidateAt = ref(0)
 

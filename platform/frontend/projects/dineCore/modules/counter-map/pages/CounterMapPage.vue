@@ -399,8 +399,8 @@ onBeforeUnmount(() => {
             rx="14"
           )
           circle.map-table__order-dot(v-if="table.currentOpenOrderCount > 0" :cx="table.x + table.width - 10" :cy="table.y + 10" r="12")
-          text.map-table__order-count(v-if="table.currentOpenOrderCount > 0" :x="table.x + table.width - 10" :y="table.y + 10" text-anchor="middle" dominant-baseline="middle") {{ table.currentOpenOrderCount }}
-          text.map-table__label(:x="table.x + table.width / 2" :y="table.y + table.height / 2" text-anchor="middle" dominant-baseline="middle") {{ getTableDisplayLabel(table) }}
+          text.map-table__order-count(v-if="table.currentOpenOrderCount > 0" :x="table.x + table.width - 10" :y="table.y + 10" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" stroke="none" stroke-width="0") {{ table.currentOpenOrderCount }}
+          text.map-table__label(:x="table.x + table.width / 2" :y="table.y + table.height / 2" text-anchor="middle" dominant-baseline="middle" stroke="none" stroke-width="0") {{ getTableDisplayLabel(table) }}
 
   transition(name="detail-panel")
     .detail-overlay-shell(v-if="selectedTable")
@@ -569,8 +569,11 @@ onBeforeUnmount(() => {
 
 .map-object--text
   fill: #17383f
+  stroke: none
   font-size: 18px
-  font-weight: 700
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif
+  font-style: normal
+  font-weight: 500
 
 .map-table
   cursor: pointer
@@ -582,8 +585,12 @@ onBeforeUnmount(() => {
 
 .map-table__label
   fill: #0a5f57
+  stroke: none
+  stroke-width: 0
   font-size: 18px
-  font-weight: 700
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif
+  font-style: normal
+  font-weight: 500
   user-select: none
   pointer-events: none
 
@@ -594,6 +601,8 @@ onBeforeUnmount(() => {
 
 .map-table__order-count
   fill: #fff
+  stroke: none
+  stroke-width: 0
   font-size: 12px
   font-weight: 800
   pointer-events: none
