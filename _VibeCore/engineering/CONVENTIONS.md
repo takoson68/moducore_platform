@@ -85,6 +85,13 @@
 - page / component 可以使用模組 store 與模組 service，但不得以 project-level service 取代 module store。
 - 不得為了快速串接而把多個模組的業務狀態集中到單一 project service；這會破壞模組可註冊、可卸載、可觀測的邊界。
 - 若某個 service 的存在會讓模組必須知道其他模組內部資料形狀、生命週期或狀態欄位，視為耦合，必須拒絕。
+
+## Store Persistence And State Shape
+- 模組不得自行直接操作 `localStorage`、`sessionStorage` 或其他瀏覽器儲存 API 作為狀態持久化手段。
+- 模組需要 persistence 時，必須透過 `storeFactory` 提供的 persistence 機制處理，不得繞過平台共用層。
+- 禁止 full-state spread 寫法，例如 `store.set({ ...state })`、`set({ ...state, foo })`；狀態更新必須縮小到必要欄位或切分子 state。
+- 大型功能不得維持單一巨型 store；至少應依責任拆分，例如 `map`、`draft`、`selection` 等獨立 store 或 slice。
+- 若某模組因歷史包袱暫時無法完成拆分，必須先在工程紀錄中註明過渡期風險與拆分計畫，不得默認長期維持。
 - 若需求看起來必須突破此規則，必須先提出最小變更提案，不能直接改寫模組設計哲學。
 
 ## 自 new_engineering 倒入的正式規範

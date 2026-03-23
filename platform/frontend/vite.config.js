@@ -19,31 +19,11 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: projectOutDir,
       emptyOutDir: true,
-      cssCodeSplit: true,
+      cssCodeSplit: false,
       chunkSizeWarningLimit: 500,
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            const normalizedId = id.replace(/\\/g, '/')
-
-            if (normalizedId.includes('/node_modules/vue/') || normalizedId.includes('/node_modules/vue-router/')) {
-              return 'vendor-vue'
-            }
-
-            if (normalizedId.includes('/node_modules/')) {
-              return 'vendor'
-            }
-
-            if (normalizedId.includes('/projects/project-b/modules/mtk2mad/')) {
-              return 'project-b-mtk2mad'
-            }
-
-            if (normalizedId.includes('/projects/dineCore/modules/restaurant-map-editor/')) {
-              return 'dinecore-map-editor'
-            }
-
-            return undefined
-          },
+          inlineDynamicImports: true,
         },
       },
     },

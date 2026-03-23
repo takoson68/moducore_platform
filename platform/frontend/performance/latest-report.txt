@@ -1,0 +1,59 @@
+[Performance Report]
+
+Score: 86 / 100
+
+Breakdown:
+- Load: 10/20
+- Module Switch: 20/20
+- State Update: 20/20
+- Rendering: 16/20
+- Memory: 20/20
+
+---
+
+Build Summary:
+- dineCore: JS 846.49 kB (270.88 kB gzip), CSS 72.99 kB, Other 617.69 kB, Routes 19
+- flowCenter: JS 568.73 kB (181.99 kB gzip), CSS 21.83 kB, Other 617.69 kB, Routes 6
+- modudesk: JS 557.15 kB (178.29 kB gzip), CSS 25.34 kB, Other 617.69 kB, Routes 5
+- project-a: JS 527.46 kB (168.79 kB gzip), CSS 16.14 kB, Other 617.69 kB, Routes 6
+- project-b: JS 1062.41 kB (339.97 kB gzip), CSS 144.57 kB, Other 818.59 kB, Routes 13
+Runtime Benchmarks:
+- dineCore: 100 switches in 0.57 ms, avg 0.01 ms/switch, router setup 0.28 ms
+- flowCenter: 100 switches in 0.32 ms, avg 0 ms/switch, router setup 0.11 ms
+- modudesk: 100 switches in 0.99 ms, avg 0.01 ms/switch, router setup 1.21 ms
+- project-a: 100 switches in 0.36 ms, avg 0 ms/switch, router setup 0.32 ms
+- project-b: 100 switches in 0.4 ms, avg 0 ms/switch, router setup 0.25 ms
+- Store update: 1000 updates in 31.08 ms, avg 0.03 ms/update, heap delta 1.19 MB
+- Rendering: 1000 cards = 6.59 ms; 2000 rows = 2.35 ms
+- Memory: baseline 18.29 MB, retained 1.4 MB, peak estimate 25.69 MB
+
+Simulated DevTools:
+- Reference project: project-b
+- FCP: 2105 ms
+- LCP: 2686 ms
+- TTI: 2934 ms
+- FPS: 60
+
+---
+
+Findings:
+- Initial load is dominated by a single-bundle strategy: project-b ships 1062.41 kB of JS because vite.config.js enables `inlineDynamicImports` and disables `cssCodeSplit`.
+- Module install is not lazy: projects\dineCore\modules\index.js calls `loadModules()` before allowList filtering, so declared modules are imported before visibility gating.
+- Container architecture keeps a global route bucket: src\app\container\register.js stores routes on `window.__MODULE_ROUTES__`, which raises reset and cleanup cost.
+- State updates are heavy in projects\dineCore\modules\restaurant-map-editor\store.js: 40 full-state spreads and 1 JSON clone calls were detected.
+- The store factory does synchronous serialization: src\app\stores\_storeFactory.js writes `JSON.stringify(state)` during set when storage is enabled.
+- Legacy vendor assets are still expensive: project-b carries 818.59 kB of non-CSS/JS payload, with project-b bundling html2canvas, Chart.js, fonts, and images together.
+- A dead dependency is present: package.json declares `qrcode`, but the source tree has no runtime import for it.
+- The largest dineCore module is projects\dineCore\modules\restaurant-map-editor, and its monolithic store shape increases render and memory pressure.
+
+---
+
+Suggestions:
+- Adjust [vite.config.js](F:\GitHub\moducore_platform\platform\frontend\vite.config.js): remove `inlineDynamicImports: true`, restore chunk splitting, and lazy-load the project-b mtk2mad vendor path by route.
+- Rewrite [projects/dineCore/modules/index.js](F:\GitHub\moducore_platform\platform\frontend\projects\dineCore\modules\index.js) and the same pattern in other projects so only allow-listed loaders are imported.
+- Refactor [src/app/container/register.js](F:\GitHub\moducore_platform\platform\frontend\src\app\container\register.js) to keep route state inside the container instead of `window.__MODULE_ROUTES__`.
+- Split [projects/dineCore/modules/restaurant-map-editor/store.js](F:\GitHub\moducore_platform\platform\frontend\projects\dineCore\modules\restaurant-map-editor\store.js) into map, selection, draft, and persistence slices, and stop calling `store.set({ ...state })` in every action.
+- Optimize [src/app/stores/_storeFactory.js](F:\GitHub\moducore_platform\platform\frontend\src\app\stores\_storeFactory.js): debounce storage writes and serialize only the persisted subset.
+- Slim down [projects/project-b/modules/mtk2mad](F:\GitHub\moducore_platform\platform\frontend\projects\project-b\modules\mtk2mad): route-split html2canvas and Chart.js, replace font payload where possible, and convert large images to webp/avif.
+- Remove the unused `qrcode` dependency from [package.json](F:\GitHub\moducore_platform\platform\frontend\package.json) and add a bundle allowlist check in CI.
+- Publish [latest-snapshot.json](F:\GitHub\moducore_platform\platform\frontend\performance\latest-snapshot.json) in CI as the performance baseline. If you want to productize this, register a `performanceService` in the container to wrap benchmark, score, and report generation.

@@ -1,0 +1,122 @@
+{
+  "version": "2026-03-23T05:35:48.844Z",
+  "score": 86,
+  "metrics": {
+    "load": 10,
+    "moduleSwitch": 20,
+    "stateUpdate": 20,
+    "render": 16,
+    "memory": 20
+  },
+  "projects": [
+    {
+      "project": "dineCore",
+      "jsKb": 846.49,
+      "cssKb": 72.99,
+      "assetKb": 617.69,
+      "moduleCount": 15,
+      "routeCount": 19
+    },
+    {
+      "project": "flowCenter",
+      "jsKb": 568.73,
+      "cssKb": 21.83,
+      "assetKb": 617.69,
+      "moduleCount": 6,
+      "routeCount": 6
+    },
+    {
+      "project": "modudesk",
+      "jsKb": 557.15,
+      "cssKb": 25.34,
+      "assetKb": 617.69,
+      "moduleCount": 3,
+      "routeCount": 5
+    },
+    {
+      "project": "project-a",
+      "jsKb": 527.46,
+      "cssKb": 16.14,
+      "assetKb": 617.69,
+      "moduleCount": 4,
+      "routeCount": 6
+    },
+    {
+      "project": "project-b",
+      "jsKb": 1062.41,
+      "cssKb": 144.57,
+      "assetKb": 818.59,
+      "moduleCount": 8,
+      "routeCount": 13
+    }
+  ],
+  "benchmarks": {
+    "moduleSwitch": [
+      {
+        "project": "dineCore",
+        "routeCount": 19,
+        "iterationCount": 100,
+        "setupMs": 0.28,
+        "switchMsTotal": 0.57,
+        "switchMsAvg": 0.01
+      },
+      {
+        "project": "flowCenter",
+        "routeCount": 6,
+        "iterationCount": 100,
+        "setupMs": 0.11,
+        "switchMsTotal": 0.32,
+        "switchMsAvg": 0
+      },
+      {
+        "project": "modudesk",
+        "routeCount": 5,
+        "iterationCount": 100,
+        "setupMs": 1.21,
+        "switchMsTotal": 0.99,
+        "switchMsAvg": 0.01
+      },
+      {
+        "project": "project-a",
+        "routeCount": 6,
+        "iterationCount": 100,
+        "setupMs": 0.32,
+        "switchMsTotal": 0.36,
+        "switchMsAvg": 0
+      },
+      {
+        "project": "project-b",
+        "routeCount": 13,
+        "iterationCount": 100,
+        "setupMs": 0.25,
+        "switchMsTotal": 0.4,
+        "switchMsAvg": 0
+      }
+    ],
+    "stateUpdate": {
+      "iterationCount": 1000,
+      "totalMs": 31.08,
+      "avgMs": 0.03,
+      "heapDeltaMb": 1.19
+    },
+    "render": {
+      "cardCount": 1000,
+      "listCount": 2000,
+      "cardRenderMs": 6.59,
+      "listRenderMs": 2.35,
+      "htmlKb": 217.56
+    },
+    "memory": {
+      "baselineMb": 18.29,
+      "retainedMb": 1.4,
+      "peakEstimateMb": 25.69
+    },
+    "devtools": {
+      "referenceProject": "project-b",
+      "fcpMs": 2105,
+      "lcpMs": 2686,
+      "ttiMs": 2934,
+      "fps": 60
+    }
+  }
+}

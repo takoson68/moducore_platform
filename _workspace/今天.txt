@@ -12,11 +12,19 @@ performance/平台核心效能評分.md
 
 不對，你應該產在本層目錄
 
+performance/單一專案效能評分.md
 
 
 
+Platform Rules:
+- 禁止模組自行操作 localStorage
+- 必須使用 storeFactory persistence
+- 禁止 full-state spread（store.set({ ...state })）
+- 大型功能需拆分 store（map / draft / selection）
+將這幾點寫入我的工程規則
 
 
+根據這一系列的評分操作，請你判斷這平台是否已經成熟並可以當成我往後工作的最大依靠?
 
 
 
