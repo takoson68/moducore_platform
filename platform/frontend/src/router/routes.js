@@ -1,20 +1,18 @@
 //- src/router/routes.js
+import { listRoutes } from '@/app/container/index.js'
 
-const ROUTE_BUCKET_KEY = '__MODULE_ROUTES__'
+const loadProjectLayout = () => import('project-layout-root-entry')
 
-const platformPages = [];
-const authPages = [];
+const platformPages = []
+const authPages = []
 
 function getRouteBucket() {
-  const bucket = typeof window !== 'undefined' ? window[ROUTE_BUCKET_KEY] : null
-  if (!bucket) {
-    return { public: [], auth: [], all: [] }
-  }
+  const all = listRoutes()
 
   return {
-    public: Array.isArray(bucket.public) ? bucket.public : [],
-    auth: Array.isArray(bucket.auth) ? bucket.auth : [],
-    all: Array.isArray(bucket.all) ? bucket.all : [],
+    public: all.filter((route) => route?.meta?.access?.public === true || route?.meta?.public === true),
+    auth: all.filter((route) => route?.meta?.access?.auth === true || route?.meta?.auth === true),
+    all,
   }
 }
 
@@ -35,41 +33,41 @@ export async function buildRoutes() {
       path: ':pathMatch(.*)*',
       redirect: '/404',
     },
-  ];
+  ]
 
   return [
     {
-      path: "/",
-      name: "root",
-      component: () => import("@project/layout/LayoutRoot.vue"),
+      path: '/',
+      name: 'root',
+      component: loadProjectLayout,
       children,
     },
-  ];
+  ]
 }
 
-export function normalizePath(path = "") {
-  if (path.startsWith("/")) return path;
-  return "/" + path;
+export function normalizePath(path = '') {
+  if (path.startsWith('/')) return path
+  return `/${path}`
 }
 
 export async function buildNavRoutes() {
-  const routes = await buildRoutes();
+  const routes = await buildRoutes()
 
-  return routes[0].children.map((r) => {
-    const path = normalizePath(r.path);
-    const nav = r.meta?.nav
+  return routes[0].children.map((route) => {
+    const path = normalizePath(route.path)
+    const nav = route.meta?.nav
       ? {
-          ...r.meta.nav,
-          parent: r.meta.nav.parent ? normalizePath(r.meta.nav.parent) : null,
+          ...route.meta.nav,
+          parent: route.meta.nav.parent ? normalizePath(route.meta.nav.parent) : null,
         }
-      : null;
+      : null
 
     return {
-      ...r,
+      ...route,
       path,
-      meta: nav ? { ...r.meta, nav } : r.meta,
-    };
-  });
+      meta: nav ? { ...route.meta, nav } : route.meta,
+    }
+  })
 }
 
-export { platformPages };
+export { platformPages }

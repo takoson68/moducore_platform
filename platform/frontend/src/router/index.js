@@ -5,6 +5,7 @@
 //- 若要在其他地方使用 router 實例，請透過 holder.js 取得
 
 import { createRouter, createWebHistory } from "vue-router";
+import { subscribeContainer } from "@/app/container/index.js";
 import { buildRoutes } from "./routes.js";
 import { setupAuthGuard } from "./guards.js";
 
@@ -26,5 +27,46 @@ export async function createAppRouter() {
 
   setupAuthGuard(router);
 
-  return router;
+  const routeKeys = new Set(
+    router.getRoutes().map((route) => createRouteKey(route))
+  );
+
+  const unsubscribeRoutesUpdated = subscribeContainer('routes-updated', (payload) => {
+    const routesToAdd = Array.isArray(payload?.resolvedRoutes) ? payload.resolvedRoutes : [];
+
+    routesToAdd.forEach((route) => {
+      const routeKey = createRouteKey(route);
+      if (routeKeys.has(routeKey)) return;
+
+      router.addRoute('root', route);
+      routeKeys.add(routeKey);
+    });
+  });
+
+  const unsubscribeRoutesReset = subscribeContainer('routes-reset', () => {
+    router.getRoutes().forEach((route) => {
+      const routeName = route?.name;
+      if (!routeName || routeName === 'root' || routeName === 'not-found') return;
+      if (router.hasRoute(routeName)) {
+        router.removeRoute(routeName);
+      }
+    });
+
+    routeKeys.clear();
+    router.getRoutes().forEach((route) => {
+      routeKeys.add(createRouteKey(route));
+    });
+  });
+
+  return {
+    router,
+    cleanup() {
+      unsubscribeRoutesUpdated();
+      unsubscribeRoutesReset();
+    },
+  };
+}
+
+function createRouteKey(route = {}) {
+  return `${route.name || '(anonymous)'}::${route.path || ''}`;
 }

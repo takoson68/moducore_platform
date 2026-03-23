@@ -3,6 +3,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
+import { listRoutes } from '@/app/container/index.js'
 import PlatformLoginPanel from './PlatformLoginPanel.vue'
 
 defineProps({
@@ -22,10 +23,7 @@ defineEmits(['toggle-sidebar'])
 const route = useRoute()
 const authStore = world.store("auth")
 const resolveNavProjection = world.service('resolveNavProjection')
-const navProjection = computed(() => {
-  const bucket = window.__MODULE_ROUTES__ || { all: [] }
-  return resolveNavProjection(bucket.all || [])
-})
+const navProjection = computed(() => resolveNavProjection(listRoutes()))
 
 const topbarItems = computed(() => {
   const isLoggedIn = authStore.isLoggedIn()
@@ -87,7 +85,7 @@ header.topbar
     type="button"
     :aria-expanded="String(sidebarOpen)"
     aria-controls="protemp-sidebar"
-    aria-label="åˆ‡æ›å´æ¬„"
+    aria-label="?‡æ??´æ?"
     @click="$emit('toggle-sidebar')"
   )
     span
@@ -284,3 +282,4 @@ header.topbar
   .topbar-actions
     margin-left: auto
 </style>
+

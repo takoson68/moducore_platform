@@ -2,7 +2,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import world from './world'
-import '@project/styles/sass/main.sass'
+import 'project-main-style-entry'
 
 async function start() {
   await world.start()

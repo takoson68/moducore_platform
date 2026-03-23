@@ -1,6 +1,7 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { listRoutes } from '@/app/container/index.js'
 import FlowTopbar from '../components/FlowTopbar.vue'
 import FlowSidebar from '../components/FlowSidebar.vue'
 import FlowRail from '../components/FlowRail.vue'
@@ -12,8 +13,7 @@ const router = useRouter()
 const auth = useFlowCenterAuth()
 
 const accessibleRoutes = computed(() => {
-  const bucket = window.__MODULE_ROUTES__ || { all: [] }
-  return filterAccessibleFlowRoutes(bucket.all || [], auth.user.value)
+  return filterAccessibleFlowRoutes(listRoutes(), auth.user.value)
 })
 
 const currentChildRoute = computed(() =>

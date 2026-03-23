@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
+import { listRoutes } from '@/app/container/index.js'
 import { useFlowCenterAuth } from '@project/services/flowCenterAuthService.js'
 import { filterAccessibleFlowRoutes } from '@project/services/flowCenterRouteAccess.js'
 
@@ -10,8 +11,7 @@ const auth = useFlowCenterAuth()
 const resolveNavProjection = world.service('resolveNavProjection')
 
 const navItems = computed(() => {
-  const bucket = window.__MODULE_ROUTES__ || { all: [] }
-  const accessibleRoutes = filterAccessibleFlowRoutes(bucket.all || [], auth.user.value)
+  const accessibleRoutes = filterAccessibleFlowRoutes(listRoutes(), auth.user.value)
   const projection = resolveNavProjection(accessibleRoutes)
   return projection.sidebar || []
 })
@@ -28,7 +28,7 @@ aside.sidebar
     .brand-mark FC
     .brand-copy
       h2.brand-title Flow Center
-      p.brand-sub 企業內部流程整合平台
+      p.brand-sub 企業?�部流�??��?平台
   nav.nav
     RouterLink.nav-item(
       v-for="item in navItems"
@@ -37,8 +37,8 @@ aside.sidebar
       :class="{ 'is-active': isActive(item.path) }"
     ) {{ item.label }}
   .sidebar-footer
-    p.footer-label 權限檢查
-    p.footer-copy {{ auth.isLoggedIn.value ? `${auth.role.value} / ${auth.companyId.value}` : '登入後顯示完整導覽' }}
+    p.footer-label 權�?檢查
+    p.footer-copy {{ auth.isLoggedIn.value ? `${auth.role.value} / ${auth.companyId.value}` : 'Please sign in' }}
 </template>
 
 <style lang="sass">
@@ -119,3 +119,5 @@ aside.sidebar
     border-bottom: 1px solid rgba(67, 58, 84, 0.08)
     grid-template-rows: auto auto auto
 </style>
+
+

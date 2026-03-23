@@ -16,7 +16,13 @@ _proTemp/    project-b/   services/  ModuDesk /  flowCenter/
 
 moducore_platform/   platform/frontend/projects/dineCore/docs/  
 
-engineering/  
+engineering/   performance/ 
+
+效能評分模式選擇器.md
+單一專案效能評分.md
+平台核心效能評分.md
+
+
 
 
 方案 A：降低詢問，但維持相對安全

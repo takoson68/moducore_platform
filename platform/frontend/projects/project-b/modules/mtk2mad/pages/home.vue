@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="mtk2png mtk2mad" data-page="mtk2mad">
     <!-- <section class="sys_title">
       <h1>攻擊進程圖!!!!!!</h1>
@@ -254,13 +254,13 @@ import ListPapa from "../components/ListPapa.vue";
 import Folders from "../components/Folders.vue";
 import { colorsArr, typeStatus } from "../utils/data.js";
 import { linkMaker } from "../utils/linkMaker.js";
-import seedData from "../assets/mrk2mad.json";
-const html2canvasVendorUrl = new URL("../vendors/html2canvas.min.js", import.meta.url).href;
+import { ensureScript, ensureStylesheet } from "../utils/runtimeAssets.js";
 
-// import "../css/main.css";
-// import "../css/components.css";
-// import "../css/vueComponents.css";
-import "../css/mtk2png.css";
+const html2canvasVendorUrl = new URL("../vendors/html2canvas.min.js", import.meta.url).href;
+const mtk2pngStyleUrl = new URL("../css/mtk2png.css", import.meta.url).href;
+const fontAwesomeStyleUrl = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css";
+const materialIconsStyleUrl = "https://fonts.googleapis.com/icon?family=Material+Icons";
+const seedDataUrl = new URL("../assets/mrk2mad.json", import.meta.url).href;
 
 export default {
   name: "Mtk2MadPage",
@@ -322,10 +322,12 @@ export default {
     this.getMd();
   },
   mounted() {
+    ensureStylesheet(mtk2pngStyleUrl);
+    ensureStylesheet(fontAwesomeStyleUrl);
+    ensureStylesheet(materialIconsStyleUrl);
     this.dragWidth();
     this.dragBox();
     this.scaleBox(0.55);
-    this.loadHtml2Canvas();
   },
   watch: {
     showPathSet(newV) {
@@ -473,33 +475,9 @@ export default {
     },
   },
   methods: {
-    loadExternalScript(src, globalKey) {
-      return new Promise((resolve, reject) => {
-        if (globalKey && window[globalKey]) {
-          resolve(window[globalKey]);
-          return;
-        }
-        const existing = document.querySelector(`script[data-vendor-src="${src}"]`);
-        if (existing) {
-          existing.addEventListener(
-            "load",
-            () => resolve(globalKey ? window[globalKey] : true),
-            { once: true }
-          );
-          return;
-        }
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        script.dataset.vendorSrc = src;
-        script.onload = () => resolve(globalKey ? window[globalKey] : true);
-        script.onerror = () => reject(new Error(`載入失敗：${src}`));
-        document.head.appendChild(script);
-      });
-    },
     async loadHtml2Canvas() {
       if (this.html2canvasRef) return;
-      await this.loadExternalScript(html2canvasVendorUrl, "html2canvas");
+      await ensureScript(html2canvasVendorUrl, "html2canvas");
       this.html2canvasRef = window.html2canvas;
     },
     async screenshot() {
@@ -544,7 +522,11 @@ export default {
     },
     async getMd() {
       try {
-        const data = JSON.parse(JSON.stringify(seedData));
+        const response = await fetch(seedDataUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to load seed data: ${response.status}`);
+        }
+        const data = await response.json();
         this.resetTextOffsets(data);
         this.mdData = data;
         this.treeBox = data;
@@ -1043,6 +1025,11 @@ export default {
 </script>
 
 <style>
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css");
-@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
 </style>
+
+
+
+
+
+

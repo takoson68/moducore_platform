@@ -3,14 +3,12 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
+import { listRoutes } from '@/app/container/index.js'
 
 const route = useRoute()
 const authStore = world.store("auth")
 const resolveNavProjection = world.service('resolveNavProjection')
-const navProjection = computed(() => {
-  const bucket = window.__MODULE_ROUTES__ || { all: [] }
-  return resolveNavProjection(bucket.all || [])
-})
+const navProjection = computed(() => resolveNavProjection(listRoutes()))
 
 const navTree = computed(() => {
   const nodes = new Map()
@@ -221,3 +219,4 @@ aside.sidebar
     min-height: 100vh
     padding-top: 76px
 </style>
+

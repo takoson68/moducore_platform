@@ -1,144 +1,45 @@
-//- projects/modudesk/modules/index.js
-import world from '@/world.js'
+import { createModuleRuntime } from '../../moduleRuntime.js'
+import { listRoutes } from '@/app/container/index.js'
 import projectConfig from '../project.config.js'
 
 const modules = import.meta.glob('./*/index.js')
 
-function isTaskEnabled() {
-  return projectConfig?.features?.task?.enabled === true
-}
-
 function isModuleEnabled(name) {
-  if (name === 'tasks') {
-    return isTaskEnabled()
-  }
-
-  return true
+  if (name !== 'tasks') return true
+  return projectConfig?.features?.tasks !== false
 }
 
 function createTaskDisabledRoutes() {
-  if (isTaskEnabled()) {
-    return []
-  }
+  if (isModuleEnabled('tasks')) return []
 
   return [
     {
-      path: '/task',
-      name: 'modudesk-task-disabled',
-      redirect: '/404',
-      meta: {
-        access: {
-          public: true,
-          auth: true,
-        },
-      },
-    },
-    {
-      path: '/task/:pathMatch(.*)*',
-      name: 'modudesk-task-disabled-catchall',
-      redirect: '/404',
-      meta: {
-        access: {
-          public: true,
-          auth: true,
-        },
-      },
-    },
-    {
       path: '/tasks',
-      name: 'modudesk-tasks-disabled',
-      redirect: '/404',
+      name: 'tasks-disabled',
+      redirect: '/calendar',
       meta: {
-        access: {
-          public: true,
-          auth: true,
-        },
-      },
-    },
-    {
-      path: '/tasks/:pathMatch(.*)*',
-      name: 'modudesk-tasks-disabled-catchall',
-      redirect: '/404',
-      meta: {
-        access: {
-          public: true,
-          auth: true,
-        },
+        access: { public: true, auth: false },
       },
     },
   ]
 }
 
-export const moduleLoaders = Object.fromEntries(
-  Object.entries(modules)
-    .filter(([path]) => !path.includes('/_archive/'))
-    .map(([path, loader]) => {
-      const name = path.split('/')[1]
-      return [name, loader]
-    }),
-)
+const runtime = createModuleRuntime(modules, {
+  isModuleEnabled,
+  beforeInstall({ register }) {
+    register.routes(createTaskDisabledRoutes(), { moduleName: 'tasks-disabled' })
+  },
+})
 
-const loadedModules = new Map()
-const installedModules = new Set()
+export const { moduleLoaders, listModules, installModules } = runtime
 
-export async function loadModules() {
-  for (const [name, loader] of Object.entries(moduleLoaders)) {
-    if (loadedModules.has(name)) continue
-    if (typeof loader !== 'function') continue
-    const imported = await loader()
-    loadedModules.set(name, imported?.default || null)
-  }
-  return loadedModules
-}
-
-export function listModules() {
-  return Object.keys(moduleLoaders)
-    .filter((name) => isModuleEnabled(name))
-    .map((name) => ({ name }))
-}
-
-export async function installModules({ register }, { allowList = [] } = {}) {
-  const modulesMap = await loadModules()
-  const allowSet = Array.isArray(allowList) ? new Set(allowList) : null
-
-  register.routes(createTaskDisabledRoutes())
-
-  for (const [name, mod] of modulesMap.entries()) {
-    if (!mod) continue
-    if (allowSet && !allowSet.has(name)) continue
-    if (!isModuleEnabled(name)) continue
-    if (installedModules.has(name)) continue
-
-    const setup = mod.setup || {}
-    const { stores, routes, ui } = setup
-
-    if (stores) {
-      for (const [key, factory] of Object.entries(stores)) {
-        register.store(key, factory)
-      }
-    }
-
-    if (Array.isArray(routes)) {
-      register.routes(routes)
-    }
-
-    if (ui?.slots && typeof ui.slots === 'object') {
-      for (const [slotName, descriptor] of Object.entries(ui.slots)) {
-        if (Array.isArray(descriptor)) {
-          descriptor.forEach((item) => world.registerUISlot(slotName, item))
-        } else {
-          world.registerUISlot(slotName, descriptor)
-        }
-      }
-    }
-
-    installedModules.add(name)
-  }
+export function loadModules(allowList = []) {
+  return runtime.loadModules(allowList)
 }
 
 export function buildModuleRoutes() {
-  const bucket = window.__MODULE_ROUTES__ || { all: [] }
   return {
-    routes: [...(bucket.all || [])],
+    routes: [...listRoutes()]
   }
 }
+

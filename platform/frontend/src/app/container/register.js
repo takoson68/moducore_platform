@@ -1,39 +1,22 @@
-//- src/app/container/register.js
-import { getRouter } from '@/router/holder.js'
 import { normalizePath } from '@/router/routes.js'
-// --------------------------------------------------
-// Module Registration Facade
-// --------------------------------------------------
-// 這是「模組語言層」，不是 container 本體
-// - 不做初始化
-// - 不做流程
-// - 不保存狀態
-// --------------------------------------------------
 
 export function createRegister(container) {
-  // 用於收集各模組路由（依 public/auth 分桶）
-  const ROUTE_BUCKET_KEY = '__MODULE_ROUTES__'
-  function ensureRouteBucket() {
-    if (!window[ROUTE_BUCKET_KEY]) {
-      window[ROUTE_BUCKET_KEY] = { public: [], auth: [], all: [] }
-    }
-    return window[ROUTE_BUCKET_KEY]
-  }
-
   function validateAccessMeta(meta = {}) {
     const access = meta.access || {}
     const publicFlag = typeof access.public === 'boolean' ? access.public : meta.public
     const authFlag = typeof access.auth === 'boolean' ? access.auth : meta.auth
     const hasPublic = typeof publicFlag === 'boolean'
     const hasAuth = typeof authFlag === 'boolean'
+
     if (!hasPublic || !hasAuth) {
-      throw new Error('[Routes] meta.public/meta.auth 必須為布林值且不得缺少')
+      throw new Error('[Routes] meta.public/meta.auth are required')
     }
+
     const isPublic = publicFlag === true
     const isAuth = authFlag === true
 
     if (isPublic && meta.auth === false) {
-      throw new Error('[Routes] meta { public: true, auth: false } 不允許')
+      throw new Error('[Routes] meta { public: true, auth: false } is not allowed')
     }
 
     return { isPublic, isAuth }
@@ -41,16 +24,16 @@ export function createRegister(container) {
 
   function flattenRoutes(routes = [], parentPath = '') {
     const list = []
+
     routes.forEach((route) => {
       if (!route || typeof route !== 'object') return
 
       const path = route.path || ''
       const normalizedParent = parentPath ? normalizePath(parentPath).replace(/\/$/, '') : ''
       const isAbsolute = path.startsWith('/')
-      const base = normalizedParent
       const fullPath = isAbsolute
         ? path
-        : normalizePath(base ? `${base}/${path}` : path)
+        : normalizePath(normalizedParent ? `${normalizedParent}/${path}` : path)
 
       const meta = route.meta ? { ...route.meta } : {}
       if (parentPath) {
@@ -61,24 +44,24 @@ export function createRegister(container) {
       if (meta.child) {
         delete meta.child
       }
-      const { children, ...rest } = route
-      const entry = { ...rest, path: fullPath, meta }
-      list.push(entry)
 
+      const { children, ...rest } = route
       const combinedChildren = [
         ...(Array.isArray(children) ? children : []),
-        ...metaChildren
+        ...metaChildren,
       ]
-      const hasChildren = combinedChildren.length > 0
+
+      const entry = { ...rest, path: fullPath, meta, __hasChildren: combinedChildren.length > 0 }
+      list.push(entry)
+
       if (combinedChildren.length > 0) {
         list.push(...flattenRoutes(combinedChildren, fullPath))
       }
-      entry.__hasChildren = hasChildren
     })
+
     return list
   }
 
-  // 依 route 型別分級缺少 component 的診斷訊息，降低合法結構的警告噪音
   function classifyMissingComponentRoute(route, accessInfo) {
     const hasComponent = Boolean(route?.component)
     const hasRedirect = typeof route?.redirect !== 'undefined'
@@ -92,7 +75,6 @@ export function createRegister(container) {
     return 'warn'
   }
 
-  // 合法無 component route 用 debug；只有可疑漏寫才用 warn
   function logMissingComponentDiagnostic(route, category) {
     if (!category) return
     const path = route?.path || '(unknown)'
@@ -106,66 +88,45 @@ export function createRegister(container) {
     console.debug(message)
   }
 
+  function resolveRegisteredRoutes(routes = []) {
+    const flatRoutes = flattenRoutes(routes)
+    const getOrder = (route) => {
+      const meta = route?.meta || {}
+      return Number.isFinite(meta.order) ? meta.order : 0
+    }
+
+    const sortedRoutes = [...flatRoutes].sort((a, b) => {
+      const orderDiff = getOrder(a) - getOrder(b)
+      if (orderDiff !== 0) return orderDiff
+      return String(a.path || '').localeCompare(String(b.path || ''))
+    })
+
+    return sortedRoutes.filter((route) => {
+      const { isPublic, isAuth } = validateAccessMeta(route.meta || {})
+      const category = classifyMissingComponentRoute(route, { isPublic, isAuth })
+      logMissingComponentDiagnostic(route, category)
+      return isPublic || isAuth
+    })
+  }
+
   return {
-    /**
-     * 註冊模組 store
-     */
     store(name, factory) {
-      container.register(name, factory)
+      container.register(name, factory, { scope: 'module' })
     },
 
-    /**
-     * 註冊模組 routes
-     */
-    routes(routes = [], { meta = {} } = {}) {
+    routes(routes = [], { moduleName = 'anonymous' } = {}) {
       if (!Array.isArray(routes) || routes.length === 0) return
-      const bucket = ensureRouteBucket()
-      const flatRoutes = flattenRoutes(routes)
-      const pushRoute = (route) => {
-        const { isPublic, isAuth } = validateAccessMeta(route.meta || {})
-        const category = classifyMissingComponentRoute(route, { isPublic, isAuth })
-        logMissingComponentDiagnostic(route, category)
-        if (!isPublic && !isAuth) return // disabled route
-        const target = isPublic ? bucket.public : bucket.auth
-        target.push(route)
-        bucket.all.push(route)
-      }
 
-      const getOrder = (route) => {
-        const meta = route?.meta || {}
-        const order = meta.order
-        return Number.isFinite(order) ? order : 0
-      }
-      const sortedRoutes = [...flatRoutes].sort((a, b) => {
-        const orderDiff = getOrder(a) - getOrder(b)
-        if (orderDiff !== 0) return orderDiff
-        return String(a.path || '').localeCompare(String(b.path || ''))
+      const resolvedRoutes = resolveRegisteredRoutes(routes)
+
+      resolvedRoutes.forEach((route) => {
+        container.registerRoute(moduleName, route)
       })
 
-      sortedRoutes.forEach(pushRoute)
-
-      // 若 router 已建立，立即注入 children 到 root
-      try {
-        const router = getRouter()
-        sortedRoutes.forEach(r => router.addRoute('root', r))
-      } catch (err) {
-        // router 尚未就緒時忽略
-      }
-
-      // 通知 UI/nav 重新取 routes
-      window.dispatchEvent(new CustomEvent('moducore:routes-updated'))
+      container.emit('routes-updated', {
+        moduleName,
+        resolvedRoutes,
+      })
     },
-
-    /**
-     * （未來）註冊 service
-     */
-    // service(name, factory) {
-    //   container.registerService(name, factory)
-    // },
-
-    /**
-     * （未來）註冊事件
-     */
-    // event(name, handler) {}
   }
 }

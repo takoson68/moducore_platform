@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="mdeditor" data-page="mdeditor">
     <section class="sys_title">
       <h1>
@@ -92,9 +92,12 @@
 </template>
 
 <script>
+import { ensureScript, ensureStylesheet } from "../utils/runtimeAssets.js";
+
 const chartVendorUrl = new URL("../vendors/Chart.min.js", import.meta.url).href;
 const html2canvasVendorUrl = new URL("../vendors/html2canvas.min.js", import.meta.url).href;
 const sweetalertVendorUrl = new URL("../vendors/sweetalert.min.js", import.meta.url).href;
+const mdEditorStyleUrl = new URL("../css/mdeditor.css", import.meta.url).href;
 
 export default {
   name: "Mtk2MadMdEditorPage",
@@ -151,7 +154,8 @@ export default {
     },
   },
   mounted() {
-    this.loadVendors().then(() => {
+    ensureStylesheet(mdEditorStyleUrl);
+    this.loadChart().then(() => {
       this.renderChart();
     });
     this.loadDefaultMdText();
@@ -174,51 +178,33 @@ export default {
         if (!res.ok) return;
         this.mdData = await res.text();
       } catch (err) {
-        console.warn("md.text 讀取失敗", err);
+        console.warn("md.text load failed", err);
       }
     },
-    loadExternalScript(src, globalKey) {
-      return new Promise((resolve, reject) => {
-        if (globalKey && window[globalKey]) {
-          resolve(window[globalKey]);
+    async loadChart() {
+      if (this.chartRef) return this.chartRef;
+      this.chartRef = await ensureScript(chartVendorUrl, "Chart");
+      return this.chartRef;
+    },
+    async loadHtml2Canvas() {
+      if (this.html2canvasRef) return this.html2canvasRef;
+      this.html2canvasRef = await ensureScript(html2canvasVendorUrl, "html2canvas");
+      return this.html2canvasRef;
+    },
+    async loadSwal() {
+      if (this.swalRef) return this.swalRef;
+      this.swalRef = await ensureScript(sweetalertVendorUrl, "swal");
+      return this.swalRef;
+    },
+    async showAlert(title, message) {
+      try {
+        const swal = await this.loadSwal();
+        if (swal) {
+          swal(title, message, "error");
           return;
         }
-        const existing = document.querySelector(`script[data-vendor-src="${src}"]`);
-        if (existing) {
-          existing.addEventListener(
-            "load",
-            () => resolve(globalKey ? window[globalKey] : true),
-            { once: true }
-          );
-          return;
-        }
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        script.dataset.vendorSrc = src;
-        script.onload = () => resolve(globalKey ? window[globalKey] : true);
-        script.onerror = () => reject(new Error(`載入失敗：${src}`));
-        document.head.appendChild(script);
-      });
-    },
-    async loadVendors() {
-      if (!this.chartRef) {
-        await this.loadExternalScript(chartVendorUrl, "Chart");
-        this.chartRef = window.Chart || null;
-      }
-      if (!this.html2canvasRef) {
-        await this.loadExternalScript(html2canvasVendorUrl, "html2canvas");
-        this.html2canvasRef = window.html2canvas || null;
-      }
-      if (!this.swalRef) {
-        await this.loadExternalScript(sweetalertVendorUrl, "swal");
-        this.swalRef = window.swal || null;
-      }
-    },
-    showAlert(title, message) {
-      if (this.swalRef) {
-        this.swalRef(title, message, "error");
-        return;
+      } catch (error) {
+        console.warn("swal load failed", error);
       }
       alert(message);
     },
@@ -484,10 +470,12 @@ export default {
       return oo < 8 ? "star" : oo < 12 ? "wb_sunny" : oo < 18 ? "brightness_high" : oo < 24 ? "brightness_2" : "settings_suggest";
     },
     renderChart(){
-      //- 監控主機數量統計
+      const Chart = this.chartRef || window.Chart;
+      if (!Chart) return;
+      //- ??銝餅??賊?蝯梯?
       var ctx = document.getElementById('myChart');
-      var textIndex = this.commentBox; //因為有閉包問題拉到這裡
-      // 這裡是要讓外面重繪的時候叫得到
+      var textIndex = this.commentBox; //?????憿??圈ㄐ
+      // ?ㄐ?航?霈??ａ?蝜芰??敺
       // console.log(ctx);
       this.mtChart = new Chart(ctx, {
         responsive: true,
@@ -533,19 +521,19 @@ export default {
             }
           },
           hover: {
-            animationDuration: 0  // 防止鼠标移上去，数字闪烁
+            animationDuration: 0  // ?脫迫曌?蝘颱??鳴??啣??芰?
           },
-          animation: {           // 这部分是数值显示的功能实现
+          animation: {           // 餈??啣潭蝷箇??摰
             onComplete: function () {
               var chartInstance = this.chart
               ctx = chartInstance.ctx;
               
-              // 以下属于canvas的属性（font、fillStyle、textAlign...）
+              // 隞乩?撅?canvas???改?font?illStyle?extAlign...嚗?
               ctx.font = Chart.helpers.fontString(Chart.defaults.global.defaultFontSize, Chart.defaults.global.defaultFontStyle, Chart.defaults.global.defaultFontFamily);
               ctx.fillStyle = "black";
               ctx.textAlign = 'center';
               ctx.textBaseline = 'bottom';
-              var hasOne = false; // 有第一筆資料
+              var hasOne = false; // ?洵銝蝑???
               this.data.datasets.forEach(function (dataset, i) {
                 var meta = chartInstance.controller.getDatasetMeta(i);
                 let last = meta.data.length;
@@ -557,13 +545,13 @@ export default {
                 let $colorZ3 = '#ffffff'
                 meta.data.forEach(function (bar, index) {
                   var data = dataset.data[index];
-                  data = data==0?'':data // 資料是0的話就不顯示
+                  data = data==0?'':data // 鞈????店撠曹?憿舐內
                   ctx.fillText(data, bar._model.x, bar._model.y-5);
-                  let comm = textIndex[index][0]; //因為有閉包問題所以textIndex拉到外層
+                  let comm = textIndex[index][0]; //?????憿?隞另extIndex?憭惜
                   if(comm){
-                    let textWidth = ctx.measureText(comm).width // 計算文字內容寬度
+                    let textWidth = ctx.measureText(comm).width // 閮????批捆撖砍漲
                     let xPos = 0;
-                    if(!hasOne){ // chaer.js第一筆資料寬度會比較小 bug
+                    if(!hasOne){ // chaer.js蝚砌?蝑??祝摨行?瘥?撠?bug
                       textWidth = textWidth * 1.11
                       hasOne = true
                     }
@@ -583,13 +571,13 @@ export default {
                     ctx.fillStyle = "#000000";
                     
                     ctx.beginPath();
-                    ctx.strokeStyle = $colorZ0; //園角矩形線匡顏色
+                    ctx.strokeStyle = $colorZ0; //???拙耦蝺憿
                     ctx.lineJoin = "round"
                     ctx.lineWidth = "8";
                     
                     ctx.fillStyle = $colorZ0;
                     let myLineH = padding>0?10*padding+14:10*padding-12
-                    ctx.fillRect( bar._model.x-1, bar._model.y-(myLineH),2,10*padding-6)//引導線 用小矩形做的 
+                    ctx.fillRect( bar._model.x-1, bar._model.y-(myLineH),2,10*padding-6)//撘?蝺??典??拙耦?? 
                     ctx.strokeRect( xPos, bar._model.y-(10*padding)-10,textWidth+10,18)
                     ctx.fillRect( xPos, bar._model.y-(10*padding)-10,textWidth+10,18)
                     var grd=ctx.createLinearGradient( xPos, bar._model.y-(10*padding)-10,xPos, bar._model.y-(10*padding)+9);
@@ -597,7 +585,7 @@ export default {
                     grd.addColorStop(0.5,$colorZ1);
                     grd.addColorStop(1,$colorZ0);
 
-                    ctx.fillStyle = grd;  //填滿顏色
+                    ctx.fillStyle = grd;  //憛急遛憿
 
                     ctx.fillRect( xPos, bar._model.y-(10*padding)-10,textWidth+10, 18);
                     // ctx.fillStyle = $colorZ0;
@@ -716,7 +704,7 @@ export default {
       }, 500);
     },
     async takePic(who, type, name) {
-      const html2canvas = this.html2canvasRef || window.html2canvas;
+      const html2canvas = (await this.loadHtml2Canvas()) || window.html2canvas;
       if (!html2canvas) {
         this.showAlert("缺少套件", "html2canvas 尚未載入");
         return;
@@ -742,7 +730,7 @@ export default {
 };
 </script>
 <style scoped> 
-  @import url('../css/mdeditor.css');
+
   .sys_title {
     position: relative;
   }
@@ -762,3 +750,6 @@ export default {
   }
 </style>
 <!-- /* <style src="../css/mdeditor.css"></style> */ -->
+
+
+

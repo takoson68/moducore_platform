@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import world from '@/world.js'
+import { listRoutes } from '@/app/container/index.js'
 import FlowAuthCard from './FlowAuthCard.vue'
 import { useFlowCenterAuth } from '@project/services/flowCenterAuthService.js'
 import { filterAccessibleFlowRoutes } from '@project/services/flowCenterRouteAccess.js'
@@ -13,17 +14,16 @@ const resolveNavProjection = world.service('resolveNavProjection')
 
 const pageTitle = computed(() => {
   const matched = [...route.matched].reverse().find((item) => item.meta?.title)
-  return matched?.meta?.title || '流程中心'
+  return matched?.meta?.title || '流�?中�?'
 })
 
 const pageDescription = computed(() => {
   const matched = [...route.matched].reverse().find((item) => item.meta?.description)
-  return matched?.meta?.description || `${projectConfig.value.title || 'Flow Center'} 以登入身份決定資料與模組可見性`
+  return matched?.meta?.description || `${projectConfig.value.title || 'Flow Center'} overview`
 })
 
 const topbarItems = computed(() => {
-  const bucket = window.__MODULE_ROUTES__ || { all: [] }
-  const accessibleRoutes = filterAccessibleFlowRoutes(bucket.all || [], auth.user.value)
+  const accessibleRoutes = filterAccessibleFlowRoutes(listRoutes(), auth.user.value)
   const projection = resolveNavProjection(accessibleRoutes)
   return (projection.topbar || []).filter((item) => {
     const routeRecord = accessibleRoutes.find((routeItem) => routeItem.path === item.path)
@@ -36,7 +36,7 @@ const topbarItems = computed(() => {
 <template lang="pug">
 header.topbar
   .title-group
-    p.eyebrow 企業流程中心
+    p.eyebrow 企業流�?中�?
     h1.title {{ pageTitle }}
     p.subtitle {{ pageDescription }}
   nav.topbar-nav(v-if="topbarItems.length")
@@ -128,3 +128,4 @@ header.topbar
   .title
     font-size: 28px
 </style>
+

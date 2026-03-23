@@ -1,4 +1,4 @@
-//- vite.config.js
+﻿//- vite.config.js
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
@@ -12,41 +12,48 @@ export default defineConfig(({ mode }) => {
   // 若未來改回前後端分離部署，再評估是否重新啟用 env 控制。
   const apiTarget = 'http://moducore_platform.test'
   const projectOutDir = path.join('projects', project, 'dist')
+  const projectDir = path.resolve(__dirname, 'projects', project)
 
   return {
     plugins: [vue(), copyDistToBackend(project)],
-    // 方案 A：單一 JS（目前啟用）
     build: {
       outDir: projectOutDir,
       emptyOutDir: true,
-      cssCodeSplit: false,
+      cssCodeSplit: true,
+      chunkSizeWarningLimit: 500,
       rollupOptions: {
         output: {
-          inlineDynamicImports: true,
-          manualChunks: undefined,
+          manualChunks(id) {
+            const normalizedId = id.replace(/\\/g, '/')
+
+            if (normalizedId.includes('/node_modules/vue/') || normalizedId.includes('/node_modules/vue-router/')) {
+              return 'vendor-vue'
+            }
+
+            if (normalizedId.includes('/node_modules/')) {
+              return 'vendor'
+            }
+
+            if (normalizedId.includes('/projects/project-b/modules/mtk2mad/')) {
+              return 'project-b-mtk2mad'
+            }
+
+            if (normalizedId.includes('/projects/dineCore/modules/restaurant-map-editor/')) {
+              return 'dinecore-map-editor'
+            }
+
+            return undefined
+          },
         },
       },
     },
-    // 方案 B：允許拆分，但合併小於 300kb 的 chunk
-    // build: {
-    //   outDir: path.resolve(__dirname, 'projects', project, 'dist'),
-    //   emptyOutDir: true,
-    //   // 取消 CSS 拆分，避免產生大量小檔案
-    //   cssCodeSplit: false,
-    //   // 超過門檻才提示 chunk 過大，目標是讓單檔維持在 300kb 內
-    //   chunkSizeWarningLimit: 300,
-    //   rollupOptions: {
-    //     output: {
-    //       // 小於 300kb 的 chunk 會被合併，避免過度切分
-    //       experimentalMinChunkSize: 300 * 1024,
-    //     },
-    //   },
-    // },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
         '@app': path.resolve(__dirname, 'src/app'),
         '@project': path.resolve(__dirname, `projects/${project}`),
+        'project-main-style-entry': path.resolve(projectDir, 'styles', 'sass', 'main.sass'),
+        'project-layout-root-entry': path.resolve(projectDir, 'layout', 'LayoutRoot.vue'),
       },
     },
     server: {

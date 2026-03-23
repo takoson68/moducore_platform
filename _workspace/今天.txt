@@ -7,11 +7,28 @@
 請繼續閱讀platform/frontend/projects/dineCore/docs/＊.md 排除 完成的就檔案/
 
 
-現在家裡得電腦沒有對齊今天做的sql資料，請對齊
+
+performance/平台核心效能評分.md
+
+不對，你應該產在本層目錄
 
 
 
-桌為圖示右上角數量紅點，數字內容要白色
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
