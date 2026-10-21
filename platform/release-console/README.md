@@ -26,6 +26,8 @@ npm start
 
 本階段沒有部署、回退、上傳、刪除或版本切換 API。權威資料契約位於 `_VibeCore/engineering/RELEASE_CONSOLE_CONTRACT.md`。
 
+M7-1 已固定未來寫入操作的 GitHub 身份、Viewer／Deployer／Admin、重新驗證及稽核契約，詳見 `_VibeCore/engineering/RELEASE_CONSOLE_ACCESS_CONTRACT.md`。目前只存在可測試的 policy 函式，仍未建立身份登入、操作員白名單或寫入端點。
+
 ## 安全邊界
 
 - GitHub／Cloudflare 的登入狀態只由本機 Node 程序及 CLI 使用，不進入 HTML、JavaScript、Snapshot 或 localStorage。

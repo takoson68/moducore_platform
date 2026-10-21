@@ -298,6 +298,8 @@ Git 僅用於保存進度與歷史脈絡，
   → `_VibeCore/engineering/TAG_DEPLOYMENT_MANUAL.md`
 - 版本控制台資料契約
   → `_VibeCore/engineering/RELEASE_CONSOLE_CONTRACT.md`
+- 版本控制台身份與權限契約
+  → `_VibeCore/engineering/RELEASE_CONSOLE_ACCESS_CONTRACT.md`
 
 若附屬技術規範與 Engineering Index 發生衝突：
 

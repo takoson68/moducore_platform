@@ -298,10 +298,12 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 
 ### M7-1 身份與授權
 
-- [ ] 決定操作員身份來源。
-- [ ] 定義 Viewer、Deployer、Admin 權限。
-- [ ] 對部署、回退、刪除要求重新驗證或二次確認。
-- [ ] 所有動作記錄操作者、時間、來源版本、目標版本與結果。
+- [x] 決定操作員身份來源。
+- [x] 定義 Viewer、Deployer、Admin 權限。
+- [x] 對部署、回退、刪除要求重新驗證或二次確認。
+- [x] 所有動作記錄操作者、時間、來源版本、目標版本與結果。
+
+完成日期：2026-10-21。證據：`_VibeCore/engineering/RELEASE_CONSOLE_ACCESS_CONTRACT.md` 固定 GitHub 身份與 Repository 權限上限、三角色能力、15／5 分鐘重新驗證、逐字確認及 append-only Audit 欄位；`platform/release-console/access-policy.mjs` 提供機器可驗證 policy，Console 9/9 通過。尚未建立登入、真實操作員白名單或任何寫入端點。
 
 ### M7-2 Workflow Dispatch 橋接
 
@@ -383,9 +385,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M7-1：M6 唯讀控制台與安全 Gate 已完成，控制台沒有部署、回退、刪除、上傳或其他寫入端點。
+目前停在 M7-2：GitHub 操作員身份、Viewer／Deployer／Admin、重新驗證、二次確認與不可變稽核契約已完成；控制台仍無寫入端點。
 
-唯一下一步：定義受控版本切換控制台的操作員身份來源、Viewer／Deployer／Admin 權限、重新驗證／二次確認與不可變稽核欄位；尚未授權建立任何寫入端點。
+唯一下一步：建立受控後端的 GitHub 身份與 Workflow Dispatch 橋接，只接受白名單 Project／Tag／Action，憑證留在 Server Secret，加入同 Project 互斥與 operation 狀態；未完成前不得在畫面加入操作按鈕。
 
 ## 6. 完成紀錄
 
@@ -408,3 +410,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M6-1 控制台資料契約 | 完成 | 契約文件；機器白名單與驗證器；Worker 62/62 | 尚未建立 Snapshot 讀取層與唯讀畫面 |
 | 2026-10-21 | M6-2 唯讀畫面 | 完成 | `platform/release-console`；真實 Snapshot 三 Project healthy；Console 2/2、Worker 62/62；瀏覽器驗收 | 尚待 M6-3 安全邊界正式 Gate |
 | 2026-10-21 | M6-3 安全邊界 | 完成 | 回環限定；GET-only；敏感 Snapshot Guard；安全標頭；Console 5/5、Worker 62/62；真實掃描 clean | M7 寫入能力尚未設計或啟用 |
+| 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 尚無登入、操作員白名單、稽核儲存或寫入端點 |
