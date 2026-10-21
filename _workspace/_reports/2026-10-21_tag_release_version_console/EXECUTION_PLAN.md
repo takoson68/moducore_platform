@@ -203,12 +203,14 @@ Gate：控制台可以從權威來源讀出一致狀態。
 
 ### M4-1 Release 下載器
 
-- [ ] 只接受 Project 白名單與合法 Tag。
-- [ ] 從 GitHub Release 下載 ZIP、manifest、checksum。
-- [ ] 驗證 Release Tag 與 manifest Tag 一致。
-- [ ] 驗證 ZIP SHA-256。
-- [ ] 驗證 manifest 逐檔 SHA-256。
-- [ ] 使用安全解壓，拒絕絕對路徑、`..`、符號連結逃逸與異常大小。
+- [x] 只接受 Project 白名單與合法 Tag。
+- [x] 從 GitHub Release 下載 ZIP、manifest、checksum。
+- [x] 驗證 Release Tag 與 manifest Tag 一致。
+- [x] 驗證 ZIP SHA-256。
+- [x] 驗證 manifest 逐檔 SHA-256。
+- [x] 使用安全解壓，拒絕絕對路徑、`..`、符號連結逃逸與異常大小。
+
+完成日期：2026-10-21。證據：新增 `download-release-package.mjs` 與安全驗證單元測試；Worker 52/52 通過。以正式 Release `dep_game-demo_v0.1.0` 實測下載三資產，驗證 ZIP SHA-256 `9b2c947ff6cd8e84cc3fbe9aeb966622ee1f8eab68074c3834887456c0328c69`、48 個 site 檔案、內外 manifest 與逐檔 Hash 後安全解壓成功。
 
 ### M4-2 重部署 Gate
 
@@ -367,9 +369,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M4-1：M3 第二版、回退與 current／previous 權威證據模型已完成。
+目前停在 M4-2：Release 歷史 ZIP 下載、安全驗證與解壓已完成，尚未把驗證後原件接入正式重部署 Workflow。
 
-唯一下一步：建立 GitHub Release 歷史 ZIP 下載器，完成 Tag、checksum、逐檔 Hash 與安全解壓驗證；未通過不得進入重部署。
+唯一下一步：新增歷史 ZIP 原件重部署模式，嚴格核對 manifest Project／Target，完成 Wrangler dry-run、部署、Smoke 與 current／previous 更新。
 
 ## 6. 完成紀錄
 
@@ -384,3 +386,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M3-1 game-demo v0.1.1 | 完成 | Commit `0e36c37`；Run `39535059984`；Version `e0c61fc3-4656-4f42-94e1-1e4f9f97f70e`；Release 三資產 | Bundle 體積警告仍存在 |
 | 2026-10-21 | M3-2 舊 Tag Commit 回退 | 完成 | Run `39535192834`；第一版入口資產恢復；Version `191549fd-de2b-4070-9f0a-e55e24ab6c2c`；其他 Project 未變 | 目前仍是重新 Build，不是 M4 歷史 ZIP 原件回退 |
 | 2026-10-21 | M3-3 current／previous 證據模型 | 完成 | GitHub Deployments `7216537286`／`7216523961`；版本、Tag、Commit、ZIP Hash、Cloudflare Version、Smoke 與 Run URL 可由 API 讀取 | M4 尚未支援直接部署歷史 ZIP 原件 |
+| 2026-10-21 | M4-1 Release 下載器 | 完成 | Worker 52/52；正式 v0.1.0 ZIP Hash `9b2c947f…`；48 檔逐檔驗證與安全解壓 | 尚未接入 M4-2 重部署 Workflow |

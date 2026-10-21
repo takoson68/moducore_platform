@@ -77,6 +77,23 @@ Tag Workflow 無法使用時：
 
 前端版本回退不代表 D1 Schema 回退。dineCore 或 project-b 若新版包含 Migration，回退前必須確認舊版程式仍相容於目前 Schema；禁止自動倒退 D1 Migration。
 
+### 7.1 驗證歷史 ZIP 原件
+
+需要檢查 Release 中保存的原始成品時，在新的空目錄執行：
+
+```bash
+cd platform/worker
+output_dir="$(mktemp -d /tmp/moducore-release.XXXXXX)"
+node scripts/download-release-package.mjs \
+  --tag dep_game-demo_v0.1.0 \
+  --repository takoson68/moducore_platform \
+  --output "$output_dir"
+```
+
+下載器只接受白名單 Project 的合法部署 Tag，並驗證 Release Tag、三個必要資產、ZIP SHA-256、內外 manifest、逐檔 SHA-256 及完整檔案清單。解壓前會拒絕絕對路徑、`..`、反斜線路徑、符號連結、重複 manifest 路徑、過多檔案與異常解壓大小。
+
+此命令只下載及驗證，不會部署。必須由正式 Workflow 使用驗證後的 `site/`，不得手動把未驗證的 ZIP 內容上傳至 Cloudflare。
+
 ## 8. 版本控制台銜接
 
 GitHub Releases 的 ZIP、manifest 與 checksum 是未來版本控制台的正式版本目錄。控制台應顯示 current、previous、Tag、Commit、Cloudflare Version ID 及 Smoke 狀態；切換操作必須觸發受保護 Workflow，不得把 Cloudflare Token 放在瀏覽器。
