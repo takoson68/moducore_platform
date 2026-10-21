@@ -71,6 +71,20 @@ Tag Workflow 無法使用時：
 
 任一測試、建置、dry-run、Migration 或 Smoke Test 失敗，Workflow 必須停止，不能宣告部署完成。
 
+### 6.1 D1 Schema 相容 Gate
+
+dineCore 與 project-b 的正式版本 manifest 必須包含 `minimumSchemaVersion`。此值由 Repository 內連續編號的正式 Migration 自動取最新一筆，不接受操作員或 Tag 任意指定。
+
+部署流程會：
+
+1. 讀取遠端 D1 的 `d1_migrations`。
+2. 拒絕遠端未知 Migration、編號跳號或不連續狀態。
+3. 遠端低於最低需求時，先依正式 Migration 向前升級。
+4. Migration 後再次確認遠端已達最低需求，才允許部署 Worker。
+5. 遠端高於成品最低需求時保持現況，不執行倒退。
+
+歷史 D1 Release 若沒有 `minimumSchemaVersion`，Release 原件模式會在部署前拒絕。需要回退前端時，必須先確認該版本已具備 Schema 相容資料；禁止修改舊 Release 或重用舊 Tag 來繞過檢查。
+
 ## 7. 回退方式
 
 目前安全回退入口是 GitHub Actions 手動救援：選擇相同 Project，並在 `ref` 填入上一版 Tag。Workflow 會從上一版的確切 Commit 重新建置、驗證及部署。

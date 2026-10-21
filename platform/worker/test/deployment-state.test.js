@@ -32,6 +32,8 @@ test('成功部署證據包含控制台所需的不可變識別', () => {
     commit: 'a'.repeat(40),
     artifact: 'game-demo_v0.1.1_aaaaaaa.zip',
     zipSha256: 'b'.repeat(64),
+    artifactSource: 'build',
+    minimumSchemaVersion: null,
     cloudflareVersionId: 'cf-version',
     smoke: 'passed',
     runUrl: 'https://github.example/run/1',

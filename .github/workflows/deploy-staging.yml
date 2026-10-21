@@ -93,11 +93,22 @@ jobs:
             platform/worker/scripts/deployment-state.mjs
             platform/worker/scripts/download-release-package.mjs
             platform/worker/scripts/release-plan.mjs
+            platform/worker/scripts/schema-compatibility.mjs
+            platform/worker/migrations/*
+            platform/worker/wrangler.dinecore-staging.json
+            platform/worker/wrangler.project-b-staging.json
           sparse-checkout-cone-mode: false
 
       - name: Resolve immutable source commit
         id: source
         run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Derive minimum D1 schema from formal migrations
+        if: matrix.database == true && matrix.artifactSource != 'release'
+        id: schema
+        run: |
+          node .deployment-control/platform/worker/scripts/schema-compatibility.mjs derive \
+            --migrations .deployment-control/platform/worker/migrations
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -132,6 +143,7 @@ jobs:
             --version '${{ matrix.version }}' \
             --tag '${{ matrix.tag }}' \
             --commit '${{ steps.source.outputs.commit }}' \
+            --minimum-schema-version '${{ steps.schema.outputs.minimum-schema-version }}' \
             --assets '../worker/.assets/${{ matrix.target }}' \
             --output '../../release-output'
 
@@ -175,6 +187,9 @@ jobs:
           artifact_commit='${{ steps.package-restore.outputs.commit || steps.source.outputs.commit }}'
           [[ "$artifact_commit" =~ ^[a-f0-9]{40}$ ]]
           echo "artifact-commit=$artifact_commit" >> "$GITHUB_OUTPUT"
+          manifest_path='${{ steps.package.outputs.manifest || steps.package-restore.outputs.manifest }}'
+          minimum_schema=$(jq -r '.minimumSchemaVersion // ""' "$manifest_path")
+          echo "minimum-schema-version=$minimum_schema" >> "$GITHUB_OUTPUT"
 
       - name: Test frontend API token transport
         if: matrix.artifactSource != 'release'
@@ -200,6 +215,16 @@ jobs:
         working-directory: platform/worker
         run: npm run check -- --config wrangler.${{ matrix.target }}.json
 
+      - name: Check remote D1 schema compatibility
+        if: matrix.database == true
+        working-directory: platform/worker
+        run: |
+          node ../../.deployment-control/platform/worker/scripts/schema-compatibility.mjs check \
+            --migrations ../../.deployment-control/platform/worker/migrations \
+            --minimum '${{ steps.package-evidence.outputs.minimum-schema-version }}' \
+            --config ../../.deployment-control/platform/worker/wrangler.${{ matrix.target }}.json \
+            --phase before
+
       - name: Simulate safe staging failure
         if: ${{ inputs.simulate_failure == true }}
         run: |
@@ -209,7 +234,19 @@ jobs:
       - name: Apply D1 migrations
         if: matrix.database == true
         working-directory: platform/worker
-        run: npm run db:migrate:remote -- --config wrangler.${{ matrix.target }}.json
+        run: |
+          npx wrangler d1 migrations apply DB --remote \
+            --config ../../.deployment-control/platform/worker/wrangler.${{ matrix.target }}.json
+
+      - name: Verify minimum D1 schema after migration
+        if: matrix.database == true
+        working-directory: platform/worker
+        run: |
+          node ../../.deployment-control/platform/worker/scripts/schema-compatibility.mjs check \
+            --migrations ../../.deployment-control/platform/worker/migrations \
+            --minimum '${{ steps.package-evidence.outputs.minimum-schema-version }}' \
+            --config ../../.deployment-control/platform/worker/wrangler.${{ matrix.target }}.json \
+            --phase after
 
       - name: Deploy Worker and Static Assets
         id: deploy-worker
@@ -284,6 +321,8 @@ jobs:
           DEPLOY_COMMIT: ${{ steps.package-evidence.outputs.artifact-commit }}
           DEPLOY_ARTIFACT: ${{ steps.package.outputs.artifact || steps.package-restore.outputs.artifact }}.zip
           DEPLOY_ZIP_SHA256: ${{ steps.package-evidence.outputs.zip-sha256 }}
+          DEPLOY_ARTIFACT_SOURCE: ${{ matrix.artifactSource }}
+          DEPLOY_MINIMUM_SCHEMA_VERSION: ${{ steps.package-evidence.outputs.minimum-schema-version }}
           CLOUDFLARE_VERSION_ID: ${{ steps.deploy-worker.outputs.version-id }}
           DEPLOY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DEPLOY_RELEASE_URL: ${{ needs.plan.outputs.is-tag-release == 'true' && format('{0}/{1}/releases/tag/{2}', github.server_url, github.repository, matrix.tag) || '' }}

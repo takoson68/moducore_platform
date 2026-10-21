@@ -230,11 +230,13 @@ Gate：同一歷史 ZIP 可重部署，Hash 與初次發布完全一致。
 
 ### M5-1 Schema 相容資訊
 
-- [ ] manifest 新增 `minimumSchemaVersion` 或等價欄位。
-- [ ] 建置時從正式 Migration 狀態推導，不接受人工任意值。
-- [ ] 部署／回退前讀取遠端已套用 Migration。
-- [ ] 遠端 Schema 低於最低需求時先 Migration；不相容時拒絕部署。
-- [ ] 明文規定不自動倒退 D1 Migration。
+- [x] manifest 新增 `minimumSchemaVersion` 或等價欄位。
+- [x] 建置時從正式 Migration 狀態推導，不接受人工任意值。
+- [x] 部署／回退前讀取遠端已套用 Migration。
+- [x] 遠端 Schema 低於最低需求時先 Migration；不相容時拒絕部署。
+- [x] 明文規定不自動倒退 D1 Migration。
+
+完成日期：2026-10-21。證據：新增 `schema-compatibility.mjs`，只接受 `0001` 起連續正式 Migration，建置時自動推導 `0004_project_b_employees.sql`；manifest、Release 下載器與 GitHub Deployment payload 均保存最低 Schema。Workflow 在 Migration 前後查詢遠端 `d1_migrations`，未知／跳號即停止，低於需求只向前套用，絕不倒退。Worker 58/58、Workflow YAML、project-b manifest 實際封裝通過；dineCore 與 project-b 遠端只讀查核皆為 `0004` 且相容。
 
 ### M5-2 dineCore Tag
 
@@ -371,9 +373,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M5-1：M4 歷史 ZIP 原件驗證與不重新 Build 的重部署全鏈已完成。
+目前停在 M5-2：D1 Schema 相容資訊、遠端前後 Gate 與禁止倒退規則已完成。
 
-唯一下一步：在 manifest 加入由正式 Migration 狀態推導的最低 Schema 相容資訊，並在 D1 Project 部署／回退前檢查；禁止自動倒退 Migration。
+唯一下一步：建立經授權的 dineCore Staging Tag，驗證 Migration、Health、Auth、隔離、Release、Deployment 狀態及其他 Project 未變。
 
 ## 6. 完成紀錄
 
@@ -390,3 +392,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M3-3 current／previous 證據模型 | 完成 | GitHub Deployments `7216537286`／`7216523961`；版本、Tag、Commit、ZIP Hash、Cloudflare Version、Smoke 與 Run URL 可由 API 讀取 | M4 尚未支援直接部署歷史 ZIP 原件 |
 | 2026-10-21 | M4-1 Release 下載器 | 完成 | Worker 52/52；正式 v0.1.0 ZIP Hash `9b2c947f…`；48 檔逐檔驗證與安全解壓 | 尚未接入 M4-2 重部署 Workflow |
 | 2026-10-21 | M4-2 歷史 ZIP 原件重部署 | 完成 | Run `39539280301`；Hash `996b7516…`；Deployment `7216995809`；Version `b2f4aeaa-4164-4937-ba24-9f8b41a3ce87` | D1 Project 仍需 M5 Schema 相容 Gate |
+| 2026-10-21 | M5-1 D1 Schema 相容 Gate | 完成 | Worker 58/58；minimum `0004_project_b_employees.sql`；兩個遠端 D1 皆相容；Workflow 前後檢查 | dineCore／project-b 新 Tag 尚未實跑 |

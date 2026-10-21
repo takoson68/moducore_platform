@@ -46,6 +46,10 @@ export function validateManifest(manifest, expected) {
   for (const key of ['project', 'target', 'version', 'tag']) {
     if (manifest[key] !== expected[key]) throw new Error(`manifest ${key} 不一致`)
   }
+  if (expected.database && !/^\d{4}_[A-Za-z0-9_-]+\.sql$/.test(manifest.minimumSchemaVersion || '')) {
+    throw new Error('D1 Project 缺少合法 minimumSchemaVersion')
+  }
+  if (!expected.database && manifest.minimumSchemaVersion != null) throw new Error('非 D1 Project 不得宣告 minimumSchemaVersion')
   if (!/^[a-f0-9]{40}$/.test(manifest.commit || '')) throw new Error('manifest commit 格式錯誤')
   if (!Array.isArray(manifest.files) || manifest.files.length === 0 || manifest.files.length > MAX_FILES) {
     throw new Error('manifest files 數量異常')
@@ -118,7 +122,7 @@ export async function verifyReleasePackage({ tag, repository, output }) {
 
   const manifestText = await readFile(path.join(outputPath, selected.manifest), 'utf8')
   const manifest = JSON.parse(manifestText)
-  validateManifest(manifest, { project: plan.project, target: plan.target, version: plan.version, tag })
+  validateManifest(manifest, { project: plan.project, target: plan.target, version: plan.version, tag, database: plan.database })
   if (manifest.artifact !== selected.zip) throw new Error('manifest artifact 與 ZIP 不一致')
 
   const entries = archiveEntries(zipPath)
@@ -157,6 +161,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       `zip-sha256=${result.zipSha256}`,
       `site-root=${result.siteRoot}`,
       `commit=${result.manifest.commit}`,
+      `minimum-schema-version=${result.manifest.minimumSchemaVersion || ''}`,
       '',
     ]
     await writeFile(process.env.GITHUB_OUTPUT, lines.join('\n'), { flag: 'a' })

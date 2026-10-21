@@ -57,6 +57,7 @@ const manifest = {
   tag: options.tag || null,
   commit: options.commit,
   builtAt: new Date().toISOString(),
+  minimumSchemaVersion: options['minimum-schema-version'] || null,
   artifact: `${artifact}.zip`,
   files: fileEntries,
 }
