@@ -63,7 +63,7 @@ Git Tag、GitHub Release、GitHub Deployment 與 Cloudflare Version 是四個不
 
 ## 5. Release 與 Artifact
 
-Release 必須包含 `tag`、`version`、`commit`、`releaseUrl`、`publishedAt` 與 `artifact`。Artifact 必須包含：
+Release 必須包含 `tag`、`version`、`commit`、`releaseUrl`、`builtAt`、`publishedAt` 與 `artifact`。`builtAt` 取自 manifest，`publishedAt` 取自 GitHub Release，兩者不得互相代替。Artifact 必須包含：
 
 - ZIP、manifest、checksum 的名稱、URL、大小與 GitHub digest（若有）。
 - `zipSha256`、`manifestSchemaVersion`、`fileCount`、`minimumSchemaVersion`。

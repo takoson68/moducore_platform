@@ -272,13 +272,15 @@ Gate：三個 Project 均有真實 Tag 成功證據。
 
 ### M6-2 唯讀畫面
 
-- [ ] Project 列表及固定 Staging 網址。
-- [ ] current／previous。
-- [ ] Tag、版本、Commit、建置及部署時間。
-- [ ] Cloudflare Version ID。
-- [ ] ZIP／manifest／checksum 狀態。
-- [ ] Smoke 結果與最近失敗原因。
-- [ ] ZIP 下載入口。
+- [x] Project 列表及固定 Staging 網址。
+- [x] current／previous。
+- [x] Tag、版本、Commit、建置及部署時間。
+- [x] Cloudflare Version ID。
+- [x] ZIP／manifest／checksum 狀態。
+- [x] Smoke 結果與最近失敗原因。
+- [x] ZIP 下載入口。
+
+完成日期：2026-10-21。證據：新增 `platform/release-console` 唯讀本機管理面，以伺服器端 `gh`／Wrangler 即時組合 Snapshot；真實查詢三個 Project 與四個 Release 全部為 `healthy`、`complete + verified`，並由瀏覽器確認 current／previous、固定網址、時間、Cloudflare Version、Smoke 與 ZIP 下載入口。Console 測試 2/2、語法檢查及 Worker 62/62 通過。
 
 ### M6-3 安全邊界
 
@@ -379,9 +381,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M6-2：唯讀控制台資料契約已完成，尚未建立讀取 Snapshot 的畫面。
+目前停在 M6-3：唯讀控制台畫面與真實 Snapshot 讀取層已完成，尚需完成公開／私有資料及憑證邊界的正式 Gate。
 
-唯一下一步：建立唯讀版本控制台畫面，顯示 Project、current／previous、版本證據、Artifact 驗證、Smoke、最近失敗原因與 ZIP 下載入口。
+唯一下一步：完成控制台安全邊界驗收，確認瀏覽器不保存 Token、公開讀取範圍、私有 Repository 代理方式，以及控制台沒有任何寫入端點。
 
 ## 6. 完成紀錄
 
@@ -402,3 +404,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M5-2 dineCore v0.1.0 | 完成 | Run `39540688796`；Deployment `7217206508`；Version `5df3e9a9-dfd4-458e-a4c4-a86bcc7b070c`；Schema／Health／Auth 通過 | project-b Tag 尚未實跑 |
 | 2026-10-21 | M5-3 project-b v0.1.0 | 完成 | Run `39540961036`；Deployment `7217249435`；Version `2fde7541-16c9-4213-b205-ac43b9b776e1`；Schema／Health／Auth／Employee 通過 | 下一階段為唯讀版本控制台 |
 | 2026-10-21 | M6-1 控制台資料契約 | 完成 | 契約文件；機器白名單與驗證器；Worker 62/62 | 尚未建立 Snapshot 讀取層與唯讀畫面 |
+| 2026-10-21 | M6-2 唯讀畫面 | 完成 | `platform/release-console`；真實 Snapshot 三 Project healthy；Console 2/2、Worker 62/62；瀏覽器驗收 | 尚待 M6-3 安全邊界正式 Gate |

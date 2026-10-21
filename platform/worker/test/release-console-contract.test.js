@@ -26,7 +26,7 @@ function snapshot() {
       }] : [],
       releases: project.key === 'game-demo' ? [{
         tag: 'dep_game-demo_v0.1.1', version: '0.1.1', commit: 'a'.repeat(40),
-        releaseUrl: 'https://github.example/release/1', publishedAt: '2026-10-21T02:00:00.000Z',
+        releaseUrl: 'https://github.example/release/1', builtAt: '2026-10-21T01:59:00.000Z', publishedAt: '2026-10-21T02:00:00.000Z',
         artifact: {
           zip: { name: 'game-demo_v0.1.1_aaaaaaa.zip', url: 'https://github.example/zip', size: 123, digest: `sha256:${'b'.repeat(64)}` },
           manifest: { name: 'manifest.json', url: 'https://github.example/manifest', size: 45, digest: `sha256:${'c'.repeat(64)}` },
@@ -80,4 +80,10 @@ test('Release 與 Artifact 必須提供完整且可判讀的欄位', () => {
   const danglingCurrent = snapshot()
   danglingCurrent.projects[0].currentDeploymentId = 999
   assert.throws(() => validateReleaseConsoleSnapshot(danglingCurrent), /找不到對應 Deployment/)
+
+  const incomplete = snapshot()
+  incomplete.projects[0].releases[0].artifact.manifest = null
+  incomplete.projects[0].releases[0].artifact.completeness = 'missing_assets'
+  incomplete.projects[0].releases[0].artifact.integrity = 'unavailable'
+  assert.doesNotThrow(() => validateReleaseConsoleSnapshot(incomplete))
 })

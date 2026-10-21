@@ -28,7 +28,7 @@ const requiredDeploymentFields = [
   'commit', 'cloudflareVersionId', 'environmentUrl', 'runUrl', 'releaseUrl', 'artifactSource',
   'artifactName', 'zipSha256', 'minimumSchemaVersion', 'smoke',
 ]
-const requiredReleaseFields = ['tag', 'version', 'commit', 'releaseUrl', 'publishedAt', 'artifact']
+const requiredReleaseFields = ['tag', 'version', 'commit', 'releaseUrl', 'builtAt', 'publishedAt', 'artifact']
 const requiredArtifactFields = [
   'zip', 'manifest', 'checksum', 'zipSha256', 'manifestSchemaVersion', 'fileCount',
   'minimumSchemaVersion', 'completeness', 'integrity',
@@ -45,8 +45,12 @@ function requireEnum(value, values, name) {
 
 function validateIssue(issue, name) {
   requireObject(issue, name)
+  for (const field of ['code', 'severity', 'source', 'message', 'occurredAt']) {
+    if (!(field in issue)) throw new Error(`${name} 缺少 ${field}`)
+  }
   requireEnum(issue.code, releaseConsoleEnums.issueCode, `${name}.code`)
   requireEnum(issue.severity, releaseConsoleEnums.issueSeverity, `${name}.severity`)
+  if (Number.isNaN(Date.parse(issue.occurredAt))) throw new Error(`${name}.occurredAt 必須是 ISO 時間`)
 }
 
 export function validateReleaseConsoleSnapshot(snapshot) {
@@ -80,10 +84,12 @@ export function validateReleaseConsoleSnapshot(snapshot) {
     for (const release of project.releases) {
       requireObject(release, `${project.key}.release`)
       for (const field of requiredReleaseFields) if (!(field in release)) throw new Error(`Release 缺少 ${field}`)
+      for (const field of ['builtAt', 'publishedAt']) if (Number.isNaN(Date.parse(release[field]))) throw new Error(`Release ${field} 必須是 ISO 時間`)
       requireObject(release.artifact, `${project.key}.release.artifact`)
       for (const field of requiredArtifactFields) if (!(field in release.artifact)) throw new Error(`Artifact 缺少 ${field}`)
       for (const assetName of ['zip', 'manifest', 'checksum']) {
         const asset = release.artifact[assetName]
+        if (asset === null && release.artifact.completeness !== 'complete') continue
         requireObject(asset, `${project.key}.release.artifact.${assetName}`)
         for (const field of requiredAssetFields) if (!(field in asset)) throw new Error(`${assetName} Asset 缺少 ${field}`)
       }

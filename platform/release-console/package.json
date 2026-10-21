@@ -1,0 +1,12 @@
+{
+  "name": "@moducore/release-console",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check snapshot.mjs && node --check public/app.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
