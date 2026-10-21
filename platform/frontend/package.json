@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:game": "node --test scripts/test-game.mjs",
     "test:employee": "node --experimental-vm-modules --test scripts/test-employee-service.mjs",
     "dev": "vite",
     "build": "vite build",
@@ -19,6 +20,7 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "p5": "^2.3.4",
     "qrcode": "^1.5.4",
     "vue-router": "^4.5.1"
   }

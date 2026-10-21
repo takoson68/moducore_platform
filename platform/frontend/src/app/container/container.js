@@ -1,12 +1,12 @@
 //- src/app/container/container.js
 import { services } from './services/index.js'
 
-class Container {
-  constructor() {
+export class Container {
+  constructor({ services: providedServices = services } = {}) {
     this.coreFactories = new Map()
     this.moduleFactories = new Map()
     this.instances = new Map()
-    this.services = services
+    this.services = providedServices
     this.routes = new Map()
     this.listeners = new Map()
   }

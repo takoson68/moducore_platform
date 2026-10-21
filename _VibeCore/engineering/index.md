@@ -294,6 +294,8 @@ Git 僅用於保存進度與歷史脈絡，
   → `_VibeCore/engineering/IDENTITY_ACCESS_CONTRACT.md`
 - 模組樣板 Contract
   → `_VibeCore/engineering/MODULE_TEMPLATE_CONTRACT.md`
+- Tag 部署操作手冊
+  → `_VibeCore/engineering/TAG_DEPLOYMENT_MANUAL.md`
 
 若附屬技術規範與 Engineering Index 發生衝突：
 

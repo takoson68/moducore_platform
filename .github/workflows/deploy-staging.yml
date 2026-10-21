@@ -2,17 +2,30 @@ name: Deploy staging
 
 on:
   push:
-    branches:
-      - world-oop
+    tags:
+      - 'dep_*_v*'
   workflow_dispatch:
     inputs:
+      target:
+        description: '救援部署目標（一次只允許一個專案）'
+        type: choice
+        required: true
+        default: game-demo
+        options:
+          - game-demo
+          - dinecore
+          - project-b
+      ref:
+        description: '要部署的 Branch、Tag 或 Commit SHA；留空使用目前選定分支'
+        type: string
+        required: false
       simulate_failure:
         description: 'M1 安全失敗演練：在遠端 migration 與部署前停止'
         type: boolean
         default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   plan:
@@ -20,6 +33,8 @@ jobs:
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
       has-targets: ${{ steps.targets.outputs.has-targets }}
+      checkout-ref: ${{ steps.targets.outputs.checkout-ref }}
+      is-tag-release: ${{ steps.targets.outputs.is-tag-release }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,9 +45,11 @@ jobs:
       - id: targets
         env:
           DEPLOY_EVENT: ${{ github.event_name }}
-          DEPLOY_BEFORE: ${{ github.event.before }}
-          DEPLOY_AFTER: ${{ github.sha }}
-        run: node platform/worker/scripts/select-deploy-targets.mjs
+          DEPLOY_TAG: ${{ github.ref_name }}
+          DEPLOY_PROJECT: ${{ inputs.target }}
+          DEPLOY_REF: ${{ inputs.ref }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: node platform/worker/scripts/release-plan.mjs
 
   deploy:
     needs: plan
@@ -54,6 +71,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.plan.outputs.checkout-ref || github.sha }}
+
+      - name: Resolve immutable source commit
+        id: source
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -74,6 +97,29 @@ jobs:
           VITE_PROJECT: ${{ matrix.project }}
           VITE_API_MODE: real
         run: npm run build:cloudflare -- --outDir ../worker/.assets/${{ matrix.target }}
+
+      - name: Package immutable release ZIP
+        id: package
+        working-directory: platform/frontend
+        run: |
+          node scripts/create-release-package.mjs \
+            --project '${{ matrix.project }}' \
+            --target '${{ matrix.target }}' \
+            --version '${{ matrix.version }}' \
+            --tag '${{ matrix.tag }}' \
+            --commit '${{ steps.source.outputs.commit }}' \
+            --assets '../worker/.assets/${{ matrix.target }}' \
+            --output '../../release-output'
+
+      - name: Preserve release package for diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact }}
+          path: |
+            ${{ steps.package.outputs.zip }}
+            ${{ steps.package.outputs.manifest }}
+            ${{ steps.package.outputs.checksum }}
+          retention-days: 7
 
       - name: Test frontend API token transport
         working-directory: platform/frontend
@@ -105,18 +151,34 @@ jobs:
           exit 1
 
       - name: Apply D1 migrations
+        if: matrix.database == true
         working-directory: platform/worker
         run: npm run db:migrate:remote -- --config wrangler.${{ matrix.target }}.json
 
       - name: Deploy Worker and Static Assets
+        id: deploy-worker
         working-directory: platform/worker
-        run: npm run deploy -- --config wrangler.${{ matrix.target }}.json
+        run: |
+          set -o pipefail
+          npm run deploy -- --config wrangler.${{ matrix.target }}.json | tee deploy-output.txt
+          version_id=$(sed -n 's/^Current Version ID: //p' deploy-output.txt | tail -n 1)
+          test -n "$version_id"
+          echo "version-id=$version_id" >> "$GITHUB_OUTPUT"
 
       - name: Verify public staging endpoints
+        if: matrix.database == true
         working-directory: platform/worker
         run: node scripts/smoke.mjs https://${{ matrix.target }}.takoson68.workers.dev ${{ matrix.target }}
 
+      - name: Verify game static site and SPA fallback
+        if: matrix.project == 'game-demo'
+        run: |
+          base='https://${{ matrix.target }}.takoson68.workers.dev'
+          curl --fail --silent --show-error "$base/" | grep 'id="app"'
+          curl --fail --silent --show-error "$base/version-check" | grep 'id="app"'
+
       - name: Verify remote authentication and D1 session lifecycle
+        if: matrix.database == true
         working-directory: platform/worker
         env:
           VERIFY_PEER_ISOLATION: '1'
@@ -126,3 +188,31 @@ jobs:
         if: matrix.project == 'project-b'
         working-directory: platform/worker
         run: node scripts/smoke-employees-remote.mjs --execute-staging
+
+      - name: Publish immutable GitHub Release
+        if: needs.plan.outputs.is-tag-release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag='${{ matrix.tag }}'
+          notes="Project: ${{ matrix.project }}
+          Target: ${{ matrix.target }}
+          Commit: ${{ steps.source.outputs.commit }}
+          Cloudflare Version: ${{ steps.deploy-worker.outputs.version-id }}"
+          if gh release view "$tag" --json assets >/dev/null 2>&1; then
+            asset_count=$(gh release view "$tag" --json assets --jq '.assets | length')
+            test "$asset_count" = '0' || { echo 'Release 已有資產，拒絕覆寫不可變版本'; exit 1; }
+            gh release upload "$tag" \
+              '${{ steps.package.outputs.zip }}' \
+              '${{ steps.package.outputs.manifest }}' \
+              '${{ steps.package.outputs.checksum }}'
+            gh release edit "$tag" --title '${{ matrix.project }} v${{ matrix.version }}' --notes "$notes"
+          else
+            gh release create "$tag" \
+              '${{ steps.package.outputs.zip }}' \
+              '${{ steps.package.outputs.manifest }}' \
+              '${{ steps.package.outputs.checksum }}' \
+              --verify-tag \
+              --title '${{ matrix.project }} v${{ matrix.version }}' \
+              --notes "$notes"
+          fi
