@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check snapshot.mjs && node --check access-policy.mjs && node --check github-identity.mjs && node --check workflow-bridge.mjs && node --check public/app.js",
+    "check": "node --check server.mjs && node --check snapshot.mjs && node --check access-policy.mjs && node --check github-identity.mjs && node --check workflow-bridge.mjs && node --check console-operations.mjs && node --check public/app.js",
     "test": "node --test"
   },
   "engines": { "node": ">=20" }

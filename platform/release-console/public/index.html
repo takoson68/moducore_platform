@@ -9,10 +9,12 @@
 <body>
   <main>
     <header>
-      <div><p class="eyebrow">MODUCORE / RELEASE EVIDENCE</p><h1>唯讀版本控制台</h1><p class="intro">以 GitHub Release、Deployment 與 Cloudflare 線上版本交叉驗證。</p></div>
+      <div><p class="eyebrow">MODUCORE / RELEASE CONTROL</p><h1>版本控制台</h1><p class="intro">以 GitHub Release、Deployment 與 Cloudflare 線上版本交叉驗證。</p></div>
       <button id="refresh" type="button">重新查詢</button>
     </header>
     <section id="summary" class="summary" aria-live="polite">正在讀取版本證據…</section>
+    <section id="operator" class="operator" aria-live="polite">正在驗證 GitHub 操作員…</section>
+    <section class="operations-panel"><div class="panel-title"><h2>操作紀錄</h2><span id="mode"></span></div><div id="operations"><p class="empty">目前沒有操作</p></div></section>
     <section id="projects" class="projects"></section>
   </main>
   <template id="project-template">
@@ -20,11 +22,15 @@
       <div class="project-head"><div><p class="target"></p><h2></h2></div><span class="status"></span></div>
       <a class="site-link" target="_blank" rel="noreferrer">開啟固定 Staging 網址 ↗</a>
       <div class="positions"><section class="deployment current"></section><section class="deployment previous"></section></div>
+      <div class="project-actions"></div>
       <p class="cloudflare-proof"></p>
       <section class="release-panel"><h3>Release 與成品</h3><div class="releases"></div></section>
       <section class="issues-panel"><h3>最近問題</h3><div class="issues"></div></section>
     </article>
   </template>
+  <dialog id="confirm-dialog">
+    <form method="dialog"><h2 id="dialog-title"></h2><p id="dialog-impact"></p><p>請輸入完整確認字串：</p><code id="dialog-expected"></code><input id="dialog-confirmation" autocomplete="off" spellcheck="false"><p id="dialog-error" class="dialog-error"></p><div class="dialog-buttons"><button value="cancel">取消</button><button id="dialog-submit" value="default">確認送出</button></div></form>
+  </dialog>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

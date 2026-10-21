@@ -1,4 +1,4 @@
-# ModuCore 唯讀版本控制台
+# ModuCore 版本控制台
 
 本機管理面會從 GitHub Releases、GitHub Deployments、GitHub Actions 與 Cloudflare Deployments 即時建立唯讀 Snapshot。瀏覽器只呼叫本機 `/api/release-console`，不保存或接觸 GitHub／Cloudflare Token。
 
@@ -28,7 +28,11 @@ npm start
 
 M7-1 已固定未來寫入操作的 GitHub 身份、Viewer／Deployer／Admin、重新驗證及稽核契約，詳見 `_VibeCore/engineering/RELEASE_CONSOLE_ACCESS_CONTRACT.md`。目前只存在可測試的 policy 函式，仍未建立身份登入、操作員白名單或寫入端點。
 
-M7-2 的受控橋接位於 `github-identity.mjs` 與 `workflow-bridge.mjs`：只接受三個 Project 的正式部署 Tag，固定透過 `deploy-staging.yml` 使用 Release 原件，並以 Operation ID 追蹤 queued／running／success／failed。`access-policy.json` 是人工維護位置；修改 GitHub ID、login、role 或 enabled 後需 Commit 留痕。橋接尚未接到 HTTP 或畫面，因此目前不會因操作控制台而觸發 Workflow。
+M7-2 的受控橋接位於 `github-identity.mjs` 與 `workflow-bridge.mjs`：只接受三個 Project 的正式部署 Tag，固定透過 `deploy-staging.yml` 使用 Release 原件，並以 Operation ID 追蹤 queued／running／success／failed。`access-policy.json` 是人工維護位置；修改 GitHub ID、login、role 或 enabled 後需 Commit 留痕。這個真實 adapter 尚未接到 HTTP 或畫面。
+
+M7-3 已加入本機操作 UI 與受控 POST API，可選擇 verified Release、回退 previous、取消 queued Operation，以及選取一至二十筆非 current／previous Release 做批次刪除。後端每次都重新解析 GitHub 身份與 Snapshot，並要求完整確認字串；瀏覽器提供的角色、Commit、來源版本及保護狀態不具權威性。
+
+目前固定為醒目標示的 `simulation` 模式：操作狀態及 `data/audit.ndjson` 會更新，但不會呼叫 GitHub Workflow、刪除 Release 或變更 Cloudflare。正式部署／回退 adapter 與真實刪除維護 Workflow 必須分別取得明確授權後才可啟用，不能只靠畫面切換模式。
 
 ## 安全邊界
 

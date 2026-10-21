@@ -317,13 +317,15 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 
 ### M7-3 操作功能
 
-- [ ] 部署指定版本。
-- [ ] 一鍵回退 previous。
-- [ ] 取消尚未開始的操作。
-- [ ] current 不可刪除。
-- [ ] previous 預設不可刪除，除非先建立新的安全回退點。
-- [ ] 每 Project 至少保留一個已驗證版本。
-- [ ] 批次刪除需二次確認並列出不可恢復影響。
+- [x] 部署指定版本。
+- [x] 一鍵回退 previous。
+- [x] 取消尚未開始的操作。
+- [x] current 不可刪除。
+- [x] previous 預設不可刪除，除非先建立新的安全回退點。
+- [x] 每 Project 至少保留一個已驗證版本。
+- [x] 批次刪除需二次確認並列出不可恢復影響。
+
+完成日期：2026-10-21。證據：新增受控 Operation service、same-origin JSON POST Gate、每次 GitHub 身份與 Snapshot 再驗證、verified Release 部署、previous 回退、queued 取消、current／previous／最後 verified 保護，以及一至二十筆批次刪除影響清單。Console 19/19 通過；瀏覽器以真實 Snapshot 驗證 `game-demo` previous 回退由 queued 取消為 cancelled。整個 M7-3 固定為 simulation adapter，未 Dispatch Workflow、刪除 Release 或變更 Cloudflare。
 
 Gate：控制台寫入操作均走同一套 Workflow Gate，不存在旁路部署。
 
@@ -387,9 +389,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M7-3：GitHub 身份與受控 Workflow Dispatch 橋接、Operation 狀態、Project 互斥及 Audit 已完成；尚未接到 HTTP／UI，未實際觸發任何 Workflow。
+目前停在 M8-1：M7 操作 UI 與安全規則已在 simulation 模式完成；尚未啟用真實寫入 adapter，也未實際觸發任何 Workflow、刪除或部署。
 
-唯一下一步：實作 M7-3 操作功能與畫面，依契約加入部署指定版本、previous 回退、queued 取消及安全刪除規則，並先以模擬 adapter 做完整瀏覽器驗收；任何真實 Workflow Dispatch 仍需另外明確執行授權。
+唯一下一步：執行 M8-1 game-demo 成品瘦身，盤點 Release ZIP 中約 50 個檔案，區分遊戲必要資產與 project-b／mtk2mad／共用舊資產；先產出保留／移除清單，再修改打包範圍並完成 Build、ZIP、瀏覽器及 Smoke 驗證。
 
 ## 6. 完成紀錄
 
@@ -414,3 +416,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M6-3 安全邊界 | 完成 | 回環限定；GET-only；敏感 Snapshot Guard；安全標頭；Console 5/5、Worker 62/62；真實掃描 clean | M7 寫入能力尚未設計或啟用 |
 | 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 尚無登入、操作員白名單、稽核儲存或寫入端點 |
 | 2026-10-21 | M7-2 Workflow Dispatch 橋接 | 完成 | GitHub ID 白名單；固定 Release Dispatch；Operation ID／狀態／Mutex／Audit；Console 14/14；YAML 有效 | HTTP／UI 尚未接線；未執行真實 Dispatch |
+| 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |

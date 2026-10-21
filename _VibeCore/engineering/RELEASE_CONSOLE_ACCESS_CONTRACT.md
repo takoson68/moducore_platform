@@ -75,3 +75,12 @@ M7-2 實作身份橋接時，操作員白名單的人工維護位置固定為 `p
 - 同 Project 的 queued／running Operation 互斥；不同 Project 可獨立排程。Workflow 本身既有 target concurrency 是第二層防線。
 - 狀態固定為 `queued | running | success | failed | cancelled`；每次變更追加 Audit event。
 - `platform/release-console/access-policy.json` 已建立第一筆明確操作員白名單。橋接仍未接到 HTTP／UI；必須完成 M7-3 的操作輸入與保護規則後，才可從畫面提出寫入要求。
+
+## 7. 操作 UI 與模擬 Gate
+
+- 寫入 API 只接受 loopback Host、same-origin `Origin`、JSON 與 32 KiB 以下 Body；其他 Method 不構成部署旁路。
+- 每次操作重新讀取 GitHub 身份、Repository 權限與最新 Snapshot。瀏覽器只提交 Action、Project、Tag 及確認字串。
+- 部署只接受完整且 verified 的 Release；回退 Tag 必須等於後端判定的 previous。
+- queued Operation 才能取消；同 Project 尚有 queued／running 時拒絕新增操作。
+- current、previous 及刪除後不足一個 verified Release 的要求一律拒絕。批次刪除限制一至二十筆，逐筆列出不可恢復影響並以完整 Tag 清單確認。
+- M7-3 驗收階段固定使用 simulation adapter。它可驗證 UI、狀態與 Audit，但不會 Dispatch Workflow、刪除 Release 或改動 Cloudflare；真實 adapter 必須另行取得明確授權。

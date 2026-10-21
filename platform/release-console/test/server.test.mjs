@@ -25,16 +25,30 @@ function requestWithHost(base, host) {
   })
 }
 
-test('控制台只接受回環 Host 與 GET，沒有寫入旁路', async () => {
+test('控制台只接受回環 Host，非操作路由沒有寫入旁路', async () => {
   await withServer(async () => ({ status: 'healthy' }), async (base) => {
     const write = await fetch(`${base}/api/release-console`, { method: 'POST' })
     assert.equal(write.status, 405)
-    assert.equal((await write.json()).error, 'READ_ONLY')
+    assert.equal((await write.json()).error, 'METHOD_NOT_ALLOWED')
 
     const foreignHost = await requestWithHost(base, 'console.example.com')
     assert.equal(foreignHost.status, 403)
     assert.equal(foreignHost.body.error, 'LOOPBACK_ONLY')
   })
+})
+
+test('操作路由要求 same-origin JSON 並只呼叫受控服務', async () => {
+  const calls = []
+  const controlled = { mode: 'simulation', session: async () => ({}), refreshAll: async () => [], start: async (body) => { calls.push(body); return { status: 'queued' } }, cancel: async () => ({ status: 'cancelled' }) }
+  const server = createReleaseConsoleServer({ snapshotLoader: async () => ({ status: 'healthy' }), operations: controlled })
+  server.listen(0, '127.0.0.1'); await once(server, 'listening')
+  const base = `http://127.0.0.1:${server.address().port}`
+  try {
+    assert.equal((await fetch(`${base}/api/operations`, { method: 'POST' })).status, 403)
+    const response = await fetch(`${base}/api/operations`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json' }, body: JSON.stringify({ action: 'deploy' }) })
+    assert.equal(response.status, 202)
+    assert.equal(calls[0].action, 'deploy')
+  } finally { server.close(); await once(server, 'close') }
 })
 
 test('Snapshot 不得把憑證或敏感欄位送到瀏覽器', () => {
