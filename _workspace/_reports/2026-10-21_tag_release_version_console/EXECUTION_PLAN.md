@@ -188,10 +188,12 @@ Gate：目前「由舊 Tag Commit 重建」回退路徑可用。
 
 ### M3-3 current／previous 證據模型
 
-- [ ] 決定 current／previous 的正式真相來源：Cloudflare Deployment、Repository version catalog，或受控後端資料。
-- [ ] 禁止僅以瀏覽器 localStorage 作為正式狀態。
-- [ ] 設計部署成功後才更新 current、原 current 才成為 previous 的原子順序。
-- [ ] 部署失敗時不得移動 current／previous。
+- [x] 決定 current／previous 的正式真相來源：Cloudflare Deployment、Repository version catalog，或受控後端資料。
+- [x] 禁止僅以瀏覽器 localStorage 作為正式狀態。
+- [x] 設計部署成功後才更新 current、原 current 才成為 previous 的原子順序。
+- [x] 部署失敗時不得移動 current／previous。
+
+完成日期：2026-10-21。正式真相來源採 GitHub Deployments，GitHub Releases 保存不可變成品，Cloudflare Version ID 作交叉證據。Workflow 只在全部 Gate 成功後建立 `success` Deployment；GitHub 自動把原 current 標成 `inactive`，成為 previous。實測 current Deployment `7216537286` 為 `dep_game-demo_v0.1.0`、Cloudflare Version `feb40e63-6b5f-43ba-a695-c46002e772ab`；previous Deployment `7216523961` 為 `dep_game-demo_v0.1.1`、Cloudflare Version `ff07362e-7b08-455d-9786-af653f641198`。兩筆均保存 Commit、ZIP SHA-256、Smoke 與 Run URL。
 
 Gate：控制台可以從權威來源讀出一致狀態。
 
@@ -365,9 +367,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M3-3：game-demo 第二版與舊 Tag Commit 回退均驗收成功；下一步需建立 current／previous 的權威證據模型。
+目前停在 M4-1：M3 第二版、回退與 current／previous 權威證據模型已完成。
 
-唯一下一步：決定 current／previous 的正式真相來源與部署成功後的原子更新順序；完成後才能開始版本控制台或歷史 ZIP 原件回退。
+唯一下一步：建立 GitHub Release 歷史 ZIP 下載器，完成 Tag、checksum、逐檔 Hash 與安全解壓驗證；未通過不得進入重部署。
 
 ## 6. 完成紀錄
 
@@ -381,3 +383,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M2 game-demo v0.1.0 | 完成 | Run `39534746365`；Release 三資產；Version `10316969-bffb-44e9-815a-666c1d70ddb2`；HTTP 200 | dineCore／project-b 尚未做新 Tag 首版驗收 |
 | 2026-10-21 | M3-1 game-demo v0.1.1 | 完成 | Commit `0e36c37`；Run `39535059984`；Version `e0c61fc3-4656-4f42-94e1-1e4f9f97f70e`；Release 三資產 | Bundle 體積警告仍存在 |
 | 2026-10-21 | M3-2 舊 Tag Commit 回退 | 完成 | Run `39535192834`；第一版入口資產恢復；Version `191549fd-de2b-4070-9f0a-e55e24ab6c2c`；其他 Project 未變 | 目前仍是重新 Build，不是 M4 歷史 ZIP 原件回退 |
+| 2026-10-21 | M3-3 current／previous 證據模型 | 完成 | GitHub Deployments `7216537286`／`7216523961`；版本、Tag、Commit、ZIP Hash、Cloudflare Version、Smoke 與 Run URL 可由 API 讀取 | M4 尚未支援直接部署歷史 ZIP 原件 |
