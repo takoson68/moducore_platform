@@ -167,18 +167,22 @@ Gate：M2 全部成立後，Tag 部署才可宣告正式可用。
 
 ### M3-1 建立可辨識第二版
 
-- [ ] 做一個可人工辨識、低風險的 game-demo 變更。
-- [ ] 完成測試並 Commit／Push。
-- [ ] 建立 `dep_game-demo_v0.1.1`。
-- [ ] 確認第二版部署與 Release 成功。
+- [x] 做一個可人工辨識、低風險的 game-demo 變更。
+- [x] 完成測試並 Commit／Push。
+- [x] 建立 `dep_game-demo_v0.1.1`。
+- [x] 確認第二版部署與 Release 成功。
+
+完成日期：2026-10-21。證據：右上角新增 `v0.1.1` 版本膠囊；Commit `0e36c3777729af510233b30ea704381f52d4d2c2`；Game 5/5、API 3/3 與 game-demo Build 通過；Run `https://github.com/takoson68/moducore_platform/actions/runs/39535059984`；Release `https://github.com/takoson68/moducore_platform/releases/tag/dep_game-demo_v0.1.1`；Cloudflare Version `e0c61fc3-4656-4f42-94e1-1e4f9f97f70e`。
 
 ### M3-2 來源 Commit 回退
 
-- [ ] 從 GitHub Actions 手動救援選擇 game-demo。
-- [ ] `ref` 指向 `dep_game-demo_v0.1.0`。
-- [ ] 確認重新建置、測試、部署成功。
-- [ ] 人工確認畫面回到第一版。
-- [ ] 確認 dineCore／project-b 未改變。
+- [x] 從 GitHub Actions 手動救援選擇 game-demo。
+- [x] `ref` 指向 `dep_game-demo_v0.1.0`。
+- [x] 確認重新建置、測試、部署成功。
+- [x] 人工確認畫面回到第一版。
+- [x] 確認 dineCore／project-b 未改變。
+
+完成日期：2026-10-21。證據：救援 Run `https://github.com/takoson68/moducore_platform/actions/runs/39535192834`；部署後入口資產回到第一版 `index-BovrI6cx.js` 且不含 `v0.1.1`；Cloudflare Version `191549fd-de2b-4070-9f0a-e55e24ab6c2c`；首頁與深層路徑 HTTP 200。dineCore 仍為 `9a96bfb2-0e03-401a-a684-a0c100ebe98b`，project-b 仍為 `0b6beffd-546e-40ad-b5e5-c5eb1a2fcd51`。
 
 Gate：目前「由舊 Tag Commit 重建」回退路徑可用。
 
@@ -361,9 +365,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M3：M0、M1 與 game-demo 第一版 Tag 全鏈驗收均已完成；Tag 發布已可正式使用。
+目前停在 M3-3：game-demo 第二版與舊 Tag Commit 回退均驗收成功；下一步需建立 current／previous 的權威證據模型。
 
-唯一下一步：依產品優先順序選擇是否執行 dineCore／project-b 首版 Tag 驗收，或直接進入版本控制台的權威資料模型設計。
+唯一下一步：決定 current／previous 的正式真相來源與部署成功後的原子更新順序；完成後才能開始版本控制台或歷史 ZIP 原件回退。
 
 ## 6. 完成紀錄
 
@@ -375,3 +379,5 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M0 變更隔離與本機 Gate | 完成 | 精確白名單；Diff check；Worker 45、Game 5、API 3；三 Project Build；Wrangler dry-run | 尚未 Commit／Push；未做真實 Tag Run |
 | 2026-10-21 | M1 新 Workflow 啟用 | 完成 | Commit `1a06911`；普通 Branch Push 無部署；遠端 Tag trigger 生效 | Actions runner 提示 Ubuntu／Node 版本遷移警告 |
 | 2026-10-21 | M2 game-demo v0.1.0 | 完成 | Run `39534746365`；Release 三資產；Version `10316969-bffb-44e9-815a-666c1d70ddb2`；HTTP 200 | dineCore／project-b 尚未做新 Tag 首版驗收 |
+| 2026-10-21 | M3-1 game-demo v0.1.1 | 完成 | Commit `0e36c37`；Run `39535059984`；Version `e0c61fc3-4656-4f42-94e1-1e4f9f97f70e`；Release 三資產 | Bundle 體積警告仍存在 |
+| 2026-10-21 | M3-2 舊 Tag Commit 回退 | 完成 | Run `39535192834`；第一版入口資產恢復；Version `191549fd-de2b-4070-9f0a-e55e24ab6c2c`；其他 Project 未變 | 目前仍是重新 Build，不是 M4 歷史 ZIP 原件回退 |
