@@ -284,9 +284,11 @@ Gate：三個 Project 均有真實 Tag 成功證據。
 
 ### M6-3 安全邊界
 
-- [ ] 瀏覽器不保存 GitHub Token、Cloudflare Token 或 Actions Secret。
-- [ ] 未登入或無權限使用者只能讀取允許公開的資料。
-- [ ] 私有 Repository 資料只能由受控後端代理。
+- [x] 瀏覽器不保存 GitHub Token、Cloudflare Token 或 Actions Secret。
+- [x] 未登入或無權限使用者只能讀取允許公開的資料。
+- [x] 私有 Repository 資料只能由受控後端代理。
+
+完成日期：2026-10-21。證據：服務固定綁定 `127.0.0.1` 並拒絕非回環 Host；HTTP 僅允許 GET，寫入方法固定回 `405 READ_ONLY`；Snapshot 出口拒絕敏感欄位與憑證字串，來源錯誤裁切為固定訊息；CSP、`no-store`、`nosniff`、`DENY` 與 `no-referrer` 生效。真實 Snapshot 敏感掃描 clean，Console 安全／資料測試 5/5、Worker 62/62 通過。私有 Repository 只允許伺服器端 `gh` CLI 代理；本機版不得直接公開到網路。
 
 Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕。
 
@@ -381,9 +383,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M6-3：唯讀控制台畫面與真實 Snapshot 讀取層已完成，尚需完成公開／私有資料及憑證邊界的正式 Gate。
+目前停在 M7-1：M6 唯讀控制台與安全 Gate 已完成，控制台沒有部署、回退、刪除、上傳或其他寫入端點。
 
-唯一下一步：完成控制台安全邊界驗收，確認瀏覽器不保存 Token、公開讀取範圍、私有 Repository 代理方式，以及控制台沒有任何寫入端點。
+唯一下一步：定義受控版本切換控制台的操作員身份來源、Viewer／Deployer／Admin 權限、重新驗證／二次確認與不可變稽核欄位；尚未授權建立任何寫入端點。
 
 ## 6. 完成紀錄
 
@@ -405,3 +407,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M5-3 project-b v0.1.0 | 完成 | Run `39540961036`；Deployment `7217249435`；Version `2fde7541-16c9-4213-b205-ac43b9b776e1`；Schema／Health／Auth／Employee 通過 | 下一階段為唯讀版本控制台 |
 | 2026-10-21 | M6-1 控制台資料契約 | 完成 | 契約文件；機器白名單與驗證器；Worker 62/62 | 尚未建立 Snapshot 讀取層與唯讀畫面 |
 | 2026-10-21 | M6-2 唯讀畫面 | 完成 | `platform/release-console`；真實 Snapshot 三 Project healthy；Console 2/2、Worker 62/62；瀏覽器驗收 | 尚待 M6-3 安全邊界正式 Gate |
+| 2026-10-21 | M6-3 安全邊界 | 完成 | 回環限定；GET-only；敏感 Snapshot Guard；安全標頭；Console 5/5、Worker 62/62；真實掃描 clean | M7 寫入能力尚未設計或啟用 |

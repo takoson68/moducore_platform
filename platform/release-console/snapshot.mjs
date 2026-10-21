@@ -180,7 +180,7 @@ async function loadActions() {
 export async function buildReleaseConsoleSnapshot() {
   const sourceErrors = {}
   const safe = async (name, loader, fallback) => {
-    try { return await loader() } catch (error) { sourceErrors[name] = String(error.message || error); return fallback }
+    try { return await loader() } catch { sourceErrors[name] = `${name} 暫時無法查詢`; return fallback }
   }
   const [deployments, releases, cloudflare, actions] = await Promise.all([
     safe('githubDeployments', loadDeployments, []),
