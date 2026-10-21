@@ -95,25 +95,31 @@ Gate：全部成功；警告與未修項目有書面紀錄。
 
 ### M1-1 Commit
 
-- [ ] 建立單一聚焦 Commit。
-- [ ] Commit 訊息使用繁體中文並描述 Tag 發布與 game-demo 整合。
-- [ ] 記錄 Commit SHA。
+- [x] 建立單一聚焦 Commit。
+- [x] Commit 訊息使用繁體中文並描述 Tag 發布與 game-demo 整合。
+- [x] 記錄 Commit SHA。
+
+完成日期：2026-10-21。證據：Commit `1a069112fbdf7b601016a368ceeff7deac7e4eb9`，訊息 `feat - 整合遊戲專案與 Tag 版本發布`。
 
 ### M1-2 Push world-oop
 
-- [ ] Push 前再次確認遠端 HEAD 未被他人推進；若已推進，先重新核對。
-- [ ] Push `world-oop`。
-- [ ] 確認此次普通 Branch Push沒有啟動 Staging Deployment。
-- [ ] 確認遠端 Workflow 顯示 `dep_*_v*` 與手動單 Project 選單。
+- [x] Push 前再次確認遠端 HEAD 未被他人推進；若已推進，先重新核對。
+- [x] Push `world-oop`。
+- [x] 確認此次普通 Branch Push沒有啟動 Staging Deployment。
+- [x] 確認遠端 Workflow 顯示 `dep_*_v*` 與手動單 Project 選單。
+
+完成日期：2026-10-21。證據：Push 前本機與 `origin/world-oop` 均為 `86810ff`；Push `1a06911` 後無 Branch Push Run，遠端 Workflow 僅監聽 `dep_*_v*`。
 
 Gate：遠端 Branch 已有新 Workflow，且普通 Push 不部署任何站。
 
 ### M1-3 GitHub 權限檢查
 
-- [ ] 確認 Actions 可讀 Repository。
-- [ ] 確認 `contents: write` 可建立／編輯 GitHub Release。
-- [ ] 確認 staging Environment 的 Cloudflare Secrets 可供 Tag Workflow 使用。
-- [ ] 確認 Fork／非受信任來源不能取得部署 Secrets。
+- [x] 確認 Actions 可讀 Repository。
+- [x] 確認 `contents: write` 可建立／編輯 GitHub Release。
+- [x] 確認 staging Environment 的 Cloudflare Secrets 可供 Tag Workflow 使用。
+- [x] 確認 Fork／非受信任來源不能取得部署 Secrets。
+
+完成日期：2026-10-21。證據：正式 Tag Run 可 Checkout、部署並建立 Release；Secrets 綁定 staging Environment，且 Workflow 僅接受 Repository Tag Push 或具 Actions 權限者手動觸發。
 
 Gate：權限最小化且能完成正式 Release 寫入。
 
@@ -123,33 +129,35 @@ Gate：權限最小化且能完成正式 Release 寫入。
 
 ### M2-1 建立不可變 Tag
 
-- [ ] 確認 Tag 指向 M1 已 Push 的 Commit。
-- [ ] 建立 `dep_game-demo_v0.1.0`。
-- [ ] Push 單一 Tag。
-- [ ] 禁止刪除、移動或重用該 Tag。
+- [x] 確認 Tag 指向 M1 已 Push 的 Commit。
+- [x] 建立 `dep_game-demo_v0.1.0`。
+- [x] Push 單一 Tag。
+- [x] 禁止刪除、移動或重用該 Tag。
 
 ### M2-2 Workflow 目標隔離
 
-- [ ] 確認 Matrix 只有 `game-demo-staging`。
-- [ ] 確認未執行 D1 Migration、Auth Smoke、Employee Smoke。
-- [ ] 確認 dineCore／project-b Workflow 與 Cloudflare Version 均未變動。
+- [x] 確認 Matrix 只有 `game-demo-staging`。
+- [x] 確認未執行 D1 Migration、Auth Smoke、Employee Smoke。
+- [x] 確認 dineCore／project-b Workflow 與 Cloudflare Version 均未變動。
 
 ### M2-3 成品 Gate
 
-- [ ] 確認 ZIP 檔名包含 Project、版本及短 Commit SHA。
-- [ ] 確認 manifest 的 Tag、Commit、Project、Target 正確。
-- [ ] 對 ZIP 執行 SHA-256 驗證。
-- [ ] 抽查 manifest 至少三個檔案的逐檔 SHA-256。
-- [ ] 解壓 ZIP，確認 `site/index.html` 與入口資產存在。
+- [x] 確認 ZIP 檔名包含 Project、版本及短 Commit SHA。
+- [x] 確認 manifest 的 Tag、Commit、Project、Target 正確。
+- [x] 對 ZIP 執行 SHA-256 驗證。
+- [x] 抽查 manifest 至少三個檔案的逐檔 SHA-256。
+- [x] 解壓 ZIP，確認 `site/index.html` 與入口資產存在。
 
 ### M2-4 部署與 Release Gate
 
-- [ ] Wrangler dry-run 成功。
-- [ ] Cloudflare 部署成功並取得 Version ID。
-- [ ] 首頁、深層路徑及入口資產回傳 200。
-- [ ] GitHub Release 標題、說明及三個資產存在。
-- [ ] Release 記錄 Commit 與 Cloudflare Version ID。
-- [ ] 將 Run URL、Release URL、Version ID 寫入本文件。
+- [x] Wrangler dry-run 成功。
+- [x] Cloudflare 部署成功並取得 Version ID。
+- [x] 首頁、深層路徑及入口資產回傳 200。
+- [x] GitHub Release 標題、說明及三個資產存在。
+- [x] Release 記錄 Commit 與 Cloudflare Version ID。
+- [x] 將 Run URL、Release URL、Version ID 寫入本文件。
+
+完成日期：2026-10-21。證據：Run `https://github.com/takoson68/moducore_platform/actions/runs/39534746365`；Release `https://github.com/takoson68/moducore_platform/releases/tag/dep_game-demo_v0.1.0`；Cloudflare Version `10316969-bffb-44e9-815a-666c1d70ddb2`；公開首頁與 SPA 深層路徑皆為 HTTP 200。dineCore 保持 `9a96bfb2-0e03-401a-a684-a0c100ebe98b`，project-b 保持 `0b6beffd-546e-40ad-b5e5-c5eb1a2fcd51`。
 
 Gate：M2 全部成立後，Tag 部署才可宣告正式可用。
 
@@ -353,9 +361,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M1-1：M0 變更隔離、提交白名單與最終本機 Gate 已完成，下一步是建立聚焦 Commit。
+目前停在 M3：M0、M1 與 game-demo 第一版 Tag 全鏈驗收均已完成；Tag 發布已可正式使用。
 
-唯一下一步：核對 Staged Diff 摘要後建立 Commit；Push 前再次確認 `origin/world-oop` 未前進。
+唯一下一步：依產品優先順序選擇是否執行 dineCore／project-b 首版 Tag 驗收，或直接進入版本控制台的權威資料模型設計。
 
 ## 6. 完成紀錄
 
@@ -365,3 +373,5 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 |---|---|---|---|---|
 | 2026-10-21 | 基線實作 | 本機完成 | Worker 45、Game 5、API 3；ZIP／manifest／checksum／YAML 通過 | 未 Commit／Push；未做真實 Tag Run |
 | 2026-10-21 | M0 變更隔離與本機 Gate | 完成 | 精確白名單；Diff check；Worker 45、Game 5、API 3；三 Project Build；Wrangler dry-run | 尚未 Commit／Push；未做真實 Tag Run |
+| 2026-10-21 | M1 新 Workflow 啟用 | 完成 | Commit `1a06911`；普通 Branch Push 無部署；遠端 Tag trigger 生效 | Actions runner 提示 Ubuntu／Node 版本遷移警告 |
+| 2026-10-21 | M2 game-demo v0.1.0 | 完成 | Run `39534746365`；Release 三資產；Version `10316969-bffb-44e9-815a-666c1d70ddb2`；HTTP 200 | dineCore／project-b 尚未做新 Tag 首版驗收 |
