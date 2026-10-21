@@ -264,9 +264,11 @@ Gate：三個 Project 均有真實 Tag 成功證據。
 
 ### M6-1 控制台資料契約
 
-- [ ] 定義 Project、Release、Deployment、Artifact、current、previous 與 Smoke 狀態欄位。
-- [ ] 明確區分 Git Tag、GitHub Release、Cloudflare Version 與部署時間。
-- [ ] 定義資料缺失、Release 不完整、Hash 失敗與遠端無法查詢的顯示方式。
+- [x] 定義 Project、Release、Deployment、Artifact、current、previous 與 Smoke 狀態欄位。
+- [x] 明確區分 Git Tag、GitHub Release、Cloudflare Version 與部署時間。
+- [x] 定義資料缺失、Release 不完整、Hash 失敗與遠端無法查詢的顯示方式。
+
+完成日期：2026-10-21。證據：`_VibeCore/engineering/RELEASE_CONSOLE_CONTRACT.md` 定義權威來源、Snapshot、狀態與安全邊界；`platform/worker/scripts/release-console-contract.mjs` 提供固定白名單、列舉與形狀驗證；Worker 測試 62/62 通過。
 
 ### M6-2 唯讀畫面
 
@@ -377,9 +379,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M6-1：game-demo、dineCore、project-b 均已具備真實 Tag、Release、Cloudflare 與 GitHub Deployment 成功證據，M5 Gate 完成。
+目前停在 M6-2：唯讀控制台資料契約已完成，尚未建立讀取 Snapshot 的畫面。
 
-唯一下一步：定義唯讀版本控制台的資料契約，涵蓋 Project、Release、Deployment、Artifact、current／previous、Smoke 與錯誤／缺失狀態。
+唯一下一步：建立唯讀版本控制台畫面，顯示 Project、current／previous、版本證據、Artifact 驗證、Smoke、最近失敗原因與 ZIP 下載入口。
 
 ## 6. 完成紀錄
 
@@ -399,3 +401,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M5-1 D1 Schema 相容 Gate | 完成 | Worker 58/58；minimum `0004_project_b_employees.sql`；兩個遠端 D1 皆相容；Workflow 前後檢查 | dineCore／project-b 新 Tag 尚未實跑 |
 | 2026-10-21 | M5-2 dineCore v0.1.0 | 完成 | Run `39540688796`；Deployment `7217206508`；Version `5df3e9a9-dfd4-458e-a4c4-a86bcc7b070c`；Schema／Health／Auth 通過 | project-b Tag 尚未實跑 |
 | 2026-10-21 | M5-3 project-b v0.1.0 | 完成 | Run `39540961036`；Deployment `7217249435`；Version `2fde7541-16c9-4213-b205-ac43b9b776e1`；Schema／Health／Auth／Employee 通過 | 下一階段為唯讀版本控制台 |
+| 2026-10-21 | M6-1 控制台資料契約 | 完成 | 契約文件；機器白名單與驗證器；Worker 62/62 | 尚未建立 Snapshot 讀取層與唯讀畫面 |
