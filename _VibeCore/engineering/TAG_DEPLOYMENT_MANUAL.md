@@ -81,4 +81,15 @@ Tag Workflow 無法使用時：
 
 GitHub Releases 的 ZIP、manifest 與 checksum 是未來版本控制台的正式版本目錄。控制台應顯示 current、previous、Tag、Commit、Cloudflare Version ID 及 Smoke 狀態；切換操作必須觸發受保護 Workflow，不得把 Cloudflare Token 放在瀏覽器。
 
+部署狀態的正式真相來源是 GitHub Deployments：
+
+- 每個目標使用獨立 Environment 名稱，例如 `staging/game-demo-staging`。
+- Workflow 只有在 Build、測試、部署、Smoke Test，以及正式 Tag 的 Release 發布全部成功後，才新增 `success` Deployment。
+- Deployment payload 保存 Project、Target、版本、Tag／來源 Ref、Commit、ZIP SHA-256、Cloudflare Version ID、Run URL、Release URL 與 Smoke 結果。
+- 同一 Environment 最新一筆成功紀錄是 `current`，次新一筆成功紀錄是 `previous`。
+- 失敗或中斷的 Workflow 不建立成功 Deployment，因此不得移動 `current`／`previous`。
+- 手動救援成功也會新增 Deployment；舊 Tag 重新部署後會成為新的 `current`，但不修改或重用原 Tag。
+
+GitHub Deployments 負責「實際驗證過的部署歷史」，GitHub Releases 負責「不可變版本成品」。Cloudflare Deployments 用於交叉核對線上 Version ID，但控制台不得只靠瀏覽器 localStorage 推測 current／previous。
+
 在控制台完成前，不得直接修改線上資產或以重用 Tag 的方式假裝切版。

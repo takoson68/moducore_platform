@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: write
+  deployments: write
 
 jobs:
   plan:
@@ -216,3 +217,20 @@ jobs:
               --title '${{ matrix.project }} v${{ matrix.version }}' \
               --notes "$notes"
           fi
+
+      - name: Record verified deployment state
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOY_PROJECT: ${{ matrix.project }}
+          DEPLOY_TARGET: ${{ matrix.target }}
+          DEPLOY_VERSION: ${{ matrix.version }}
+          DEPLOY_TAG: ${{ matrix.tag }}
+          DEPLOY_SOURCE_REF: ${{ needs.plan.outputs.checkout-ref || github.sha }}
+          DEPLOY_COMMIT: ${{ steps.source.outputs.commit }}
+          DEPLOY_ARTIFACT: ${{ steps.package.outputs.artifact }}.zip
+          DEPLOY_ZIP_SHA256: ${{ steps.package.outputs.zip-sha256 }}
+          CLOUDFLARE_VERSION_ID: ${{ steps.deploy-worker.outputs.version-id }}
+          DEPLOY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          DEPLOY_RELEASE_URL: ${{ needs.plan.outputs.is-tag-release == 'true' && format('{0}/{1}/releases/tag/{2}', github.server_url, github.repository, matrix.tag) || '' }}
+          DEPLOY_ENVIRONMENT_URL: https://${{ matrix.target }}.takoson68.workers.dev
+        run: node platform/worker/scripts/deployment-state.mjs

@@ -73,6 +73,7 @@ if (process.env.GITHUB_OUTPUT) {
   await writeFile(process.env.GITHUB_OUTPUT, [
     `artifact=${artifact}`,
     `zip=${zipPath}`,
+    `zip-sha256=${zipDigest}`,
     `manifest=${manifestPath}`,
     `checksum=${checksumPath}`,
     '',
