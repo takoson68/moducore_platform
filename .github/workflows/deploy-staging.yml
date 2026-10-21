@@ -75,6 +75,14 @@ jobs:
         with:
           ref: ${{ needs.plan.outputs.checkout-ref || github.sha }}
 
+      - name: Checkout deployment control plane
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .deployment-control
+          sparse-checkout: platform/worker/scripts/deployment-state.mjs
+          sparse-checkout-cone-mode: false
+
       - name: Resolve immutable source commit
         id: source
         run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -121,6 +129,13 @@ jobs:
             ${{ steps.package.outputs.manifest }}
             ${{ steps.package.outputs.checksum }}
           retention-days: 7
+
+      - name: Resolve immutable package evidence
+        id: package-evidence
+        run: |
+          zip_sha256=$(cut -d ' ' -f 1 '${{ steps.package.outputs.checksum }}')
+          [[ "$zip_sha256" =~ ^[a-f0-9]{64}$ ]]
+          echo "zip-sha256=$zip_sha256" >> "$GITHUB_OUTPUT"
 
       - name: Test frontend API token transport
         working-directory: platform/frontend
@@ -228,9 +243,9 @@ jobs:
           DEPLOY_SOURCE_REF: ${{ needs.plan.outputs.checkout-ref || github.sha }}
           DEPLOY_COMMIT: ${{ steps.source.outputs.commit }}
           DEPLOY_ARTIFACT: ${{ steps.package.outputs.artifact }}.zip
-          DEPLOY_ZIP_SHA256: ${{ steps.package.outputs.zip-sha256 }}
+          DEPLOY_ZIP_SHA256: ${{ steps.package-evidence.outputs.zip-sha256 }}
           CLOUDFLARE_VERSION_ID: ${{ steps.deploy-worker.outputs.version-id }}
           DEPLOY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DEPLOY_RELEASE_URL: ${{ needs.plan.outputs.is-tag-release == 'true' && format('{0}/{1}/releases/tag/{2}', github.server_url, github.repository, matrix.tag) || '' }}
           DEPLOY_ENVIRONMENT_URL: https://${{ matrix.target }}.takoson68.workers.dev
-        run: node platform/worker/scripts/deployment-state.mjs
+        run: node .deployment-control/platform/worker/scripts/deployment-state.mjs
