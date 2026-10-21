@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test:game": "node --test scripts/test-game.mjs",
+    "test:game": "node --test scripts/test-game.mjs scripts/test-game-release-assets.mjs",
     "test:employee": "node --experimental-vm-modules --test scripts/test-employee-service.mjs",
     "dev": "vite",
     "build": "vite build",

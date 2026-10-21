@@ -300,6 +300,8 @@ Git 僅用於保存進度與歷史脈絡，
   → `_VibeCore/engineering/RELEASE_CONSOLE_CONTRACT.md`
 - 版本控制台身份與權限契約
   → `_VibeCore/engineering/RELEASE_CONSOLE_ACCESS_CONTRACT.md`
+- game-demo Release 成品瘦身紀錄
+  → `_VibeCore/engineering/GAME_DEMO_RELEASE_ASSET_AUDIT.md`
 
 若附屬技術規範與 Engineering Index 發生衝突：
 

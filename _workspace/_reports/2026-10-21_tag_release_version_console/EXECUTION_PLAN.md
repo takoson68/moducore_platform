@@ -333,10 +333,12 @@ Gate：控制台寫入操作均走同一套 Workflow Gate，不存在旁路部�
 
 ### M8-1 game-demo 成品瘦身
 
-- [ ] 盤點目前約 50 個 ZIP 檔案。
-- [ ] 移除 game-demo 不需要的 project-b／mtk2mad／共用舊資產。
-- [ ] 確認 favicon、字型及必要圖示沒有誤刪。
-- [ ] 瘦身後重新 Build、ZIP、瀏覽器與 Smoke 驗證。
+- [x] 盤點目前約 50 個 ZIP 檔案。
+- [x] 移除 game-demo 不需要的 project-b／mtk2mad／共用舊資產。
+- [x] 確認 favicon、字型及必要圖示沒有誤刪。
+- [x] 瘦身後重新 Build、ZIP、瀏覽器與 Smoke 驗證。
+
+完成日期：2026-10-21。證據：`GAME_DEMO_RELEASE_ASSET_AUDIT.md` 記錄 `dep_game-demo_v0.1.1` 的 48 檔／2,316,900 bytes 基準與逐類移除原因；`game-demo` 改用獨立 public，只保留入口明確引用的 favicon。新 Build 與 manifest 為 4 檔／1,284,517 bytes，減少 44 檔與 44.6%；ZIP 完整、排除清單 clean，`/`／favicon／SPA route 皆為 200，瀏覽器 Canvas 與鍵盤操作正常且無 console warning／error，game tests 7/7。未建立 Tag、Release 或部署。
 
 ### M8-2 Bundle 與相依
 
@@ -389,9 +391,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M8-1：M7 操作 UI 與安全規則已在 simulation 模式完成；尚未啟用真實寫入 adapter，也未實際觸發任何 Workflow、刪除或部署。
+目前停在 M8-2：game-demo Release 成品已從 48 檔瘦身為 4 檔並完成本機封包與瀏覽器驗收；尚未建立新 Tag 或部署。
 
-唯一下一步：執行 M8-1 game-demo 成品瘦身，盤點 Release ZIP 中約 50 個檔案，區分遊戲必要資產與 project-b／mtk2mad／共用舊資產；先產出保留／移除清單，再修改打包範圍並完成 Build、ZIP、瀏覽器及 Smoke 驗證。
+唯一下一步：執行 M8-2 Bundle 與相依分析，先量測 p5 及其他模組在入口 Bundle 的占比並設計真正的 lazy chunk 邊界，再盤點 5 項 high severity npm audit 的直接／間接來源；不得以提高警告門檻取代最佳化。
 
 ## 6. 完成紀錄
 
@@ -417,3 +419,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 尚無登入、操作員白名單、稽核儲存或寫入端點 |
 | 2026-10-21 | M7-2 Workflow Dispatch 橋接 | 完成 | GitHub ID 白名單；固定 Release Dispatch；Operation ID／狀態／Mutex／Audit；Console 14/14；YAML 有效 | HTTP／UI 尚未接線；未執行真實 Dispatch |
 | 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |
+| 2026-10-21 | M8-1 game-demo 成品瘦身 | 完成 | 48→4 檔；2,316,900→1,284,517 bytes；Build／ZIP／HTTP／瀏覽器／game tests 7/7 | 未建立 Tag 或部署 |

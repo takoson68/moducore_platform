@@ -4,6 +4,9 @@ import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
 import { cp, mkdir, readdir, rm } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -16,11 +19,17 @@ export default defineConfig(({ mode }) => {
     ? 'dist'
     : path.join('projects', project, 'dist')
   const projectDir = path.resolve(__dirname, 'projects', project)
+  // game-demo 不使用共用後台圖示或 mtk2mad 舊資產；以專用 public
+  // 目錄避免 Vite 將整包共用 public 無條件複製到 Release ZIP。
+  const publicDir = project === 'game-demo'
+    ? path.join(projectDir, 'public')
+    : path.resolve(__dirname, 'public')
 
   return {
     // Cloudflare 直接由 Worker Static Assets 讀取 dist；既有本機／PHP
     // build 仍保留複製到 backend/public 的流程。
     plugins: [vue(), ...(isCloudflareBuild ? [] : [copyDistToBackend(project)])],
+    publicDir,
     build: {
       outDir: projectOutDir,
       emptyOutDir: true,
