@@ -21,3 +21,13 @@ test('手動救援只允許單一白名單專案', () => {
   assert.equal(manualDeploymentPlan('project-b', 'abc123').target, 'project-b-staging')
   assert.throws(() => manualDeploymentPlan('all'), /未知的手動部署專案/)
 })
+
+test('手動救援使用正式 Tag 時保留版本，且拒絕跨專案 Tag', () => {
+  const plan = manualDeploymentPlan('game-demo', 'dep_game-demo_v0.1.0')
+  assert.equal(plan.version, '0.1.0')
+  assert.equal(plan.tag, 'dep_game-demo_v0.1.0')
+  assert.throws(
+    () => manualDeploymentPlan('game-demo', 'dep_project-b_v1.0.0'),
+    /專案與 Tag 不一致/,
+  )
+})

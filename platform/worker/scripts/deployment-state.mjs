@@ -30,7 +30,7 @@ export function verifiedDeploymentPayload(input) {
 
 export function selectCurrentPrevious(deployments) {
   const verified = deployments
-    .filter((item) => item?.latestStatus === 'success' && item?.payload?.smoke === 'passed')
+    .filter((item) => ['success', 'inactive'].includes(item?.latestStatus) && item?.payload?.smoke === 'passed')
     .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
   return { current: verified[0] || null, previous: verified[1] || null }
 }

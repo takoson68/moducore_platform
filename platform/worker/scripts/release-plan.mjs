@@ -18,6 +18,11 @@ export function parseDeploymentTag(tag) {
 // 手動救援仍需從白名單選擇單一專案，版本名稱不冒充正式 Tag。
 export function manualDeploymentPlan(projectKey, ref = '') {
   if (!Object.hasOwn(targets, projectKey)) throw new Error('未知的手動部署專案')
+  if (ref?.startsWith('dep_')) {
+    const tagged = parseDeploymentTag(ref)
+    if (tagged.projectKey !== projectKey) throw new Error('手動部署專案與 Tag 不一致')
+    return { ...tagged, ref }
+  }
   return { ...targets[projectKey], projectKey, version: `manual-${process.env.GITHUB_RUN_NUMBER || 'current'}`, tag: '', ref }
 }
 

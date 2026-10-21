@@ -86,7 +86,7 @@ GitHub Releases 的 ZIP、manifest 與 checksum 是未來版本控制台的正�
 - 每個目標使用獨立 Environment 名稱，例如 `staging/game-demo-staging`。
 - Workflow 只有在 Build、測試、部署、Smoke Test，以及正式 Tag 的 Release 發布全部成功後，才新增 `success` Deployment。
 - Deployment payload 保存 Project、Target、版本、Tag／來源 Ref、Commit、ZIP SHA-256、Cloudflare Version ID、Run URL、Release URL 與 Smoke 結果。
-- 同一 Environment 最新一筆成功紀錄是 `current`，次新一筆成功紀錄是 `previous`。
+- 同一 Environment 最新一筆 `success` 紀錄是 `current`；GitHub 自動將前一筆成功紀錄標為 `inactive`，其中最新一筆是 `previous`。兩者都必須具有 `smoke: passed` 證據。
 - 失敗或中斷的 Workflow 不建立成功 Deployment，因此不得移動 `current`／`previous`。
 - 手動救援成功也會新增 Deployment；舊 Tag 重新部署後會成為新的 `current`，但不修改或重用原 Tag。
 

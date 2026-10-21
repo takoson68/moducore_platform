@@ -41,7 +41,7 @@ test('成功部署證據包含控制台所需的不可變識別', () => {
 
 test('current 與 previous 只採用最新兩筆 Smoke 成功紀錄', () => {
   const records = [
-    { id: 1, createdAt: '2026-10-21T01:00:00Z', latestStatus: 'success', payload: { smoke: 'passed' } },
+    { id: 1, createdAt: '2026-10-21T01:00:00Z', latestStatus: 'inactive', payload: { smoke: 'passed' } },
     { id: 2, createdAt: '2026-10-21T03:00:00Z', latestStatus: 'failure', payload: { smoke: 'failed' } },
     { id: 3, createdAt: '2026-10-21T02:00:00Z', latestStatus: 'success', payload: { smoke: 'passed' } },
   ]
