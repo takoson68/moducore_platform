@@ -240,10 +240,12 @@ Gate：同一歷史 ZIP 可重部署，Hash 與初次發布完全一致。
 
 ### M5-2 dineCore Tag
 
-- [ ] 建立一個經授權的 dineCore Staging Tag。
-- [ ] 驗證只執行 dineCore。
-- [ ] 驗證 Migration、Health、Auth 與隔離 Smoke。
-- [ ] 確認 project-b、game-demo、舊站未變。
+- [x] 建立一個經授權的 dineCore Staging Tag。
+- [x] 驗證只執行 dineCore。
+- [x] 驗證 Migration、Health、Auth 與隔離 Smoke。
+- [x] 確認 project-b、game-demo、舊站未變。
+
+完成日期：2026-10-21。證據：`dep_dinecore_v0.1.0` 指向 `8f0025e9b84ab18fd18e35f4a8e597d4cf0fc8bd`；Run `https://github.com/takoson68/moducore_platform/actions/runs/39540688796` 的 Matrix 僅有 dinecore-staging，Schema 前後 Gate、Migration、Health、Auth 隔離 Smoke、Release 與 Deployment 狀態全部成功。Release `https://github.com/takoson68/moducore_platform/releases/tag/dep_dinecore_v0.1.0` 保存三資產，manifest minimum Schema 為 `0004_project_b_employees.sql`，ZIP Hash `994926fde195513752f86eddb22fd13752e2d5513dfe87350fffcdf8a9052eb4`。Deployment `7217206508`、Cloudflare Version `5df3e9a9-dfd4-458e-a4c4-a86bcc7b070c`。game-demo 保持 `b2f4aeaa-4164-4937-ba24-9f8b41a3ce87`、project-b 保持 `0b6beffd-546e-40ad-b5e5-c5eb1a2fcd51`、舊站保持 `2a42b8d1-62ae-4a53-b457-12d0f465c400`。
 
 ### M5-3 project-b Tag
 
@@ -373,9 +375,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M5-2：D1 Schema 相容資訊、遠端前後 Gate 與禁止倒退規則已完成。
+目前停在 M5-3：dineCore 第一版 Tag、D1 Schema Gate、Health、Auth 隔離、Release 與 Deployment 狀態已完成驗收。
 
-唯一下一步：建立經授權的 dineCore Staging Tag，驗證 Migration、Health、Auth、隔離、Release、Deployment 狀態及其他 Project 未變。
+唯一下一步：建立經授權的 project-b Staging Tag，除共用 D1／Auth Gate 外，驗證 Employee Smoke，並確認其他 Project 與舊站未變。
 
 ## 6. 完成紀錄
 
@@ -393,3 +395,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M4-1 Release 下載器 | 完成 | Worker 52/52；正式 v0.1.0 ZIP Hash `9b2c947f…`；48 檔逐檔驗證與安全解壓 | 尚未接入 M4-2 重部署 Workflow |
 | 2026-10-21 | M4-2 歷史 ZIP 原件重部署 | 完成 | Run `39539280301`；Hash `996b7516…`；Deployment `7216995809`；Version `b2f4aeaa-4164-4937-ba24-9f8b41a3ce87` | D1 Project 仍需 M5 Schema 相容 Gate |
 | 2026-10-21 | M5-1 D1 Schema 相容 Gate | 完成 | Worker 58/58；minimum `0004_project_b_employees.sql`；兩個遠端 D1 皆相容；Workflow 前後檢查 | dineCore／project-b 新 Tag 尚未實跑 |
+| 2026-10-21 | M5-2 dineCore v0.1.0 | 完成 | Run `39540688796`；Deployment `7217206508`；Version `5df3e9a9-dfd4-458e-a4c4-a86bcc7b070c`；Schema／Health／Auth 通過 | project-b Tag 尚未實跑 |
