@@ -53,10 +53,30 @@ onBeforeUnmount(() => { game.dispose().catch(console.error); });
 </script>
 
 <template lang="pug">
-.game-demo-canvas(ref="canvasHost")
+.game-demo-stage
+  .game-demo-version(aria-label="目前展示版本") v0.1.1
+  .game-demo-canvas(ref="canvasHost")
 </template>
 
 <style lang="sass">
+.game-demo-stage
+  position: relative
+  width: 100vw
+  height: 100dvh
+  overflow: hidden
+.game-demo-version
+  position: fixed
+  z-index: 1
+  top: max(12px, env(safe-area-inset-top))
+  right: max(12px, env(safe-area-inset-right))
+  padding: 6px 10px
+  border: 1px solid rgb(196 220 160 / 55%)
+  border-radius: 999px
+  color: #edf1e3
+  background: rgb(17 27 23 / 78%)
+  font: 600 12px/1 system-ui, sans-serif
+  letter-spacing: .08em
+  pointer-events: none
 .game-demo-canvas
   width: 100vw
   height: 100dvh
