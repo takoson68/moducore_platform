@@ -214,11 +214,13 @@ Gate：控制台可以從權威來源讀出一致狀態。
 
 ### M4-2 重部署 Gate
 
-- [ ] 驗證 manifest Project 與部署 Target 一致。
-- [ ] 將 `site/` 放入正確 Static Assets 目錄。
-- [ ] 執行 Wrangler dry-run。
-- [ ] 部署及 Smoke Test 成功後才更新 current／previous。
-- [ ] 保留舊 Cloudflare Version ID 與新重部署 Version ID 的關聯。
+- [x] 驗證 manifest Project 與部署 Target 一致。
+- [x] 將 `site/` 放入正確 Static Assets 目錄。
+- [x] 執行 Wrangler dry-run。
+- [x] 部署及 Smoke Test 成功後才更新 current／previous。
+- [x] 保留舊 Cloudflare Version ID 與新重部署 Version ID 的關聯。
+
+完成日期：2026-10-21。證據：Workflow Run `https://github.com/takoson68/moducore_platform/actions/runs/39539280301` 以 `artifact_source=release` 重部署 `dep_game-demo_v0.1.1`；前端 install／Build／package 明確跳過，Release 驗證、Wrangler dry-run、Worker 53/53、部署與 SPA Smoke 通過。Release checksum 與 Deployment payload 均為 `996b7516822cd0ef93252c06397db1dfc79b1fc60f0961e3024ff062278ccc33`。新 current Deployment `7216995809`、Cloudflare Version `b2f4aeaa-4164-4937-ba24-9f8b41a3ce87`；previous Deployment `7216537286` 保留 v0.1.0 與 Version `feb40e63-6b5f-43ba-a695-c46002e772ab`。線上 v0.1.1 標記可見，其他 Project Version 未變。
 
 Gate：同一歷史 ZIP 可重部署，Hash 與初次發布完全一致。
 
@@ -369,9 +371,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M4-2：Release 歷史 ZIP 下載、安全驗證與解壓已完成，尚未把驗證後原件接入正式重部署 Workflow。
+目前停在 M5-1：M4 歷史 ZIP 原件驗證與不重新 Build 的重部署全鏈已完成。
 
-唯一下一步：新增歷史 ZIP 原件重部署模式，嚴格核對 manifest Project／Target，完成 Wrangler dry-run、部署、Smoke 與 current／previous 更新。
+唯一下一步：在 manifest 加入由正式 Migration 狀態推導的最低 Schema 相容資訊，並在 D1 Project 部署／回退前檢查；禁止自動倒退 Migration。
 
 ## 6. 完成紀錄
 
@@ -387,3 +389,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M3-2 舊 Tag Commit 回退 | 完成 | Run `39535192834`；第一版入口資產恢復；Version `191549fd-de2b-4070-9f0a-e55e24ab6c2c`；其他 Project 未變 | 目前仍是重新 Build，不是 M4 歷史 ZIP 原件回退 |
 | 2026-10-21 | M3-3 current／previous 證據模型 | 完成 | GitHub Deployments `7216537286`／`7216523961`；版本、Tag、Commit、ZIP Hash、Cloudflare Version、Smoke 與 Run URL 可由 API 讀取 | M4 尚未支援直接部署歷史 ZIP 原件 |
 | 2026-10-21 | M4-1 Release 下載器 | 完成 | Worker 52/52；正式 v0.1.0 ZIP Hash `9b2c947f…`；48 檔逐檔驗證與安全解壓 | 尚未接入 M4-2 重部署 Workflow |
+| 2026-10-21 | M4-2 歷史 ZIP 原件重部署 | 完成 | Run `39539280301`；Hash `996b7516…`；Deployment `7216995809`；Version `b2f4aeaa-4164-4937-ba24-9f8b41a3ce87` | D1 Project 仍需 M5 Schema 相容 Gate |

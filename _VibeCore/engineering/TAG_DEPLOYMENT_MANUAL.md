@@ -94,6 +94,18 @@ node scripts/download-release-package.mjs \
 
 此命令只下載及驗證，不會部署。必須由正式 Workflow 使用驗證後的 `site/`，不得手動把未驗證的 ZIP 內容上傳至 Cloudflare。
 
+### 7.2 從 GitHub Actions 重部署歷史 ZIP
+
+1. 進入 `Actions` → `Deploy staging` → `Run workflow`。
+2. `target` 選擇 Tag 所屬的單一 Project。
+3. `ref` 填入完整歷史 Tag，例如 `dep_game-demo_v0.1.1`。
+4. `artifact_source` 選擇 `release`。
+5. `simulate_failure` 保持關閉後執行。
+
+Release 原件模式會跳過前端依賴安裝、Build 與重新封裝，直接下載 Release 的 ZIP、manifest 與 checksum。安全驗證成功後才把原件內的 `site/` 放入固定 Target，依序執行 Wrangler dry-run、Worker 測試、部署與 Smoke Test。全部成功後才新增 GitHub Deployment 並移動 current／previous。
+
+`target` 與 Tag Project 不一致、Release 不完整、Hash 不符或安全解壓失敗時，Workflow 會在部署前停止。
+
 ## 8. 版本控制台銜接
 
 GitHub Releases 的 ZIP、manifest 與 checksum 是未來版本控制台的正式版本目錄。控制台應顯示 current、previous、Tag、Commit、Cloudflare Version ID 及 Smoke 狀態；切換操作必須觸發受保護 Workflow，不得把 Cloudflare Token 放在瀏覽器。
