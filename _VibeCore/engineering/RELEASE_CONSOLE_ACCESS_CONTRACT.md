@@ -65,3 +65,13 @@ M7-2 實作身份橋接時，操作員白名單的人工維護位置固定為 `p
 - M7-1 不預先建立真實白名單檔案；在 M7-2 身份驗證與讀取實作完成前，系統維持無寫入端點、無操作員授權狀態。
 
 機器可執行的能力矩陣、有效角色、重新驗證與稽核形狀位於 `platform/release-console/access-policy.mjs`。
+
+## 6. Workflow Dispatch 橋接
+
+- 受控橋接只接受 `deploy` 或 `rollback`、三個固定 Project、同 Project 的 `dep_<project>_v<semver>` 正式 Tag 與 40 字元 Commit。
+- 控制台部署一律使用既有 GitHub Release 原件；不得傳入任意 Branch、Commit、`artifact_source=build` 或 `simulate_failure=true`。
+- 後端只呼叫既有 `deploy-staging.yml`，不直接呼叫 Cloudflare 寫入 API；Cloudflare Secret 繼續只存在 GitHub Environment。
+- Workflow Dispatch 加入不可猜測的 `operation_id`，由 `run-name` 帶回，供後端精確定位 Run。
+- 同 Project 的 queued／running Operation 互斥；不同 Project 可獨立排程。Workflow 本身既有 target concurrency 是第二層防線。
+- 狀態固定為 `queued | running | success | failed | cancelled`；每次變更追加 Audit event。
+- `platform/release-console/access-policy.json` 已建立第一筆明確操作員白名單。橋接仍未接到 HTTP／UI；必須完成 M7-3 的操作輸入與保護規則後，才可從畫面提出寫入要求。

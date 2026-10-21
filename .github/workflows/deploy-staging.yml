@@ -1,4 +1,5 @@
 name: Deploy staging
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Deploy {0} · {1}', inputs.target, inputs.operation_id) || format('Deploy tag {0}', github.ref_name) }}
 
 on:
   push:
@@ -31,6 +32,10 @@ on:
         options:
           - build
           - release
+      operation_id:
+        description: '版本控制台 Operation ID；手動執行可留空'
+        type: string
+        required: false
 
 permissions:
   contents: write

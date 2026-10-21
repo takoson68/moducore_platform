@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "repository": "takoson68/moducore_platform",
+  "operators": [
+    {
+      "githubId": 95896770,
+      "login": "takoson68",
+      "role": "admin",
+      "enabled": true
+    }
+  ]
+}

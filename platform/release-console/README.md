@@ -28,6 +28,8 @@ npm start
 
 M7-1 已固定未來寫入操作的 GitHub 身份、Viewer／Deployer／Admin、重新驗證及稽核契約，詳見 `_VibeCore/engineering/RELEASE_CONSOLE_ACCESS_CONTRACT.md`。目前只存在可測試的 policy 函式，仍未建立身份登入、操作員白名單或寫入端點。
 
+M7-2 的受控橋接位於 `github-identity.mjs` 與 `workflow-bridge.mjs`：只接受三個 Project 的正式部署 Tag，固定透過 `deploy-staging.yml` 使用 Release 原件，並以 Operation ID 追蹤 queued／running／success／failed。`access-policy.json` 是人工維護位置；修改 GitHub ID、login、role 或 enabled 後需 Commit 留痕。橋接尚未接到 HTTP 或畫面，因此目前不會因操作控制台而觸發 Workflow。
+
 ## 安全邊界
 
 - GitHub／Cloudflare 的登入狀態只由本機 Node 程序及 CLI 使用，不進入 HTML、JavaScript、Snapshot 或 localStorage。

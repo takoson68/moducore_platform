@@ -307,11 +307,13 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 
 ### M7-2 Workflow Dispatch 橋接
 
-- [ ] 控制台只能要求受控後端觸發 GitHub Workflow。
-- [ ] 後端只接受白名單 Project、Tag 與動作。
-- [ ] 寫入憑證保存在 Server Secret，不回傳瀏覽器。
-- [ ] 顯示 queued／running／success／failed 狀態。
-- [ ] 防止同 Project 併發部署；不同 Project 可獨立排程。
+- [x] 控制台只能要求受控後端觸發 GitHub Workflow。
+- [x] 後端只接受白名單 Project、Tag 與動作。
+- [x] 寫入憑證保存在 Server Secret，不回傳瀏覽器。
+- [x] 顯示 queued／running／success／failed 狀態。
+- [x] 防止同 Project 併發部署；不同 Project 可獨立排程。
+
+完成日期：2026-10-21。證據：新增 GitHub ID 操作員白名單、Repository 權限再驗證、受控 `deploy-staging.yml` Dispatch adapter、正式 Tag／Release 原件白名單、Operation ID run-name、Project mutex、狀態讀取與 append-only Audit sink。真實身份解析為 GitHub ID `95896770`／Repository `admin`／Console `admin`；Workflow YAML 有效；Console 14/14 通過。Dispatch adapter 只在測試替身下驗收，未實際觸發 Workflow、部署或回退；HTTP／UI 尚未接線。
 
 ### M7-3 操作功能
 
@@ -385,9 +387,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M7-2：GitHub 操作員身份、Viewer／Deployer／Admin、重新驗證、二次確認與不可變稽核契約已完成；控制台仍無寫入端點。
+目前停在 M7-3：GitHub 身份與受控 Workflow Dispatch 橋接、Operation 狀態、Project 互斥及 Audit 已完成；尚未接到 HTTP／UI，未實際觸發任何 Workflow。
 
-唯一下一步：建立受控後端的 GitHub 身份與 Workflow Dispatch 橋接，只接受白名單 Project／Tag／Action，憑證留在 Server Secret，加入同 Project 互斥與 operation 狀態；未完成前不得在畫面加入操作按鈕。
+唯一下一步：實作 M7-3 操作功能與畫面，依契約加入部署指定版本、previous 回退、queued 取消及安全刪除規則，並先以模擬 adapter 做完整瀏覽器驗收；任何真實 Workflow Dispatch 仍需另外明確執行授權。
 
 ## 6. 完成紀錄
 
@@ -411,3 +413,4 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M6-2 唯讀畫面 | 完成 | `platform/release-console`；真實 Snapshot 三 Project healthy；Console 2/2、Worker 62/62；瀏覽器驗收 | 尚待 M6-3 安全邊界正式 Gate |
 | 2026-10-21 | M6-3 安全邊界 | 完成 | 回環限定；GET-only；敏感 Snapshot Guard；安全標頭；Console 5/5、Worker 62/62；真實掃描 clean | M7 寫入能力尚未設計或啟用 |
 | 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 尚無登入、操作員白名單、稽核儲存或寫入端點 |
+| 2026-10-21 | M7-2 Workflow Dispatch 橋接 | 完成 | GitHub ID 白名單；固定 Release Dispatch；Operation ID／狀態／Mutex／Audit；Console 14/14；YAML 有效 | HTTP／UI 尚未接線；未執行真實 Dispatch |
