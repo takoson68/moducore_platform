@@ -5,7 +5,7 @@ import { manualDeploymentPlan, parseDeploymentTag } from '../scripts/release-pla
 test('部署 Tag 只解析白名單專案與語意版本', () => {
   assert.deepEqual(parseDeploymentTag('dep_game-demo_v0.1.0'), {
     target: 'game-demo-staging', project: 'game-demo', database: false,
-    projectKey: 'game-demo', version: '0.1.0', tag: 'dep_game-demo_v0.1.0',
+    projectKey: 'game-demo', version: '0.1.0', tag: 'dep_game-demo_v0.1.0', artifactSource: 'build',
   })
   assert.equal(parseDeploymentTag('dep_dinecore_v1.2.3-rc.1').target, 'dinecore-staging')
   assert.equal(parseDeploymentTag('dep_project-b_v2.0.0').database, true)
@@ -30,4 +30,13 @@ test('手動救援使用正式 Tag 時保留版本，且拒絕跨專案 Tag', ()
     () => manualDeploymentPlan('game-demo', 'dep_project-b_v1.0.0'),
     /專案與 Tag 不一致/,
   )
+})
+
+test('Release 原件模式只接受同專案正式 Tag', () => {
+  const plan = manualDeploymentPlan('game-demo', 'dep_game-demo_v0.1.0', 'release')
+  assert.equal(plan.artifactSource, 'release')
+  assert.equal(plan.version, '0.1.0')
+  assert.throws(() => manualDeploymentPlan('game-demo', 'world-oop', 'release'), /必須指定部署 Tag/)
+  assert.throws(() => manualDeploymentPlan('game-demo', 'dep_project-b_v1.0.0', 'release'), /專案與 Tag 不一致/)
+  assert.throws(() => manualDeploymentPlan('game-demo', '', 'unknown'), /未知的成品來源/)
 })

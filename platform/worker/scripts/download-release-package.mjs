@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { mkdir, readFile, readdir, stat } from 'node:fs/promises'
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseDeploymentTag } from './release-plan.mjs'
@@ -146,6 +146,21 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const options = args(process.argv.slice(2))
   for (const name of ['tag', 'repository', 'output']) if (!options[name]) throw new Error(`缺少 --${name}`)
   const result = await verifyReleasePackage(options)
+  if (process.env.GITHUB_OUTPUT) {
+    const outputRoot = path.resolve(options.output)
+    const artifact = result.artifactRoot
+    const lines = [
+      `artifact=${artifact}`,
+      `zip=${path.join(outputRoot, `${artifact}.zip`)}`,
+      `manifest=${path.join(outputRoot, `${artifact}.manifest.json`)}`,
+      `checksum=${path.join(outputRoot, `${artifact}.sha256`)}`,
+      `zip-sha256=${result.zipSha256}`,
+      `site-root=${result.siteRoot}`,
+      `commit=${result.manifest.commit}`,
+      '',
+    ]
+    await writeFile(process.env.GITHUB_OUTPUT, lines.join('\n'), { flag: 'a' })
+  }
   console.log(JSON.stringify({
     project: result.plan.project,
     target: result.plan.target,

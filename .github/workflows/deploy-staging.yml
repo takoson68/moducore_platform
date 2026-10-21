@@ -23,6 +23,14 @@ on:
         description: 'M1 安全失敗演練：在遠端 migration 與部署前停止'
         type: boolean
         default: false
+      artifact_source:
+        description: '成品來源：重新建置，或直接使用既有 Release ZIP'
+        type: choice
+        required: true
+        default: build
+        options:
+          - build
+          - release
 
 permissions:
   contents: write
@@ -49,6 +57,7 @@ jobs:
           DEPLOY_TAG: ${{ github.ref_name }}
           DEPLOY_PROJECT: ${{ inputs.target }}
           DEPLOY_REF: ${{ inputs.ref }}
+          DEPLOY_ARTIFACT_SOURCE: ${{ inputs.artifact_source }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: node platform/worker/scripts/release-plan.mjs
 
@@ -80,7 +89,10 @@ jobs:
         with:
           ref: ${{ github.workflow_sha }}
           path: .deployment-control
-          sparse-checkout: platform/worker/scripts/deployment-state.mjs
+          sparse-checkout: |
+            platform/worker/scripts/deployment-state.mjs
+            platform/worker/scripts/download-release-package.mjs
+            platform/worker/scripts/release-plan.mjs
           sparse-checkout-cone-mode: false
 
       - name: Resolve immutable source commit
@@ -97,10 +109,12 @@ jobs:
             platform/worker/package-lock.json
 
       - name: Install frontend dependencies
+        if: matrix.artifactSource != 'release'
         working-directory: platform/frontend
         run: npm ci
 
       - name: Build isolated project assets
+        if: matrix.artifactSource != 'release'
         working-directory: platform/frontend
         env:
           VITE_PROJECT: ${{ matrix.project }}
@@ -108,6 +122,7 @@ jobs:
         run: npm run build:cloudflare -- --outDir ../worker/.assets/${{ matrix.target }}
 
       - name: Package immutable release ZIP
+        if: matrix.artifactSource != 'release'
         id: package
         working-directory: platform/frontend
         run: |
@@ -120,29 +135,54 @@ jobs:
             --assets '../worker/.assets/${{ matrix.target }}' \
             --output '../../release-output'
 
+      - name: Download and verify immutable Release ZIP
+        if: matrix.artifactSource == 'release'
+        id: package-restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          output="$RUNNER_TEMP/release-restore"
+          mkdir -p "$output"
+          node .deployment-control/platform/worker/scripts/download-release-package.mjs \
+            --tag '${{ matrix.tag }}' \
+            --repository '${{ github.repository }}' \
+            --output "$output"
+
+      - name: Prepare verified Release assets
+        if: matrix.artifactSource == 'release'
+        run: |
+          target='platform/worker/.assets/${{ matrix.target }}'
+          mkdir -p "$target"
+          cp -R '${{ steps.package-restore.outputs.site-root }}/.' "$target/"
+
       - name: Preserve release package for diagnostics
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.package.outputs.artifact }}
+          name: ${{ steps.package.outputs.artifact || steps.package-restore.outputs.artifact }}
           path: |
-            ${{ steps.package.outputs.zip }}
-            ${{ steps.package.outputs.manifest }}
-            ${{ steps.package.outputs.checksum }}
+            ${{ steps.package.outputs.zip || steps.package-restore.outputs.zip }}
+            ${{ steps.package.outputs.manifest || steps.package-restore.outputs.manifest }}
+            ${{ steps.package.outputs.checksum || steps.package-restore.outputs.checksum }}
           retention-days: 7
 
       - name: Resolve immutable package evidence
         id: package-evidence
         run: |
-          zip_sha256=$(cut -d ' ' -f 1 '${{ steps.package.outputs.checksum }}')
+          checksum_path='${{ steps.package.outputs.checksum || steps.package-restore.outputs.checksum }}'
+          zip_sha256=$(cut -d ' ' -f 1 "$checksum_path")
           [[ "$zip_sha256" =~ ^[a-f0-9]{64}$ ]]
           echo "zip-sha256=$zip_sha256" >> "$GITHUB_OUTPUT"
+          artifact_commit='${{ steps.package-restore.outputs.commit || steps.source.outputs.commit }}'
+          [[ "$artifact_commit" =~ ^[a-f0-9]{40}$ ]]
+          echo "artifact-commit=$artifact_commit" >> "$GITHUB_OUTPUT"
 
       - name: Test frontend API token transport
+        if: matrix.artifactSource != 'release'
         working-directory: platform/frontend
         run: npm run test:api
 
       - name: Test project-b login panel
-        if: matrix.project == 'project-b'
+        if: matrix.project == 'project-b' && matrix.artifactSource != 'release'
         working-directory: platform/frontend
         run: |
           npm run test:project-b-auth
@@ -241,8 +281,8 @@ jobs:
           DEPLOY_VERSION: ${{ matrix.version }}
           DEPLOY_TAG: ${{ matrix.tag }}
           DEPLOY_SOURCE_REF: ${{ needs.plan.outputs.checkout-ref || github.sha }}
-          DEPLOY_COMMIT: ${{ steps.source.outputs.commit }}
-          DEPLOY_ARTIFACT: ${{ steps.package.outputs.artifact }}.zip
+          DEPLOY_COMMIT: ${{ steps.package-evidence.outputs.artifact-commit }}
+          DEPLOY_ARTIFACT: ${{ steps.package.outputs.artifact || steps.package-restore.outputs.artifact }}.zip
           DEPLOY_ZIP_SHA256: ${{ steps.package-evidence.outputs.zip-sha256 }}
           CLOUDFLARE_VERSION_ID: ${{ steps.deploy-worker.outputs.version-id }}
           DEPLOY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
