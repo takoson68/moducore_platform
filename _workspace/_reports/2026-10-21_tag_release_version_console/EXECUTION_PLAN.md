@@ -386,10 +386,12 @@ Gate：成品大小、漏洞與保存成本有可驗證標準。
 ### M9-2 正式資源與核准佈建
 
 - [ ] 由使用者確認 Production Worker／D1 命名及正式網址。
-- [ ] 建立 `production` Environment 並設定 required reviewer。
+- [x] 建立 `production` Environment 並設定 required reviewer。
 - [ ] 建立最小權限 Production Secrets。
 - [ ] 建立三個正式 Worker 與兩個全新 D1，記錄實際 ID。
 - [ ] 建立 D1 備份並完成隔離還原演練及容量檢查。
+
+進度紀錄：2026-10-22 已建立 GitHub `production` Environment，required reviewer 為唯一 Repository collaborator `takoson68`，`can_admins_bypass=false`。由於目前沒有第二位 reviewer，GitHub 允許此帳號核准自己的部署；若需雙人覆核，先邀請第二位可信任 collaborator。Cloudflare 正式 Worker／D1 尚未建立；現行憑證為個人 OAuth 且具 Workers／D1 write 權限，建立前須確認正式網址與資源佈建範圍。
 
 ### M9-3 Workflow 與首次發布驗收
 
@@ -420,9 +422,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M9-2：Production 隔離契約、Tag parser 與安全 Gate 已完成，但所有正式能力仍停用；尚未建立 Production Environment、Secret、Worker、D1、Workflow、Tag 或部署。
+目前停在 M9-2：Production 隔離契約、Tag parser 與安全 Gate 已完成；GitHub `production` Environment 已要求 reviewer 且關閉管理員繞過。Cloudflare 正式 Worker／D1、Production Secrets、Workflow、Tag 與部署尚未建立。
 
-唯一下一步：執行 M9-2 正式資源與核准佈建；先由使用者確認契約內的 Worker／D1 名稱與正式網址，再建立 GitHub `production` Environment required reviewer、最小權限 Secret 與 Cloudflare 正式資源。建立任何外部資源前必須再次確認，不得直接部署。
+唯一下一步：確認採用契約中的三個 Worker 名稱、兩個 D1 名稱及 `workers.dev` 正式網址後，建立 Cloudflare 正式資源；之後才建立 Production API Token／Environment Secret 與獨立 Workflow。正式部署仍需另行建立 `prod_*` Tag。
 
 ## 6. 完成紀錄
 
@@ -450,5 +452,6 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-22 | M8-2 Bundle 與相依 | 完成 | 初始 JS 1,279,377 → 115,211 bytes；p5-engine lazy chunk 1,151,810 bytes；npm audit 9 high → 0；三 Project Build 與相關測試通過 | p5 引擎 chunk 仍大於 500 kB；進入遊戲 Route 後仍會下載 |
 | 2026-10-22 | M8-3 保存政策 | 完成 | Release 永久；Artifact 7 天；最低 3 verified；冷卻 30 天；容量 normal；Console policy tests | Production 尚未設計；R2 僅在 Critical 條件成立後評估 |
 | 2026-10-22 | M9-1 Production 設計 | 完成 | 正式發布隔離契約；prod Tag parser；Worker／D1 命名與隔離測試 | Production Environment／Secret／Cloudflare 資源／Workflow 均未建立，正式發布仍停用 |
+| 2026-10-22 | M9-2 GitHub Environment Gate | 部分完成 | `production` Environment 已設定 required reviewer `takoson68`，管理員繞過關閉；API 回讀確認 | 唯一 reviewer 可核准自己的部署；Cloudflare 資源、Secrets 與 Workflow 尚未建立 |
 | 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |
 | 2026-10-21 | M8-1 game-demo 成品瘦身 | 完成 | 48→4 檔；2,316,900→1,284,517 bytes；Build／ZIP／HTTP／瀏覽器／game tests 7/7 | 未建立 Tag 或部署 |

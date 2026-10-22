@@ -9,7 +9,9 @@ activation: prohibited-until-m9-2
 
 ## 現況與啟用邊界
 
-截至 2026-10-22，Repository 只有 Staging Environment／Secrets；Cloudflare 也只有已驗證的 Staging Worker 與 D1。本文件及 `production-release-plan.mjs` 只定義正式發布邊界，不代表 Production 已可用。
+截至 2026-10-22，Repository 已建立 GitHub `production` Environment 並設定 required reviewer；Production Secrets 尚未建立。Cloudflare 目前只有已驗證的 Staging Worker 與 D1。本文件及 `production-release-plan.mjs` 只定義正式發布邊界，不代表 Production 已可用。
+
+目前 Repository 只有一位 collaborator。`production` reviewer 暫由 `takoson68` 擔任，管理員繞過已關閉，但 GitHub 允許此 reviewer 核准自己發起的發布；此為明確人工 Gate，不是雙人覆核。若需要職責分離，必須先加入另一位可信任 reviewer，再開啟 prevent self-review。
 
 在 M9-2 完成前，禁止建立或推送 `prod_*` Tag，禁止新增會部署 Production 的啟用中 Workflow，也禁止用 Staging Workflow／Secret／Worker／D1 代替正式資源。
 
@@ -64,9 +66,9 @@ activation: prohibited-until-m9-2
 - D1 不隨前端回退而自動倒退。資料復原只允許依已驗證備份及獨立人工程序執行。
 - 首次 Production 發布前必須先證明「上一版回復」路徑；若尚無上一版，需保存部署前空狀態、備份與停機／移除程序。
 
-## M9-2 尚待人工確認與建立
+## M9-2 已建立與尚待佈建
 
-- GitHub `production` Environment 與 required reviewer。
+- 已建立 GitHub `production` Environment；required reviewer 為 Repository 管理員 `takoson68`，`can_admins_bypass=false`。目前只有單一 collaborator，因此 prevent self-review 未啟用，使用者可核准自己發起的部署。
 - Production 專用 Secrets。
 - 三個 Cloudflare Worker；兩個 D1 database 及其實際 ID。
 - 正式網址／網域與 Smoke 白名單。
