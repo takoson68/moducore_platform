@@ -306,6 +306,8 @@ Git 僅用於保存進度與歷史脈絡，
   → `_VibeCore/engineering/GAME_DEMO_BUNDLE_SECURITY_AUDIT.md`
 - Release 與成品保存政策
   → `_VibeCore/engineering/RELEASE_RETENTION_POLICY.md`
+- Production 發布隔離契約（尚未啟用）
+  → `_VibeCore/engineering/PRODUCTION_DEPLOYMENT_CONTRACT.md`
 
 若附屬技術規範與 Engineering Index 發生衝突：
 

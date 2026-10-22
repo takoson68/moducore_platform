@@ -365,13 +365,38 @@ Gate：成品大小、漏洞與保存成本有可驗證標準。
 
 目標：Staging 穩定後才建立正式發布，不共用隱含權限。
 
-- [ ] 定義 `prod_<project>_v<version>` Tag。
+- [x] 定義 `prod_<project>_v<version>` Tag。
 - [ ] Production 使用獨立 Workflow 或明確分離 Job。
 - [ ] GitHub Production Environment 啟用人工核准。
 - [ ] Staging／Production Secrets、Worker、D1 與網址完全分離。
 - [ ] Production 首次發布前完成備份／回復與容量檢查。
 - [ ] Production 部署後執行只會產生可清理資料的 Smoke。
 - [ ] 定義失敗停止、Worker 回復與 D1 不自動倒退程序。
+
+### M9-1 發布設計與停用骨架
+
+- [x] 建立 Production 發布隔離契約。
+- [x] 建立 `prod_*` Tag 白名單、SemVer 與 Staging Tag 拒絕測試。
+- [x] 固定三個 Production Worker 與兩個 Production D1 的獨立命名。
+- [x] 定義 Environment reviewer、Secret、備份／還原、容量、可清理 Smoke 與失敗回復 Gate。
+- [x] 在真實資源與人工核准未成立前，禁止啟用 Production Workflow。
+
+完成日期：2026-10-22。證據：`PRODUCTION_DEPLOYMENT_CONTRACT.md` 固定 `prod_<project>_v<semver>`、`production` Environment、三個正式 Worker、兩個正式 D1、獨立 Workflow／Secret、人工核准、D1 備份還原、可清理 Smoke 與不自動倒退 Schema；`production-release-plan.mjs` 提供機器白名單與隔離檢查。GitHub API 盤點目前只有 Staging Environment，尚無 Production Environment／Secret；因此未建立啟用中的 Production Workflow、未建立 Tag、未配置 Cloudflare 正式資源，也未部署。
+
+### M9-2 正式資源與核准佈建
+
+- [ ] 由使用者確認 Production Worker／D1 命名及正式網址。
+- [ ] 建立 `production` Environment 並設定 required reviewer。
+- [ ] 建立最小權限 Production Secrets。
+- [ ] 建立三個正式 Worker 與兩個全新 D1，記錄實際 ID。
+- [ ] 建立 D1 備份並完成隔離還原演練及容量檢查。
+
+### M9-3 Workflow 與首次發布驗收
+
+- [ ] 建立獨立 `deploy-production.yml` 並驗證普通 Push／`dep_*` 不觸發。
+- [ ] 先 dry-run，再以單一 `prod_*` Tag 驗證人工核准。
+- [ ] 驗證可清理 Smoke、Release、current／previous 與失敗停止。
+- [ ] 實測 Worker 回復；D1 Schema 不自動倒退。
 
 Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權操作觸發。
 
@@ -395,9 +420,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M9：M8 成品瘦身、Bundle／相依修補與保存政策均已完成；尚未建立 Production 發布能力，也未建立新 Tag 或部署。
+目前停在 M9-2：Production 隔離契約、Tag parser 與安全 Gate 已完成，但所有正式能力仍停用；尚未建立 Production Environment、Secret、Worker、D1、Workflow、Tag 或部署。
 
-唯一下一步：執行 M9 Production 發布設計；先定義 `prod_<project>_v<version>` Tag、獨立 Environment／Secrets／Worker／D1 與人工核准 Gate，不得直接沿用 Staging 隱含權限或立即部署。
+唯一下一步：執行 M9-2 正式資源與核准佈建；先由使用者確認契約內的 Worker／D1 名稱與正式網址，再建立 GitHub `production` Environment required reviewer、最小權限 Secret 與 Cloudflare 正式資源。建立任何外部資源前必須再次確認，不得直接部署。
 
 ## 6. 完成紀錄
 
@@ -424,5 +449,6 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M7-2 Workflow Dispatch 橋接 | 完成 | GitHub ID 白名單；固定 Release Dispatch；Operation ID／狀態／Mutex／Audit；Console 14/14；YAML 有效 | HTTP／UI 尚未接線；未執行真實 Dispatch |
 | 2026-10-22 | M8-2 Bundle 與相依 | 完成 | 初始 JS 1,279,377 → 115,211 bytes；p5-engine lazy chunk 1,151,810 bytes；npm audit 9 high → 0；三 Project Build 與相關測試通過 | p5 引擎 chunk 仍大於 500 kB；進入遊戲 Route 後仍會下載 |
 | 2026-10-22 | M8-3 保存政策 | 完成 | Release 永久；Artifact 7 天；最低 3 verified；冷卻 30 天；容量 normal；Console policy tests | Production 尚未設計；R2 僅在 Critical 條件成立後評估 |
+| 2026-10-22 | M9-1 Production 設計 | 完成 | 正式發布隔離契約；prod Tag parser；Worker／D1 命名與隔離測試 | Production Environment／Secret／Cloudflare 資源／Workflow 均未建立，正式發布仍停用 |
 | 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |
 | 2026-10-21 | M8-1 game-demo 成品瘦身 | 完成 | 48→4 檔；2,316,900→1,284,517 bytes；Build／ZIP／HTTP／瀏覽器／game tests 7/7 | 未建立 Tag 或部署 |
