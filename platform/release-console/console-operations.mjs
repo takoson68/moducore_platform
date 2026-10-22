@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { authorizeConsoleAction } from './access-policy.mjs'
 import { authorizeGitHubIdentity, loadAccessPolicy, resolveCliGitHubIdentity } from './github-identity.mjs'
 import { releaseConsoleProjects } from '../worker/scripts/release-console-contract.mjs'
+import { assertReleaseDeletionAllowed } from './retention-policy.mjs'
 
 const terminal = new Set(['success', 'failed', 'cancelled'])
 const allowedActions = new Set(['deploy', 'rollback', 'delete_release', 'delete_artifact'])
@@ -72,7 +73,7 @@ export function createConsoleOperations({ snapshotLoader, identityLoader, policy
         const deletionTags = targetTag.split(',')
         if (deletionTags.includes(current.tag)) fail('CURRENT_PROTECTED')
         if (previous && deletionTags.includes(previous.tag)) fail('PREVIOUS_PROTECTED')
-        if (project.releases.filter((item) => item.artifact.completeness === 'complete' && item.artifact.integrity === 'verified' && !deletionTags.includes(item.tag)).length < 1) fail('LAST_VERIFIED_RELEASE')
+        assertReleaseDeletionAllowed(project, deletionTags, clock())
       }
       const fixed = releaseConsoleProjects.find((item) => item.key === input.project)
       const operation = {

@@ -351,11 +351,13 @@ Gate：控制台寫入操作均走同一套 Workflow Gate，不存在旁路部�
 
 ### M8-3 保存政策
 
-- [ ] 決定 GitHub Release 是否永久保留。
-- [ ] 確認 Actions Artifact 維持七天或調整。
-- [ ] 定義 current、previous、最低保留數及刪除冷卻期。
-- [ ] 定義儲存量、版本數及成本警戒線。
-- [ ] 超過門檻後再評估 R2，不預先導入付費依賴。
+- [x] 決定 GitHub Release 是否永久保留。
+- [x] 確認 Actions Artifact 維持七天或調整。
+- [x] 定義 current、previous、最低保留數及刪除冷卻期。
+- [x] 定義儲存量、版本數及成本警戒線。
+- [x] 超過門檻後再評估 R2，不預先導入付費依賴。
+
+完成日期：2026-10-22。證據：`RELEASE_RETENTION_POLICY.md` 定義 Release 預設永久、Actions Artifact 7 天、current／previous 保護、每 Project 至少 3 個 verified 版本與 30 天刪除冷卻期；容量分為 Normal、Warning、Critical，只有 Critical 持續 30 天或依 90 天成長率預估 90 天內達 Critical 才評估 R2。`retention-policy.mjs` 與控制台 Gate 將最低保留、冷卻及容量門檻機器化。盤點 4 個正式 Release 約 4.15 MB、10 個 Artifact 約 10.4 MB，均屬 Normal；未刪除版本、未部署、未導入 R2。
 
 Gate：成品大小、漏洞與保存成本有可驗證標準。
 
@@ -393,9 +395,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M8-3：game-demo 已完成成品瘦身、入口 Bundle 拆分與前端相依修補；尚未建立新 Tag 或部署。
+目前停在 M9：M8 成品瘦身、Bundle／相依修補與保存政策均已完成；尚未建立 Production 發布能力，也未建立新 Tag 或部署。
 
-唯一下一步：執行 M8-3 保存政策，決定 Release、Actions Artifact、current／previous、最低保留數、刪除冷卻期與容量成本警戒線；未超過門檻前不預先導入 R2。
+唯一下一步：執行 M9 Production 發布設計；先定義 `prod_<project>_v<version>` Tag、獨立 Environment／Secrets／Worker／D1 與人工核准 Gate，不得直接沿用 Staging 隱含權限或立即部署。
 
 ## 6. 完成紀錄
 
@@ -421,5 +423,6 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 尚無登入、操作員白名單、稽核儲存或寫入端點 |
 | 2026-10-21 | M7-2 Workflow Dispatch 橋接 | 完成 | GitHub ID 白名單；固定 Release Dispatch；Operation ID／狀態／Mutex／Audit；Console 14/14；YAML 有效 | HTTP／UI 尚未接線；未執行真實 Dispatch |
 | 2026-10-22 | M8-2 Bundle 與相依 | 完成 | 初始 JS 1,279,377 → 115,211 bytes；p5-engine lazy chunk 1,151,810 bytes；npm audit 9 high → 0；三 Project Build 與相關測試通過 | p5 引擎 chunk 仍大於 500 kB；進入遊戲 Route 後仍會下載 |
+| 2026-10-22 | M8-3 保存政策 | 完成 | Release 永久；Artifact 7 天；最低 3 verified；冷卻 30 天；容量 normal；Console policy tests | Production 尚未設計；R2 僅在 Critical 條件成立後評估 |
 | 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |
 | 2026-10-21 | M8-1 game-demo 成品瘦身 | 完成 | 48→4 檔；2,316,900→1,284,517 bytes；Build／ZIP／HTTP／瀏覽器／game tests 7/7 | 未建立 Tag 或部署 |

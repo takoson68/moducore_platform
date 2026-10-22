@@ -304,6 +304,8 @@ Git 僅用於保存進度與歷史脈絡，
   → `_VibeCore/engineering/GAME_DEMO_RELEASE_ASSET_AUDIT.md`
 - game-demo Bundle 與相依安全稽核
   → `_VibeCore/engineering/GAME_DEMO_BUNDLE_SECURITY_AUDIT.md`
+- Release 與成品保存政策
+  → `_VibeCore/engineering/RELEASE_RETENTION_POLICY.md`
 
 若附屬技術規範與 Engineering Index 發生衝突：
 

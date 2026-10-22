@@ -32,6 +32,8 @@ M7-2 的受控橋接位於 `github-identity.mjs` 與 `workflow-bridge.mjs`：只
 
 M7-3 已加入本機操作 UI 與受控 POST API，可選擇 verified Release、回退 previous、取消 queued Operation，以及選取一至二十筆非 current／previous Release 做批次刪除。後端每次都重新解析 GitHub 身份與 Snapshot，並要求完整確認字串；瀏覽器提供的角色、Commit、來源版本及保護狀態不具權威性。
 
+M8-3 的 `retention-policy.mjs` 另加上保存 Gate：Release 預設永久、Actions Artifact 維持 7 天、每個 Project 至少保留 3 個 verified Release，且發布後 30 天內禁止刪除。容量警戒只產生評估結果，不會自動刪除或啟用 R2；完整政策見 `_VibeCore/engineering/RELEASE_RETENTION_POLICY.md`。
+
 目前固定為醒目標示的 `simulation` 模式：操作狀態及 `data/audit.ndjson` 會更新，但不會呼叫 GitHub Workflow、刪除 Release 或變更 Cloudflare。正式部署／回退 adapter 與真實刪除維護 Workflow 必須分別取得明確授權後才可啟用，不能只靠畫面切換模式。
 
 ## 安全邊界

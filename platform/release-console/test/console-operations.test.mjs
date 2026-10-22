@@ -4,10 +4,10 @@ import { createConsoleOperations, createSimulationAdapter } from '../console-ope
 
 const now = '2026-10-21T08:00:00.000Z'
 const actor = { provider: 'github', id: 95896770, login: 'takoson68', repositoryPermission: 'admin' }
-const release = (tag, version) => ({ tag, version, commit: version.replaceAll('.', '').padEnd(40, 'a'), artifact: { completeness: 'complete', integrity: 'verified' } })
+const release = (tag, version, publishedAt = '2026-08-01T00:00:00.000Z') => ({ tag, version, publishedAt, commit: version.replaceAll('.', '').padEnd(40, 'a'), artifact: { completeness: 'complete', integrity: 'verified' } })
 const current = { id: 2, position: 'current', tag: 'dep_game-demo_v0.2.0', version: '0.2.0', commit: 'b'.repeat(40), cloudflareVersionId: 'current' }
 const previous = { id: 1, position: 'previous', tag: 'dep_game-demo_v0.1.0', version: '0.1.0', commit: 'a'.repeat(40), cloudflareVersionId: 'previous' }
-const snapshot = { projects: [{ key: 'game-demo', deployments: [current, previous], releases: [release(current.tag, current.version), release(previous.tag, previous.version), release('dep_game-demo_v0.0.9', '0.0.9'), release('dep_game-demo_v0.0.8', '0.0.8')] }] }
+const snapshot = { projects: [{ key: 'game-demo', deployments: [current, previous], releases: [release(current.tag, current.version), release(previous.tag, previous.version), release('dep_game-demo_v0.0.9', '0.0.9'), release('dep_game-demo_v0.0.8', '0.0.8'), release('dep_game-demo_v0.0.7', '0.0.7')] }] }
 
 function service(overrides = {}) {
   const audits = []
@@ -44,6 +44,13 @@ test('批次刪除逐筆列出不可恢復影響並使用完整確認字串', as
   const operation = await value.start({ action: 'delete_release', project: 'game-demo', tag: tags.join(','), tags, confirmation: `delete_release:game-demo:${tags.slice().sort().join(',')}` })
   assert.equal(operation.destination.version, 'batch')
   assert.equal(operation.impact.length, 2)
+})
+
+test('Release 未滿三版或仍在 30 天冷卻期時拒絕刪除', async () => {
+  const recentSnapshot = structuredClone(snapshot)
+  recentSnapshot.projects[0].releases.find((item) => item.tag === 'dep_game-demo_v0.0.9').publishedAt = '2026-10-20T00:00:00.000Z'
+  const recent = service({ snapshotLoader: async () => recentSnapshot })
+  await assert.rejects(() => recent.value.start({ action: 'delete_release', project: 'game-demo', tag: 'dep_game-demo_v0.0.9', confirmation: 'delete_release:game-demo:dep_game-demo_v0.0.9' }), /RELEASE_COOLDOWN_ACTIVE/)
 })
 
 test('授權與同 Project 互斥拒絕都寫入 Audit', async () => {
