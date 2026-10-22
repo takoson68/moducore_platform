@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "magic-siege-staging",
+  "compatibility_date": "2026-10-21",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".assets/magic-siege-staging",
+    "not_found_handling": "single-page-application"
+  }
+}

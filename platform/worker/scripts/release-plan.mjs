@@ -3,13 +3,14 @@ import { pathToFileURL } from 'node:url'
 
 const targets = {
   'game-demo': { target: 'game-demo-staging', project: 'game-demo', database: false },
+  'magic-siege': { target: 'magic-siege-staging', project: 'magic-siege', database: false },
   dinecore: { target: 'dinecore-staging', project: 'dineCore', database: true },
   'project-b': { target: 'project-b-staging', project: 'project-b', database: true },
 }
 
 // 僅接受明確的部署 Tag，不讓一般 Push 或任意字串觸發部署。
 export function parseDeploymentTag(tag) {
-  const match = /^dep_(game-demo|dinecore|project-b)_v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(tag || '')
+  const match = /^dep_(game-demo|magic-siege|dinecore|project-b)_v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(tag || '')
   if (!match) throw new Error('部署 Tag 格式錯誤，應為 dep_<project>_v<semver>')
   const projectKey = match[1]
   return { ...targets[projectKey], projectKey, version: match[2], tag, artifactSource: 'build' }

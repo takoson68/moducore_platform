@@ -16,6 +16,10 @@ test('部署 Tag 只解析白名單專案與語意版本', () => {
   })
   assert.equal(parseDeploymentTag('dep_dinecore_v1.2.3-rc.1').target, 'dinecore-staging')
   assert.equal(parseDeploymentTag('dep_project-b_v2.0.0').database, true)
+  assert.deepEqual(parseDeploymentTag('dep_magic-siege_v0.1.0'), {
+    target: 'magic-siege-staging', project: 'magic-siege', database: false,
+    projectKey: 'magic-siege', version: '0.1.0', tag: 'dep_magic-siege_v0.1.0', artifactSource: 'build',
+  })
 })
 
 test('一般分支、未知專案與不完整版本不能成為部署 Tag', () => {
@@ -26,6 +30,7 @@ test('一般分支、未知專案與不完整版本不能成為部署 Tag', () =
 
 test('手動救援只允許單一白名單專案', () => {
   assert.equal(manualDeploymentPlan('project-b', 'abc123').target, 'project-b-staging')
+  assert.equal(manualDeploymentPlan('magic-siege', 'abc123').target, 'magic-siege-staging')
   assert.throws(() => manualDeploymentPlan('all'), /未知的手動部署專案/)
 })
 

@@ -14,6 +14,7 @@ on:
         default: game-demo
         options:
           - game-demo
+          - magic-siege
           - dinecore
           - project-b
       ref:
@@ -291,8 +292,8 @@ jobs:
         working-directory: platform/worker
         run: node scripts/smoke.mjs https://${{ matrix.target }}.takoson68.workers.dev ${{ matrix.target }}
 
-      - name: Verify game static site and SPA fallback
-        if: matrix.project == 'game-demo'
+      - name: Verify static site and SPA fallback
+        if: matrix.database == false
         run: |
           base='https://${{ matrix.target }}.takoson68.workers.dev'
           curl --fail --silent --show-error "$base/" | grep 'id="app"'
