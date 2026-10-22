@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readdir } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import viteConfig from '../vite.config.js'
 
@@ -33,4 +33,11 @@ test('其他 Project 繼續使用共用 public，不受瘦身規則影響', () =
     if (original === undefined) delete process.env.VITE_PROJECT
     else process.env.VITE_PROJECT = original
   }
+})
+
+test('game-demo 版本膠囊使用部署 Tag 注入的版本，不寫死舊版字串', async () => {
+  const page = await readFile(new URL('../projects/game-demo/modules/playground/pages/index.vue', import.meta.url), 'utf8')
+  assert.match(page, /VITE_RELEASE_VERSION/)
+  assert.match(page, /\.game-demo-version\([^\n]+\) \{\{ releaseVersion \}\}/)
+  assert.doesNotMatch(page, /\.game-demo-version[^\n]*v0\.1\.1/)
 })

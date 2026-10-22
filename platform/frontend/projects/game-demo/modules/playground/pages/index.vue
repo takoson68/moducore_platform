@@ -5,6 +5,7 @@ import { createPlaygroundModule } from '../runtime.js';
 
 const game = new Game();
 const canvasHost = ref(null);
+const releaseVersion = `v${import.meta.env.VITE_RELEASE_VERSION || 'dev'}`;
 let busy = false;
 
 // 將畫布操作交給 Game 管理生命週期，避免重複操作。
@@ -54,7 +55,7 @@ onBeforeUnmount(() => { game.dispose().catch(console.error); });
 
 <template lang="pug">
 .game-demo-stage
-  .game-demo-version(aria-label="目前展示版本") v0.1.1
+  .game-demo-version(aria-label="目前展示版本") {{ releaseVersion }}
   .game-demo-canvas(ref="canvasHost")
 </template>
 

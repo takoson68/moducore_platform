@@ -135,6 +135,7 @@ jobs:
         env:
           VITE_PROJECT: ${{ matrix.project }}
           VITE_API_MODE: real
+          VITE_RELEASE_VERSION: ${{ matrix.version }}
         run: npm run build:cloudflare -- --outDir ../worker/.assets/${{ matrix.target }}
 
       - name: Package immutable release ZIP
