@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dinecore-production",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": { "PROJECT_ID": "dineCore", "SERVICE_NAME": "dinecore-production" },
+  "assets": {
+    "directory": ".assets/dinecore-production",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api", "/api/*"]
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "dinecore-production-db",
+    "database_id": "2893f276-ae35-4944-8022-bb2a9bb3524c",
+    "migrations_dir": "migrations"
+  }]
+}

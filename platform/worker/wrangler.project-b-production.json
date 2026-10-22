@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "project-b-production",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": { "PROJECT_ID": "project-b", "SERVICE_NAME": "project-b-production" },
+  "assets": {
+    "directory": ".assets/project-b-production",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api", "/api/*"]
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "project-b-production-db",
+    "database_id": "282acec5-29e9-4c1d-9c7f-0a079d592722",
+    "migrations_dir": "migrations"
+  }]
+}

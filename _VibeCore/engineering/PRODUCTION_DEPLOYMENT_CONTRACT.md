@@ -70,7 +70,8 @@ activation: prohibited-until-m9-2
 
 - 已建立 GitHub `production` Environment；required reviewer 為 Repository 管理員 `takoson68`，`can_admins_bypass=false`。目前只有單一 collaborator，因此 prevent self-review 未啟用，使用者可核准自己發起的部署。
 - Production 專用 Secrets。
-- 三個 Cloudflare Worker；兩個 D1 database 及其實際 ID。
-- 正式網址／網域與 Smoke 白名單。
+- 已建立兩個空 APAC D1：`dinecore-production-db`／`2893f276-ae35-4944-8022-bb2a9bb3524c`、`project-b-production-db`／`282acec5-29e9-4c1d-9c7f-0a079d592722`；尚未套 Migration。
+- 三份 Wrangler 設定已固定隔離資產目錄及 D1 ID。預定 workers.dev 網址為 `game-demo-production.takoson68.workers.dev`、`dinecore-production.takoson68.workers.dev`、`project-b-production.takoson68.workers.dev`；Worker 尚未部署。
+- Production Smoke 白名單、D1 備份與還原演練及容量證據。
 - D1 備份、還原演練及容量證據。
 - 完成以上項目後，才產生並啟用 `deploy-production.yml`。

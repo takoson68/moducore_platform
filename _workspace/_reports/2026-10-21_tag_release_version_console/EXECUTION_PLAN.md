@@ -381,17 +381,18 @@ Gate：成品大小、漏洞與保存成本有可驗證標準。
 - [x] 定義 Environment reviewer、Secret、備份／還原、容量、可清理 Smoke 與失敗回復 Gate。
 - [x] 在真實資源與人工核准未成立前，禁止啟用 Production Workflow。
 
-完成日期：2026-10-22。證據：`PRODUCTION_DEPLOYMENT_CONTRACT.md` 固定 `prod_<project>_v<semver>`、`production` Environment、三個正式 Worker、兩個正式 D1、獨立 Workflow／Secret、人工核准、D1 備份還原、可清理 Smoke 與不自動倒退 Schema；`production-release-plan.mjs` 提供機器白名單與隔離檢查。GitHub API 盤點目前只有 Staging Environment，尚無 Production Environment／Secret；因此未建立啟用中的 Production Workflow、未建立 Tag、未配置 Cloudflare 正式資源，也未部署。
+完成日期：2026-10-22。證據：`PRODUCTION_DEPLOYMENT_CONTRACT.md` 固定 `prod_<project>_v<semver>`、獨立 Environment、Worker／D1、Workflow／Secret、人工核准、D1 備份還原、可清理 Smoke 與不自動倒退 Schema；`production-release-plan.mjs` 提供機器白名單與隔離檢查。M9-1 只完成設計與 parser，正式發布仍停用。
 
 ### M9-2 正式資源與核准佈建
 
-- [ ] 由使用者確認 Production Worker／D1 命名及正式網址。
+- [x] 確認並固定 Production Worker／D1 命名及 workers.dev 正式網址。
 - [x] 建立 `production` Environment 並設定 required reviewer。
 - [ ] 建立最小權限 Production Secrets。
-- [ ] 建立三個正式 Worker 與兩個全新 D1，記錄實際 ID。
+- [x] 建立兩個全新 D1 並記錄實際 ID；建立三份隔離 Wrangler 設定。
+- [ ] 部署三個 Production Worker（須經獨立 Workflow 與首次發布 Gate）。
 - [ ] 建立 D1 備份並完成隔離還原演練及容量檢查。
 
-進度紀錄：2026-10-22 已建立 GitHub `production` Environment，required reviewer 為唯一 Repository collaborator `takoson68`，`can_admins_bypass=false`。由於目前沒有第二位 reviewer，GitHub 允許此帳號核准自己的部署；若需雙人覆核，先邀請第二位可信任 collaborator。Cloudflare 正式 Worker／D1 尚未建立；現行憑證為個人 OAuth 且具 Workers／D1 write 權限，建立前須確認正式網址與資源佈建範圍。
+進度紀錄：2026-10-22 已建立 GitHub `production` Environment，required reviewer 為唯一 Repository collaborator `takoson68`，`can_admins_bypass=false`。目前沒有第二位 reviewer，GitHub 允許該帳號核准自己的部署。Cloudflare 建立兩個空 APAC D1：dinecore `2893f276-ae35-4944-8022-bb2a9bb3524c`、project-b `282acec5-29e9-4c1d-9c7f-0a079d592722`；未套 Migration。三份 Wrangler 設定已建立；Worker 尚未部署，Production Secret 尚未設定。
 
 ### M9-3 Workflow 與首次發布驗收
 
@@ -422,9 +423,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M9-2：Production 隔離契約、Tag parser 與安全 Gate 已完成；GitHub `production` Environment 已要求 reviewer 且關閉管理員繞過。Cloudflare 正式 Worker／D1、Production Secrets、Workflow、Tag 與部署尚未建立。
+目前停在 M9-2：Production 隔離契約、Tag parser、GitHub `production` reviewer Gate、兩個空 D1 與三份 Wrangler 設定已完成。Production Worker、Secrets、Workflow、備份／還原演練、Tag 與部署尚未完成。
 
-唯一下一步：確認採用契約中的三個 Worker 名稱、兩個 D1 名稱及 `workers.dev` 正式網址後，建立 Cloudflare 正式資源；之後才建立 Production API Token／Environment Secret 與獨立 Workflow。正式部署仍需另行建立 `prod_*` Tag。
+唯一下一步：建立最小權限 Production Cloudflare API Token 並存入 GitHub `production` Environment，然後實作獨立 Workflow 的人工核准、D1 備份／Migration／Smoke Gate。首次 Worker 建立納入首次正式發布流程，不得手動直推。
 
 ## 6. 完成紀錄
 
@@ -453,5 +454,6 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-22 | M8-3 保存政策 | 完成 | Release 永久；Artifact 7 天；最低 3 verified；冷卻 30 天；容量 normal；Console policy tests | Production 尚未設計；R2 僅在 Critical 條件成立後評估 |
 | 2026-10-22 | M9-1 Production 設計 | 完成 | 正式發布隔離契約；prod Tag parser；Worker／D1 命名與隔離測試 | Production Environment／Secret／Cloudflare 資源／Workflow 均未建立，正式發布仍停用 |
 | 2026-10-22 | M9-2 GitHub Environment Gate | 部分完成 | `production` Environment 已設定 required reviewer `takoson68`，管理員繞過關閉；API 回讀確認 | 唯一 reviewer 可核准自己的部署；Cloudflare 資源、Secrets 與 Workflow 尚未建立 |
+| 2026-10-22 | M9-2 Production D1 與 Wrangler 設定 | 部分完成 | 兩個空 D1 建立於 APAC；ID 記錄於契約與設定；未套 Migration | Worker 尚未部署；Production Secret、備份／還原演練與 Workflow 未完成 |
 | 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |
 | 2026-10-21 | M8-1 game-demo 成品瘦身 | 完成 | 48→4 檔；2,316,900→1,284,517 bytes；Build／ZIP／HTTP／瀏覽器／game tests 7/7 | 未建立 Tag 或部署 |
