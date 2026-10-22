@@ -1,6 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { manualDeploymentPlan, parseDeploymentTag } from '../scripts/release-plan.mjs'
+import { assertNewTagPush, manualDeploymentPlan, parseDeploymentTag } from '../scripts/release-plan.mjs'
+
+test('Tag push 只接受首次建立，手動救援不受影響', () => {
+  assert.doesNotThrow(() => assertNewTagPush('push', 'true'))
+  assert.throws(() => assertNewTagPush('push', 'false'), /首次建立/)
+  assert.throws(() => assertNewTagPush('push', ''), /首次建立/)
+  assert.doesNotThrow(() => assertNewTagPush('workflow_dispatch', 'false'))
+})
 
 test('部署 Tag 只解析白名單專案與語意版本', () => {
   assert.deepEqual(parseDeploymentTag('dep_game-demo_v0.1.0'), {

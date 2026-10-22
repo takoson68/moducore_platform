@@ -56,10 +56,32 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+      - name: Reject updated or reused deployment Tag
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_TAG: ${{ github.ref_name }}
+          DEPLOY_REF_CREATED: ${{ github.event.created }}
+        run: |
+          if [[ "$DEPLOY_REF_CREATED" != "true" ]]; then
+            echo "拒絕部署：部署 Tag 必須首次建立，不能更新或移動。"
+            exit 1
+          fi
+          status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$DEPLOY_TAG")
+          case "$status" in
+            404) echo "確認完成：尚無同名 Release。" ;;
+            200) echo "拒絕部署：此 Tag 已有 GitHub Release，不能重用。"; exit 1 ;;
+            *) echo "無法確認 Tag Release 狀態（HTTP $status），採 fail-closed 並停止部署。"; exit 1 ;;
+          esac
       - id: targets
         env:
           DEPLOY_EVENT: ${{ github.event_name }}
           DEPLOY_TAG: ${{ github.ref_name }}
+          DEPLOY_REF_CREATED: ${{ github.event.created }}
           DEPLOY_PROJECT: ${{ inputs.target }}
           DEPLOY_REF: ${{ inputs.ref }}
           DEPLOY_ARTIFACT_SOURCE: ${{ inputs.artifact_source }}

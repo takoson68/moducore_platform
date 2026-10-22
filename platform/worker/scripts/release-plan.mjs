@@ -15,6 +15,14 @@ export function parseDeploymentTag(tag) {
   return { ...targets[projectKey], projectKey, version: match[2], tag, artifactSource: 'build' }
 }
 
+// GitHub 的 push 事件會以 created=true 表示這是首次建立的 ref。
+// 一般 Tag 更新事件必須在產生部署計畫前拒絕。
+export function assertNewTagPush(event, refCreated) {
+  if (event === 'push' && refCreated !== 'true') {
+    throw new Error('部署 Tag 必須是首次建立；拒絕更新或重用既有 Tag')
+  }
+}
+
 // 手動救援仍需從白名單選擇單一專案，版本名稱不冒充正式 Tag。
 export function manualDeploymentPlan(projectKey, ref = '', artifactSource = 'build') {
   if (!Object.hasOwn(targets, projectKey)) throw new Error('未知的手動部署專案')
@@ -30,6 +38,7 @@ export function manualDeploymentPlan(projectKey, ref = '', artifactSource = 'bui
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const event = process.env.DEPLOY_EVENT
+  assertNewTagPush(event, process.env.DEPLOY_REF_CREATED)
   const plan = event === 'push'
     ? parseDeploymentTag(process.env.DEPLOY_TAG)
     : manualDeploymentPlan(process.env.DEPLOY_PROJECT, process.env.DEPLOY_REF, process.env.DEPLOY_ARTIFACT_SOURCE || 'build')
