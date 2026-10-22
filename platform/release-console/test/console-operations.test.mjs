@@ -60,3 +60,19 @@ test('授權與同 Project 互斥拒絕都寫入 Audit', async () => {
   await assert.rejects(() => value.start({ action: 'deploy', project: 'game-demo', tag: previous.tag, confirmation: `deploy:game-demo:${previous.tag}` }), /PROJECT_BUSY/)
   assert.deepEqual(audits.filter((event) => event.result === 'rejected').map((event) => event.reasonCode), ['CONFIRMATION_MISMATCH', 'PROJECT_BUSY'])
 })
+
+test('受控 adapter 收到選定 Release，且真實模式不接受刪除操作', async () => {
+  const submitted = []
+  const adapter = {
+    mode: 'controlled',
+    async submit(operation) { submitted.push(operation); return { status: 'queued' } },
+    async refresh(operation) { return { status: operation.status } },
+    async cancel() { return { status: 'cancelled' } },
+  }
+  const { value } = service({ adapter })
+  const operation = await value.start({ action: 'deploy', project: 'game-demo', tag: previous.tag, confirmation: `deploy:game-demo:${previous.tag}` })
+  assert.equal(operation.status, 'queued')
+  assert.equal(submitted[0].tag, previous.tag)
+  assert.equal(submitted[0].destination.commit, snapshot.projects[0].releases.find((item) => item.tag === previous.tag).commit)
+  await assert.rejects(() => value.start({ action: 'delete_release', project: 'game-demo', tag: 'dep_game-demo_v0.0.9', confirmation: 'delete_release:game-demo:dep_game-demo_v0.0.9' }), /ACTION_NOT_SUPPORTED/)
+})

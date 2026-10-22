@@ -49,6 +49,7 @@ export function createConsoleOperations({ snapshotLoader, identityLoader, policy
     },
     async start(input) {
       if (!allowedActions.has(input.action)) fail('ACTION_NOT_ALLOWED')
+      if (adapter.mode === 'controlled' && !['deploy', 'rollback'].includes(input.action)) fail('ACTION_NOT_SUPPORTED')
       const [actor, snapshot] = await Promise.all([authenticate(), snapshotLoader()])
       const project = projectFrom(snapshot, input.project)
       const current = deployment(project, 'current')

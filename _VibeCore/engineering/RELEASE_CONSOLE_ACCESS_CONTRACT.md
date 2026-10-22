@@ -58,11 +58,11 @@
 
 ## 5. 人工修改位置
 
-M7-2 實作身份橋接時，操作員白名單的人工維護位置固定為 `platform/release-console/access-policy.json`，不得放在前端 JavaScript、HTML 或 localStorage。
+操作員白名單的人工維護位置固定為 `platform/release-console/access-policy.json`，不得放在前端 JavaScript、HTML 或 localStorage。
 
 - 檔案只保存 GitHub 數字 `id`、當下 `login`、指定角色及啟用狀態，不保存任何憑證。
 - 修改後必須經 Git Commit 留痕並重新啟動受控後端。
-- M7-1 不預先建立真實白名單檔案；在 M7-2 身份驗證與讀取實作完成前，系統維持無寫入端點、無操作員授權狀態。
+- 每次操作仍須重新向 GitHub 驗證身份與 Repository 權限；白名單不是持久登入 Session，也不取代重新驗證。
 
 機器可執行的能力矩陣、有效角色、重新驗證與稽核形狀位於 `platform/release-console/access-policy.mjs`。
 
@@ -74,13 +74,15 @@ M7-2 實作身份橋接時，操作員白名單的人工維護位置固定為 `p
 - Workflow Dispatch 加入不可猜測的 `operation_id`，由 `run-name` 帶回，供後端精確定位 Run。
 - 同 Project 的 queued／running Operation 互斥；不同 Project 可獨立排程。Workflow 本身既有 target concurrency 是第二層防線。
 - 狀態固定為 `queued | running | success | failed | cancelled`；每次變更追加 Audit event。
-- `platform/release-console/access-policy.json` 已建立第一筆明確操作員白名單。橋接仍未接到 HTTP／UI；必須完成 M7-3 的操作輸入與保護規則後，才可從畫面提出寫入要求。
+- `platform/release-console/access-policy.json` 保存操作員白名單；HTTP／UI 寫入要求仍須通過本契約所有 Gate。
 
-## 7. 操作 UI 與模擬 Gate
+## 7. 操作 UI 與受控 Gate
 
 - 寫入 API 只接受 loopback Host、same-origin `Origin`、JSON 與 32 KiB 以下 Body；其他 Method 不構成部署旁路。
 - 每次操作重新讀取 GitHub 身份、Repository 權限與最新 Snapshot。瀏覽器只提交 Action、Project、Tag 及確認字串。
 - 部署只接受完整且 verified 的 Release；回退 Tag 必須等於後端判定的 previous。
 - queued Operation 才能取消；同 Project 尚有 queued／running 時拒絕新增操作。
 - current、previous 及刪除後不足一個 verified Release 的要求一律拒絕。批次刪除限制一至二十筆，逐筆列出不可恢復影響並以完整 Tag 清單確認。
-- M7-3 驗收階段固定使用 simulation adapter。它可驗證 UI、狀態與 Audit，但不會 Dispatch Workflow、刪除 Release 或改動 Cloudflare；真實 adapter 必須另行取得明確授權。
+- simulation adapter 僅供本機 UI／測試驗收，設定 `RELEASE_CONSOLE_MODE=simulation` 才能啟用。
+- 2026-10-22 使用者已明確要求控制台真正部署／回退 Staging；預設 adapter 因此使用受控 GitHub Workflow Dispatch。受控模式只允許 deploy／rollback，且只能部署已驗證 Release 原件；Release 刪除不在此授權範圍，受控模式必須拒絕。
+- Dispatch 仍只呼叫既有 `deploy-staging.yml`，不直接變更 Cloudflare。Tag 觸發與控制台 Dispatch 都只能到 Staging；Production 不屬本專案目標。

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createOperationController, validateWorkflowRequest } from '../workflow-bridge.mjs'
+import { createGitHubWorkflowAdapter, createOperationController, mapWorkflowRunStatus, validateWorkflowRequest } from '../workflow-bridge.mjs'
 
 const now = '2026-10-21T08:00:00.000Z'
 const actor = { provider: 'github', id: 95896770, login: 'takoson68', role: 'admin', repositoryPermission: 'admin', authenticatedAt: now }
@@ -56,4 +56,31 @@ test('角色或確認失敗時不會呼叫 Dispatch', async () => {
   await assert.rejects(() => controller.start(request({ actor: { ...actor, role: 'viewer' } })), /ROLE_FORBIDDEN/)
   assert.equal(called, false)
   assert.equal(audits[0].result, 'rejected')
+})
+
+test('控制台 adapter 只派送固定 Project 的 verified Release 操作', async () => {
+  let dispatched
+  const adapter = createGitHubWorkflowAdapter({
+    dispatch: async (operation) => { dispatched = operation; return { status: 'queued', runId: null, runUrl: null } },
+    readStatus: async () => ({ status: 'success', runId: 42, runUrl: 'https://github.com/example/run/42' }),
+    cancel: async () => ({ status: 'cancelled' }),
+  })
+  const operation = {
+    id: 'operation-42', action: 'rollback', project: 'game-demo', tag: 'dep_game-demo_v0.1.0',
+    source, destination: { tag: 'dep_game-demo_v0.1.0', version: '0.1.0', commit: 'b'.repeat(40) },
+  }
+  assert.equal((await adapter.submit(operation)).status, 'queued')
+  assert.equal(dispatched.projectKey, 'game-demo')
+  assert.equal(dispatched.commit, 'b'.repeat(40))
+  assert.equal((await adapter.refresh(operation)).status, 'success')
+  await assert.rejects(() => adapter.submit({ ...operation, project: 'unknown' }), /PROJECT_NOT_ALLOWED/)
+  await assert.rejects(() => adapter.submit({ ...operation, action: 'delete_release' }), /ACTION_NOT_SUPPORTED/)
+})
+
+test('GitHub Workflow queued／running／completed 狀態正確映射', () => {
+  assert.equal(mapWorkflowRunStatus({ databaseId: 1, status: 'queued', url: 'https://example.test/1' }).status, 'queued')
+  assert.equal(mapWorkflowRunStatus({ databaseId: 1, status: 'in_progress', url: 'https://example.test/1' }).status, 'running')
+  assert.equal(mapWorkflowRunStatus({ databaseId: 1, status: 'completed', conclusion: 'success', url: 'https://example.test/1' }).status, 'success')
+  assert.equal(mapWorkflowRunStatus({ databaseId: 1, status: 'completed', conclusion: 'failure', url: 'https://example.test/1' }).status, 'failed')
+  assert.equal(mapWorkflowRunStatus({ databaseId: 1, status: 'completed', conclusion: 'cancelled', url: 'https://example.test/1' }).status, 'cancelled')
 })

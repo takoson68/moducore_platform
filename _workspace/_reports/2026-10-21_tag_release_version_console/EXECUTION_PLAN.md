@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-10-21
+updated: 2026-10-22
 authority: execution-plan
 scope: tag-release-version-console
 ---
@@ -313,7 +313,7 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 - [x] 顯示 queued／running／success／failed 狀態。
 - [x] 防止同 Project 併發部署；不同 Project 可獨立排程。
 
-完成日期：2026-10-21。證據：新增 GitHub ID 操作員白名單、Repository 權限再驗證、受控 `deploy-staging.yml` Dispatch adapter、正式 Tag／Release 原件白名單、Operation ID run-name、Project mutex、狀態讀取與 append-only Audit sink。真實身份解析為 GitHub ID `95896770`／Repository `admin`／Console `admin`；Workflow YAML 有效；Console 14/14 通過。Dispatch adapter 只在測試替身下驗收，未實際觸發 Workflow、部署或回退；HTTP／UI 尚未接線。
+完成日期：2026-10-22（控制台接線）。證據：新增 GitHub ID 操作員白名單、Repository 權限再驗證、受控 `deploy-staging.yml` Dispatch adapter、正式 Tag／Release 原件白名單、Operation ID run-name、Project mutex、狀態讀取與 append-only Audit sink。控制台預設使用受控 adapter；部署只透過既有 Staging Workflow，瀏覽器不持有憑證。Workflow Dispatch 仍未由本次工程實際觸發，因為尚未 Push 本地變更，也未授權外部部署。
 
 ### M7-3 操作功能
 
@@ -325,9 +325,20 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 - [x] 每 Project 至少保留一個已驗證版本。
 - [x] 批次刪除需二次確認並列出不可恢復影響。
 
-完成日期：2026-10-21。證據：新增受控 Operation service、same-origin JSON POST Gate、每次 GitHub 身份與 Snapshot 再驗證、verified Release 部署、previous 回退、queued 取消、current／previous／最後 verified 保護，以及一至二十筆批次刪除影響清單。Console 19/19 通過；瀏覽器以真實 Snapshot 驗證 `game-demo` previous 回退由 queued 取消為 cancelled。整個 M7-3 固定為 simulation adapter，未 Dispatch Workflow、刪除 Release 或變更 Cloudflare。
+完成日期：2026-10-22（控制台程式接線）。證據：same-origin JSON POST、每次操作重新驗證 GitHub 身份與 Snapshot、verified Release 部署、previous 回退及 Operation 狀態輪詢已接到受控 Workflow adapter；real mode 不提供 Release 刪除。歷史瀏覽器驗收只驗證過 simulation adapter，不視為真實部署驗收。本輪未觸發 Workflow 或變更 Cloudflare。
 
-Gate：控制台寫入操作均走同一套 Workflow Gate，不存在旁路部署。
+### M7-4 Tag 與控制台真實 Staging 驗收
+
+- [x] 控制台預設使用受控 GitHub Workflow adapter；simulation 只能透過明確環境變數開啟。
+- [x] 以 GitHub CLI 伺服器端身份與白名單授權；Tag／Project／Release Hash Gate 保持有效。
+- [x] 部署指定已驗證 Release ZIP，previous 回退重用同一 Release；狀態完成後自動更新 Snapshot。
+- [x] 真實 mode 嚴格限 Staging，禁止瀏覽器直接呼叫 GitHub／Cloudflare 寫入 API。
+- [ ] 將本機變更 Push 至 `world-oop` 後，從管理頁部署一個已驗證 Release，確認 Workflow、Smoke、current／previous 與線上網址均完成更新。
+- [ ] 從一般 Tag Push 再驗證新版本自動部署完成；不重用既有 Tag。
+
+程式與本機測試完成日期：2026-10-22。證據：Console 27/27、語法檢查與 `git diff --check` 通過。本次 Commit／Push 本身不觸發部署；尚未從控制台 Dispatch、未建立新 Tag，也未改動線上 Staging。遠端兩項 Gate 保持未完成。
+
+Gate：完成 M7-4 的兩項遠端驗收後，才宣告「Tag 自動部署＋管理頁選版本替換」整體完成。Production 不屬本計畫目標。
 
 ## M8：成品、相依與保存最佳化
 
@@ -423,9 +434,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M9-2：Production 隔離契約、Tag parser、GitHub `production` reviewer Gate、兩個空 D1 與三份 Wrangler 設定已完成。Production Worker、Secrets、Workflow、備份／還原演練、Tag 與部署尚未完成。
+目前停止 M7-4 遠端驗收。使用者確認此興趣專案不需要 Production，故 M9 永久不列入當前待辦。控制台與 Tag 部署程式只處理 Staging；本地變更尚未 Push，因此管理頁真實 Workflow Dispatch 尚未在線上驗收。需先由使用者明確授權 Push／部署後，依 M7-4 完成線上驗收。
 
-唯一下一步：建立最小權限 Production Cloudflare API Token 並存入 GitHub `production` Environment，然後實作獨立 Workflow 的人工核准、D1 備份／Migration／Smoke Gate。首次 Worker 建立納入首次正式發布流程，不得手動直推。
+Tag 正常部署已由三個 Project 的歷史實跑證明；下一步是取得 Push／線上 Staging 驗收授權，執行 M7-4 管理頁替換與新 Tag 全鏈驗收。一般 Push 不部署，Production 權限盤點不是待辦。
 
 ## 6. 完成紀錄
 
@@ -448,8 +459,8 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M6-1 控制台資料契約 | 完成 | 契約文件；機器白名單與驗證器；Worker 62/62 | 尚未建立 Snapshot 讀取層與唯讀畫面 |
 | 2026-10-21 | M6-2 唯讀畫面 | 完成 | `platform/release-console`；真實 Snapshot 三 Project healthy；Console 2/2、Worker 62/62；瀏覽器驗收 | 尚待 M6-3 安全邊界正式 Gate |
 | 2026-10-21 | M6-3 安全邊界 | 完成 | 回環限定；GET-only；敏感 Snapshot Guard；安全標頭；Console 5/5、Worker 62/62；真實掃描 clean | M7 寫入能力尚未設計或啟用 |
-| 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 尚無登入、操作員白名單、稽核儲存或寫入端點 |
-| 2026-10-21 | M7-2 Workflow Dispatch 橋接 | 完成 | GitHub ID 白名單；固定 Release Dispatch；Operation ID／狀態／Mutex／Audit；Console 14/14；YAML 有效 | HTTP／UI 尚未接線；未執行真實 Dispatch |
+| 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 遠端 Dispatch 尚未實跑 |
+| 2026-10-22 | M7-2 Workflow Dispatch 橋接接線 | 本機完成 | 控制台預設受控 adapter；verified Release／Operation ID／狀態輪詢；Console 27/27 | 尚未 Push 或觸發真實 Workflow |
 | 2026-10-22 | M8-2 Bundle 與相依 | 完成 | 初始 JS 1,279,377 → 115,211 bytes；p5-engine lazy chunk 1,151,810 bytes；npm audit 9 high → 0；三 Project Build 與相關測試通過 | p5 引擎 chunk 仍大於 500 kB；進入遊戲 Route 後仍會下載 |
 | 2026-10-22 | M8-3 保存政策 | 完成 | Release 永久；Artifact 7 天；最低 3 verified；冷卻 30 天；容量 normal；Console policy tests | Production 尚未設計；R2 僅在 Critical 條件成立後評估 |
 | 2026-10-22 | M9-1 Production 設計 | 完成 | 正式發布隔離契約；prod Tag parser；Worker／D1 命名與隔離測試 | Production Environment／Secret／Cloudflare 資源／Workflow 均未建立，正式發布仍停用 |

@@ -5,6 +5,7 @@ import { extname, join, normalize, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { buildReleaseConsoleSnapshot } from './snapshot.mjs'
 import { createConsoleOperations, createSimulationAdapter } from './console-operations.mjs'
+import { createGitHubWorkflowAdapter } from './workflow-bridge.mjs'
 import { fileAuditSink } from './workflow-bridge.mjs'
 
 const publicDir = resolve(import.meta.dirname, 'public')
@@ -68,7 +69,8 @@ async function serveFile(pathname, response) {
 }
 
 export function createReleaseConsoleServer({ snapshotLoader = buildReleaseConsoleSnapshot, operations } = {}) {
-  const operationService = operations || createConsoleOperations({ snapshotLoader, adapter: createSimulationAdapter(), audit: fileAuditSink(resolve(import.meta.dirname, 'data/audit.ndjson')) })
+  const adapter = process.env.RELEASE_CONSOLE_MODE === 'simulation' ? createSimulationAdapter() : createGitHubWorkflowAdapter()
+  const operationService = operations || createConsoleOperations({ snapshotLoader, adapter, audit: fileAuditSink(resolve(import.meta.dirname, 'data/audit.ndjson')) })
   return createServer(async (request, response) => {
     if (!isLoopbackAuthority(request.headers.host)) {
       json(response, 403, { error: 'LOOPBACK_ONLY' })
@@ -115,5 +117,6 @@ export function createReleaseConsoleServer({ snapshotLoader = buildReleaseConsol
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const host = '127.0.0.1'
   const port = Number(process.env.RELEASE_CONSOLE_PORT || 4190)
-  createReleaseConsoleServer().listen(port, host, () => console.log(`版本控制台（simulation）：http://${host}:${port}`))
+  const mode = process.env.RELEASE_CONSOLE_MODE === 'simulation' ? 'simulation' : 'controlled Staging'
+  createReleaseConsoleServer().listen(port, host, () => console.log(`版本控制台（${mode}）：http://${host}:${port}`))
 }

@@ -8,13 +8,17 @@ const template = document.querySelector('#project-template')
 const dialog = document.querySelector('#confirm-dialog')
 let session = null
 let pending = null
+let pollTimer = null
 
 const text = (value, fallback = '未知') => value === null || value === undefined || value === '' ? fallback : String(value)
 const short = (value) => value ? value.slice(0, 12) : '—'
 const time = (value) => value ? new Intl.DateTimeFormat('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '未知'
 const html = (value) => text(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
 const safeUrl = (value) => { try { const parsed = new URL(value); return parsed.protocol === 'https:' ? parsed.href : '#' } catch { return '#' } }
-const can = (capability) => ({ viewer: ['view'], deployer: ['view', 'deploy', 'rollback', 'cancel'], admin: ['view', 'deploy', 'rollback', 'cancel', 'delete_release', 'delete_artifact'] })[session?.actor?.role]?.includes(capability)
+const can = (capability) => {
+  if (session?.mode === 'controlled' && capability.startsWith('delete_')) return false
+  return ({ viewer: ['view'], deployer: ['view', 'deploy', 'rollback', 'cancel'], admin: ['view', 'deploy', 'rollback', 'cancel', 'delete_release', 'delete_artifact'] })[session?.actor?.role]?.includes(capability)
+}
 
 function deploymentMarkup(title, item) {
   if (!item) return `<h3>${title}</h3><p class="empty">尚無可驗證紀錄</p>`
@@ -54,7 +58,7 @@ function render(snapshot) {
 }
 
 function renderOperations(rows) {
-  operations.innerHTML = rows.length ? rows.slice().reverse().map((item) => `<div class="operation-row"><span class="pill ${html(item.status)}">${html(item.status)}</span><strong>${html(item.action)}</strong><span class="operation-tag">${html(item.project)} · ${html(item.tag)}</span><span>${time(item.updatedAt)}</span>${item.status === 'queued' && can('cancel') ? `<button data-cancel="${html(item.id)}" data-project="${html(item.project)}" data-tag="${html(item.tag)}">取消</button>` : ''}</div>`).join('') : '<p class="empty">目前沒有操作</p>'
+  operations.innerHTML = rows.length ? rows.slice().reverse().map((item) => `<div class="operation-row"><span class="pill ${html(item.status)}">${html(item.status)}</span><strong>${html(item.action)}</strong><span class="operation-tag">${html(item.project)} · ${html(item.tag)}</span><span>${time(item.updatedAt)}</span>${item.runUrl ? `<a href="${safeUrl(item.runUrl)}" target="_blank" rel="noreferrer">查看 Workflow ↗</a>` : ''}${item.status === 'queued' && can('cancel') ? `<button data-cancel="${html(item.id)}" data-project="${html(item.project)}" data-tag="${html(item.tag)}">取消</button>` : ''}</div>`).join('') : '<p class="empty">目前沒有操作</p>'
 }
 
 async function api(path, options) { const response = await fetch(path, { cache: 'no-store', ...options }); const body = await response.json(); if (!response.ok) throw new Error(body.error || body.message); return body }
@@ -65,15 +69,19 @@ async function load() {
     const [snapshot, identity, operationData] = await Promise.all([api('/api/release-console'), api('/api/session'), api('/api/operations')])
     session = identity
     operator.innerHTML = `<strong>${html(identity.actor.login)}</strong> · GitHub ${html(identity.actor.repositoryPermission)} · Console ${html(identity.actor.role)} · 驗證 ${time(identity.authenticatedAt)}`
-    mode.textContent = identity.mode === 'simulation' ? '模擬模式：不會變更 GitHub 或 Cloudflare' : '受控模式'
+    mode.textContent = identity.mode === 'simulation' ? '模擬模式：不會變更 GitHub 或 Cloudflare' : '受控模式：會觸發 Staging Workflow；不部署 Production'
     render(snapshot); renderOperations(operationData.operations)
+    clearTimeout(pollTimer)
+    const pendingWorkflow = operationData.operations.some((item) => ['queued', 'running'].includes(item.status))
+    const snapshotBehind = operationData.operations.some((item) => item.status === 'success' && snapshot.projects.find((project) => project.key === item.project)?.deployments.find((deployment) => deployment.position === 'current')?.id === item.source.deploymentId)
+    if (pendingWorkflow || snapshotBehind) pollTimer = setTimeout(load, 5000)
   } catch (error) { summary.className = 'summary unavailable'; summary.textContent = `控制台資料暫時無法取得：${error.message}` }
   finally { refresh.disabled = false; refresh.textContent = '重新查詢' }
 }
 
 function confirmAction(action, project, tag, operationId = null, tags = null) {
   const labels = { deploy: '部署指定版本', rollback: '回退 previous', cancel: '取消 queued 操作', delete_release: '刪除 Release' }
-  const impacts = action.startsWith('delete_') ? '不可恢復影響：GitHub Release 與其 ZIP、manifest、checksum 連結將被移除。current、previous 與最後一個已驗證版本永遠不可刪除。' : '此要求會通過後端身份、版本與 Workflow Gate 驗證。目前為模擬模式。'
+  const impacts = action.startsWith('delete_') ? '不可恢復影響：GitHub Release 與其 ZIP、manifest、checksum 連結將被移除。current、previous 與最後一個已驗證版本永遠不可刪除。' : session?.mode === 'simulation' ? '此要求只會模擬，不會更新線上 Staging。' : '確認後會由 GitHub Actions 重新部署選定的已驗證 Release ZIP，通過 Smoke 後才更新線上 Staging 與 current／previous。'
   pending = { action, project, tag, operationId, tags }
   document.querySelector('#dialog-title').textContent = labels[action]
   document.querySelector('#dialog-impact').textContent = impacts

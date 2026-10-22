@@ -87,7 +87,7 @@ dineCore 與 project-b 的正式版本 manifest 必須包含 `minimumSchemaVersi
 
 ## 7. 回退方式
 
-目前安全回退入口是 GitHub Actions 手動救援：選擇相同 Project，並在 `ref` 填入上一版 Tag。Workflow 會從上一版的確切 Commit 重新建置、驗證及部署。
+安全回退入口有兩種：版本控制台的「回退 previous」會部署已驗證的 Release ZIP 原件；若控制台不可用，可用 GitHub Actions 手動救援，選擇相同 Project 並在 `ref` 填入上一版 Tag。後者會從上一版的確切 Commit 重新建置、驗證及部署。
 
 前端版本回退不代表 D1 Schema 回退。dineCore 或 project-b 若新版包含 Migration，回退前必須確認舊版程式仍相容於目前 Schema；禁止自動倒退 D1 Migration。
 
@@ -120,9 +120,39 @@ Release 原件模式會跳過前端依賴安裝、Build 與重新封裝，直接
 
 `target` 與 Tag Project 不一致、Release 不完整、Hash 不符或安全解壓失敗時，Workflow 會在部署前停止。
 
-## 8. 版本控制台銜接
+## 8. 版本控制台部署／回退
 
-GitHub Releases 的 ZIP、manifest 與 checksum 是未來版本控制台的正式版本目錄。控制台應顯示 current、previous、Tag、Commit、Cloudflare Version ID 及 Smoke 狀態；切換操作必須觸發受保護 Workflow，不得把 Cloudflare Token 放在瀏覽器。
+版本控制台位於 `platform/release-console`，可部署已驗證 Release 或回退 previous。控制台部署會呼叫既有 Staging Workflow，使用 Release ZIP 原件；不會直接將檔案上傳 Cloudflare，也不需要在瀏覽器輸入 Token。
+
+啟動前需有 Node.js 20+、已登入 `gh` CLI、`access-policy.json` 中啟用的 GitHub 操作員，以及可供 Snapshot 查詢使用的 Wrangler 登入狀態。於 Repository 根目錄執行：
+
+```bash
+cd platform/release-console
+npm start
+```
+
+開啟 `http://127.0.0.1:4190/`。一般情況不要設定 `RELEASE_CONSOLE_MODE=simulation`；該模式只供模擬，不會更新線上 Staging。
+
+### 部署指定版本
+
+1. 在目標 Project 的 Release 清單找到完整性為 `complete` 且 `verified` 的版本。
+2. 按該版本的「部署」，確認動作、Project 與 Tag。
+3. 輸入畫面提供的完整確認字串，例如 `deploy:game-demo:dep_game-demo_v0.1.1`。
+4. 等候操作狀態至 `success`。可由「查看 Workflow」開啟 GitHub Actions；控制台會持續刷新，直到成功部署紀錄成為 current。
+
+### 回退 previous
+
+1. 在 Project 卡片按「回退 previous」。後端會重新確認該版本仍是權威 Snapshot 中的 previous。
+2. 輸入完整確認字串，例如 `rollback:game-demo:dep_game-demo_v0.1.0`。
+3. 等候 Workflow、Release 原件驗證、dry-run、部署及 Smoke Gate 全部成功；成功後 previous Tag 成為新的 current，原 current 移為 previous。
+
+任何身份、權限、Tag／Project、Release Hash、資料庫 Schema 相容性或 Smoke Gate 失敗，都不得宣告切版成功。控制台只開在本機回環位址，不可直接發布給平板或公開網路使用。批次刪除 Release 不屬於受控部署功能。
+
+一般程式更新仍使用前述部署 Tag 流程：先 Commit／Push 程式，再建立唯一新版本 Tag；普通 Push 不會自動部署。
+
+## 9. 版本證據與安全邊界
+
+GitHub Releases 的 ZIP、manifest 與 checksum 是版本控制台的正式版本目錄。控制台顯示 current、previous、Tag、Commit、Cloudflare Version ID 及 Smoke 狀態；切換操作必須觸發受保護 Workflow，不得把 Cloudflare Token 放在瀏覽器。
 
 部署狀態的正式真相來源是 GitHub Deployments：
 
@@ -135,4 +165,4 @@ GitHub Releases 的 ZIP、manifest 與 checksum 是未來版本控制台的正�
 
 GitHub Deployments 負責「實際驗證過的部署歷史」，GitHub Releases 負責「不可變版本成品」。Cloudflare Deployments 用於交叉核對線上 Version ID，但控制台不得只靠瀏覽器 localStorage 推測 current／previous。
 
-在控制台完成前，不得直接修改線上資產或以重用 Tag 的方式假裝切版。
+不得直接修改線上資產或以重用 Tag 的方式假裝切版。

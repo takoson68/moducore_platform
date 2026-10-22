@@ -1,3 +1,8 @@
+## 2026-10-22
+
+- 版本控制台預設模式接上受控 GitHub Staging Workflow Dispatch；可從已驗證 Release 部署指定版本或回退 previous，輪詢執行狀態並刷新 current／previous。操作保留 loopback、same-origin、GitHub 身分／角色、完整確認字串與 Audit Gate；瀏覽器不接觸寫入憑證，Production 與 Release 刪除不在本次啟用範圍。
+- 更新 Tag／Release 控制台執行里程碑與操作手冊，明確區分本機程式驗證和遠端 Staging 驗收；未 Push／Dispatch 的項目仍列為未完成。
+
 ## 2026-10-21
 
 - Staging 發布改為 `dep_<project>_v<version>` Tag 明確觸發；一般 Branch Push 不再部署。Workflow 一次只接受 game-demo、dineCore 或 project-b 單一目標，另保留白名單式手動救援入口。

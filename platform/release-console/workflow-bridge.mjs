@@ -39,13 +39,50 @@ export async function dispatchGitHubWorkflow(operation) {
   return { status: 'queued', runId: null, runUrl: null }
 }
 
-// 以 run-name 中的 Operation ID 定位唯一 Run，並轉換為控制台狀態。
-export async function readGitHubWorkflowStatus(operation) {
+async function findWorkflowRun(operation) {
   const { stdout } = await exec('gh', ['run', 'list', '--repo', repository, '--workflow', workflow, '--event', 'workflow_dispatch', '--limit', '30', '--json', 'databaseId,displayTitle,status,conclusion,url'], { encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 })
-  const run = JSON.parse(stdout).find((item) => item.displayTitle?.includes(operation.id))
+  return JSON.parse(stdout).find((item) => item.displayTitle?.includes(operation.id)) || null
+}
+
+// 以 run-name 中的 Operation ID 定位唯一 Run，並轉換為控制台狀態。
+export function mapWorkflowRunStatus(run) {
   if (!run) return { status: 'queued', runId: null, runUrl: null }
+  if (run.status === 'queued' || run.status === 'requested') return { status: 'queued', runId: run.databaseId, runUrl: run.url }
   if (run.status !== 'completed') return { status: 'running', runId: run.databaseId, runUrl: run.url }
   return { status: run.conclusion === 'success' ? 'success' : run.conclusion === 'cancelled' ? 'cancelled' : 'failed', runId: run.databaseId, runUrl: run.url }
+}
+
+export async function readGitHubWorkflowStatus(operation) {
+  return mapWorkflowRunStatus(await findWorkflowRun(operation))
+}
+
+// 僅取消已由 Operation ID 精確找到、且尚未開始的 GitHub Run。
+export async function cancelGitHubWorkflow(operation) {
+  const run = await findWorkflowRun(operation)
+  if (!run) throw new Error('WORKFLOW_RUN_NOT_FOUND')
+  if (run.status !== 'queued' && run.status !== 'requested') throw new Error('OPERATION_NOT_QUEUED')
+  await exec('gh', ['run', 'cancel', String(run.databaseId), '--repo', repository], { encoding: 'utf8', maxBuffer: 1024 * 1024 })
+  return { status: 'cancelled', runId: run.databaseId, runUrl: run.url }
+}
+
+// 將控制台操作接到既有 Staging Workflow；永遠使用 Release 原件，不直接呼叫 Cloudflare。
+export function createGitHubWorkflowAdapter({ dispatch = dispatchGitHubWorkflow, readStatus = readGitHubWorkflowStatus, cancel = cancelGitHubWorkflow } = {}) {
+  return {
+    mode: 'controlled',
+    async submit(operation) {
+      if (!['deploy', 'rollback'].includes(operation.action)) throw new Error('ACTION_NOT_SUPPORTED')
+      validateWorkflowRequest({
+        action: operation.action,
+        project: operation.project,
+        tag: operation.tag,
+        commit: operation.destination.commit,
+        source: operation.source,
+      })
+      return dispatch({ ...operation, projectKey: operation.project, commit: operation.destination.commit })
+    },
+    async refresh(operation) { return readStatus(operation) },
+    async cancel(operation) { return cancel(operation) },
+  }
 }
 
 // Audit 使用 append-only NDJSON；每次狀態變化新增一列，不覆寫舊事件。
