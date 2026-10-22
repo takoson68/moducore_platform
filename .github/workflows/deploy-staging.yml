@@ -296,8 +296,8 @@ jobs:
         if: matrix.database == false
         run: |
           base='https://${{ matrix.target }}.takoson68.workers.dev'
-          curl --fail --silent --show-error "$base/" | grep 'id="app"'
-          curl --fail --silent --show-error "$base/version-check" | grep 'id="app"'
+          curl --retry 5 --retry-all-errors --retry-delay 2 --fail --silent --show-error "$base/" | grep 'id="app"'
+          curl --retry 5 --retry-all-errors --retry-delay 2 --fail --silent --show-error "$base/version-check" | grep 'id="app"'
 
       - name: Verify remote authentication and D1 session lifecycle
         if: matrix.database == true
