@@ -342,10 +342,12 @@ Gate：控制台寫入操作均走同一套 Workflow Gate，不存在旁路部�
 
 ### M8-2 Bundle 與相依
 
-- [ ] 評估 p5 約 1.28 MB 入口 Bundle。
-- [ ] 評估真正的 chunk／延遲載入策略；不得只調高警告門檻。
-- [ ] 處理已記錄的 5 項 high severity npm audit。
-- [ ] 升級後執行三 Project Build 與全部相關測試。
+- [x] 評估 p5 約 1.28 MB 入口 Bundle。
+- [x] 評估真正的 chunk／延遲載入策略；不得只調高警告門檻。
+- [x] 處理已記錄的 5 項 high severity npm audit。
+- [x] 升級後執行三 Project Build 與全部相關測試。
+
+完成日期：2026-10-22。證據：`GAME_DEMO_BUNDLE_SECURITY_AUDIT.md` 記錄原 1,279,377 bytes 單一入口與拆分結果；初始入口降為 115,211 bytes（gzip 43,659 bytes），p5 獨立為 1,151,810 bytes（gzip 336,094 bytes）的 `p5-engine` lazy chunk，入口 Raw 減少約 91.0%。Project config 改為建置期 alias，避免輸出其他 Project config。未調高 500 kB 警告門檻。Advisory database 重跑時原 5 high 已增為 9 high，使用非破壞性 `npm audit fix` 更新 lockfile 後為 0；三 Project Build、前端相關測試與 Worker 測試通過。未建立 Tag、Release 或部署。
 
 ### M8-3 保存政策
 
@@ -391,9 +393,9 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 
 ## 5. 目前停止點
 
-目前停在 M8-2：game-demo Release 成品已從 48 檔瘦身為 4 檔並完成本機封包與瀏覽器驗收；尚未建立新 Tag 或部署。
+目前停在 M8-3：game-demo 已完成成品瘦身、入口 Bundle 拆分與前端相依修補；尚未建立新 Tag 或部署。
 
-唯一下一步：執行 M8-2 Bundle 與相依分析，先量測 p5 及其他模組在入口 Bundle 的占比並設計真正的 lazy chunk 邊界，再盤點 5 項 high severity npm audit 的直接／間接來源；不得以提高警告門檻取代最佳化。
+唯一下一步：執行 M8-3 保存政策，決定 Release、Actions Artifact、current／previous、最低保留數、刪除冷卻期與容量成本警戒線；未超過門檻前不預先導入 R2。
 
 ## 6. 完成紀錄
 
@@ -418,5 +420,6 @@ Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權�
 | 2026-10-21 | M6-3 安全邊界 | 完成 | 回環限定；GET-only；敏感 Snapshot Guard；安全標頭；Console 5/5、Worker 62/62；真實掃描 clean | M7 寫入能力尚未設計或啟用 |
 | 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 尚無登入、操作員白名單、稽核儲存或寫入端點 |
 | 2026-10-21 | M7-2 Workflow Dispatch 橋接 | 完成 | GitHub ID 白名單；固定 Release Dispatch；Operation ID／狀態／Mutex／Audit；Console 14/14；YAML 有效 | HTTP／UI 尚未接線；未執行真實 Dispatch |
+| 2026-10-22 | M8-2 Bundle 與相依 | 完成 | 初始 JS 1,279,377 → 115,211 bytes；p5-engine lazy chunk 1,151,810 bytes；npm audit 9 high → 0；三 Project Build 與相關測試通過 | p5 引擎 chunk 仍大於 500 kB；進入遊戲 Route 後仍會下載 |
 | 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |
 | 2026-10-21 | M8-1 game-demo 成品瘦身 | 完成 | 48→4 檔；2,316,900→1,284,517 bytes；Build／ZIP／HTTP／瀏覽器／game tests 7/7 | 未建立 Tag 或部署 |

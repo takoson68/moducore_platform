@@ -37,7 +37,12 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 500,
       rollupOptions: {
         output: {
-          inlineDynamicImports: true,
+          // game-demo 的 route 與 p5 都是動態匯入；不可再把它們壓回
+          // 單一入口，否則平板首次載入仍需先下載完整遊戲引擎。
+          inlineDynamicImports: project !== 'game-demo',
+          manualChunks: project === 'game-demo'
+            ? (id) => /\/node_modules\/(p5|zod)\//.test(id) ? 'p5-engine' : undefined
+            : undefined,
         },
       },
     },
@@ -46,6 +51,7 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, 'src'),
         '@app': path.resolve(__dirname, 'src/app'),
         '@project': path.resolve(__dirname, `projects/${project}`),
+        'project-config-entry': path.resolve(projectDir, 'project.config.js'),
         'project-main-style-entry': path.resolve(projectDir, 'styles', 'sass', 'main.sass'),
         'project-layout-root-entry': path.resolve(projectDir, 'layout', 'LayoutRoot.vue'),
       },

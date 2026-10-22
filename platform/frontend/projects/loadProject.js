@@ -1,23 +1,9 @@
 //- projects/loadProject.js
 // 只負責「載入 project」，不負責任何世界規則
 export async function loadProjectConfig() {
-  const name = import.meta.env.VITE_PROJECT || 'project-a'
-
-  // 由 Vite 掃描 projects/*/project.config.js 作為候選集合
-  const modules = import.meta.glob('./*/project.config.js')
-  const loaders = Object.fromEntries(
-    Object.entries(modules).map(([file, loader]) => {
-      const match = file.match(/^\.\/([^/]+)\/project\.config\.js$/)
-      return match ? [match[1], loader] : null
-    }).filter(Boolean),
-  )
-
-  const loader = loaders[name]
-  if (!loader) {
-    throw new Error(`[ProjectLoader] Unknown project: "${name}"`)
-  }
-
-  const mod = await loader()
+  // Vite 依 VITE_PROJECT 將 alias 指向唯一設定，避免每個成品都產生
+  // 其他 Project 的 config chunk；保留動態匯入作為啟動邊界。
+  const mod = await import('project-config-entry')
   return mod.default ?? mod
 }
 
