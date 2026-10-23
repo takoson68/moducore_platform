@@ -6,6 +6,7 @@ import { createBattlefieldModule } from '../runtime.js';
 const game = new Game();
 const canvasHost = ref(null);
 const errorMessage = ref('');
+const fullscreenFallback = ref(false);
 let busy = false;
 let pausedForVisibility = false;
 
@@ -17,8 +18,20 @@ async function action(command) {
     else if (command === 'pause') await game.pause();
     else if (command === 'resume') await game.resume();
     else if (command === 'fullscreen') {
-      if (!document.fullscreenElement) await canvasHost.value?.requestFullscreen?.();
-      else await document.exitFullscreen?.();
+      if (document.fullscreenElement) {
+        await document.exitFullscreen?.();
+        return;
+      }
+      const target = canvasHost.value;
+      if (target?.requestFullscreen) {
+        try {
+          await target.requestFullscreen();
+          return;
+        } catch (error) {
+          console.info('[Magic Siege] 原生全螢幕不可用，改用滿版模式', error);
+        }
+      }
+      fullscreenFallback.value = !fullscreenFallback.value;
     }
   } catch (error) {
     console.error('[Magic Siege] 操作失敗', error);
@@ -62,7 +75,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template lang="pug">
-.magic-siege-stage
+.magic-siege-stage(:class="{ 'fullscreen-fallback': fullscreenFallback }")
   .magic-siege-canvas(ref="canvasHost")
   p.magic-siege-error(v-if="errorMessage" role="alert") {{ errorMessage }}
 </template>
@@ -74,6 +87,12 @@ onBeforeUnmount(() => {
   height: 100dvh
   overflow: hidden
   background: #07101e
+  &.fullscreen-fallback
+    position: fixed
+    inset: 0
+    z-index: 9999
+    width: 100vw
+    height: 100dvh
 .magic-siege-canvas
   width: 100vw
   height: 100dvh
