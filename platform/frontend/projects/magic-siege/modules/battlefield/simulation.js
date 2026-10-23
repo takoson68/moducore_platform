@@ -111,6 +111,7 @@ export function createBattlefieldSimulation(session) {
   };
   const tick = (elapsed) => {
     const state = session.state;
+    if (state.mode === 'ready' && state.autoWave) { startWave(); return; }
     if (state.mode !== 'battle' || elapsed <= 0) return;
     elapsed *= [1, 2, 4].includes(state.speed) ? state.speed : 1;
     let spawnClock = state.spawnClock + elapsed;
@@ -205,6 +206,7 @@ export function createBattlefieldSimulation(session) {
   };
   return {
     build, upgrade, sell, startWave, tick,
+    toggleAutoWave() { update({ autoWave: !session.state.autoWave }); return !session.state.autoWave; },
     restartLevel() {
       const { level } = session.state;
       update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: `第${level}關已重新開始。` });
