@@ -7,6 +7,8 @@ const releaseVersion = import.meta.env.VITE_RELEASE_VERSION || 'dev';
 const key = (col, row) => `${col},${row}`;
 const pathCells = mapPathCells(1);
 const obstacles = new Set([[0,5],[2,0],[3,7],[7,0],[8,8]].map(([c,r]) => key(c,r)));
+const pathCellsFor = (state) => state.level === 2 ? mapPathCells(2) : pathCells;
+const obstaclesFor = (state) => new Set(getBattlefieldMap(state.level || 1).obstacles.map(([c,r]) => key(c,r)));
 const buildButton = { x: panel.x + 72, y: panel.y + 382, width: panel.width - 144, height: 62 };
 const upgradeButton = { x: panel.x + 24, y: panel.y + 382, width: 190, height: 62 };
 const sellButton = { x: panel.x + 230, y: panel.y + 382, width: 154, height: 62 };
@@ -16,8 +18,8 @@ const contains = (rect, point) => point.x >= rect.x && point.x <= rect.x + rect.
 
 function cellKind(state, col, row) {
   if (!Number.isInteger(col) || !Number.isInteger(row) || col < 0 || row < 0 || col >= board.cols || row >= board.rows) return '未選取';
-  if (pathCells.has(key(col, row))) return '道路';
-  if (obstacles.has(key(col, row))) return '障礙物';
+  if (pathCellsFor(state).has(key(col, row))) return '道路';
+  if (obstaclesFor(state).has(key(col, row))) return '障礙物';
   if (state.towers.some((tower) => tower.col === col && tower.row === row)) return '魔法塔';
   return '可建造';
 }
@@ -37,13 +39,13 @@ function drawHeader(p, state) {
   button(p,pause,state.mode==='paused'?'▶':'Ⅱ',false,!['battle','paused'].includes(state.mode));
 }
 function drawTower(p,tower,selected){const x=board.x+tower.col*board.cell+34,y=board.y+tower.row*board.cell+32,stats=towerLevels[tower.level];if(selected && selected.col===tower.col&&selected.row===tower.row){p.noFill();p.stroke('#28dfff');p.strokeWeight(2);p.circle(x,y+2,stats.range*2);}p.stroke('#8ce9ff');p.strokeWeight(2);p.fill(tower.level===3?'#8d4bc4':tower.level===2?'#326bd0':'#277ab5');p.triangle(x,y-22,x-19-tower.level*2,y+20,x+19+tower.level*2,y+20);p.fill('#bff4ff');p.circle(x,y-24,7+tower.level*2);}
-function drawEnemy(p,enemy){const point=routePosition(enemy.distance),large=enemy.type==='large',size=large?34:24,bar=large?42:32;p.noStroke();p.fill('#35182e');p.rect(point.x-bar/2,point.y-size/2-11,bar,4,2);p.fill(large?'#ffbd5c':'#ff557f');p.rect(point.x-bar/2,point.y-size/2-11,bar*enemy.hp/enemy.maxHp,4,2);p.stroke(large?'#ffb24d':'#ff6d9e');p.strokeWeight(3);p.fill(large?'#4a2a31':'#281a39');p.circle(point.x,point.y,size);p.noStroke();p.fill(large?'#ffe19a':'#ff8ab0');p.circle(point.x-5,point.y-2,4);p.circle(point.x+5,point.y-2,4);}
+function drawEnemy(p,enemy,level=1){const point=routePosition(enemy.distance,level),large=enemy.type==='large',size=large?34:24,bar=large?42:32;p.noStroke();p.fill('#35182e');p.rect(point.x-bar/2,point.y-size/2-11,bar,4,2);p.fill(large?'#ffbd5c':'#ff557f');p.rect(point.x-bar/2,point.y-size/2-11,bar*enemy.hp/enemy.maxHp,4,2);p.stroke(large?'#ffb24d':'#ff6d9e');p.strokeWeight(3);p.fill(large?'#4a2a31':'#281a39');p.circle(point.x,point.y,size);p.noStroke();p.fill(large?'#ffe19a':'#ff8ab0');p.circle(point.x-5,point.y-2,4);p.circle(point.x+5,point.y-2,4);}
 function drawBoard(p,state){
   for(let row=0;row<board.rows;row+=1)for(let col=0;col<board.cols;col+=1){const x=board.x+col*board.cell,y=board.y+row*board.cell,kind=cellKind(state,col,row);p.stroke('#263d57');p.strokeWeight(1);p.fill(kind==='道路'?'#424163':kind==='障礙物'?'#172237':'#0d4746');p.rect(x+2,y+2,board.cell-4,board.cell-4,4);if(kind==='可建造'){p.noStroke();p.fill('#289684');p.triangle(x+29,y+46,x+34,y+31,x+39,y+46);}if(kind==='障礙物'){p.fill('#48506c');p.stroke('#606b8f');p.triangle(x+16,y+49,x+32,y+15,x+55,y+50);p.triangle(x+28,y+52,x+47,y+27,x+60,y+53);}}
   p.noFill();p.stroke('#8b8ae1');p.strokeWeight(3);p.beginShape();for(const[c,r]of[[0,2],[5,2],[5,5],[9,5],[9,7],[11,7],[11,5],[13,5]])p.vertex(board.x+c*board.cell+34,board.y+r*board.cell+34);p.endShape();
   const portal=routePosition(0);p.noFill();p.stroke('#42eaff');p.strokeWeight(6);p.circle(portal.x,portal.y,48);p.stroke('#80aaff');p.strokeWeight(3);p.circle(portal.x,portal.y,30);
   const castle={x:board.x+13*board.cell+7,y:board.y+5*board.cell-24};p.stroke('#b047b2');p.strokeWeight(2);p.fill('#373650');p.rect(castle.x,castle.y,54,116,4);p.rect(castle.x-13,castle.y+30,19,86,3);p.fill('#ec59d1');p.triangle(castle.x+27,castle.y+42,castle.x+14,castle.y+96,castle.x+40,castle.y+96);
-  for(const tower of state.towers)drawTower(p,tower,state.selected);for(const enemy of state.enemies)drawEnemy(p,enemy);for(const bullet of state.bullets){p.noStroke();p.fill('#ffd66b');p.circle(bullet.x,bullet.y,9);}
+  for(const tower of state.towers)drawTower(p,tower,state.selected);for(const enemy of state.enemies)drawEnemy(p,enemy,state.level||1);for(const bullet of state.bullets){p.noStroke();p.fill('#ffd66b');p.circle(bullet.x,bullet.y,9);}
   if(state.selected){const sx=board.x+state.selected.col*board.cell,sy=board.y+state.selected.row*board.cell;p.noFill();p.stroke('#4cecff');p.strokeWeight(4);p.rect(sx+4,sy+4,board.cell-8,board.cell-8,3);}
 }
 function drawPanel(p,state){
