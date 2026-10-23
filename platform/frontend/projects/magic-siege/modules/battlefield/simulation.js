@@ -206,8 +206,8 @@ export function createBattlefieldSimulation(session) {
   return {
     build, upgrade, sell, startWave, tick,
     startLevel(level) {
-      if (level !== 2 || session.state.level !== 1 || session.state.mode !== 'victory') return false;
-      update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: '第二關準備完成。' });
+      if (!Number.isInteger(level) || level < 1 || level > 5 || level !== session.state.level + 1 || session.state.mode !== 'victory') return false;
+      update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: `第${level}關準備完成。` });
       return true;
     },
     setSpeed(speed) {

@@ -184,3 +184,15 @@ test('固定布防可完整通過十波並進入勝利結局', () => {
   assert.equal(session.state.wave, 10);
   assert.equal(session.state.waveSummary.kills > 0, true);
 });
+
+test('勝利後可依序進入第二至第五關', () => {
+  const session = createSession({ level: 1, mode: 'victory' });
+  const simulation = createBattlefieldSimulation(session);
+  for (let level = 2; level <= 5; level += 1) {
+    assert.equal(simulation.startLevel(level), true);
+    assert.equal(session.state.level, level);
+    assert.equal(session.state.mode, 'ready');
+    session.set({ mode: 'victory' });
+  }
+  assert.equal(simulation.startLevel(5), false);
+});
