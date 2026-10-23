@@ -7,6 +7,7 @@ const game = new Game();
 const canvasHost = ref(null);
 const errorMessage = ref('');
 let busy = false;
+let pausedForVisibility = false;
 
 async function action(command) {
   if (busy) return;
@@ -21,7 +22,23 @@ async function action(command) {
   } finally { busy = false; }
 }
 
+// 分頁離開時只暫停正在進行的戰鬥，回到頁面後恢復原本的戰鬥狀態。
+async function handleVisibilityChange() {
+  if (document.hidden) {
+    if (game.phase === 'running') {
+      pausedForVisibility = true;
+      await action('pause');
+    }
+    return;
+  }
+  if (pausedForVisibility && game.phase === 'paused') {
+    pausedForVisibility = false;
+    await action('resume');
+  }
+}
+
 onMounted(async () => {
+  document.addEventListener('visibilitychange', handleVisibilityChange);
   try {
     await game.start({ modules: [createBattlefieldModule({
       element: canvasHost.value,
@@ -34,7 +51,10 @@ onMounted(async () => {
   }
 });
 
-onBeforeUnmount(() => { game.dispose().catch(console.error); });
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  game.dispose().catch(console.error);
+});
 </script>
 
 <template lang="pug">

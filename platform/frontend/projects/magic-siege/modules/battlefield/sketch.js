@@ -1,4 +1,4 @@
-import { board, cellAt, nextWave, panel, pause } from './layout.js';
+import { board, cellAt, nextWave, panel, pause, speed } from './layout.js';
 import { createWaveSequence, routePosition, towerLevels } from './simulation.js';
 
 const key = (col, row) => `${col},${row}`;
@@ -12,6 +12,7 @@ const endingRestart = { x: 570, y: 604, width: 300, height: 68 };
 const contains = (rect, point) => point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
 
 function cellKind(state, col, row) {
+  if (!Number.isInteger(col) || !Number.isInteger(row) || col < 0 || row < 0 || col >= board.cols || row >= board.rows) return '未選取';
   if (pathCells.has(key(col, row))) return '道路';
   if (obstacles.has(key(col, row))) return '障礙物';
   if (state.towers.some((tower) => tower.col === col && tower.row === row)) return '魔法塔';
@@ -28,10 +29,11 @@ function drawHeader(p, state) {
   p.textAlign(p.CENTER,p.CENTER); p.textSize(22); p.text(`第 ${state.wave} / 10 波`,740,29); p.stroke('#294258'); p.strokeWeight(4); p.line(630,61,850,61);
   for(let i=0;i<10;i+=1){p.noStroke();p.fill(i<state.wave?'#23d9ef':'#334b63');p.circle(630+i*24.4,61,i===state.wave-1?14:10);}
   p.fill('#ff7094');p.textSize(25);p.text('♥',1018,39);p.fill('#d9edff');p.textSize(18);p.text('生命',1066,39);p.textSize(25);p.text(String(state.lives),1124,39);
-  p.fill('#ffc94f');p.text('⬡',1210,39);p.fill('#d9edff');p.textSize(18);p.text('金幣',1257,39);p.fill('#ffe584');p.textSize(25);p.text(String(state.gold),1317,39);
+  p.fill('#ffc94f');p.text('⬡',1148,39);p.fill('#d9edff');p.textSize(18);p.text('金幣',1195,39);p.fill('#ffe584');p.textSize(25);p.text(String(state.gold),1255,39);
+  button(p,speed,`${state.speed || 1}×`,false,!['battle','paused'].includes(state.mode));
   button(p,pause,state.mode==='paused'?'▶':'Ⅱ',false,!['battle','paused'].includes(state.mode));
 }
-function drawTower(p,tower,selected){const x=board.x+tower.col*board.cell+34,y=board.y+tower.row*board.cell+32,stats=towerLevels[tower.level];if(selected.col===tower.col&&selected.row===tower.row){p.noFill();p.stroke('#28dfff');p.strokeWeight(2);p.circle(x,y+2,stats.range*2);}p.stroke('#8ce9ff');p.strokeWeight(2);p.fill(tower.level===3?'#8d4bc4':tower.level===2?'#326bd0':'#277ab5');p.triangle(x,y-22,x-19-tower.level*2,y+20,x+19+tower.level*2,y+20);p.fill('#bff4ff');p.circle(x,y-24,7+tower.level*2);}
+function drawTower(p,tower,selected){const x=board.x+tower.col*board.cell+34,y=board.y+tower.row*board.cell+32,stats=towerLevels[tower.level];if(selected && selected.col===tower.col&&selected.row===tower.row){p.noFill();p.stroke('#28dfff');p.strokeWeight(2);p.circle(x,y+2,stats.range*2);}p.stroke('#8ce9ff');p.strokeWeight(2);p.fill(tower.level===3?'#8d4bc4':tower.level===2?'#326bd0':'#277ab5');p.triangle(x,y-22,x-19-tower.level*2,y+20,x+19+tower.level*2,y+20);p.fill('#bff4ff');p.circle(x,y-24,7+tower.level*2);}
 function drawEnemy(p,enemy){const point=routePosition(enemy.distance),large=enemy.type==='large',size=large?34:24,bar=large?42:32;p.noStroke();p.fill('#35182e');p.rect(point.x-bar/2,point.y-size/2-11,bar,4,2);p.fill(large?'#ffbd5c':'#ff557f');p.rect(point.x-bar/2,point.y-size/2-11,bar*enemy.hp/enemy.maxHp,4,2);p.stroke(large?'#ffb24d':'#ff6d9e');p.strokeWeight(3);p.fill(large?'#4a2a31':'#281a39');p.circle(point.x,point.y,size);p.noStroke();p.fill(large?'#ffe19a':'#ff8ab0');p.circle(point.x-5,point.y-2,4);p.circle(point.x+5,point.y-2,4);}
 function drawBoard(p,state){
   for(let row=0;row<board.rows;row+=1)for(let col=0;col<board.cols;col+=1){const x=board.x+col*board.cell,y=board.y+row*board.cell,kind=cellKind(state,col,row);p.stroke('#263d57');p.strokeWeight(1);p.fill(kind==='道路'?'#424163':kind==='障礙物'?'#172237':'#0d4746');p.rect(x+2,y+2,board.cell-4,board.cell-4,4);if(kind==='可建造'){p.noStroke();p.fill('#289684');p.triangle(x+29,y+46,x+34,y+31,x+39,y+46);}if(kind==='障礙物'){p.fill('#48506c');p.stroke('#606b8f');p.triangle(x+16,y+49,x+32,y+15,x+55,y+50);p.triangle(x+28,y+52,x+47,y+27,x+60,y+53);}}
@@ -39,18 +41,27 @@ function drawBoard(p,state){
   const portal=routePosition(0);p.noFill();p.stroke('#42eaff');p.strokeWeight(6);p.circle(portal.x,portal.y,48);p.stroke('#80aaff');p.strokeWeight(3);p.circle(portal.x,portal.y,30);
   const castle={x:board.x+11*board.cell+7,y:board.y+5*board.cell-24};p.stroke('#b047b2');p.strokeWeight(2);p.fill('#373650');p.rect(castle.x,castle.y,54,116,4);p.rect(castle.x-13,castle.y+30,19,86,3);p.fill('#ec59d1');p.triangle(castle.x+27,castle.y+42,castle.x+14,castle.y+96,castle.x+40,castle.y+96);
   for(const tower of state.towers)drawTower(p,tower,state.selected);for(const enemy of state.enemies)drawEnemy(p,enemy);for(const bullet of state.bullets){p.noStroke();p.fill('#ffd66b');p.circle(bullet.x,bullet.y,9);}
-  const sx=board.x+state.selected.col*board.cell,sy=board.y+state.selected.row*board.cell;p.noFill();p.stroke('#4cecff');p.strokeWeight(4);p.rect(sx+4,sy+4,board.cell-8,board.cell-8,3);
+  if(state.selected){const sx=board.x+state.selected.col*board.cell,sy=board.y+state.selected.row*board.cell;p.noFill();p.stroke('#4cecff');p.strokeWeight(4);p.rect(sx+4,sy+4,board.cell-8,board.cell-8,3);}
 }
 function drawPanel(p,state){
-  const kind=cellKind(state,state.selected.col,state.selected.row),tower=state.towers.find((item)=>item.col===state.selected.col&&item.row===state.selected.row),stats=tower?towerLevels[tower.level]:towerLevels[1];p.stroke('#365777');p.strokeWeight(2);p.fill('#101c2e');p.rect(panel.x,panel.y,panel.width,panel.height,10);
+  const selected=state.selected || { col: -1, row: -1 },kind=cellKind(state,selected.col,selected.row),tower=state.towers.find((item)=>item.col===selected.col&&item.row===selected.row),stats=tower?towerLevels[tower.level]:towerLevels[1];p.stroke('#365777');p.strokeWeight(2);p.fill('#101c2e');p.rect(panel.x,panel.y,panel.width,panel.height,10);
   p.fill(kind==='可建造'?'#49d7ba':kind==='魔法塔'?'#6ccfff':'#8da0b7');p.noStroke();p.circle(panel.x+62,panel.y+61,24);p.fill('#dcedff');p.textAlign(p.LEFT,p.CENTER);p.textStyle(p.BOLD);p.textSize(27);p.text(kind,panel.x+102,panel.y+61);p.textStyle(p.NORMAL);
-  p.fill('#87a0b9');p.textSize(14);p.text(`格子 ${state.selected.col+1} × ${state.selected.row+1}`,panel.x+30,panel.y+112);p.stroke('#29445f');p.line(panel.x+30,panel.y+140,panel.x+panel.width-30,panel.y+140);
+  p.fill('#87a0b9');p.textSize(14);p.text(kind==='未選取'?'已取消格子選取':`格子 ${selected.col+1} × ${selected.row+1}`,panel.x+30,panel.y+112);p.stroke('#29445f');p.line(panel.x+30,panel.y+140,panel.x+panel.width-30,panel.y+140);
+  const previewWave = state.mode === 'ready' ? state.wave : Math.min(10, state.wave + 1);
+  const preview = createWaveSequence(previewWave);
+  const previewSmall = preview.filter((type) => type === 'small').length;
+  const previewLarge = preview.filter((type) => type === 'large').length;
+  p.noStroke();p.fill('#b9cde0');p.textAlign(p.CENTER,p.CENTER);p.textSize(14);
+  p.text(state.mode === 'ready' ? `第 ${previewWave} 波預覽：小怪 ${previewSmall}・大怪 ${previewLarge}・共 ${preview.length}` : `下一波：小怪 ${previewSmall}・大怪 ${previewLarge}・共 ${preview.length}`,panel.x+panel.width/2,panel.y+166);
+  if(previewLarge>0){p.fill('#ffbd5c');p.textSize(13);p.text('含高生命／高突破傷害的大怪',panel.x+panel.width/2,panel.y+188);}
   p.noStroke();p.fill('#dceeff');p.textAlign(p.CENTER,p.CENTER);p.textSize(22);p.text(kind==='魔法塔'?`Lv.${tower.level} 魔法塔`:kind==='可建造'?'Lv.1 魔法塔':'此格不可建造',panel.x+panel.width/2,panel.y+226);
   p.fill('#91a8bd');p.textSize(15);p.text(kind==='可建造'?'射程 140　傷害 10　冷卻 1.0 秒':kind==='魔法塔'?`射程 ${stats.range}　傷害 ${stats.damage}　冷卻 ${stats.cooldown} 秒`:'道路與障礙物必須保持暢通',panel.x+panel.width/2,panel.y+268);
   p.fill('#dbeaff');p.textSize(18);p.text(kind==='可建造'?'花費　10 金幣':kind==='魔法塔'?`累計投資　${tower.spent} 金幣`:'無可用操作',panel.x+panel.width/2,panel.y+334);
+  if(kind==='魔法塔'){p.fill('#8fa9c1');p.textSize(13);p.text(`本局傷害 ${Math.round(tower.damage||0)}　擊殺 ${tower.kills||0}`,panel.x+panel.width/2,panel.y+358);}
   if(kind==='可建造')button(p,buildButton,state.gold>=10?'建造魔法塔':'金幣不足',true,state.gold<10);
   if(kind==='魔法塔'){const max=tower.level>=3,next=max?null:towerLevels[tower.level+1];button(p,upgradeButton,max?'已達最高等級':`升級 ${next.cost}`,true,max||state.gold<next.cost);button(p,sellButton,`拆除 +${Math.floor(tower.spent*.5)}`);}
   button(p,resetButton,'重新開始');p.fill('#7990a8');p.textSize(14);p.text(state.notice,panel.x+panel.width/2,panel.y+538);
+  if(state.waveSummary){const summary=state.waveSummary;p.fill('#9bb2c8');p.textSize(12);p.text(`上波結算：擊殺 ${summary.kills}・突破 ${summary.breaches}・金幣 +${summary.goldEarned}・生命 -${summary.livesLost}`,panel.x+panel.width/2,panel.y+560);}
   const waveSize=createWaveSequence(state.wave).length,label=state.mode==='ready'?`開始第 ${state.wave} 波  »`:state.mode==='battle'?`戰鬥中・剩餘 ${state.enemies.length+waveSize-state.spawnIndex}`:state.mode==='paused'?'遊戲已暫停':state.mode==='victory'?'十波防守成功 ✓':'魔法城失守';button(p,nextWave,label,true,state.mode!=='ready');
 }
 function drawEnding(p,state){
@@ -73,6 +84,6 @@ function drawEnding(p,state){
 }
 export function createBattlefieldSketch(session,simulation,action){return{
   draw(p,elapsed){simulation.tick(elapsed);p.background('#07101e');p.textFont('PingFang TC, Noto Sans TC, sans-serif');drawHeader(p,session.state);drawBoard(p,session.state);drawPanel(p,session.state);p.noStroke();p.fill('#60778e');p.textAlign(p.LEFT,p.CENTER);p.textSize(12);p.text('MVP 幾何原型・擊殺 '+session.state.kills,32,790);if(['victory','defeat'].includes(session.state.mode))drawEnding(p,session.state);},
-  pointer(point){if(['victory','defeat'].includes(session.state.mode)){if(contains(endingRestart,point))action('reset');return;}if(contains(pause,point)&&['battle','paused'].includes(session.state.mode)){action(session.state.mode==='paused'?'resume':'pause');return;}if(contains(resetButton,point)){action('reset');return;}if(contains(nextWave,point)){simulation.startWave();return;}const kind=cellKind(session.state,session.state.selected.col,session.state.selected.row);if(contains(buildButton,point)&&kind==='可建造'){simulation.build();return;}if(contains(upgradeButton,point)&&kind==='魔法塔'){simulation.upgrade();return;}if(contains(sellButton,point)&&kind==='魔法塔'){simulation.sell();return;}const selected=cellAt(point);if(!selected)return;const selectedKind=cellKind(session.state,selected.col,selected.row);session.set({selected,notice:selectedKind==='可建造'?'這裡可以建造魔法塔。':selectedKind==='魔法塔'?'可升級或拆除這座魔法塔。':`${selectedKind}不可建造。`});},
+  pointer(point){if(contains(speed,point)&&['battle','paused'].includes(session.state.mode)){simulation.setSpeed((session.state.speed||1)===1?2:(session.state.speed===2?4:1));return;}if(['victory','defeat'].includes(session.state.mode)){if(contains(endingRestart,point))action('reset');return;}if(contains(pause,point)&&['battle','paused'].includes(session.state.mode)){action(session.state.mode==='paused'?'resume':'pause');return;}if(contains(resetButton,point)){action('reset');return;}if(contains(nextWave,point)){simulation.startWave();return;}const selectedTower=session.state.selected || { col: -1, row: -1 },kind=cellKind(session.state,selectedTower.col,selectedTower.row);if(contains(buildButton,point)&&kind==='可建造'){simulation.build();return;}if(contains(upgradeButton,point)&&kind==='魔法塔'){simulation.upgrade();return;}if(contains(sellButton,point)&&kind==='魔法塔'){simulation.sell();return;}const selected=cellAt(point);if(!selected){session.set({selected:null,notice:'已取消格子選取。'});return;}const selectedKind=cellKind(session.state,selected.col,selected.row);session.set({selected,notice:selectedKind==='可建造'?'這裡可以建造魔法塔。':selectedKind==='魔法塔'?'可升級或拆除這座魔法塔。':`${selectedKind}不可建造。`});},
   key(value){if(value.toLowerCase()==='r')action('reset');else if(value==='Enter'&&session.state.mode==='ready')simulation.startWave();else if(value===' '&&['battle','paused'].includes(session.state.mode))action(session.state.mode==='paused'?'resume':'pause');}
 };}

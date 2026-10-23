@@ -64,14 +64,15 @@ export function createBattlefieldSimulation(session) {
   };
   const build = () => {
     const state = session.state;
+    if (!state.selected) return false;
     const { col, row } = state.selected;
     if (state.gold < 10 || state.towers.some((item) => item.col === col && item.row === row)) return false;
-    update({ towers: [...state.towers, { col, row, level: 1, spent: 10, cooldown: 0, targetId: null }], gold: state.gold - 10,
+    update({ towers: [...state.towers, { col, row, level: 1, spent: 10, cooldown: 0, targetId: null, damage: 0, kills: 0 }], gold: state.gold - 10,
       notice: 'Lv.1 魔法塔建造完成。' });
     return true;
   };
-  const selectedTowerIndex = () => session.state.towers.findIndex((tower) =>
-    tower.col === session.state.selected.col && tower.row === session.state.selected.row);
+  const selectedTowerIndex = () => session.state.selected ? session.state.towers.findIndex((tower) =>
+    tower.col === session.state.selected.col && tower.row === session.state.selected.row) : -1;
   const upgrade = () => {
     const state = session.state;
     const index = selectedTowerIndex();
@@ -96,13 +97,16 @@ export function createBattlefieldSimulation(session) {
   };
   const startWave = () => {
     if (session.state.mode !== 'ready' || session.state.wave > 10) return false;
-    update({ mode: 'battle', spawnClock: 0, incomeClock: 0, notice: '第 1 波開始！' });
+    update({ mode: 'battle', spawnClock: 0, incomeClock: 0,
+      waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 },
+      notice: `第 ${session.state.wave} 波開始！` });
     spawn();
     return true;
   };
   const tick = (elapsed) => {
     const state = session.state;
     if (state.mode !== 'battle' || elapsed <= 0) return;
+    elapsed *= [1, 2, 4].includes(state.speed) ? state.speed : 1;
     let spawnClock = state.spawnClock + elapsed;
     let incomeClock = state.incomeClock;
     let passiveIncome = 0;
@@ -119,8 +123,13 @@ export function createBattlefieldSimulation(session) {
     }
     let enemies = session.state.enemies.map((enemy) => ({ ...enemy, distance: enemy.distance + enemyTypes[enemy.type].speed * elapsed }));
     let lives = session.state.lives;
+    const waveStats = { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0, ...(session.state.waveStats || {}) };
     const escaped = new Set(enemies.filter((enemy) => enemy.distance >= routeLength).map((enemy) => enemy.id));
-    lives = Math.max(0, lives - enemies.filter((enemy) => escaped.has(enemy.id)).reduce((sum, enemy) => sum + enemyTypes[enemy.type].breachDamage, 0));
+    const breaches = enemies.filter((enemy) => escaped.has(enemy.id));
+    const livesLost = breaches.reduce((sum, enemy) => sum + enemyTypes[enemy.type].breachDamage, 0);
+    lives = Math.max(0, lives - livesLost);
+    waveStats.breaches += breaches.length;
+    waveStats.livesLost += livesLost;
     enemies = enemies.filter((enemy) => !escaped.has(enemy.id));
     const positions = new Map(enemies.map((enemy) => [enemy.id, routePosition(enemy.distance)]));
     let bullets = session.state.bullets.filter((bullet) => positions.has(bullet.targetId));
@@ -140,17 +149,21 @@ export function createBattlefieldSimulation(session) {
         return { enemy, distance };
       }, null)?.enemy;
       if (!target) return { ...tower, cooldown: 0, targetId: null };
-      bullets.push({ id: nextBulletId, targetId: target.id, x: origin.x, y: origin.y, damage: stats.damage });
+      bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex: session.state.towers.indexOf(tower), x: origin.x, y: origin.y, damage: stats.damage });
       nextBulletId += 1;
       return { ...tower, cooldown: stats.cooldown, targetId: target.id };
     });
     const damage = new Map();
+    const damageByTower = new Map();
+    const finalHitByTarget = new Map();
     bullets = bullets.flatMap((bullet) => {
       const target = positions.get(bullet.targetId);
       if (!target) return [];
       const distance = Math.hypot(target.x - bullet.x, target.y - bullet.y);
       if (distance <= enemyTypes[enemies.find((enemy) => enemy.id === bullet.targetId)?.type || 'small'].radius) {
         damage.set(bullet.targetId, (damage.get(bullet.targetId) || 0) + bullet.damage);
+        damageByTower.set(bullet.sourceTowerIndex, (damageByTower.get(bullet.sourceTowerIndex) || 0) + bullet.damage);
+        finalHitByTarget.set(bullet.targetId, bullet.sourceTowerIndex);
         return [];
       }
       const travel = Math.min(distance, 360 * elapsed);
@@ -161,15 +174,23 @@ export function createBattlefieldSimulation(session) {
     const dead = new Set(enemies.filter((enemy) => enemy.hp <= 0).map((enemy) => enemy.id));
     enemies = enemies.filter((enemy) => !dead.has(enemy.id));
     bullets = bullets.filter((bullet) => !dead.has(bullet.targetId));
+    const updatedTowers = towers.map((tower, index) => ({ ...tower,
+      damage: (tower.damage || 0) + (damageByTower.get(index) || 0),
+      kills: (tower.kills || 0) + [...dead].filter((id) => finalHitByTarget.get(id) === index).length,
+    }));
     const completed = session.state.spawnIndex >= waveSize && enemies.length === 0;
     const reward = [...dead].reduce((sum, id) => {
       const defeated = session.state.enemies.find((enemy) => enemy.id === id);
       return sum + (defeated ? enemyTypes[defeated.type].reward : 0);
     }, 0);
+    waveStats.kills += dead.size;
+    waveStats.goldEarned += passiveIncome + reward;
     const victory = completed && state.wave === 10 && lives > 0;
     const nextWave = completed && state.wave < 10 ? state.wave + 1 : state.wave;
-    update({ enemies, bullets, towers, lives, nextBulletId,
+    const summary = completed ? { ...waveStats } : session.state.waveSummary;
+    update({ enemies, bullets, towers: updatedTowers, lives, nextBulletId, waveStats,
       gold: session.state.gold + passiveIncome + reward, kills: session.state.kills + dead.size,
+      waveSummary: summary,
       wave: nextWave, spawnIndex: completed && !victory ? 0 : session.state.spawnIndex,
       spawnClock: completed && !victory ? 0 : spawnClock, incomeClock: completed && !victory ? 0 : incomeClock,
       mode: lives <= 0 ? 'defeat' : victory ? 'victory' : completed ? 'ready' : 'battle',
@@ -177,6 +198,11 @@ export function createBattlefieldSimulation(session) {
   };
   return {
     build, upgrade, sell, startWave, tick,
+    setSpeed(speed) {
+      if (![1, 2, 4].includes(speed)) return false;
+      update({ speed, notice: speed === 1 ? '已恢復正常速度。' : `已切換為 ${speed} 倍速。` });
+      return true;
+    },
     pause() { update({ previousMode: session.state.mode, mode: 'paused', notice: '遊戲已暫停。' }); },
     resume() { update({ mode: session.state.previousMode, notice: '遊戲繼續。' }); },
   };
