@@ -15,16 +15,18 @@ export const towerLevels = {
   2: { damage: 18, cooldown: 0.8, range: 120, cost: 75 },
   3: { damage: 30, cooldown: 0.6, range: 145, cost: 125 },
 };
+export const towerTypes = { single: { name: '單體塔', splashRadius: 0 }, aoe: { name: '群攻塔', splashRadius: 72 } };
 export const waveConfig = [
   null,
   { small: 5, large: 0 }, { small: 8, large: 0 }, { small: 8, large: 1 },
   { small: 10, large: 2 }, { small: 12, large: 3 }, { small: 14, large: 4 },
   { small: 16, large: 5 }, { small: 18, large: 6 }, { small: 20, large: 8 },
-  { small: 25, large: 10 },
+  { small: 25, large: 10, boss: 1 },
 ];
 export const enemyTypes = {
   small: { hp: 50, speed: 55, radius: 14, reward: 5, breachDamage: 1 },
   large: { hp: 180, speed: 32, radius: 20, reward: 20, breachDamage: 3 },
+  boss: { hp: 900, speed: 18, radius: 30, reward: 120, breachDamage: 8 },
 };
 function enemyStats(type, level = 1) {
   const base = enemyTypes[type];
@@ -40,7 +42,9 @@ export function createWaveSequence(wave) {
   for (let index = 1; index <= config.large; index += 1) {
     largePositions.add(Math.max(1, Math.round(index * total / (config.large + 1))));
   }
-  return Array.from({ length: total }, (_, index) => largePositions.has(index) ? 'large' : 'small');
+  const sequence = Array.from({ length: total }, (_, index) => largePositions.has(index) ? 'large' : 'small');
+  if (config.boss) sequence.push('boss');
+  return sequence;
 }
 
 export function routePosition(distance, level = 1) {
@@ -73,8 +77,9 @@ export function createBattlefieldSimulation(session) {
     if (!state.selected) return false;
     const { col, row } = state.selected;
     if (state.gold < 10 || state.towers.some((item) => item.col === col && item.row === row)) return false;
-    update({ towers: [...state.towers, { col, row, level: 1, spent: 10, cooldown: 0, targetId: null, damage: 0, kills: 0 }], gold: state.gold - 10,
-      notice: 'Lv.1 魔法塔建造完成。' });
+    const type = state.buildType || 'single';
+    update({ towers: [...state.towers, { col, row, type, level: 1, spent: 10, cooldown: 0, targetId: null, damage: 0, kills: 0 }], gold: state.gold - 10,
+      notice: `Lv.1 ${towerTypes[type].name}建造完成。` });
     return true;
   };
   const selectedTowerIndex = () => session.state.selected ? session.state.towers.findIndex((tower) =>
@@ -157,7 +162,7 @@ export function createBattlefieldSimulation(session) {
         return { enemy, distance };
       }, null)?.enemy;
       if (!target) return { ...tower, cooldown: 0, targetId: null };
-      bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex: session.state.towers.indexOf(tower), x: origin.x, y: origin.y, damage: stats.damage });
+      bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex: session.state.towers.indexOf(tower), x: origin.x, y: origin.y, damage: stats.damage, splashRadius: towerTypes[tower.type || 'single'].splashRadius });
       nextBulletId += 1;
       return { ...tower, cooldown: stats.cooldown, targetId: target.id };
     });
@@ -170,6 +175,12 @@ export function createBattlefieldSimulation(session) {
       const distance = Math.hypot(target.x - bullet.x, target.y - bullet.y);
       if (distance <= enemyTypes[enemies.find((enemy) => enemy.id === bullet.targetId)?.type || 'small'].radius) {
         damage.set(bullet.targetId, (damage.get(bullet.targetId) || 0) + bullet.damage);
+        if (bullet.splashRadius > 0) {
+          const impact = positions.get(bullet.targetId);
+          enemies.forEach((enemy) => {
+            if (enemy.id !== bullet.targetId && Math.hypot(positions.get(enemy.id).x - impact.x, positions.get(enemy.id).y - impact.y) <= bullet.splashRadius) damage.set(enemy.id, (damage.get(enemy.id) || 0) + bullet.damage * 0.55);
+          });
+        }
         damageByTower.set(bullet.sourceTowerIndex, (damageByTower.get(bullet.sourceTowerIndex) || 0) + bullet.damage);
         finalHitByTarget.set(bullet.targetId, bullet.sourceTowerIndex);
         return [];
@@ -207,6 +218,7 @@ export function createBattlefieldSimulation(session) {
   return {
     build, upgrade, sell, startWave, tick,
     toggleAutoWave() { update({ autoWave: !session.state.autoWave }); return !session.state.autoWave; },
+    toggleBuildType() { const type = session.state.buildType === 'aoe' ? 'single' : 'aoe'; update({ buildType: type, notice: `下次建造：${towerTypes[type].name}。` }); return type; },
     restartLevel() {
       const { level } = session.state;
       update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: `第${level}關已重新開始。` });

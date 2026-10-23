@@ -153,12 +153,12 @@ test('第 1 至第 5 關地圖路線與障礙資料有效', () => {
 });
 
 test('第十波完成進入勝利，基地歸零時失敗優先', () => {
-  const victorySession = createSession({ wave: 10, mode: 'battle', spawnIndex: 35,
+  const victorySession = createSession({ wave: 10, mode: 'battle', spawnIndex: 36,
     enemies: [{ id: 1, type: 'small', hp: 0, maxHp: 50, distance: 100 }], nextEnemyId: 2 });
   createBattlefieldSimulation(victorySession).tick(0.02);
   assert.equal(victorySession.state.mode, 'victory');
 
-  const defeatSession = createSession({ wave: 10, mode: 'battle', lives: 1, spawnIndex: 35,
+  const defeatSession = createSession({ wave: 10, mode: 'battle', lives: 1, spawnIndex: 36,
     enemies: [{ id: 1, type: 'small', hp: 50, maxHp: 50, distance: 100000 }], nextEnemyId: 2 });
   createBattlefieldSimulation(defeatSession).tick(0.02);
   assert.equal(defeatSession.state.mode, 'defeat');
