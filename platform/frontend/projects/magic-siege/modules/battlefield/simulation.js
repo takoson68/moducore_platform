@@ -210,9 +210,16 @@ export function createBattlefieldSimulation(session) {
     const victory = completed && state.wave === finalWave && lives > 0;
     const score = victory ? Math.max(0, 1000 - (20 - lives) * 50 - Math.floor(levelTime / 10)) : session.state.score;
     const stars = victory ? (score >= 850 ? 3 : score >= 650 ? 2 : 1) : session.state.stars;
+    const currentRecord = session.state.records?.[state.level] || {};
+    const records = victory ? { ...session.state.records, [state.level]: {
+      stars: Math.max(currentRecord.stars || 0, stars),
+      score: Math.max(currentRecord.score || 0, score),
+      fastestTime: currentRecord.fastestTime === undefined ? levelTime : Math.min(currentRecord.fastestTime, levelTime),
+      kills: Math.max(currentRecord.kills || 0, session.state.kills + dead.size),
+    } } : session.state.records;
     const nextWave = completed && state.wave < finalWave ? state.wave + 1 : state.wave;
     const summary = completed ? { ...waveStats } : session.state.waveSummary;
-    update({ enemies, bullets, towers: updatedTowers, lives, nextBulletId, waveStats, levelTime, score, stars,
+    update({ enemies, bullets, towers: updatedTowers, lives, nextBulletId, waveStats, levelTime, score, stars, records,
       gold: session.state.gold + passiveIncome + reward, kills: session.state.kills + dead.size,
       waveSummary: summary,
       wave: nextWave, spawnIndex: completed && !victory ? 0 : session.state.spawnIndex,
