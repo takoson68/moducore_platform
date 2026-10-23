@@ -1,5 +1,5 @@
 import { board } from './layout.js';
-import { getBattlefieldMap } from './maps.js';
+import { getBattlefieldMap, levelDifficulty } from './maps.js';
 
 function routeSegments(level = 1) {
   const route = getBattlefieldMap(level).route.map(([col, row]) => ({
@@ -26,6 +26,11 @@ export const enemyTypes = {
   small: { hp: 50, speed: 55, radius: 14, reward: 5, breachDamage: 1 },
   large: { hp: 180, speed: 32, radius: 20, reward: 20, breachDamage: 3 },
 };
+function enemyStats(type, level = 1) {
+  const base = enemyTypes[type];
+  const difficulty = levelDifficulty[level] || levelDifficulty[1];
+  return { ...base, hp: base.hp * difficulty.enemyHp, speed: base.speed * difficulty.enemySpeed };
+}
 
 export function createWaveSequence(wave) {
   const config = waveConfig[wave];
@@ -59,7 +64,7 @@ export function createBattlefieldSimulation(session) {
     const sequence = createWaveSequence(state.wave);
     if (state.spawnIndex >= sequence.length) return;
     const type = sequence[state.spawnIndex];
-    const stats = enemyTypes[type];
+    const stats = enemyStats(type, state.level || 1);
     update({ enemies: [...state.enemies, { id: state.nextEnemyId, type, hp: stats.hp, maxHp: stats.hp, distance: 0 }],
       spawnIndex: state.spawnIndex + 1, nextEnemyId: state.nextEnemyId + 1 });
   };
@@ -123,12 +128,12 @@ export function createBattlefieldSimulation(session) {
       spawn();
     }
     const routeData = routeSegments(session.state.level || 1);
-    let enemies = session.state.enemies.map((enemy) => ({ ...enemy, distance: enemy.distance + enemyTypes[enemy.type].speed * elapsed }));
+    let enemies = session.state.enemies.map((enemy) => ({ ...enemy, distance: enemy.distance + enemyStats(enemy.type, session.state.level || 1).speed * elapsed }));
     let lives = session.state.lives;
     const waveStats = { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0, ...(session.state.waveStats || {}) };
     const escaped = new Set(enemies.filter((enemy) => enemy.distance >= routeData.length).map((enemy) => enemy.id));
     const breaches = enemies.filter((enemy) => escaped.has(enemy.id));
-    const livesLost = breaches.reduce((sum, enemy) => sum + enemyTypes[enemy.type].breachDamage, 0);
+    const livesLost = breaches.reduce((sum, enemy) => sum + enemyStats(enemy.type, session.state.level || 1).breachDamage, 0);
     lives = Math.max(0, lives - livesLost);
     waveStats.breaches += breaches.length;
     waveStats.livesLost += livesLost;

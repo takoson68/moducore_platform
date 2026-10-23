@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createBattlefieldSimulation, createWaveSequence, waveConfig } from './simulation.js';
+import { getBattlefieldMap, levelDifficulty, mapPathCells } from './maps.js';
+import { board } from './layout.js';
 
 function createSession(overrides = {}) {
   const state = {
@@ -120,6 +122,33 @@ test('十波敵人數量、類型與順序固定可重現', () => {
     assert.equal(first[0], 'small');
     assert.equal(first.filter((type) => type === 'small').length, waveConfig[wave].small);
     assert.equal(first.filter((type) => type === 'large').length, waveConfig[wave].large);
+  }
+});
+
+test('第 1 至第 5 關難度倍率遞進且不改變突破與經濟基準', () => {
+  assert.equal(levelDifficulty[1].enemyHp, 1);
+  assert.equal(levelDifficulty[1].enemySpeed, 1);
+  for (let level = 2; level <= 5; level += 1) {
+    assert.ok(levelDifficulty[level].enemyHp >= levelDifficulty[level - 1].enemyHp);
+    assert.ok(levelDifficulty[level].enemySpeed >= levelDifficulty[level - 1].enemySpeed);
+    assert.equal(levelDifficulty[level].breachDamage, 1);
+    assert.equal(levelDifficulty[level].goldMultiplier, 1);
+  }
+});
+
+test('第 1 至第 5 關地圖路線與障礙資料有效', () => {
+  for (let level = 1; level <= 5; level += 1) {
+    const map = getBattlefieldMap(level);
+    const path = mapPathCells(level);
+    assert.ok(map.route.length >= 2);
+    for (const [col, row] of map.route) {
+      assert.ok(col >= 0 && col < board.cols && row >= 0 && row < board.rows);
+    }
+    for (const [col, row] of map.obstacles) {
+      assert.ok(!path.has(`${col},${row}`));
+    }
+    assert.ok(path.has(`${map.route[0][0]},${map.route[0][1]}`));
+    assert.ok(path.has(`${map.route.at(-1)[0]},${map.route.at(-1)[1]}`));
   }
 });
 
