@@ -1,15 +1,15 @@
 import { board } from './layout.js';
+import { getBattlefieldMap } from './maps.js';
 
-const routeCells = [[0, 2], [5, 2], [5, 5], [9, 5], [9, 7], [10, 7], [10, 5], [11, 5]];
-const route = routeCells.map(([col, row]) => ({
-  x: board.x + col * board.cell + board.cell / 2,
-  y: board.y + row * board.cell + board.cell / 2,
-}));
-const segments = route.slice(1).map((point, index) => ({
-  from: route[index], to: point,
-  length: Math.hypot(point.x - route[index].x, point.y - route[index].y),
-}));
-const routeLength = segments.reduce((sum, segment) => sum + segment.length, 0);
+function routeSegments(level = 1) {
+  const route = getBattlefieldMap(level).route.map(([col, row]) => ({
+    x: board.x + col * board.cell + board.cell / 2,
+    y: board.y + row * board.cell + board.cell / 2,
+  }));
+  const segments = route.slice(1).map((point, index) => ({ from: route[index], to: point,
+    length: Math.hypot(point.x - route[index].x, point.y - route[index].y) }));
+  return { route, segments, length: segments.reduce((sum, segment) => sum + segment.length, 0) };
+}
 export const towerLevels = {
   1: { damage: 10, cooldown: 1, range: 140, cost: 10 },
   2: { damage: 18, cooldown: 0.8, range: 120, cost: 75 },
@@ -38,7 +38,8 @@ export function createWaveSequence(wave) {
   return Array.from({ length: total }, (_, index) => largePositions.has(index) ? 'large' : 'small');
 }
 
-export function routePosition(distance) {
+export function routePosition(distance, level = 1) {
+  const { route, segments } = routeSegments(level);
   let remaining = Math.max(0, distance);
   for (const segment of segments) {
     if (remaining <= segment.length) {
@@ -121,17 +122,18 @@ export function createBattlefieldSimulation(session) {
       spawnClock -= 1;
       spawn();
     }
+    const routeData = routeSegments(session.state.level || 1);
     let enemies = session.state.enemies.map((enemy) => ({ ...enemy, distance: enemy.distance + enemyTypes[enemy.type].speed * elapsed }));
     let lives = session.state.lives;
     const waveStats = { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0, ...(session.state.waveStats || {}) };
-    const escaped = new Set(enemies.filter((enemy) => enemy.distance >= routeLength).map((enemy) => enemy.id));
+    const escaped = new Set(enemies.filter((enemy) => enemy.distance >= routeData.length).map((enemy) => enemy.id));
     const breaches = enemies.filter((enemy) => escaped.has(enemy.id));
     const livesLost = breaches.reduce((sum, enemy) => sum + enemyTypes[enemy.type].breachDamage, 0);
     lives = Math.max(0, lives - livesLost);
     waveStats.breaches += breaches.length;
     waveStats.livesLost += livesLost;
     enemies = enemies.filter((enemy) => !escaped.has(enemy.id));
-    const positions = new Map(enemies.map((enemy) => [enemy.id, routePosition(enemy.distance)]));
+    const positions = new Map(enemies.map((enemy) => [enemy.id, routePosition(enemy.distance, session.state.level || 1)]));
     let bullets = session.state.bullets.filter((bullet) => positions.has(bullet.targetId));
     let nextBulletId = session.state.nextBulletId;
     const towers = session.state.towers.map((tower) => {
@@ -198,6 +200,11 @@ export function createBattlefieldSimulation(session) {
   };
   return {
     build, upgrade, sell, startWave, tick,
+    startLevel(level) {
+      if (level !== 2 || session.state.level !== 1 || session.state.mode !== 'victory') return false;
+      update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: '第二關準備完成。' });
+      return true;
+    },
     setSpeed(speed) {
       if (![1, 2, 4].includes(speed)) return false;
       update({ speed, notice: speed === 1 ? '已恢復正常速度。' : `已切換為 ${speed} 倍速。` });

@@ -11,6 +11,7 @@
 3. `PROGRESS.md`：最新停止點、驗證、風險與唯一下一步。
 4. `ModuCore × 塔防遊戲：容器使用策略 v1.0.md`：專案如何使用現有 Game Runtime；實際架構決策另見 `../decisions/`。
 5. `assets/geometry-prototype-screen-v1.png`：第一版幾何原型完整畫面稿，作為地圖、HUD、建造面板與操作層級的實作參考。
+6. `LEVEL_2_MAP_DESIGN.md`：第二關地圖路線、障礙與關卡切換規格。
 
 ## 畫面稿狀態
 

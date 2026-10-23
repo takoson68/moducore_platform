@@ -137,9 +137,9 @@ test('第十波完成進入勝利，基地歸零時失敗優先', () => {
 
 test('固定布防可完整通過十波並進入勝利結局', () => {
   const session = createSession({
-    gold: 2000,
-    towers: Array.from({ length: 8 }, (_, index) => ({
-      col: index % 4, row: index < 4 ? 4 : 6, level: 3, spent: 210,
+    gold: 4000,
+    towers: Array.from({ length: 12 }, (_, index) => ({
+      col: index % 6, row: index < 6 ? 1 : 6, level: 3, spent: 210,
       cooldown: 0, targetId: null, damage: 0, kills: 0,
     })),
   });

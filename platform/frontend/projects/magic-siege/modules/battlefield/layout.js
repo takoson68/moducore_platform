@@ -1,6 +1,6 @@
 export const canvas = { width: 1440, height: 810 };
 export const header = { x: 0, y: 0, width: 1440, height: 82 };
-export const board = { x: 32, y: 98, cols: 12, rows: 9, cell: 68 };
+export const board = { x: 20, y: 98, cols: 14, rows: 9, cell: 68 };
 export const panel = { x: 1000, y: 98, width: 408, height: 594 };
 export const nextWave = { x: 1000, y: 712, width: 408, height: 66 };
 export const pause = { x: 1360, y: 18, width: 48, height: 48 };
