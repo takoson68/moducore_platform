@@ -209,3 +209,13 @@ test('每關波數依序增加三波且節點基準固定', () => {
   assert.deepEqual([1, 2, 3, 4, 5].map(maxWaves), [10, 13, 16, 19, 22]);
   assert.ok(createWaveSequence(13).length > createWaveSequence(10).length);
 });
+
+test('勝利會產生時間、分數與星級評價', () => {
+  const session = createSession({ wave: 10, mode: 'battle', spawnIndex: 36, levelTime: 20,
+    enemies: [{ id: 1, type: 'small', hp: 0, maxHp: 50, distance: 100 }], nextEnemyId: 2 });
+  createBattlefieldSimulation(session).tick(0.02);
+  assert.equal(session.state.mode, 'victory');
+  assert.equal(session.state.score, 998);
+  assert.equal(session.state.stars, 3);
+  assert.equal(session.state.levelTime > 20, true);
+});

@@ -95,6 +95,7 @@ function drawEnding(p,state){
   p.stroke('#34516d');p.strokeWeight(1);p.line(490,370,950,370);p.noStroke();
   p.fill('#9ab1c8');p.textSize(16);p.text('完成波次',540,418);p.text('擊殺敵人',720,418);p.text('剩餘生命',900,418);
   const totalWaves=maxWaves(state.level); p.fill('#f0f8ff');p.textStyle(p.BOLD);p.textSize(34);p.text(victory?`${totalWaves} / ${totalWaves}`:`${state.wave-1} / ${totalWaves}`,540,466);p.text(String(state.kills),720,466);p.text(String(state.lives),900,466);p.textStyle(p.NORMAL);
+  if(victory){p.fill('#ffe477');p.textSize(28);p.text('★'.repeat(state.stars || 1)+'☆'.repeat(3-(state.stars || 1)),720,510);p.fill('#b9cde0');p.textSize(16);p.text(`評分 ${state.score || 0}　時間 ${Math.floor(state.levelTime || 0)} 秒`,720,552);}
   p.fill('#839ab1');p.textSize(15);p.text(victory?'第一座魔法城，防守成功。這只是冒險的開始。':'調整塔的位置與升級時機，再次挑戰。',720,538);
   button(p,endingRestart,victory && state.level < 5 ? `進入第${state.level + 1}關`:'重新開始',true);
 }
