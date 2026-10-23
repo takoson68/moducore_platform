@@ -12,8 +12,8 @@ const obstaclesFor = (state) => new Set(getBattlefieldMap(state.level || 1).obst
 const buildButton = { x: panel.x + 30, y: panel.y + 382, width: panel.width - 60, height: 62 };
 const upgradeButton = { x: panel.x + 24, y: panel.y + 382, width: 190, height: 62 };
 const sellButton = { x: panel.x + 230, y: panel.y + 382, width: 154, height: 62 };
-const singleTowerButton = { x: panel.x + 30, y: panel.y + 294, width: 166, height: 68 };
-const aoeTowerButton = { x: panel.x + 212, y: panel.y + 294, width: 166, height: 68 };
+const singleTowerButton = { x: panel.x + 30, y: panel.y + 278, width: 166, height: 48 };
+const aoeTowerButton = { x: panel.x + 212, y: panel.y + 278, width: 166, height: 48 };
 const endingRestart = { x: 570, y: 604, width: 300, height: 68 };
 const contains = (rect, point) => point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
 
@@ -31,10 +31,10 @@ function button(p, rect, label, primary = false, disabled = false) {
 }
 function drawTowerChoice(p, rect, type, selected) {
   p.stroke(selected ? '#63dbff' : '#3d5872'); p.strokeWeight(selected ? 3 : 1); p.fill(selected ? '#123d59' : '#162337'); p.rect(rect.x, rect.y, rect.width, rect.height, 10);
-  const cx = rect.x + rect.width / 2, cy = rect.y + 28;
+  const cx = rect.x + rect.width / 2, cy = rect.y + 18;
   p.stroke(selected ? '#bff4ff' : '#7794ad'); p.strokeWeight(2); p.fill(type === 'aoe' ? '#8d4bc4' : '#277ab5');
   if (type === 'aoe') p.rect(cx - 15, cy - 15, 30, 30, 4); else p.triangle(cx, cy - 19, cx - 18, cy + 17, cx + 18, cy + 17);
-  p.noStroke(); p.fill('#dceeff'); p.textAlign(p.CENTER, p.CENTER); p.textSize(14); p.text(towerTypes[type].name, cx, rect.y + 55);
+  p.noStroke(); p.fill('#dceeff'); p.textAlign(p.CENTER, p.CENTER); p.textSize(13); p.text(towerTypes[type].name, cx, rect.y + 39);
 }
 function drawHeader(p, state) {
   p.noStroke(); p.fill('#0b1525'); p.rect(0,0,1440,82); p.fill('#63d9ff'); p.rect(32,23,34,33,4); p.rect(38,15,7,12); p.rect(53,15,7,12);
@@ -72,7 +72,7 @@ function drawPanel(p,state){
   p.fill('#91a8bd');p.textSize(15);p.text(kind==='可建造'?'射程 140　傷害 10　冷卻 1.0 秒':kind==='魔法塔'?`射程 ${stats.range}　傷害 ${stats.damage}　冷卻 ${stats.cooldown} 秒`:'道路與障礙物必須保持暢通',panel.x+panel.width/2,panel.y+268);
   p.fill('#dbeaff');p.textSize(18);p.text(kind==='可建造'?'花費　10 金幣':kind==='魔法塔'?`累計投資　${tower.spent} 金幣`:'無可用操作',panel.x+panel.width/2,panel.y+334);
   if(kind==='魔法塔'){p.fill('#8fa9c1');p.textSize(13);p.text(`本局傷害 ${Math.round(tower.damage||0)}　擊殺 ${tower.kills||0}`,panel.x+panel.width/2,panel.y+358);}
-  p.fill('#8fa9c1');p.textSize(13);p.textAlign(p.LEFT,p.CENTER);p.text('塔分類',panel.x+30,panel.y+286);
+  p.fill('#8fa9c1');p.textSize(13);p.textAlign(p.LEFT,p.CENTER);p.text('塔分類',panel.x+30,panel.y+268);
   drawTowerChoice(p,singleTowerButton,'single',(state.buildType || 'single')==='single');
   drawTowerChoice(p,aoeTowerButton,'aoe',state.buildType==='aoe');
   if(kind==='可建造')button(p,buildButton,state.gold>=10?'建造魔法塔':'金幣不足',true,state.gold<10);
