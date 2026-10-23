@@ -79,7 +79,7 @@ function drawPanel(p,state){
   if(kind==='魔法塔'){const max=tower.level>=3,next=max?null:towerLevels[tower.level+1];button(p,upgradeButton,max?'已達最高等級':`升級 ${next.cost}`,true,max||state.gold<next.cost);button(p,sellButton,`拆除 +${Math.floor(tower.spent*.5)}`);}
   p.fill('#7990a8');p.textSize(14);p.text(state.notice,panel.x+panel.width/2,panel.y+538);
   if(state.waveSummary){const summary=state.waveSummary;p.fill('#9bb2c8');p.textSize(12);p.text(`上波結算：擊殺 ${summary.kills}・突破 ${summary.breaches}・金幣 +${summary.goldEarned}・生命 -${summary.livesLost}`,panel.x+panel.width/2,panel.y+560);}
-  const waveSize=createWaveSequence(state.wave).length,label=state.mode==='ready'?`開始第 ${state.wave} 波  »`:state.mode==='battle'?`戰鬥中・剩餘 ${state.enemies.length+waveSize-state.spawnIndex}`:state.mode==='paused'?'遊戲已暫停':state.mode==='victory'?'十波防守成功 ✓':'魔法城失守';button(p,nextWave,label,true,state.mode!=='ready');button(p,autoWave,'自動下一波',state.autoWave,false);button(p,fullscreen,'⛶ 全螢幕',false,false);button(p,refresh,'↻ 重新整理',false,false);
+  const waveSize=createWaveSequence(state.wave).length,label=state.mode==='ready'?`開始第 ${state.wave} 波  »`:state.mode==='battle'?`戰鬥中・剩餘 ${state.enemies.length+waveSize-state.spawnIndex}`:state.mode==='paused'?'遊戲已暫停':state.mode==='victory'?'十波防守成功 ✓':'魔法城失守';button(p,nextWave,label,true,state.mode!=='ready');button(p,autoWave,'自動',state.autoWave,false);button(p,fullscreen,'⛶ 全螢幕',false,false);button(p,refresh,'↻ 重新整理',false,false);
 }
 function drawEnding(p,state){
   const victory=state.mode==='victory';
