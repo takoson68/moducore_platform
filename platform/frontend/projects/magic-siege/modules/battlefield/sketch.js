@@ -9,9 +9,9 @@ const pathCells = mapPathCells(1);
 const obstacles = new Set([[0,5],[2,0],[3,7],[7,0],[8,8]].map(([c,r]) => key(c,r)));
 const pathCellsFor = (state) => mapPathCells(state.level || 1);
 const obstaclesFor = (state) => new Set(getBattlefieldMap(state.level || 1).obstacles.map(([c,r]) => key(c,r)));
-const buildButton = { x: panel.x + 30, y: panel.y + 382, width: panel.width - 60, height: 62 };
-const upgradeButton = { x: panel.x + 24, y: panel.y + 382, width: 190, height: 62 };
-const sellButton = { x: panel.x + 230, y: panel.y + 382, width: 154, height: 62 };
+const buildButton = { x: panel.x + 30, y: panel.y + 410, width: panel.width - 60, height: 62 };
+const upgradeButton = { x: panel.x + 24, y: panel.y + 410, width: 190, height: 62 };
+const sellButton = { x: panel.x + 230, y: panel.y + 410, width: 154, height: 62 };
 const singleTowerButton = { x: panel.x + 30, y: panel.y + 278, width: 166, height: 48 };
 const aoeTowerButton = { x: panel.x + 212, y: panel.y + 278, width: 166, height: 48 };
 const endingRestart = { x: 570, y: 604, width: 300, height: 68 };
@@ -70,8 +70,8 @@ function drawPanel(p,state){
   if(previewLarge>0){p.fill('#ffbd5c');p.textSize(13);p.text('含高生命／高突破傷害的大怪',panel.x+panel.width/2,panel.y+188);}
   p.noStroke();p.fill('#dceeff');p.textAlign(p.CENTER,p.CENTER);p.textSize(22);p.text(kind==='魔法塔'?`Lv.${tower.level} 魔法塔`:kind==='可建造'?'Lv.1 魔法塔':'此格不可建造',panel.x+panel.width/2,panel.y+226);
   p.fill('#91a8bd');p.textSize(15);p.text(kind==='可建造'?'射程 140　傷害 10　冷卻 1.0 秒':kind==='魔法塔'?`射程 ${stats.range}　傷害 ${stats.damage}　冷卻 ${stats.cooldown} 秒`:'道路與障礙物必須保持暢通',panel.x+panel.width/2,panel.y+268);
-  p.fill('#dbeaff');p.textSize(18);p.text(kind==='可建造'?'花費　10 金幣':kind==='魔法塔'?`累計投資　${tower.spent} 金幣`:'無可用操作',panel.x+panel.width/2,panel.y+334);
-  if(kind==='魔法塔'){p.fill('#8fa9c1');p.textSize(13);p.text(`本局傷害 ${Math.round(tower.damage||0)}　擊殺 ${tower.kills||0}`,panel.x+panel.width/2,panel.y+358);}
+  p.fill('#dbeaff');p.textSize(18);p.text(kind==='可建造'?'花費　10 金幣':kind==='魔法塔'?`累計投資　${tower.spent} 金幣`:'無可用操作',panel.x+panel.width/2,panel.y+372);
+  if(kind==='魔法塔'){p.fill('#8fa9c1');p.textSize(13);p.text(`本局傷害 ${Math.round(tower.damage||0)}　擊殺 ${tower.kills||0}`,panel.x+panel.width/2,panel.y+394);}
   p.fill('#8fa9c1');p.textSize(13);p.textAlign(p.LEFT,p.CENTER);p.text('塔分類',panel.x+30,panel.y+268);
   drawTowerChoice(p,singleTowerButton,'single',(state.buildType || 'single')==='single');
   drawTowerChoice(p,aoeTowerButton,'aoe',state.buildType==='aoe');
