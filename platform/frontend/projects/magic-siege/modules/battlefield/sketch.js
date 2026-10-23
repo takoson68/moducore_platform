@@ -57,7 +57,20 @@ function drawBoard(p,state){
   p.noFill();p.stroke('#8b8ae1');p.strokeWeight(3);p.beginShape();for(const[c,r]of map.route)p.vertex(board.x+c*board.cell+34,board.y+r*board.cell+34);p.endShape();
   const start=map.route[0],portal={x:board.x+start[0]*board.cell+34,y:board.y+start[1]*board.cell+34};p.noFill();p.stroke('#42eaff');p.strokeWeight(6);p.circle(portal.x,portal.y,48);p.stroke('#80aaff');p.strokeWeight(3);p.circle(portal.x,portal.y,30);
   const end=map.route.at(-1),castle={x:board.x+end[0]*board.cell+7,y:board.y+end[1]*board.cell-24};p.stroke('#b047b2');p.strokeWeight(2);p.fill('#373650');p.rect(castle.x,castle.y,54,116,4);p.rect(castle.x-13,castle.y+30,19,86,3);p.fill('#ec59d1');p.triangle(castle.x+27,castle.y+42,castle.x+14,castle.y+96,castle.x+40,castle.y+96);
-  for(const tower of state.towers)drawTower(p,tower,state.selected);for(const enemy of state.enemies)drawEnemy(p,enemy,state.level||1);for(const bullet of state.bullets){p.noStroke();p.fill('#ffd66b');p.circle(bullet.x,bullet.y,9);}
+  for(const tower of state.towers)drawTower(p,tower,state.selected);
+  for(const enemy of state.enemies)drawEnemy(p,enemy,state.level||1);
+  for(const bullet of state.bullets){
+    if(bullet.beam){
+      const source=state.towers[bullet.sourceTowerIndex];
+      if(source){
+        const sx=board.x+source.col*board.cell+34, sy=board.y+source.row*board.cell+34;
+        p.stroke(226,90,199,55); p.strokeWeight(12); p.line(sx,sy,bullet.x,bullet.y);
+        p.stroke('#ff8be8'); p.strokeWeight(5); p.line(sx,sy,bullet.x,bullet.y);
+        p.stroke('#fff4ff'); p.strokeWeight(2); p.line(sx,sy,bullet.x,bullet.y);
+      }
+      p.noStroke(); p.fill('#ffd9fb'); p.circle(bullet.x,bullet.y,12);
+    } else { p.noStroke(); p.fill('#ffd66b'); p.circle(bullet.x,bullet.y,9); }
+  }
   if(state.selected){const sx=board.x+state.selected.col*board.cell,sy=board.y+state.selected.row*board.cell;p.noFill();p.stroke('#4cecff');p.strokeWeight(4);p.rect(sx+4,sy+4,board.cell-8,board.cell-8,3);}
 }
 function drawPanel(p,state){
