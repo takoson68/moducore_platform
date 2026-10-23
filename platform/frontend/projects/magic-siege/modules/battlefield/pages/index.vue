@@ -15,6 +15,7 @@ async function action(command) {
   busy = true;
   try {
     if (command === 'reset') await game.reset();
+    else if (command === 'reload') window.location.reload();
     else if (command === 'pause') await game.pause();
     else if (command === 'resume') await game.resume();
     else if (command === 'fullscreen') {
