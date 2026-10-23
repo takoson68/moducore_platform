@@ -72,7 +72,6 @@ function drawPanel(p,state){
   p.fill('#91a8bd');p.textSize(15);p.text(kind==='可建造'?'射程 140　傷害 10　冷卻 1.0 秒':kind==='魔法塔'?`射程 ${stats.range}　傷害 ${stats.damage}　冷卻 ${stats.cooldown} 秒`:'道路與障礙物必須保持暢通',panel.x+panel.width/2,panel.y+268);
   p.fill('#dbeaff');p.textSize(18);p.text(kind==='可建造'?'花費　10 金幣':kind==='魔法塔'?`累計投資　${tower.spent} 金幣`:'無可用操作',panel.x+panel.width/2,panel.y+372);
   if(kind==='魔法塔'){p.fill('#8fa9c1');p.textSize(13);p.text(`本局傷害 ${Math.round(tower.damage||0)}　擊殺 ${tower.kills||0}`,panel.x+panel.width/2,panel.y+394);}
-  p.fill('#8fa9c1');p.textSize(13);p.textAlign(p.LEFT,p.CENTER);p.text('塔分類',panel.x+30,panel.y+268);
   drawTowerChoice(p,singleTowerButton,'single',(state.buildType || 'single')==='single');
   drawTowerChoice(p,aoeTowerButton,'aoe',state.buildType==='aoe');
   if(kind==='可建造')button(p,buildButton,state.gold>=10?'建造魔法塔':'金幣不足',true,state.gold<10);
