@@ -38,7 +38,7 @@ function drawTowerChoice(p, rect, type, selected) {
 }
 function drawHeader(p, state) {
   p.noStroke(); p.fill('#0b1525'); p.rect(0,0,1440,82); p.fill('#63d9ff'); p.rect(32,23,34,33,4); p.rect(38,15,7,12); p.rect(53,15,7,12);
-  p.fill('#d9edff'); p.textAlign(p.LEFT,p.CENTER); p.textStyle(p.BOLD); p.textSize(32); p.text('攻破魔法城',82,40); p.textStyle(p.NORMAL); p.fill('#7e9ab5'); p.textSize(12); p.text(`v${releaseVersion}`,250,52);
+  p.fill('#d9edff'); p.textAlign(p.LEFT,p.CENTER); p.textStyle(p.BOLD); p.textSize(32); p.text('攻破魔法城',82,40); p.textStyle(p.NORMAL); p.fill('#b8d7ee'); p.textSize(15); p.text(`第 ${state.level || 1} 關`,250,35); p.fill('#7e9ab5'); p.textSize(12); p.text(`v${releaseVersion}`,250,57);
   p.textAlign(p.CENTER,p.CENTER); p.textSize(22); p.text(`第 ${state.wave} / 10 波`,740,29); p.stroke('#294258'); p.strokeWeight(4); p.line(630,61,850,61);
   for(let i=0;i<10;i+=1){p.noStroke();p.fill(i<state.wave?'#23d9ef':'#334b63');p.circle(630+i*24.4,61,i===state.wave-1?14:10);}
   p.fill('#ff7094');p.textSize(25);p.text('♥',1018,39);p.fill('#d9edff');p.textSize(18);p.text('生命',1066,39);p.textSize(25);p.text(String(state.lives),1124,39);
