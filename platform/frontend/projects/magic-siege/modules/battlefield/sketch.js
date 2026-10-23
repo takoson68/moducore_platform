@@ -9,7 +9,7 @@ const pathCells = mapPathCells(1);
 const obstacles = new Set([[0,5],[2,0],[3,7],[7,0],[8,8]].map(([c,r]) => key(c,r)));
 const pathCellsFor = (state) => mapPathCells(state.level || 1);
 const obstaclesFor = (state) => new Set(getBattlefieldMap(state.level || 1).obstacles.map(([c,r]) => key(c,r)));
-const buildButton = { x: panel.x + 72, y: panel.y + 382, width: panel.width - 144, height: 62 };
+const buildButton = { x: panel.x + 30, y: panel.y + 382, width: panel.width - 60, height: 62 };
 const upgradeButton = { x: panel.x + 24, y: panel.y + 382, width: 190, height: 62 };
 const sellButton = { x: panel.x + 230, y: panel.y + 382, width: 154, height: 62 };
 const resetButton = { x: panel.x + 110, y: panel.y + 466, width: panel.width - 220, height: 42 };
