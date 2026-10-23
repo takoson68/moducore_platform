@@ -5,9 +5,9 @@ const key = (col, row) => `${col},${row}`;
 const pathCells = new Set([[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[5,3],[5,4],[5,5],[6,5],[7,5],[8,5],[9,5],[9,6],[9,7],[10,7],[10,6],[10,5],[11,5]].map(([c,r]) => key(c,r)));
 const obstacles = new Set([[0,5],[2,0],[3,7],[7,0],[8,8]].map(([c,r]) => key(c,r)));
 const buildButton = { x: panel.x + 72, y: panel.y + 382, width: panel.width - 144, height: 62 };
-const upgradeButton = { x: panel.x + 54, y: panel.y + 382, width: 250, height: 62 };
-const sellButton = { x: panel.x + 320, y: panel.y + 382, width: 162, height: 62 };
-const resetButton = { x: panel.x + 174, y: panel.y + 466, width: panel.width - 348, height: 42 };
+const upgradeButton = { x: panel.x + 24, y: panel.y + 382, width: 190, height: 62 };
+const sellButton = { x: panel.x + 230, y: panel.y + 382, width: 154, height: 62 };
+const resetButton = { x: panel.x + 110, y: panel.y + 466, width: panel.width - 220, height: 42 };
 const endingRestart = { x: 570, y: 604, width: 300, height: 68 };
 const contains = (rect, point) => point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
 
