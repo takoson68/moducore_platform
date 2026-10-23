@@ -30,6 +30,24 @@ function button(p, rect, label, primary = false, disabled = false) {
   p.fill(disabled ? '#1b2633' : primary ? '#086a9e' : '#162337'); p.rect(rect.x, rect.y, rect.width, rect.height, 10);
   p.noStroke(); p.fill(disabled ? '#657383' : '#e4f4ff'); p.textAlign(p.CENTER, p.CENTER); p.textSize(primary ? 22 : 16); p.text(label, rect.x + rect.width / 2, rect.y + rect.height / 2);
 }
+function drawTowerChoice(p, rect, type, selected) {
+  p.stroke(selected ? '#63dbff' : '#3d5872'); p.strokeWeight(selected ? 3 : 1);
+  p.fill(selected ? '#123d59' : '#162337'); p.rect(rect.x, rect.y, rect.width, rect.height, 10);
+  const cx = rect.x + rect.width / 2, cy = rect.y + 23;
+  p.stroke(selected ? '#bff4ff' : '#7794ad'); p.strokeWeight(2);
+  p.fill(type === 'beam' ? '#e25ac7' : type === 'aoe' ? '#8d4bc4' : '#277ab5');
+  if (type === 'aoe') p.rect(cx - 14, cy - 14, 28, 28, 4);
+  else if (type === 'beam') {
+    p.beginShape();
+    for (let index = 0; index < 5; index += 1) {
+      const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+      p.vertex(cx + Math.cos(angle) * 17, cy + Math.sin(angle) * 17);
+    }
+    p.endShape(p.CLOSE);
+  } else p.triangle(cx, cy - 18, cx - 17, cy + 16, cx + 17, cy + 16);
+  p.noStroke(); p.fill('#dceeff'); p.textAlign(p.CENTER, p.CENTER); p.textSize(12);
+  p.text(towerTypes[type].name, cx, rect.y + 43);
+}
 function drawHeader(p,state){p.noStroke();p.fill('#0b1525');p.rect(0,0,1440,82);p.fill('#63d9ff');p.rect(32,23,34,33,4);p.rect(38,15,7,12);p.rect(53,15,7,12);p.fill('#d9edff');p.textAlign(p.LEFT,p.CENTER);p.textStyle(p.BOLD);p.textSize(32);p.text('攻破魔法城',82,40);p.textStyle(p.NORMAL);p.fill('#b8d7ee');p.textSize(15);p.text(`第 ${state.level||1} 關`,250,35);p.fill('#7e9ab5');p.textSize(12);p.text(`v${releaseVersion}`,250,57);const totalWaves=maxWaves(state.level);p.textAlign(p.CENTER,p.CENTER);p.textSize(22);p.text(`第 ${state.wave} / ${totalWaves} 波`,740,29);p.stroke('#294258');p.strokeWeight(4);p.line(630,61,850,61);const progress=Math.min(1,Math.max(0,(state.wave-1)/Math.max(1,totalWaves-1)));for(let i=0;i<10;i+=1){const nodeProgress=i/9;p.noStroke();p.fill(nodeProgress<=progress?'#23d9ef':'#334b63');p.circle(630+i*24.4,61,Math.abs(nodeProgress-progress)<0.06?14:10);}p.fill('#ff7094');p.textSize(25);p.text('♥',1018,39);p.fill('#d9edff');p.textSize(18);p.text('生命',1066,39);p.textSize(25);p.text(String(state.lives),1124,39);p.fill('#ffc94f');p.text('⬡',1148,39);p.fill('#d9edff');p.textSize(18);p.text('金幣',1195,39);p.textSize(25);p.fill('#ffe584');p.text(String(state.gold),1255,39);button(p,speed,`${state.speed||1}×`,false,!['battle','paused'].includes(state.mode));button(p,pause,state.mode==='paused'?'▶':'Ⅱ',false,!['battle','paused'].includes(state.mode));}
 function drawTower(p,tower,selected){const x=board.x+tower.col*board.cell+34,y=board.y+tower.row*board.cell+32,stats=towerLevels[tower.level],aoe=tower.type==='aoe',beam=tower.type==='beam';if(selected && selected.col===tower.col&&selected.row===tower.row){p.noFill();p.stroke('#28dfff');p.strokeWeight(2);p.circle(x,y+2,stats.range*2);}p.stroke('#8ce9ff');p.strokeWeight(2);p.fill(beam?'#e25ac7':aoe?'#8d4bc4':tower.level===2?'#326bd0':'#277ab5');if(aoe)p.rect(x-20-tower.level*2,y-20,40+tower.level*4,40,5);else if(beam){p.beginShape();for(let index=0;index<5;index+=1){const angle=-Math.PI/2+index*Math.PI*2/5;p.vertex(x+Math.cos(angle)*(22+tower.level*2),y+Math.sin(angle)*(22+tower.level*2));}p.endShape(p.CLOSE);}else p.triangle(x,y-22,x-19-tower.level*2,y+20,x+19+tower.level*2,y+20);p.fill('#bff4ff');p.circle(x,y-24,7+tower.level*2);}
 function drawEnemy(p,enemy,level=1){const point=routePosition(enemy.distance,level),boss=enemy.type==='boss',large=enemy.type==='large',size=boss?52:large?34:24,bar=boss?68:large?42:32;p.noStroke();p.fill('#35182e');p.rect(point.x-bar/2,point.y-size/2-11,bar,5,2);p.fill(boss?'#ff4f8b':large?'#ffbd5c':'#ff557f');p.rect(point.x-bar/2,point.y-size/2-11,bar*enemy.hp/enemy.maxHp,5,2);p.stroke(boss?'#ff4f8b':large?'#ffb24d':'#ff6d9e');p.strokeWeight(boss?5:3);p.fill(boss?'#6b183d':large?'#4a2a31':'#281a39');p.circle(point.x,point.y,size);p.noStroke();p.fill(boss?'#ffd1e3':large?'#ffe19a':'#ff8ab0');p.circle(point.x-5,point.y-2,4);p.circle(point.x+5,point.y-2,4);}
