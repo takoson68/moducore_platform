@@ -16,6 +16,10 @@ async function action(command) {
     if (command === 'reset') await game.reset();
     else if (command === 'pause') await game.pause();
     else if (command === 'resume') await game.resume();
+    else if (command === 'fullscreen') {
+      if (!document.fullscreenElement) await canvasHost.value?.requestFullscreen?.();
+      else await document.exitFullscreen?.();
+    }
   } catch (error) {
     console.error('[Magic Siege] 操作失敗', error);
     errorMessage.value = error.message;

@@ -5,6 +5,7 @@ export const panel = { x: 872, y: 98, width: 536, height: 594 };
 export const nextWave = { x: 1084, y: 712, width: 324, height: 66 };
 export const pause = { x: 1360, y: 18, width: 48, height: 48 };
 export const speed = { x: 1300, y: 18, width: 54, height: 48 };
+export const fullscreen = { x: 32, y: 712, width: 180, height: 66 };
 
 export function cellAt(point) {
   const col = Math.floor((point.x - board.x) / board.cell);
