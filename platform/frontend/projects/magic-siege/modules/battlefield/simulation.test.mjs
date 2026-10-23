@@ -196,3 +196,11 @@ test('勝利後可依序進入第二至第五關', () => {
   }
   assert.equal(simulation.startLevel(5), false);
 });
+
+test('可指定群攻塔並保留塔型', () => {
+  const session = createSession({ selected: { col: 4, row: 4 }, buildType: 'single' });
+  const simulation = createBattlefieldSimulation(session);
+  assert.equal(simulation.setBuildType('aoe'), true);
+  assert.equal(simulation.build(), true);
+  assert.equal(session.state.towers[0].type, 'aoe');
+});

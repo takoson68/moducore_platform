@@ -218,6 +218,7 @@ export function createBattlefieldSimulation(session) {
   return {
     build, upgrade, sell, startWave, tick,
     toggleAutoWave() { update({ autoWave: !session.state.autoWave }); return !session.state.autoWave; },
+    setBuildType(type) { if (!towerTypes[type]) return false; update({ buildType: type, notice: `下次建造：${towerTypes[type].name}。` }); return true; },
     toggleBuildType() { const type = session.state.buildType === 'aoe' ? 'single' : 'aoe'; update({ buildType: type, notice: `下次建造：${towerTypes[type].name}。` }); return type; },
     restartLevel() {
       const { level } = session.state;
