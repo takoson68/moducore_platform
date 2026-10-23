@@ -15,7 +15,9 @@ async function action(command) {
   busy = true;
   try {
     if (command === 'reset') await game.reset();
-    else if (command === 'reload') window.location.reload();
+    else if (command === 'reload') {
+      if (window.confirm('確定要重新整理頁面嗎？目前關卡進度將會重置。')) window.location.reload();
+    }
     else if (command === 'pause') await game.pause();
     else if (command === 'resume') await game.resume();
     else if (command === 'fullscreen') {
