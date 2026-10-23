@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createBattlefieldSimulation, createWaveSequence, maxWaves, waveConfig } from './simulation.js';
+import { createBattlefieldSimulation, createWaveSequence, enemyCountMultiplier, maxWaves, waveConfig } from './simulation.js';
 import { getBattlefieldMap, levelDifficulty, mapPathCells } from './maps.js';
 import { board } from './layout.js';
 
@@ -134,6 +134,13 @@ test('第 1 至第 5 關難度倍率遞進且不改變突破與經濟基準', ()
     assert.equal(levelDifficulty[level].breachDamage, 1);
     assert.equal(levelDifficulty[level].goldMultiplier, 1);
   }
+});
+
+test('第 1 至第 5 關敵人數量每關增加 25%', () => {
+  assert.deepEqual([1, 2, 3, 4, 5].map(enemyCountMultiplier), [1, 1.25, 1.5, 1.75, 2]);
+  const counts = [1, 2, 3, 4, 5].map((level) => createWaveSequence(5, level).length);
+  assert.deepEqual(counts, [15, 19, 23, 26, 30]);
+  assert.ok(counts.every((count, index) => index === 0 || count > counts[index - 1]));
 });
 
 test('第 1 至第 5 關地圖路線與障礙資料有效', () => {

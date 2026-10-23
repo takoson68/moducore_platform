@@ -29,19 +29,23 @@ export const enemyTypes = {
   large: { hp: 180, speed: 32, radius: 20, reward: 20, breachDamage: 3 },
   boss: { hp: 900, speed: 18, radius: 30, reward: 120, breachDamage: 8 },
 };
+export function enemyCountMultiplier(level = 1) { return 1 + Math.max(0, (level || 1) - 1) * 0.25; }
 function enemyStats(type, level = 1) {
   const base = enemyTypes[type];
   const difficulty = levelDifficulty[level] || levelDifficulty[1];
   return { ...base, hp: base.hp * difficulty.enemyHp, speed: base.speed * difficulty.enemySpeed };
 }
 
-export function createWaveSequence(wave) {
+export function createWaveSequence(wave, level = 1) {
   const config = waveConfig[wave] || { small: 25 + (wave - 10) * 3, large: 10 + Math.floor((wave - 10) / 2), boss: 0 };
   if (!config) return [];
-  const total = config.small + config.large;
+  const multiplier = enemyCountMultiplier(level);
+  const small = Math.max(1, Math.round(config.small * multiplier));
+  const large = config.large ? Math.max(1, Math.round(config.large * multiplier)) : 0;
+  const total = small + large;
   const largePositions = new Set();
-  for (let index = 1; index <= config.large; index += 1) {
-    largePositions.add(Math.max(1, Math.round(index * total / (config.large + 1))));
+  for (let index = 1; index <= large; index += 1) {
+    largePositions.add(Math.max(1, Math.round(index * total / (large + 1))));
   }
   const sequence = Array.from({ length: total }, (_, index) => largePositions.has(index) ? 'large' : 'small');
   if (config.boss) sequence.push('boss');
@@ -66,7 +70,7 @@ export function createBattlefieldSimulation(session) {
   const update = (values) => session.set(values);
   const spawn = () => {
     const state = session.state;
-    const sequence = createWaveSequence(state.wave);
+    const sequence = createWaveSequence(state.wave, state.level);
     if (state.spawnIndex >= sequence.length) return;
     const type = sequence[state.spawnIndex];
     const stats = enemyStats(type, state.level || 1);
@@ -124,7 +128,7 @@ export function createBattlefieldSimulation(session) {
     let spawnClock = state.spawnClock + elapsed;
     let incomeClock = state.incomeClock;
     let passiveIncome = 0;
-    const waveSize = createWaveSequence(state.wave).length;
+    const waveSize = createWaveSequence(state.wave, state.level).length;
     if (state.spawnIndex < waveSize) {
       incomeClock += elapsed;
       const seconds = Math.floor(incomeClock);
