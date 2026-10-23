@@ -1,5 +1,5 @@
 import { autoWave, board, cellAt, fullscreen, nextWave, panel, pause, refresh, speed } from './layout.js';
-import { createWaveSequence, routePosition, towerLevels, towerTypes } from './simulation.js';
+import { createWaveSequence, maxWaves, routePosition, towerLevels, towerTypes } from './simulation.js';
 import { getBattlefieldMap, mapPathCells } from './maps.js';
 
 const releaseVersion = import.meta.env.VITE_RELEASE_VERSION || 'dev';
@@ -39,8 +39,8 @@ function drawTowerChoice(p, rect, type, selected) {
 function drawHeader(p, state) {
   p.noStroke(); p.fill('#0b1525'); p.rect(0,0,1440,82); p.fill('#63d9ff'); p.rect(32,23,34,33,4); p.rect(38,15,7,12); p.rect(53,15,7,12);
   p.fill('#d9edff'); p.textAlign(p.LEFT,p.CENTER); p.textStyle(p.BOLD); p.textSize(32); p.text('攻破魔法城',82,40); p.textStyle(p.NORMAL); p.fill('#b8d7ee'); p.textSize(15); p.text(`第 ${state.level || 1} 關`,250,35); p.fill('#7e9ab5'); p.textSize(12); p.text(`v${releaseVersion}`,250,57);
-  p.textAlign(p.CENTER,p.CENTER); p.textSize(22); p.text(`第 ${state.wave} / 10 波`,740,29); p.stroke('#294258'); p.strokeWeight(4); p.line(630,61,850,61);
-  for(let i=0;i<10;i+=1){p.noStroke();p.fill(i<state.wave?'#23d9ef':'#334b63');p.circle(630+i*24.4,61,i===state.wave-1?14:10);}
+  const totalWaves=maxWaves(state.level); p.textAlign(p.CENTER,p.CENTER); p.textSize(22); p.text(`第 ${state.wave} / ${totalWaves} 波`,740,29); p.stroke('#294258'); p.strokeWeight(4); p.line(630,61,850,61);
+  const progress=Math.min(1,Math.max(0,(state.wave-1)/Math.max(1,totalWaves-1))); for(let i=0;i<10;i+=1){const nodeProgress=i/9;p.noStroke();p.fill(nodeProgress<=progress?'#23d9ef':'#334b63');p.circle(630+i*24.4,61,Math.abs(nodeProgress-progress)<0.06?14:10);}
   p.fill('#ff7094');p.textSize(25);p.text('♥',1018,39);p.fill('#d9edff');p.textSize(18);p.text('生命',1066,39);p.textSize(25);p.text(String(state.lives),1124,39);
   p.fill('#ffc94f');p.text('⬡',1148,39);p.fill('#d9edff');p.textSize(18);p.text('金幣',1195,39);p.fill('#ffe584');p.textSize(25);p.text(String(state.gold),1255,39);
   button(p,speed,`${state.speed || 1}×`,false,!['battle','paused'].includes(state.mode));
@@ -61,7 +61,7 @@ function drawPanel(p,state){
   const selected=state.selected || { col: -1, row: -1 },kind=cellKind(state,selected.col,selected.row),tower=state.towers.find((item)=>item.col===selected.col&&item.row===selected.row),stats=tower?towerLevels[tower.level]:towerLevels[1];p.stroke('#365777');p.strokeWeight(2);p.fill('#101c2e');p.rect(panel.x,panel.y,panel.width,panel.height,10);
   p.fill(kind==='可建造'?'#49d7ba':kind==='魔法塔'?'#6ccfff':'#8da0b7');p.noStroke();p.circle(panel.x+62,panel.y+61,24);p.fill('#dcedff');p.textAlign(p.LEFT,p.CENTER);p.textStyle(p.BOLD);p.textSize(27);p.text(kind,panel.x+102,panel.y+61);p.textStyle(p.NORMAL);
   p.fill('#87a0b9');p.textSize(14);p.text(kind==='未選取'?'已取消格子選取':`格子 ${selected.col+1} × ${selected.row+1}`,panel.x+30,panel.y+112);p.stroke('#29445f');p.line(panel.x+30,panel.y+140,panel.x+panel.width-30,panel.y+140);
-  const previewWave = state.mode === 'ready' ? state.wave : Math.min(10, state.wave + 1);
+  const previewWave = state.mode === 'ready' ? state.wave : Math.min(maxWaves(state.level), state.wave + 1);
   const preview = createWaveSequence(previewWave);
   const previewSmall = preview.filter((type) => type === 'small').length;
   const previewLarge = preview.filter((type) => type === 'large').length;
@@ -78,7 +78,7 @@ function drawPanel(p,state){
   if(kind==='魔法塔'){const max=tower.level>=3,next=max?null:towerLevels[tower.level+1];button(p,upgradeButton,max?'已達最高等級':`升級 ${next.cost}`,true,max||state.gold<next.cost);button(p,sellButton,`拆除 +${Math.floor(tower.spent*.5)}`);}
   p.fill('#7990a8');p.textSize(14);p.text(state.notice,panel.x+panel.width/2,panel.y+538);
   if(state.waveSummary){const summary=state.waveSummary;p.fill('#9bb2c8');p.textSize(12);p.text(`上波結算：擊殺 ${summary.kills}・突破 ${summary.breaches}・金幣 +${summary.goldEarned}・生命 -${summary.livesLost}`,panel.x+panel.width/2,panel.y+560);}
-  const waveSize=createWaveSequence(state.wave).length,label=state.mode==='ready'?`開始第 ${state.wave} 波  »`:state.mode==='battle'?`戰鬥中・剩餘 ${state.enemies.length+waveSize-state.spawnIndex}`:state.mode==='paused'?'遊戲已暫停':state.mode==='victory'?'十波防守成功 ✓':'魔法城失守';button(p,nextWave,label,true,state.mode!=='ready');button(p,autoWave,'自動',state.autoWave,false);button(p,fullscreen,'⛶ 全螢幕',false,false);button(p,refresh,'↻ 重新整理',false,false);
+  const totalWaves=maxWaves(state.level),waveSize=createWaveSequence(state.wave).length,label=state.mode==='ready'?`開始第 ${state.wave} 波  »`:state.mode==='battle'?`戰鬥中・剩餘 ${state.enemies.length+waveSize-state.spawnIndex}`:state.mode==='paused'?'遊戲已暫停':state.mode==='victory'?`${totalWaves} 波防守成功 ✓`:'魔法城失守';button(p,nextWave,label,true,state.mode!=='ready');button(p,autoWave,'自動',state.autoWave,false);button(p,fullscreen,'⛶ 全螢幕',false,false);button(p,refresh,'↻ 重新整理',false,false);
 }
 function drawEnding(p,state){
   const victory=state.mode==='victory';
@@ -94,7 +94,7 @@ function drawEnding(p,state){
   p.fill(victory?'#74e6ff':'#ff9bb5');p.textSize(20);p.text(victory?'你的魔法塔照亮了整座城。':'重新整備，再守護一次魔法城。',720,326);
   p.stroke('#34516d');p.strokeWeight(1);p.line(490,370,950,370);p.noStroke();
   p.fill('#9ab1c8');p.textSize(16);p.text('完成波次',540,418);p.text('擊殺敵人',720,418);p.text('剩餘生命',900,418);
-  p.fill('#f0f8ff');p.textStyle(p.BOLD);p.textSize(34);p.text(victory?'10 / 10':`${state.wave-1} / 10`,540,466);p.text(String(state.kills),720,466);p.text(String(state.lives),900,466);p.textStyle(p.NORMAL);
+  const totalWaves=maxWaves(state.level); p.fill('#f0f8ff');p.textStyle(p.BOLD);p.textSize(34);p.text(victory?`${totalWaves} / ${totalWaves}`:`${state.wave-1} / ${totalWaves}`,540,466);p.text(String(state.kills),720,466);p.text(String(state.lives),900,466);p.textStyle(p.NORMAL);
   p.fill('#839ab1');p.textSize(15);p.text(victory?'第一座魔法城，防守成功。這只是冒險的開始。':'調整塔的位置與升級時機，再次挑戰。',720,538);
   button(p,endingRestart,victory && state.level < 5 ? `進入第${state.level + 1}關`:'重新開始',true);
 }

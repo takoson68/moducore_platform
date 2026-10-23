@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createBattlefieldSimulation, createWaveSequence, waveConfig } from './simulation.js';
+import { createBattlefieldSimulation, createWaveSequence, maxWaves, waveConfig } from './simulation.js';
 import { getBattlefieldMap, levelDifficulty, mapPathCells } from './maps.js';
 import { board } from './layout.js';
 
@@ -203,4 +203,9 @@ test('可指定群攻塔並保留塔型', () => {
   assert.equal(simulation.setBuildType('aoe'), true);
   assert.equal(simulation.build(), true);
   assert.equal(session.state.towers[0].type, 'aoe');
+});
+
+test('每關波數依序增加三波且節點基準固定', () => {
+  assert.deepEqual([1, 2, 3, 4, 5].map(maxWaves), [10, 13, 16, 19, 22]);
+  assert.ok(createWaveSequence(13).length > createWaveSequence(10).length);
 });

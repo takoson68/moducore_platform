@@ -23,6 +23,7 @@ export const waveConfig = [
   { small: 16, large: 5 }, { small: 18, large: 6 }, { small: 20, large: 8 },
   { small: 25, large: 10, boss: 1 },
 ];
+export function maxWaves(level = 1) { return 10 + Math.max(0, (level || 1) - 1) * 3; }
 export const enemyTypes = {
   small: { hp: 50, speed: 55, radius: 14, reward: 5, breachDamage: 1 },
   large: { hp: 180, speed: 32, radius: 20, reward: 20, breachDamage: 3 },
@@ -35,7 +36,7 @@ function enemyStats(type, level = 1) {
 }
 
 export function createWaveSequence(wave) {
-  const config = waveConfig[wave];
+  const config = waveConfig[wave] || { small: 25 + (wave - 10) * 3, large: 10 + Math.floor((wave - 10) / 2), boss: 0 };
   if (!config) return [];
   const total = config.small + config.large;
   const largePositions = new Set();
@@ -107,7 +108,7 @@ export function createBattlefieldSimulation(session) {
     return true;
   };
   const startWave = () => {
-    if (session.state.mode !== 'ready' || session.state.wave > 10) return false;
+    if (session.state.mode !== 'ready' || session.state.wave > maxWaves(session.state.level)) return false;
     update({ mode: 'battle', spawnClock: 0, incomeClock: 0,
       waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 },
       notice: `第 ${session.state.wave} 波開始！` });
@@ -204,8 +205,9 @@ export function createBattlefieldSimulation(session) {
     }, 0);
     waveStats.kills += dead.size;
     waveStats.goldEarned += passiveIncome + reward;
-    const victory = completed && state.wave === 10 && lives > 0;
-    const nextWave = completed && state.wave < 10 ? state.wave + 1 : state.wave;
+    const finalWave = maxWaves(state.level);
+    const victory = completed && state.wave === finalWave && lives > 0;
+    const nextWave = completed && state.wave < finalWave ? state.wave + 1 : state.wave;
     const summary = completed ? { ...waveStats } : session.state.waveSummary;
     update({ enemies, bullets, towers: updatedTowers, lives, nextBulletId, waveStats,
       gold: session.state.gold + passiveIncome + reward, kills: session.state.kills + dead.size,
