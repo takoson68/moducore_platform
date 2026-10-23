@@ -63,6 +63,18 @@ test('升級與拆除依累計投資扣款及退款', () => {
   assert.equal(simulation.build(), true);
 });
 
+test('魔法塔可升級至第五級並在第五級停止', () => {
+  const session = createSession({ gold: 1000 });
+  const simulation = createBattlefieldSimulation(session);
+  assert.equal(simulation.build(), true);
+  assert.equal(simulation.upgrade(), true);
+  assert.equal(simulation.upgrade(), true);
+  assert.equal(simulation.upgrade(), true);
+  assert.equal(simulation.upgrade(), true);
+  assert.equal(session.state.towers[0].level, 5);
+  assert.equal(simulation.upgrade(), false);
+});
+
 test('被動收入在最後一隻生成後停止', () => {
   const session = createSession();
   const simulation = createBattlefieldSimulation(session);

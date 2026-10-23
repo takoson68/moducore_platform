@@ -92,7 +92,7 @@ function drawPanel(p,state){
   drawTowerChoice(p,aoeTowerButton,'aoe',state.buildType==='aoe');
   drawTowerChoice(p,beamTowerButton,'beam',state.buildType==='beam');
   if(kind==='可建造')button(p,buildButton,state.gold>=10?'建造魔法塔':'金幣不足',true,state.gold<10);
-  if(kind==='魔法塔'){const max=tower.level>=3,next=max?null:towerLevels[tower.level+1];button(p,upgradeButton,max?'已達最高等級':`升級 ${next.cost}`,true,max||state.gold<next.cost);button(p,sellButton,`拆除 +${Math.floor(tower.spent*.5)}`);}
+  if(kind==='魔法塔'){const max=tower.level>=5,next=max?null:towerLevels[tower.level+1];button(p,upgradeButton,max?'已達最高等級':`升級 ${next.cost}`,true,max||state.gold<next.cost);button(p,sellButton,`拆除 +${Math.floor(tower.spent*.5)}`);}
   p.fill('#7990a8');p.textSize(14);p.text(state.notice,panel.x+panel.width/2,panel.y+538);
   if(state.waveSummary){const summary=state.waveSummary;p.fill('#9bb2c8');p.textSize(12);p.text(`上波結算：擊殺 ${summary.kills}・突破 ${summary.breaches}・金幣 +${summary.goldEarned}・生命 -${summary.livesLost}`,panel.x+panel.width/2,panel.y+560);}
   const totalWaves=maxWaves(state.level),waveSize=createWaveSequence(state.wave,state.level).length,label=state.mode==='ready'?`開始第 ${state.wave} 波  »`:state.mode==='battle'?`戰鬥中・剩餘 ${state.enemies.length+waveSize-state.spawnIndex}`:state.mode==='paused'?'遊戲已暫停':state.mode==='victory'?`${totalWaves} 波防守成功 ✓`:'魔法城失守';button(p,nextWave,label,true,state.mode!=='ready');button(p,autoWave,'自動',state.autoWave,false);button(p,fullscreen,'⛶ 全螢幕',false,false);button(p,refresh,'↻ 重新整理',false,false);

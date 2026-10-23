@@ -14,6 +14,8 @@ export const towerLevels = {
   1: { damage: 10, cooldown: 1, range: 140, cost: 10 },
   2: { damage: 18, cooldown: 0.8, range: 120, cost: 75 },
   3: { damage: 30, cooldown: 0.6, range: 145, cost: 125 },
+  4: { damage: 48, cooldown: 0.45, range: 160, cost: 200 },
+  5: { damage: 72, cooldown: 0.35, range: 180, cost: 300 },
 };
 export const towerTypes = { single: { name: '單體塔', splashRadius: 0 }, aoe: { name: '群攻塔', splashRadius: 72 }, beam: { name: '魔法射線塔', splashRadius: 0, beam: true } };
 export const waveConfig = [
@@ -94,7 +96,7 @@ export function createBattlefieldSimulation(session) {
     const index = selectedTowerIndex();
     if (index < 0) return false;
     const tower = state.towers[index];
-    if (tower.level >= 3) return false;
+    if (tower.level >= 5) return false;
     const next = towerLevels[tower.level + 1];
     if (state.gold < next.cost) return false;
     const towers = [...state.towers];
