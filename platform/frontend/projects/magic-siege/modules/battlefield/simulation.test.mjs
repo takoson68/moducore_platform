@@ -205,6 +205,14 @@ test('可指定群攻塔並保留塔型', () => {
   assert.equal(session.state.towers[0].type, 'aoe');
 });
 
+test('可指定魔法射線塔並保留射線塔型', () => {
+  const session = createSession({ selected: { col: 4, row: 4 }, buildType: 'single' });
+  const simulation = createBattlefieldSimulation(session);
+  assert.equal(simulation.setBuildType('beam'), true);
+  assert.equal(simulation.build(), true);
+  assert.equal(session.state.towers[0].type, 'beam');
+});
+
 test('每關波數依序增加三波且節點基準固定', () => {
   assert.deepEqual([1, 2, 3, 4, 5].map(maxWaves), [10, 13, 16, 19, 22]);
   assert.ok(createWaveSequence(13).length > createWaveSequence(10).length);

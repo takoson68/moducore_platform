@@ -15,7 +15,7 @@ export const towerLevels = {
   2: { damage: 18, cooldown: 0.8, range: 120, cost: 75 },
   3: { damage: 30, cooldown: 0.6, range: 145, cost: 125 },
 };
-export const towerTypes = { single: { name: '單體塔', splashRadius: 0 }, aoe: { name: '群攻塔', splashRadius: 72 } };
+export const towerTypes = { single: { name: '單體塔', splashRadius: 0 }, aoe: { name: '群攻塔', splashRadius: 72 }, beam: { name: '魔法射線塔', splashRadius: 0, beam: true } };
 export const waveConfig = [
   null,
   { small: 5, large: 0 }, { small: 8, large: 0 }, { small: 8, large: 1 },
@@ -152,7 +152,7 @@ export function createBattlefieldSimulation(session) {
     const towers = session.state.towers.map((tower) => {
       const stats = towerLevels[tower.level];
       let cooldown = Math.max(0, tower.cooldown - elapsed);
-      if (cooldown > 0) return { ...tower, cooldown };
+      if (cooldown > 0 && tower.type !== 'beam') return { ...tower, cooldown };
       const origin = { x: board.x + tower.col * board.cell + 34, y: board.y + tower.row * board.cell + 34 };
       const locked = enemies.find((enemy) => enemy.id === tower.targetId);
       const lockedPoint = locked ? positions.get(locked.id) : null;
@@ -164,9 +164,12 @@ export function createBattlefieldSimulation(session) {
         return { enemy, distance };
       }, null)?.enemy;
       if (!target) return { ...tower, cooldown: 0, targetId: null };
-      bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex: session.state.towers.indexOf(tower), x: origin.x, y: origin.y, damage: stats.damage, splashRadius: towerTypes[tower.type || 'single'].splashRadius });
+      const sourceTowerIndex = session.state.towers.indexOf(tower);
+      const existingBeam = tower.type === 'beam' && bullets.some((bullet) => bullet.beam && bullet.sourceTowerIndex === sourceTowerIndex && bullet.targetId === target.id);
+      if (existingBeam) bullets = bullets.map((bullet) => bullet.beam && bullet.sourceTowerIndex === sourceTowerIndex && bullet.targetId === target.id ? { ...bullet, damage: stats.damage * elapsed } : bullet);
+      else bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex, x: origin.x, y: origin.y, damage: tower.type === 'beam' ? stats.damage * elapsed : stats.damage, beam: tower.type === 'beam', splashRadius: towerTypes[tower.type || 'single'].splashRadius });
       nextBulletId += 1;
-      return { ...tower, cooldown: stats.cooldown, targetId: target.id };
+      return { ...tower, cooldown: tower.type === 'beam' ? 0 : stats.cooldown, targetId: target.id };
     });
     const damage = new Map();
     const damageByTower = new Map();
@@ -185,8 +188,9 @@ export function createBattlefieldSimulation(session) {
         }
         damageByTower.set(bullet.sourceTowerIndex, (damageByTower.get(bullet.sourceTowerIndex) || 0) + bullet.damage);
         finalHitByTarget.set(bullet.targetId, bullet.sourceTowerIndex);
-        return [];
+        return bullet.beam ? [{ ...bullet, x: target.x, y: target.y }] : [];
       }
+      if (bullet.beam) return [{ ...bullet, x: target.x, y: target.y }];
       const travel = Math.min(distance, 360 * elapsed);
       return [{ ...bullet, x: bullet.x + (target.x - bullet.x) / distance * travel,
         y: bullet.y + (target.y - bullet.y) / distance * travel }];
