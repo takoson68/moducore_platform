@@ -173,7 +173,7 @@ export function createBattlefieldSimulation(session) {
       const sourceTowerIndex = session.state.towers.indexOf(tower);
       const existingBeam = tower.type === 'beam' && bullets.some((bullet) => bullet.beam && bullet.sourceTowerIndex === sourceTowerIndex && bullet.targetId === target.id);
       if (existingBeam) bullets = bullets.map((bullet) => bullet.beam && bullet.sourceTowerIndex === sourceTowerIndex && bullet.targetId === target.id ? { ...bullet, damage: stats.damage * elapsed } : bullet);
-      else bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex, x: origin.x, y: origin.y, damage: tower.type === 'beam' ? stats.damage * elapsed : stats.damage, beam: tower.type === 'beam', splashRadius: towerTypes[tower.type || 'single'].splashRadius });
+      else bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex, towerLevel: tower.level, towerType: tower.type || 'single', x: origin.x, y: origin.y, damage: tower.type === 'beam' ? stats.damage * elapsed : stats.damage, beam: tower.type === 'beam', splashRadius: towerTypes[tower.type || 'single'].splashRadius });
       nextBulletId += 1;
       return { ...tower, cooldown: tower.type === 'beam' ? 0 : stats.cooldown, targetId: target.id };
     });

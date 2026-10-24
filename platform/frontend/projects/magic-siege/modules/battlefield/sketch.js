@@ -60,16 +60,33 @@ function drawBoard(p,state){
   for(const tower of state.towers)drawTower(p,tower,state.selected);
   for(const enemy of state.enemies)drawEnemy(p,enemy,state.level||1);
   for(const bullet of state.bullets){
+    const level=Math.max(1,Math.min(5,bullet.towerLevel||1));
+    const power=level-1;
     if(bullet.beam){
       const source=state.towers[bullet.sourceTowerIndex];
       if(source){
         const sx=board.x+source.col*board.cell+34, sy=board.y+source.row*board.cell+34;
-        p.stroke(226,90,199,55); p.strokeWeight(12); p.line(sx,sy,bullet.x,bullet.y);
-        p.stroke('#ff8be8'); p.strokeWeight(5); p.line(sx,sy,bullet.x,bullet.y);
-        p.stroke('#fff4ff'); p.strokeWeight(2); p.line(sx,sy,bullet.x,bullet.y);
+        const beamColors=['#ff8be8','#ff6edb','#ff55c8','#ff9f45','#fff06a'];
+        p.stroke(226,90,199,45+power*15); p.strokeWeight(12+power*5); p.line(sx,sy,bullet.x,bullet.y);
+        p.stroke(beamColors[power]); p.strokeWeight(5+power*1.5); p.line(sx,sy,bullet.x,bullet.y);
+        p.stroke('#fff4ff'); p.strokeWeight(2+power*0.5); p.line(sx,sy,bullet.x,bullet.y);
       }
-      p.noStroke(); p.fill('#ffd9fb'); p.circle(bullet.x,bullet.y,12);
-    } else { p.noStroke(); p.fill('#ffd66b'); p.circle(bullet.x,bullet.y,9); }
+      p.noStroke(); p.fill('#ffd9fb'); p.circle(bullet.x,bullet.y,12+power*3);
+    } else {
+      const colors=['#ffd66b','#ffba52','#ff875b','#ff5e88','#fb61ec'];
+      const size=9+power*2.5;
+      p.noStroke();
+      p.fill(255,190,90,45+power*18); p.circle(bullet.x,bullet.y,size*2.2);
+      p.fill(colors[power]); p.circle(bullet.x,bullet.y,size);
+      p.fill('#fff6d8'); p.circle(bullet.x,bullet.y,size*0.42);
+    }
+    if(!bullet.beam && bullet.splashRadius>0){
+      const age=(p.millis()/1000+bullet.id*0.37)%0.42;
+      const radius=16+power*4+age*(18+power*5);
+      p.noFill(); p.stroke(151,94+power*25,255,Math.round(190*(1-age/0.42))); p.strokeWeight(2+power*0.8);
+      p.circle(bullet.x,bullet.y,radius*2);
+      if(power>=2){p.stroke(255,210,255,Math.round(130*(1-age/0.42)));p.strokeWeight(1.5);p.circle(bullet.x,bullet.y,radius*1.25);}
+    }
   }
   if(state.selected){const sx=board.x+state.selected.col*board.cell,sy=board.y+state.selected.row*board.cell;p.noFill();p.stroke('#4cecff');p.strokeWeight(4);p.rect(sx+4,sy+4,board.cell-8,board.cell-8,3);}
 }

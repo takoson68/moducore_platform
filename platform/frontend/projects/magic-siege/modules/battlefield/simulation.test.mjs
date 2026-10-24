@@ -232,6 +232,24 @@ test('可指定魔法射線塔並保留射線塔型', () => {
   assert.equal(session.state.towers[0].type, 'beam');
 });
 
+test('攻擊效果快照保留塔型與等級供繪製層逐級呈現', () => {
+  const session = createSession({ mode: 'battle', spawnIndex: 1, nextEnemyId: 2,
+    towers: [
+      { col: 1, row: 2, type: 'single', level: 4, cooldown: 0, targetId: null },
+      { col: 1, row: 3, type: 'aoe', level: 3, cooldown: 0, targetId: null },
+      { col: 2, row: 3, type: 'beam', level: 5, cooldown: 0, targetId: null },
+    ],
+    enemies: [{ id: 1, type: 'boss', hp: 900, maxHp: 900, distance: 120 }],
+  });
+  createBattlefieldSimulation(session).tick(0.02);
+  assert.deepEqual(session.state.bullets.map(({ towerType, towerLevel, beam, splashRadius }) =>
+    ({ towerType, towerLevel, beam, splashRadius })), [
+    { towerType: 'single', towerLevel: 4, beam: false, splashRadius: 0 },
+    { towerType: 'aoe', towerLevel: 3, beam: false, splashRadius: 72 },
+    { towerType: 'beam', towerLevel: 5, beam: true, splashRadius: 0 },
+  ]);
+});
+
 test('每關波數依序增加三波且節點基準固定', () => {
   assert.deepEqual([1, 2, 3, 4, 5].map(maxWaves), [10, 13, 16, 19, 22]);
   assert.ok(createWaveSequence(13).length > createWaveSequence(10).length);
