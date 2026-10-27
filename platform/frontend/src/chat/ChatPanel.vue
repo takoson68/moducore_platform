@@ -87,29 +87,32 @@ function send() {
 <template lang="pug">
   .platform-chat-panel(:class="{ collapsed }" :style="!collapsed ? { width: `${panelWidth}px` } : undefined")
     .platform-chat-resize-handle(v-if="!collapsed" role="separator" aria-label="拖曳調整聊天視窗寬度" @pointerdown="startResize")
-  button.platform-chat-toggle(type="button" @click="toggle")
-    span {{ title }}
-    span.platform-chat-toggle__action
-      span(v-if="collapsed && unreadCount > 0") {{ unreadCount > 99 ? '99+' : unreadCount }} 則未讀
-      span {{ collapsed ? '展開' : '收合' }}
-  template(v-if="!collapsed")
-    .platform-chat-identity(v-if="state.identity") 你的編號：{{ state.identity.displayName }}
-    .platform-chat-status(:class="state.connectionStatus") {{ state.connectionStatus === 'connected' ? '已連線' : '連線中／重試中' }}
-    .platform-chat-messages(ref="messagesEl" aria-live="polite")
-      p(v-if="state.messages.length === 0") 尚無訊息
-      p.platform-chat-message(v-for="message in state.messages" :key="message.messageId" :class="{ own: message.sender?.id === state.identity?.playerId }")
-        strong {{ message.sender?.displayName || '玩家' }}：
-        span {{ message.content }}
-        time(v-if="message.timestamp") {{ formatMessageTime(message.timestamp) }}
-    form.platform-chat-form(@submit.prevent="send")
-      input(v-model="content" maxlength="300" placeholder="輸入訊息" :disabled="state.connectionStatus === 'stopped'" @focus="ensureConnection")
-      button(type="submit" :disabled="!content.trim() || state.connectionStatus !== 'connected'") 送出
+    button.platform-chat-toggle(type="button" @click="toggle")
+      span {{ title }}
+      span.platform-chat-toggle__action
+        span(v-if="collapsed && unreadCount > 0") {{ unreadCount > 99 ? '99+' : unreadCount }} 則未讀
+        span {{ collapsed ? '展開' : '收合' }}
+    template(v-if="!collapsed")
+      .platform-chat-identity(v-if="state.identity") 你的編號：{{ state.identity.displayName }}
+      .platform-chat-status(:class="state.connectionStatus") {{ state.connectionStatus === 'connected' ? '已連線' : '連線中／重試中' }}
+      .platform-chat-messages(ref="messagesEl" aria-live="polite")
+        p(v-if="state.messages.length === 0") 尚無訊息
+        p.platform-chat-message(v-for="message in state.messages" :key="message.messageId" :class="{ own: message.sender?.id === state.identity?.playerId }")
+          strong {{ message.sender?.displayName || '玩家' }}：
+          span {{ message.content }}
+          time(v-if="message.timestamp") {{ formatMessageTime(message.timestamp) }}
+      form.platform-chat-form(@submit.prevent="send")
+        input(v-model="content" maxlength="300" placeholder="輸入訊息" :disabled="state.connectionStatus === 'stopped'" @focus="ensureConnection")
+        button(type="submit" :disabled="!content.trim() || state.connectionStatus !== 'connected'") 送出
 </template>
 
 <style lang="sass">
 .platform-chat-panel
   position: fixed
   z-index: 20
+  display: block
+  box-sizing: border-box
+  min-height: 0
   top: 76px
   left: 12px
   width: min(300px, calc(100vw - 24px))
