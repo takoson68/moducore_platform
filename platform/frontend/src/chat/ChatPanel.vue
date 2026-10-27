@@ -10,6 +10,8 @@ const props = defineProps({
 const collapsed = ref(!props.startExpanded)
 const content = ref('')
 const messagesEl = ref(null)
+const unreadCount = ref(0)
+const seenMessageCount = ref(0)
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
 
@@ -18,11 +20,18 @@ async function scrollMessagesToBottom() {
   if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
 }
 
-watch(() => state.value.messages.length, scrollMessagesToBottom)
+watch(() => state.value.messages.length, messageCount => {
+  const delta = Math.max(0, messageCount - seenMessageCount.value)
+  seenMessageCount.value = messageCount
+  if (collapsed.value) unreadCount.value += delta
+  else scrollMessagesToBottom()
+})
 
 function toggle() {
   collapsed.value = !collapsed.value
   if (!collapsed.value) {
+    unreadCount.value = 0
+    seenMessageCount.value = state.value.messages.length
     props.chat.start()
     scrollMessagesToBottom()
   }
@@ -48,7 +57,9 @@ function send() {
 .platform-chat-panel(:class="{ collapsed }")
   button.platform-chat-toggle(type="button" @click="toggle")
     span {{ title }}
-    span {{ collapsed ? '展開' : '收合' }}
+    span.platform-chat-toggle__action
+      span(v-if="collapsed && unreadCount > 0") {{ unreadCount > 99 ? '99+' : unreadCount }} 則未讀
+      span {{ collapsed ? '展開' : '收合' }}
   template(v-if="!collapsed")
     .platform-chat-identity(v-if="state.identity") 你的編號：{{ state.identity.displayName }}
     .platform-chat-status(:class="state.connectionStatus") {{ state.connectionStatus === 'connected' ? '已連線' : '連線中／重試中' }}
@@ -87,6 +98,16 @@ function send() {
   color: inherit
   cursor: pointer
   font-size: 14px
+.platform-chat-toggle__action
+  display: inline-flex
+  align-items: center
+  gap: 8px
+.platform-chat-toggle__action span:first-child
+  border-radius: 999px
+  padding: 2px 6px
+  background: #d95d5d
+  color: #fff
+  font-size: 10px
 .platform-chat-status
   padding: 5px 2px
   color: #9eb2c9
