@@ -3,13 +3,22 @@ import WebSocket from 'ws'
 const endpoint = process.argv[2]
 if (!endpoint) throw new Error('缺少 WebSocket endpoint')
 
-function connect() {
-  return new Promise((resolve, reject) => {
+async function connect() {
+  let lastError
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
+    try {
+      return await new Promise((resolve, reject) => {
     const socket = new WebSocket(endpoint)
     const timeout = setTimeout(() => { socket.terminate(); reject(new Error('WebSocket 連線逾時')) }, 10000)
     socket.once('open', () => { clearTimeout(timeout); resolve(socket) })
     socket.once('error', reject)
-  })
+      })
+    } catch (error) {
+      lastError = error
+      if (attempt < 6) await new Promise(resolve => setTimeout(resolve, 5000))
+    }
+  }
+  throw lastError
 }
 
 function nextMessage(socket) {

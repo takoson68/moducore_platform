@@ -272,7 +272,7 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 ## 2026-10-27｜M1 獨立 platform-chat Staging 部署
 
 - 本次目標：將平台級 Chat PoC 以獨立 `moducore-chat-poc` Staging 目標發布，不併入 `magic-siege`。
-- 已完成：部署白名單加入 `platform-chat`、Tag `dep_platform-chat_v0.1.0`、獨立 Wrangler 設定、WebSocket remote smoke gate。
+- 已完成：部署白名單加入 `platform-chat`、獨立 Wrangler 設定、WebSocket remote smoke gate；`dep_platform-chat_v0.1.0` 已部署但因邊緣路由傳播時序使 smoke 立即收到 404，未建立成功 Deployment。
 - 本機驗證：Worker 70/70、Chat contract 4/4、Chat PoC 4/4、Wrangler dry-run 通過。
-- 待確認：GitHub Actions 部署結果與兩個遠端 WebSocket 客戶端廣播 smoke。
+- 待確認：以新 Tag 重跑並通過兩個遠端 WebSocket 客戶端廣播 smoke。
 - 下一步：部署成功後進入 M2，設計 Platform Chat Capability API；不修改遊戲內部 Store。
