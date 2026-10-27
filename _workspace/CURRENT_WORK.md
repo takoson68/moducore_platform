@@ -300,4 +300,4 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 
 - 聊天面板依伺服器分配的 `playerId` 比對自己的訊息，套用淡色外框與淡背景；不信任客戶端自報身份。
 - `npm run test:chat` 3/3、magic-siege Cloudflare Build 通過。
-- 本輪準備發布：Platform Chat `v0.1.4` 與 magic-siege `v0.1.45`，分別更新玩家編號與自己的訊息淡底色。
+- 已發布：Platform Chat `dep_platform-chat_v0.1.4` 與 magic-siege `dep_magic-siege_v0.1.45`；兩個 Workflow、WebSocket smoke、Static SPA smoke 與 verified deployment state 均通過。
