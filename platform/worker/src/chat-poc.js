@@ -8,6 +8,8 @@ import {
 const MAX_PROCESSED_REQUESTS = 256
 const MAX_ROOMS = 500
 const CHAT_IDLE_TIMEOUT_MS = 10 * 60 * 1000
+const PLATFORM_AUTH_ORIGIN = 'https://dinecore-staging.takoson68.workers.dev'
+const PLATFORM_AUTH_PROJECT = 'dineCore'
 
 function corsHeaders(request, env) {
   const origin = request.headers.get('Origin')
@@ -34,13 +36,14 @@ async function readJson(request) {
 async function requirePlatformAdmin(request, env) {
   const token = request.headers.get('Authorization')
   if (!token || !/^Bearer [a-f0-9]{64}$/i.test(token)) return { ok: false, status: 401, error: 'UNAUTHORIZED' }
-  if (!env.AUTH_ORIGIN || !env.AUTH_PROJECT_ID) return { ok: false, status: 503, error: 'AUTH_NOT_CONFIGURED' }
-  const response = await fetch(`${env.AUTH_ORIGIN.replace(/\/$/, '')}/api/session`, {
+  const authOrigin = env.AUTH_ORIGIN === PLATFORM_AUTH_ORIGIN ? env.AUTH_ORIGIN : PLATFORM_AUTH_ORIGIN
+  const authProject = env.AUTH_PROJECT_ID === PLATFORM_AUTH_PROJECT ? env.AUTH_PROJECT_ID : PLATFORM_AUTH_PROJECT
+  const response = await fetch(`${authOrigin}/api/session`, {
     cache: 'no-store',
     headers: {
       Authorization: token,
       'Cache-Control': 'no-cache',
-      'X-Project': env.AUTH_PROJECT_ID,
+      'X-Project': authProject,
     },
   })
   const data = await response.json().catch(() => null)
