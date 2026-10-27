@@ -287,4 +287,5 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 - `magic-siege` 透過 `project.config.js` 的 `chat` opt-in 設定掛載平台 Chat；Chat 核心仍位於 `platform/frontend/src/chat/`。
 - 新增可收合 `ChatPanel.vue`，預設不遮擋地圖；遊戲 reset／pause／visibility 流程不會控制 Chat。
 - 驗證：`npm run test:chat` 3/3、`npm run test:game` 8/8、magic-siege Cloudflare Build 通過。
-- 尚未部署 M3；下一步可先做手機版人工驗收，再決定是否以新版本 Tag 發布到 `magic-siege-staging`。
+- 已部署：`dep_magic-siege_v0.1.44`／Commit `e8bd5f2`，Workflow 與 Static SPA smoke 通過；公開網址為 `https://magic-siege-staging.takoson68.workers.dev/`。
+- 下一步：手機人工驗收聊天室收合、展開、發送與遊戲控制不遮擋。
