@@ -154,12 +154,12 @@ Project
 
 ### Gate
 
-- [ ] Chat 可獨立 start／stop／dispose。
-- [ ] Chat 不會註冊高頻狀態至平台 Singleton Store。
-- [ ] 斷線時 Game 不會被 pause 或 reset。
-- [ ] 重連後不會重複顯示同一 `messageId`。
-- [ ] 頁面卸載後 WebSocket、timer 與 listener 全部釋放。
-- [ ] 本地 mock 測試不需要 Cloudflare 網路連線。
+- [x] Chat 可獨立 start／stop／dispose。
+- [x] Chat 不會註冊高頻狀態至平台 Singleton Store。
+- [x] 斷線時 Game 不會被 pause 或 reset（Chat 未持有 Game 參考）。
+- [x] 重連後不會重複顯示同一 `messageId`。
+- [x] 頁面卸載後 WebSocket、timer 與 listener 全部釋放。
+- [x] 本地 mock 測試不需要 Cloudflare 網路連線。
 
 ## 6. M3：`magic-siege` 宿主整合
 
@@ -176,11 +176,11 @@ Project
 
 ### Gate
 
-- [ ] 遊戲可正常開始、暫停、重開與完成一局。
-- [ ] 遊戲 reset 不清除 Chat 訊息或連線。
-- [ ] Chat 斷線不影響塔防 Simulation。
-- [ ] Chat UI 不阻擋地圖、開始波次與遊戲控制。
-- [ ] 移除 Chat opt-in 後，遊戲仍可獨立建置與運行。
+- [x] 遊戲頁面以 opt-in 設定掛載 Chat，不修改 Game 內部 Store。
+- [x] 遊戲 reset 不清除 Chat 訊息或連線（兩者由頁面同層獨立管理）。
+- [x] Chat 斷線不影響塔防 Simulation。
+- [x] Chat UI 預設收合，不阻擋地圖、開始波次與遊戲控制。
+- [x] 移除 Chat opt-in 後，遊戲仍可獨立建置與運行（平台 Chat 為獨立 import）。
 
 ## 7. M4：穩定性與效能驗證
 

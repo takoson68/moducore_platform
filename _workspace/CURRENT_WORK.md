@@ -276,3 +276,15 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 - 本機驗證：Worker 70/70、Chat contract 4/4、Chat PoC 4/4、Wrangler dry-run 通過。
 - 驗收完成：`dep_platform-chat_v0.1.3`／Commit `0b2d391` 已部署至 `https://moducore-chat-poc-staging.takoson68.workers.dev`；兩個遠端 WebSocket 客戶端廣播 smoke 通過，Release 與 verified deployment state 已建立。
 - 下一步：進入 M2，設計 Platform Chat Capability API；不修改遊戲內部 Store。
+## 2026-10-27｜M2 Platform Chat 前端 Runtime 完成
+
+- 新增平台級 `platform/frontend/src/chat/`：`Chat`、`MessageStore`、`ConnectionService`、`MessageService`、mock WebSocket adapter。
+- `Chat` 每個實例建立原始 `Container`；不使用平台 Singleton，不依賴 Game Store，也不持有 Game 生命週期。
+- 驗證：`npm run test:chat` 3/3 通過；`VITE_PROJECT=magic-siege npm run build:cloudflare` 通過。
+- 尚未接入任何 Project UI；下一步為 M3，讓 `magic-siege` 以 opt-in 方式掛載 Chat。
+## 2026-10-27｜M3 magic-siege Chat 宿主整合完成
+
+- `magic-siege` 透過 `project.config.js` 的 `chat` opt-in 設定掛載平台 Chat；Chat 核心仍位於 `platform/frontend/src/chat/`。
+- 新增可收合 `ChatPanel.vue`，預設不遮擋地圖；遊戲 reset／pause／visibility 流程不會控制 Chat。
+- 驗證：`npm run test:chat` 3/3、`npm run test:game` 8/8、magic-siege Cloudflare Build 通過。
+- 尚未部署 M3；下一步可先做手機版人工驗收，再決定是否以新版本 Tag 發布到 `magic-siege-staging`。

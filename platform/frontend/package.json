@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test:game": "node --test scripts/test-game.mjs scripts/test-game-release-assets.mjs",
+    "test:chat": "node --test scripts/test-chat-runtime.mjs",
     "test:employee": "node --experimental-vm-modules --test scripts/test-employee-service.mjs",
     "dev": "vite",
     "build": "vite build",

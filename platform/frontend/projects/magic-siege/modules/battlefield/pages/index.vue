@@ -1,9 +1,15 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Game from '@/game.js';
+import Chat from '@/chat/chat.js';
+import ChatPanel from '@/chat/ChatPanel.vue';
+import projectConfig from 'project-config-entry';
 import { createBattlefieldModule } from '../runtime.js';
 
 const game = new Game();
+const chat = projectConfig.chat?.enabled
+  ? new Chat({ url: projectConfig.chat.endpoint, roomId: projectConfig.chat.roomId })
+  : null;
 const canvasHost = ref(null);
 const errorMessage = ref('');
 const fullscreenFallback = ref(false);
@@ -59,6 +65,7 @@ async function handleVisibilityChange() {
 
 onMounted(async () => {
   document.addEventListener('visibilitychange', handleVisibilityChange);
+  chat?.start();
   try {
     await game.start({ modules: [createBattlefieldModule({
       element: canvasHost.value,
@@ -74,12 +81,14 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange);
   game.dispose().catch(console.error);
+  chat?.dispose();
 });
 </script>
 
 <template lang="pug">
 .magic-siege-stage(:class="{ 'fullscreen-fallback': fullscreenFallback }")
   .magic-siege-canvas(ref="canvasHost")
+  ChatPanel(v-if="chat" :chat="chat")
   p.magic-siege-error(v-if="errorMessage" role="alert") {{ errorMessage }}
 </template>
 
