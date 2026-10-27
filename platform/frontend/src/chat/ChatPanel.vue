@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -9,12 +9,23 @@ const props = defineProps({
 // 預設收合，避免初次進入時遮住塔防地圖與控制按鈕。
 const collapsed = ref(!props.startExpanded)
 const content = ref('')
+const messagesEl = ref(null)
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
 
+async function scrollMessagesToBottom() {
+  await nextTick()
+  if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
+}
+
+watch(() => state.value.messages.length, scrollMessagesToBottom)
+
 function toggle() {
   collapsed.value = !collapsed.value
-  if (!collapsed.value) props.chat.start()
+  if (!collapsed.value) {
+    props.chat.start()
+    scrollMessagesToBottom()
+  }
 }
 
 function ensureConnection() {
@@ -41,7 +52,7 @@ function send() {
   template(v-if="!collapsed")
     .platform-chat-identity(v-if="state.identity") 你的編號：{{ state.identity.displayName }}
     .platform-chat-status(:class="state.connectionStatus") {{ state.connectionStatus === 'connected' ? '已連線' : '連線中／重試中' }}
-    .platform-chat-messages(aria-live="polite")
+    .platform-chat-messages(ref="messagesEl" aria-live="polite")
       p(v-if="state.messages.length === 0") 尚無訊息
       p.platform-chat-message(v-for="message in state.messages" :key="message.messageId" :class="{ own: message.sender?.id === state.identity?.playerId }")
         strong {{ message.sender?.displayName || '玩家' }}：
