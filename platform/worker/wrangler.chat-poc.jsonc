@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "moducore-chat-poc",
+  "main": "src/chat-poc.js",
+  "compatibility_date": "2026-10-21",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "PROJECT_ID": "magic-siege"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PUBLIC_CHAT",
+        "class_name": "PublicChat"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PublicChat"]
+    }
+  ]
+}

@@ -15,6 +15,7 @@ on:
         options:
           - game-demo
           - magic-siege
+          - platform-chat
           - dinecore
           - project-b
       ref:
@@ -125,6 +126,7 @@ jobs:
             platform/worker/migrations/*
             platform/worker/wrangler.dinecore-staging.json
             platform/worker/wrangler.project-b-staging.json
+            platform/worker/wrangler.chat-poc.jsonc
           sparse-checkout-cone-mode: false
 
       - name: Resolve immutable source commit
@@ -148,18 +150,22 @@ jobs:
             platform/worker/package-lock.json
 
       - name: Install frontend dependencies
-        if: matrix.artifactSource != 'release'
+        if: matrix.frontend != false && matrix.artifactSource != 'release'
         working-directory: platform/frontend
         run: npm ci
 
       - name: Build isolated project assets
-        if: matrix.artifactSource != 'release'
+        if: matrix.frontend != false && matrix.artifactSource != 'release'
         working-directory: platform/frontend
         env:
           VITE_PROJECT: ${{ matrix.project }}
           VITE_API_MODE: real
           VITE_RELEASE_VERSION: ${{ matrix.version }}
         run: npm run build:cloudflare -- --outDir ../worker/.assets/${{ matrix.target }}
+
+      - name: Prepare non-frontend Worker package
+        if: matrix.frontend == false && matrix.artifactSource != 'release'
+        run: mkdir -p platform/worker/.assets/${{ matrix.target }}
 
       - name: Package immutable release ZIP
         if: matrix.artifactSource != 'release'
@@ -221,7 +227,7 @@ jobs:
           echo "minimum-schema-version=$minimum_schema" >> "$GITHUB_OUTPUT"
 
       - name: Test frontend API token transport
-        if: matrix.artifactSource != 'release'
+        if: matrix.frontend != false && matrix.artifactSource != 'release'
         working-directory: platform/frontend
         run: npm run test:api
 
@@ -242,7 +248,7 @@ jobs:
 
       - name: Verify Worker bundle
         working-directory: platform/worker
-        run: npm run check -- --config wrangler.${{ matrix.target }}.json
+        run: npm run check -- --config '${{ matrix.config }}'
 
       - name: Check remote D1 schema compatibility
         if: matrix.database == true
@@ -251,7 +257,7 @@ jobs:
           node ../../.deployment-control/platform/worker/scripts/schema-compatibility.mjs check \
             --migrations ../../.deployment-control/platform/worker/migrations \
             --minimum '${{ steps.package-evidence.outputs.minimum-schema-version }}' \
-            --config ../../.deployment-control/platform/worker/wrangler.${{ matrix.target }}.json \
+            --config ../../.deployment-control/platform/worker/${{ matrix.config }} \
             --phase before
 
       - name: Simulate safe staging failure
@@ -265,7 +271,7 @@ jobs:
         working-directory: platform/worker
         run: |
           npx wrangler d1 migrations apply DB --remote \
-            --config ../../.deployment-control/platform/worker/wrangler.${{ matrix.target }}.json
+            --config ../../.deployment-control/platform/worker/${{ matrix.config }}
 
       - name: Verify minimum D1 schema after migration
         if: matrix.database == true
@@ -274,7 +280,7 @@ jobs:
           node ../../.deployment-control/platform/worker/scripts/schema-compatibility.mjs check \
             --migrations ../../.deployment-control/platform/worker/migrations \
             --minimum '${{ steps.package-evidence.outputs.minimum-schema-version }}' \
-            --config ../../.deployment-control/platform/worker/wrangler.${{ matrix.target }}.json \
+            --config ../../.deployment-control/platform/worker/${{ matrix.config }} \
             --phase after
 
       - name: Deploy Worker and Static Assets
@@ -282,7 +288,7 @@ jobs:
         working-directory: platform/worker
         run: |
           set -o pipefail
-          npm run deploy -- --config wrangler.${{ matrix.target }}.json | tee deploy-output.txt
+          npm run deploy -- --config '${{ matrix.config }}' | tee deploy-output.txt
           version_id=$(sed -n 's/^Current Version ID: //p' deploy-output.txt | tail -n 1)
           test -n "$version_id"
           echo "version-id=$version_id" >> "$GITHUB_OUTPUT"
@@ -293,11 +299,16 @@ jobs:
         run: node scripts/smoke.mjs https://${{ matrix.target }}.takoson68.workers.dev ${{ matrix.target }}
 
       - name: Verify static site and SPA fallback
-        if: matrix.database == false
+        if: matrix.database == false && matrix.staticSite != false
         run: |
           base='https://${{ matrix.target }}.takoson68.workers.dev'
           curl --retry 5 --retry-all-errors --retry-delay 2 --fail --silent --show-error "$base/" | grep 'id="app"'
           curl --retry 5 --retry-all-errors --retry-delay 2 --fail --silent --show-error "$base/version-check" | grep 'id="app"'
+
+      - name: Verify WebSocket chat broadcast
+        if: matrix.websocket == true
+        working-directory: platform/worker
+        run: node scripts/smoke-chat-remote.mjs wss://${{ matrix.target }}.takoson68.workers.dev/ws/chat
 
       - name: Verify remote authentication and D1 session lifecycle
         if: matrix.database == true

@@ -11,6 +11,7 @@
 | game-demo | `dep_game-demo_vX.Y.Z` | `game-demo-staging` |
 | dineCore | `dep_dinecore_vX.Y.Z` | `dinecore-staging` |
 | project-b | `dep_project-b_vX.Y.Z` | `project-b-staging` |
+| platform-chat | `dep_platform-chat_vX.Y.Z` | `moducore-chat-poc` |
 
 版本必須採三段式，例如 `0.1.0`。需要預發布版本時可使用 `1.0.0-rc.1`。
 
@@ -39,6 +40,7 @@ git push origin dep_game-demo_v0.1.0
 3. 選擇 `Deploy staging`。
 4. 開啟由該 Tag 觸發的工作。
 5. 確認測試、ZIP、dry-run、部署與 Smoke Test 全部成功。
+6. `game-demo` 另開啟 Staging 遊戲頁，確認畫面右上角版本膠囊顯示 `vX.Y.Z` 並與剛推送的 Tag 版本一致；若仍是舊版，先強制重新整理並檢查建置，不要只以 Actions 成功或 HTTP 200 宣告畫面版本驗收通過。
 
 成功後，Repository 的 `Releases` 會出現相同 Tag，並附帶：
 
@@ -153,6 +155,8 @@ npm start
 ## 9. 版本證據與安全邊界
 
 GitHub Releases 的 ZIP、manifest 與 checksum 是版本控制台的正式版本目錄。控制台顯示 current、previous、Tag、Commit、Cloudflare Version ID 及 Smoke 狀態；切換操作必須觸發受保護 Workflow，不得把 Cloudflare Token 放在瀏覽器。
+
+`game-demo` 畫面版本膠囊由 Workflow 將 Tag 的 SemVer 注入 `VITE_RELEASE_VERSION` 後於建置時產生。Tag Push 驗收時，須同時核對膠囊版本與控制台／Release Tag；不可在 Vue 畫面寫死版本字串。
 
 部署狀態的正式真相來源是 GitHub Deployments：
 

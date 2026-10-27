@@ -12,13 +12,20 @@ test('Tag push 只接受首次建立，手動救援不受影響', () => {
 test('部署 Tag 只解析白名單專案與語意版本', () => {
   assert.deepEqual(parseDeploymentTag('dep_game-demo_v0.1.0'), {
     target: 'game-demo-staging', project: 'game-demo', database: false,
+    frontend: true, staticSite: true, websocket: false, config: 'wrangler.game-demo-staging.json',
     projectKey: 'game-demo', version: '0.1.0', tag: 'dep_game-demo_v0.1.0', artifactSource: 'build',
   })
   assert.equal(parseDeploymentTag('dep_dinecore_v1.2.3-rc.1').target, 'dinecore-staging')
   assert.equal(parseDeploymentTag('dep_project-b_v2.0.0').database, true)
   assert.deepEqual(parseDeploymentTag('dep_magic-siege_v0.1.0'), {
     target: 'magic-siege-staging', project: 'magic-siege', database: false,
+    frontend: true, staticSite: true, websocket: false, config: 'wrangler.magic-siege-staging.json',
     projectKey: 'magic-siege', version: '0.1.0', tag: 'dep_magic-siege_v0.1.0', artifactSource: 'build',
+  })
+  assert.deepEqual(parseDeploymentTag('dep_platform-chat_v0.1.0'), {
+    target: 'moducore-chat-poc', project: 'platform-chat', database: false,
+    frontend: false, staticSite: false, websocket: true, config: 'wrangler.chat-poc.jsonc',
+    projectKey: 'platform-chat', version: '0.1.0', tag: 'dep_platform-chat_v0.1.0', artifactSource: 'build',
   })
 })
 
