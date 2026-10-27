@@ -3,7 +3,8 @@ export function createMockWebSocketPair() {
   class MockWebSocket {
     static OPEN = 1
     static CLOSED = 3
-    constructor() {
+    constructor(url) {
+      this.url = url
       this.readyState = 0
       this.listeners = new Map()
       this.sent = []

@@ -3,6 +3,13 @@ import { MessageStore } from './messageStore.js'
 import { ConnectionService } from './connectionService.js'
 import { MessageService } from './messageService.js'
 
+export function buildChatConnectionUrl(url, roomId = 'public') {
+  if (!url) return url
+  const parsed = new URL(url)
+  parsed.searchParams.set('roomId', roomId)
+  return parsed.toString()
+}
+
 export class Chat {
   constructor({ url, roomId = 'public', WebSocketImpl = globalThis.WebSocket, maxMessages = 100, reconnect = true } = {}) {
     this.phase = 'idle'
@@ -17,7 +24,7 @@ export class Chat {
       const store = this.store('messages')
       const service = this.service('messages')
       return new ConnectionService({
-        url: this.options.url,
+        url: buildChatConnectionUrl(this.options.url, this.options.roomId),
         WebSocketImpl: this.options.WebSocketImpl,
         reconnect: this.options.reconnect,
         onEvent: event => service.receive(event),

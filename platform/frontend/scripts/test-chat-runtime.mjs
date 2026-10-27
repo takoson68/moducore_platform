@@ -9,10 +9,20 @@ test('Chat 使用獨立 Container 並可 start／stop／dispose', async () => {
   await new Promise(resolve => setTimeout(resolve, 0))
   assert.equal(chat.phase, 'running')
   assert.equal(chat.store('messages').state.connectionStatus, 'connected')
+  assert.equal(mock.sockets[0].url, 'ws://mock/?roomId=public')
   chat.stop()
   assert.equal(chat.store('messages').state.connectionStatus, 'stopped')
   chat.dispose()
   assert.equal(chat.phase, 'disposed')
+})
+
+test('Chat 建立 WebSocket 時會把 roomId 放入連線 URL', async () => {
+  const mock = createMockWebSocketPair()
+  const chat = new Chat({ url: 'wss://chat.example/ws/chat?source=game', roomId: 'game-demo', WebSocketImpl: mock.WebSocketImpl, reconnect: false })
+  chat.start()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  assert.equal(mock.sockets[0].url, 'wss://chat.example/ws/chat?source=game&roomId=game-demo')
+  chat.dispose()
 })
 
 test('MessageService 可驗證送出事件，MessageStore 去重並限制 ring buffer', () => {
