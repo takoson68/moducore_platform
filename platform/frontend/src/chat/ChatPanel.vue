@@ -19,7 +19,8 @@ let resizeStartWidth = 300
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
 
-function formatMessageTime(timestamp) {
+function formatMessageTime(message) {
+  const timestamp = message?.serverTime || message?.timestamp
   if (!timestamp) return ''
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
@@ -100,7 +101,7 @@ function send() {
         p.platform-chat-message(v-for="message in state.messages" :key="message.messageId" :class="{ own: message.sender?.id === state.identity?.playerId }")
           strong {{ message.sender?.displayName || '玩家' }}：
           span {{ message.content }}
-          time(v-if="message.timestamp") {{ formatMessageTime(message.timestamp) }}
+          time(v-if="message.serverTime || message.timestamp") {{ formatMessageTime(message) }}
       form.platform-chat-form(@submit.prevent="send")
         input(v-model="content" maxlength="300" placeholder="輸入訊息" :disabled="state.connectionStatus === 'stopped'" @focus="ensureConnection")
         button(type="submit" :disabled="!content.trim() || state.connectionStatus !== 'connected'") 送出
