@@ -15,6 +15,11 @@ const seenMessageCount = ref(0)
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
 
+function formatMessageTime(timestamp) {
+  if (!timestamp) return ''
+  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 async function scrollMessagesToBottom() {
   await nextTick()
   if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
@@ -68,6 +73,7 @@ function send() {
       p.platform-chat-message(v-for="message in state.messages" :key="message.messageId" :class="{ own: message.sender?.id === state.identity?.playerId }")
         strong {{ message.sender?.displayName || '玩家' }}：
         span {{ message.content }}
+        time(v-if="message.timestamp") {{ formatMessageTime(message.timestamp) }}
     form.platform-chat-form(@submit.prevent="send")
       input(v-model="content" maxlength="300" placeholder="輸入訊息" :disabled="state.connectionStatus === 'stopped'" @focus="ensureConnection")
       button(type="submit" :disabled="!content.trim() || state.connectionStatus !== 'connected'") 送出
@@ -127,12 +133,21 @@ function send() {
   font-size: 12px
   p
     margin: 0
+.platform-chat-message
+  display: flex
+  align-items: baseline
 .platform-chat-message strong
   color: #6edcff
 .platform-chat-message.own
   padding: 3px 5px
   border-radius: 5px
   background: rgba(70, 180, 225, .22)
+.platform-chat-message time
+  margin-left: auto
+  padding-left: 8px
+  color: rgba(220, 236, 255, .58)
+  font-size: 10px
+  white-space: nowrap
 .platform-chat-form
   display: flex
   gap: 5px
