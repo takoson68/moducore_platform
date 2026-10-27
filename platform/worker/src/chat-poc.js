@@ -38,7 +38,7 @@ async function requirePlatformAdmin(request, env) {
   if (!token || !/^Bearer [a-f0-9]{64}$/i.test(token)) return { ok: false, status: 401, error: 'UNAUTHORIZED' }
   const authOrigin = env.AUTH_ORIGIN === PLATFORM_AUTH_ORIGIN ? env.AUTH_ORIGIN : PLATFORM_AUTH_ORIGIN
   const authProject = env.AUTH_PROJECT_ID === PLATFORM_AUTH_PROJECT ? env.AUTH_PROJECT_ID : PLATFORM_AUTH_PROJECT
-  const response = await fetch(`${authOrigin}/api/session`, {
+  const authRequest = new Request(`${authOrigin}/api/session`, {
     cache: 'no-store',
     headers: {
       Authorization: token,
@@ -46,10 +46,12 @@ async function requirePlatformAdmin(request, env) {
       'X-Project': authProject,
     },
   })
+  const response = env.AUTH_SERVICE
+    ? await env.AUTH_SERVICE.fetch(authRequest)
+    : await fetch(authRequest)
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.authenticated || data.user?.role !== 'super_admin') {
-    const upstreamStatus = response.ok ? 'ROLE' : `HTTP_${response.status}`
-    return { ok: false, status: response.ok ? 403 : 401, error: `FORBIDDEN_${upstreamStatus}` }
+    return { ok: false, status: response.ok ? 403 : 401, error: 'FORBIDDEN' }
   }
   return { ok: true, user: data.user }
 }

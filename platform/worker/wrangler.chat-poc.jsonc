@@ -11,6 +11,9 @@
     "AUTH_ORIGIN": "https://dinecore-staging.takoson68.workers.dev",
     "AUTH_PROJECT_ID": "dineCore"
   },
+  "services": [
+    { "binding": "AUTH_SERVICE", "service": "dinecore-staging" }
+  ],
   "durable_objects": {
     "bindings": [
       {
