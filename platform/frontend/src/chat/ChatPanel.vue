@@ -18,6 +18,12 @@ let resizeStartX = 0
 let resizeStartWidth = 300
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
+const connectionIndicator = computed(() => {
+  if (state.value.connectionStatus === 'connected') return { tone: 'online', label: '線上' }
+  if (state.value.connectionStatus === 'connecting') return { tone: 'connecting', label: '連線中' }
+  if (state.value.connectionStatus === 'reconnecting') return { tone: 'connecting', label: '重新連線中' }
+  return { tone: 'offline', label: '離線' }
+})
 
 function formatMessageTime(message) {
   const timestamp = message?.serverTime || message?.timestamp
@@ -89,7 +95,9 @@ function send() {
   .platform-chat-panel(:class="{ collapsed }" :style="!collapsed ? { width: `${panelWidth}px` } : undefined")
     .platform-chat-resize-handle(v-if="!collapsed" role="separator" aria-label="拖曳調整聊天視窗寬度" @pointerdown="startResize")
     button.platform-chat-toggle(type="button" @click="toggle")
-      span {{ title }}
+      span.platform-chat-toggle__title
+        span.platform-chat-connection-indicator(:class="connectionIndicator.tone" role="status" :aria-label="connectionIndicator.label" :title="connectionIndicator.label")
+        span {{ title }}
       span.platform-chat-toggle__action
         span(v-if="collapsed && unreadCount > 0") {{ unreadCount > 99 ? '99+' : unreadCount }} 則未讀
         span {{ collapsed ? '展開' : '收合' }}
@@ -146,6 +154,24 @@ function send() {
   color: inherit
   cursor: pointer
   font-size: 14px
+.platform-chat-toggle__title
+  display: inline-flex
+  align-items: center
+  gap: 6px
+.platform-chat-connection-indicator
+  display: inline-block
+  width: 8px
+  height: 8px
+  flex: 0 0 8px
+  border-radius: 50%
+  background: #8b98a8
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .18)
+  &.online
+    background: #4ce39b
+    box-shadow: 0 0 7px rgba(76, 227, 155, .72)
+  &.connecting
+    background: #f1c75b
+    box-shadow: 0 0 7px rgba(241, 199, 91, .62)
 .platform-chat-toggle__action
   display: inline-flex
   align-items: center
