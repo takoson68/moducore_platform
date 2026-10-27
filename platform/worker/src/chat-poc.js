@@ -13,6 +13,7 @@ export class PublicChat {
     this.connections = new Map()
     this.processedRequests = new Map()
     this.sequence = 0
+    this.playerSequence = 0
   }
 
   async fetch(request) {
@@ -25,17 +26,23 @@ export class PublicChat {
     const pair = new WebSocketPair()
     const client = pair[0]
     const server = pair[1]
-    const senderId = `anonymous_${crypto.randomUUID()}`
+    const connectionId = `connection_${crypto.randomUUID()}`
+    const playerNumber = ++this.playerSequence
+    const playerId = `player_${String(playerNumber).padStart(3, '0')}`
+    const displayName = `玩家${String(playerNumber).padStart(3, '0')}`
 
     server.accept()
-    this.connections.set(server, { roomId, senderId })
+    this.connections.set(server, { roomId, connectionId, playerId, playerNumber, displayName })
     server.addEventListener('message', (event) => this.handleMessage(server, event.data))
     server.addEventListener('close', () => this.connections.delete(server))
     server.addEventListener('error', () => this.connections.delete(server))
     this.send(server, {
       type: 'chat.ready',
       payload: {
-        connectionId: senderId,
+        connectionId,
+        playerId,
+        playerNumber,
+        displayName,
         roomId,
         serverTime: Date.now(),
       },
@@ -74,7 +81,7 @@ export class PublicChat {
 
     if (value.type === 'chat.join') return
 
-    const duplicate = this.processedRequests.get(`${connection.senderId}:${value.requestId}`)
+    const duplicate = this.processedRequests.get(`${connection.connectionId}:${value.requestId}`)
     if (duplicate) {
       this.send(socket, { type: 'chat.message.ack', requestId: value.requestId, payload: duplicate })
       return
@@ -84,12 +91,12 @@ export class PublicChat {
       roomId: connection.roomId,
       messageId: `msg_${crypto.randomUUID()}`,
       sequence: ++this.sequence,
-      sender: { id: connection.senderId, displayName: '玩家' },
+      sender: { id: connection.playerId, displayName: connection.displayName, playerNumber: connection.playerNumber },
       content: value.payload.content,
       serverTime: Date.now(),
     }
     const acknowledgement = { messageId: message.messageId, acceptedAt: message.serverTime }
-    this.rememberRequest(`${connection.senderId}:${value.requestId}`, acknowledgement)
+    this.rememberRequest(`${connection.connectionId}:${value.requestId}`, acknowledgement)
     this.send(socket, { type: 'chat.message.ack', requestId: value.requestId, payload: acknowledgement })
     this.broadcast({ type: 'chat.message.created', payload: message })
   }

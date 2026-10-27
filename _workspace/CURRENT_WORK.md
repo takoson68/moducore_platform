@@ -289,3 +289,15 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 - 驗證：`npm run test:chat` 3/3、`npm run test:game` 8/8、magic-siege Cloudflare Build 通過。
 - 已部署：`dep_magic-siege_v0.1.44`／Commit `e8bd5f2`，Workflow 與 Static SPA smoke 通過；公開網址為 `https://magic-siege-staging.takoson68.workers.dev/`。
 - 下一步：手機人工驗收聊天室收合、展開、發送與遊戲控制不遮擋。
+## 2026-10-27｜Platform Chat 玩家編號完成
+
+- Chat Worker 會在公共房間為每個連線分配 `player_001`、`player_002`……，並在 `chat.ready` 與訊息 sender 提供伺服器產生的編號／顯示名稱。
+- 前端 Chat Store 保存自己的 identity，聊天室面板顯示「你的編號」與每則訊息的玩家編號。
+- 驗證：Chat Worker 4/4、Worker 全套 70/70、Chat Runtime 3/3、magic-siege Build 通過。
+- 尚未部署本輪變更；需發布平台 Chat 新版本後，magic-siege 才會在既有網址看到編號。
+
+## 2026-10-27｜Platform Chat 自己訊息辨識樣式
+
+- 聊天面板依伺服器分配的 `playerId` 比對自己的訊息，套用淡色外框與淡背景；不信任客戶端自報身份。
+- `npm run test:chat` 3/3、magic-siege Cloudflare Build 通過。
+- 本輪準備發布：Platform Chat `v0.1.4` 與 magic-siege `v0.1.45`，分別更新玩家編號與自己的訊息淡底色。

@@ -21,6 +21,7 @@
 ## 契約原則
 
 - 客戶端事件不得提供正式 sender、message ID、server time 或 sequence。
+- 伺服器在 `chat.ready` 分配本房間連線的 `playerId`、`playerNumber` 與 `displayName`；客戶端不得自行指定。
 - `projectId` 是伺服器／宿主上下文，不由訊息 payload 信任。
 - `roomId` 必須通過白名單格式驗證，並與 `projectId` 組成隔離 namespace。
 - 未知事件、未知版本、未知頂層欄位與超長內容必須拒絕。

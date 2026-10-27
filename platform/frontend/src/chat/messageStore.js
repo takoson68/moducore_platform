@@ -2,6 +2,7 @@ import { createStore } from '../app/stores/_storeFactory.js'
 
 const DEFAULT_STATE = {
   connectionStatus: 'idle',
+  identity: null,
   messages: [],
   errors: [],
   reconnectAttempt: 0,
@@ -20,6 +21,10 @@ export class MessageStore {
 
   setConnectionStatus(connectionStatus, reconnectAttempt = 0) {
     this.store.set({ ...this.store.get(), connectionStatus, reconnectAttempt })
+  }
+
+  setIdentity(identity) {
+    this.store.set({ ...this.store.get(), identity })
   }
 
   addError(error) {

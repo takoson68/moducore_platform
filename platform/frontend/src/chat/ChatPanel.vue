@@ -28,10 +28,11 @@ function send() {
     span 公共聊天室
     span {{ collapsed ? '展開' : '收合' }}
   template(v-if="!collapsed")
+    .platform-chat-identity(v-if="state.identity") 你的編號：{{ state.identity.displayName }}
     .platform-chat-status(:class="state.connectionStatus") {{ state.connectionStatus === 'connected' ? '已連線' : '連線中／重試中' }}
     .platform-chat-messages(aria-live="polite")
       p(v-if="state.messages.length === 0") 尚無訊息
-      p.platform-chat-message(v-for="message in state.messages" :key="message.messageId")
+      p.platform-chat-message(v-for="message in state.messages" :key="message.messageId" :class="{ own: message.sender?.id === state.identity?.playerId }")
         strong {{ message.sender?.displayName || '玩家' }}：
         span {{ message.content }}
     form.platform-chat-form(@submit.prevent="send")
@@ -70,6 +71,9 @@ function send() {
   font-size: 11px
   &.connected
     color: #56e0b6
+.platform-chat-identity
+  color: #ffd76e
+  font-size: 12px
 .platform-chat-messages
   display: flex
   flex-direction: column
@@ -82,6 +86,10 @@ function send() {
     margin: 0
 .platform-chat-message strong
   color: #6edcff
+.platform-chat-message.own
+  padding: 3px 5px
+  border-radius: 5px
+  background: rgba(110, 220, 255, .1)
 .platform-chat-form
   display: flex
   gap: 5px

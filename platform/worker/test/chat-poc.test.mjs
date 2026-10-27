@@ -52,8 +52,12 @@ test('公共房間可建立連線、廣播訊息並回傳伺服器身分', async
     const base = (await mf.ready).toString()
     const first = await connect(base)
     const second = await connect(base)
-    await waitFor(first.messages, (event) => event.type === 'chat.ready')
-    await waitFor(second.messages, (event) => event.type === 'chat.ready')
+    const firstReady = await waitFor(first.messages, (event) => event.type === 'chat.ready')
+    const secondReady = await waitFor(second.messages, (event) => event.type === 'chat.ready')
+    assert.equal(firstReady.payload.playerId, 'player_001')
+    assert.equal(firstReady.payload.displayName, '玩家001')
+    assert.equal(secondReady.payload.playerId, 'player_002')
+    assert.notEqual(firstReady.payload.connectionId, secondReady.payload.connectionId)
 
     first.socket.send(JSON.stringify({ version: 1, type: 'chat.message.send', requestId: 'req-1',
       payload: { roomId: 'public', content: '大家好' } }))
@@ -62,7 +66,9 @@ test('公共房間可建立連線、廣播訊息並回傳伺服器身分', async
     const acknowledgement = await waitFor(first.messages, (event) => event.type === 'chat.message.ack')
     assert.equal(created.payload.content, '大家好')
     assert.match(created.payload.messageId, /^msg_\w+/)
-    assert.match(created.payload.sender.id, /^anonymous_/)
+    assert.equal(created.payload.sender.id, 'player_001')
+    assert.equal(created.payload.sender.displayName, '玩家001')
+    assert.equal(created.payload.sender.playerNumber, 1)
     assert.equal(acknowledgement.payload.messageId, created.payload.messageId)
 
     first.socket.close()
