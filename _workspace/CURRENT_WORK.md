@@ -305,4 +305,4 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 
 - 發現既有 Durable Object `magic-siege:public` 熱執行個體仍執行舊版程式，故線上仍回傳 `anonymous_*`；不是前端身份比對錯誤。
 - Chat Worker 改用 `CHAT_NAMESPACE_VERSION=2` 建立新 namespace，避免舊房間執行個體遮蔽玩家編號更新。
-- 待發布 Platform Chat `v0.1.5` 後重新確認 `chat.ready` 回傳 `player_001`。
+- 已發布 Platform Chat `dep_platform-chat_v0.1.5`；遠端 `chat.ready` 已確認回傳 `player_001`／玩家001。
