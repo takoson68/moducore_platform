@@ -1,6 +1,8 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { getDineCoreStaffToken } from '@project/services/dineCoreStaffAuthService.js'
+import { Chat } from './chat.js'
+import ChatPanel from './ChatPanel.vue'
 
 const props = defineProps({
   apiOrigin: {
@@ -16,9 +18,21 @@ const error = ref('')
 const notice = ref('')
 const newRoomId = ref('')
 const newDisplayName = ref('')
+const activeChat = ref(null)
+const activeRoom = ref(null)
 
 function endpoint(path) {
   return `${props.apiOrigin.replace(/\/$/, '')}${path}`
+}
+
+function websocketEndpoint() {
+  return props.apiOrigin.replace(/^http/, 'ws').replace(/\/$/, '') + '/ws/chat'
+}
+
+function enterRoom(room) {
+  activeChat.value?.dispose()
+  activeRoom.value = room
+  activeChat.value = new Chat({ url: websocketEndpoint(), roomId: room.roomId })
 }
 
 function authHeaders(withBody = false) {
@@ -113,6 +127,7 @@ async function deactivateRoom(room) {
 }
 
 onMounted(loadRooms)
+onBeforeUnmount(() => activeChat.value?.dispose())
 </script>
 
 <template lang="pug">
@@ -148,8 +163,12 @@ onMounted(loadRooms)
         small 建立於 {{ new Date(room.createdAt).toLocaleString() }}
       .chat-room-admin__room-actions
         span.chat-room-admin__status {{ room.status === 'active' ? '啟用中' : '已停用' }}
+        button(type="button" :disabled="room.status !== 'active'" @click="enterRoom(room)") 進入聊天室
         button(type="button" @click="renameRoom(room)") 改名
         button.chat-room-admin__danger(type="button" @click="deactivateRoom(room)") 停用
+
+  p.chat-room-admin__selected(v-if="activeRoom") 目前測試聊天室：{{ activeRoom.displayName }}（{{ activeRoom.roomId }}）
+  ChatPanel(v-if="activeChat" :chat="activeChat")
 </template>
 
 <style lang="sass">
@@ -285,6 +304,11 @@ onMounted(loadRooms)
 .chat-room-admin__status
   color: #2d6f6d
   font-size: 12px
+
+.chat-room-admin__selected
+  margin: 0
+  color: #2d6f6d
+  font-size: 13px
 
 .chat-room-admin__danger
   background: #9b4b43 !important
