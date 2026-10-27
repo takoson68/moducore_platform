@@ -89,7 +89,7 @@ function send() {
 .platform-chat-message.own
   padding: 3px 5px
   border-radius: 5px
-  background: rgba(110, 220, 255, .1)
+  background: rgba(70, 180, 225, .22)
 .platform-chat-form
   display: flex
   gap: 5px
