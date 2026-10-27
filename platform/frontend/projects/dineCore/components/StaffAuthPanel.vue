@@ -29,6 +29,8 @@ const loginForm = reactive({
 
 const demoAccount = 'manager'
 const demoPassword = 'manager123'
+const platformAdminAccount = 'super_admin'
+const platformAdminPassword = 'superadmin123'
 
 async function submitStaffLogin() {
   await staffAuth.signIn({
@@ -44,6 +46,12 @@ function clearLoginError() {
 function fillDemoCredentials() {
   loginForm.account = demoAccount
   loginForm.password = demoPassword
+  clearLoginError()
+}
+
+function fillPlatformAdminCredentials() {
+  loginForm.account = platformAdminAccount
+  loginForm.password = platformAdminPassword
   clearLoginError()
 }
 </script>
@@ -90,6 +98,11 @@ function fillDemoCredentials() {
         span 測試帳號：
         button.staff-auth-form__demo-fill(type="button" @click="fillDemoCredentials()")
           code {{ `${demoAccount} / ${demoPassword}` }}
+          span （點擊填入資料）
+      .staff-auth-form__hint
+        span 平台管理員測試帳號：
+        button.staff-auth-form__demo-fill(type="button" @click="fillPlatformAdminCredentials()")
+          code {{ `${platformAdminAccount} / ${platformAdminPassword}` }}
           span （點擊填入資料）
   .staff-demo-qr.staff-demo-qr--floating
     h2.staff-demo-qr__title 桌號 {{ props.demoTableCode }} 手機點餐入口
