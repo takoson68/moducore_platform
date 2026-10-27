@@ -65,6 +65,17 @@ watch(() => state.value.messages.length, messageCount => {
   else scrollMessagesToBottom()
 })
 
+// 切換聊天室時 Vue 可能重用同一個面板實例；若面板原本已展開，必須主動啟動新的 Chat 連線，才能收到該房間的歷史訊息。
+watch(() => props.chat, chat => {
+  if (!chat) return
+  unreadCount.value = 0
+  seenMessageCount.value = state.value.messages.length
+  if (!collapsed.value) {
+    chat.start()
+    scrollMessagesToBottom()
+  }
+}, { immediate: true })
+
 function toggle() {
   collapsed.value = !collapsed.value
   if (!collapsed.value) {
