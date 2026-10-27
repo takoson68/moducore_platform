@@ -52,3 +52,18 @@ test('多個 Chat 實例的 Container 與 Store 彼此隔離', () => {
   chatA.dispose()
   chatB.dispose()
 })
+
+test('Chat 可在閒置斷線後由使用者重新展開時重連', async () => {
+  const mock = createMockWebSocketPair()
+  const chat = new Chat({ url: 'ws://idle', WebSocketImpl: mock.WebSocketImpl })
+  chat.start()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  const firstSocket = mock.sockets[0]
+  firstSocket._emit('close', { code: 4000, reason: 'idle_timeout' })
+  assert.equal(chat.store('messages').state.connectionStatus, 'idle')
+  chat.start()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  assert.equal(mock.sockets.length, 2)
+  assert.equal(chat.store('messages').state.connectionStatus, 'connected')
+  chat.dispose()
+})

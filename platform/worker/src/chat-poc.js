@@ -7,6 +7,7 @@ import {
 
 const MAX_PROCESSED_REQUESTS = 256
 const MAX_ROOMS = 500
+const CHAT_IDLE_TIMEOUT_MS = 10 * 60 * 1000
 
 function corsHeaders(request, env) {
   const origin = request.headers.get('Origin')
@@ -35,7 +36,12 @@ async function requirePlatformAdmin(request, env) {
   if (!token || !/^Bearer [a-f0-9]{64}$/i.test(token)) return { ok: false, status: 401, error: 'UNAUTHORIZED' }
   if (!env.AUTH_ORIGIN || !env.AUTH_PROJECT_ID) return { ok: false, status: 503, error: 'AUTH_NOT_CONFIGURED' }
   const response = await fetch(`${env.AUTH_ORIGIN.replace(/\/$/, '')}/api/session`, {
-    headers: { Authorization: token, 'X-Project': env.AUTH_PROJECT_ID },
+    cache: 'no-store',
+    headers: {
+      Authorization: token,
+      'Cache-Control': 'no-cache',
+      'X-Project': env.AUTH_PROJECT_ID,
+    },
   })
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.authenticated || data.user?.role !== 'super_admin') {
@@ -171,10 +177,12 @@ export class PublicChat {
     const displayName = `玩家${String(playerNumber).padStart(3, '0')}`
 
     server.accept()
-    this.connections.set(server, { roomId, connectionId, playerId, playerNumber, displayName })
+    const connection = { roomId, connectionId, playerId, playerNumber, displayName, idleTimer: null }
+    this.connections.set(server, connection)
+    this.scheduleIdleDisconnect(server, connection)
     server.addEventListener('message', (event) => this.handleMessage(server, event.data))
-    server.addEventListener('close', () => this.connections.delete(server))
-    server.addEventListener('error', () => this.connections.delete(server))
+    server.addEventListener('close', () => this.removeConnection(server))
+    server.addEventListener('error', () => this.removeConnection(server))
     this.send(server, {
       type: 'chat.ready',
       payload: {
@@ -188,6 +196,21 @@ export class PublicChat {
     })
 
     return new Response(null, { status: 101, webSocket: client })
+  }
+
+  removeConnection(socket) {
+    const connection = this.connections.get(socket)
+    if (connection?.idleTimer) clearTimeout(connection.idleTimer)
+    this.connections.delete(socket)
+  }
+
+  scheduleIdleDisconnect(socket, connection) {
+    if (connection.idleTimer) clearTimeout(connection.idleTimer)
+    connection.idleTimer = setTimeout(() => {
+      if (this.connections.get(socket) !== connection) return
+      connection.idleTimer = null
+      try { socket.close(4000, 'idle_timeout') } catch { this.removeConnection(socket) }
+    }, CHAT_IDLE_TIMEOUT_MS)
   }
 
   handleMessage(socket, raw) {
@@ -207,6 +230,7 @@ export class PublicChat {
 
     const connection = this.connections.get(socket)
     if (!connection) return
+    this.scheduleIdleDisconnect(socket, connection)
 
     if (value.type === 'chat.ping') {
       this.send(socket, { type: 'chat.pong', payload: { serverTime: Date.now() } })

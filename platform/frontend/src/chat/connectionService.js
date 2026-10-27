@@ -54,9 +54,14 @@ export class ConnectionService {
       }
     })
     socket.addEventListener?.('error', error => this.onError?.(error))
-    socket.addEventListener?.('close', () => {
+    socket.addEventListener?.('close', event => {
       if (this.socket === socket) this.socket = null
       if (this.stopped || !this.reconnect) return
+      if (event?.code === 4000 || event?.reason === 'idle_timeout') {
+        this.stopped = true
+        this.onStatus?.('idle', 0)
+        return
+      }
       this.attempt += 1
       const delay = Math.min(30000, 500 * (2 ** Math.min(this.attempt - 1, 6)))
       this.onStatus?.('reconnecting', this.attempt)

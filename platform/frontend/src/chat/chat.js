@@ -40,7 +40,10 @@ export class Chat {
   }
 
   start() {
-    if (this.phase === 'running') return
+    if (this.phase === 'running') {
+      this.service('connection').start()
+      return
+    }
     if (this.phase === 'disposed') throw new Error('[Chat] 已 dispose，請建立新實例')
     this.phase = 'running'
     this.service('connection').start()

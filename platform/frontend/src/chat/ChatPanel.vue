@@ -11,6 +11,15 @@ const content = ref('')
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
 
+function toggle() {
+  collapsed.value = !collapsed.value
+  if (!collapsed.value) props.chat.start()
+}
+
+function ensureConnection() {
+  if (state.value.connectionStatus === 'idle') props.chat.start()
+}
+
 function send() {
   const value = content.value.trim()
   if (!value || state.value.connectionStatus !== 'connected') return
@@ -25,7 +34,7 @@ function send() {
 
 <template lang="pug">
 .platform-chat-panel(:class="{ collapsed }")
-  button.platform-chat-toggle(type="button" @click="collapsed = !collapsed")
+  button.platform-chat-toggle(type="button" @click="toggle")
     span {{ title }}
     span {{ collapsed ? '展開' : '收合' }}
   template(v-if="!collapsed")
@@ -37,7 +46,7 @@ function send() {
         strong {{ message.sender?.displayName || '玩家' }}：
         span {{ message.content }}
     form.platform-chat-form(@submit.prevent="send")
-      input(v-model="content" maxlength="300" placeholder="輸入訊息" :disabled="state.connectionStatus !== 'connected'")
+      input(v-model="content" maxlength="300" placeholder="輸入訊息" :disabled="state.connectionStatus === 'stopped'" @focus="ensureConnection")
       button(type="submit" :disabled="!content.trim() || state.connectionStatus !== 'connected'") 送出
 </template>
 
