@@ -9,9 +9,7 @@ const props = defineProps({
 const collapsed = ref(true)
 const content = ref('')
 const state = computed(() => props.chat.store('messages').state)
-const title = computed(() => state.value.identity?.displayName
-  ? `公共聊天室・${state.value.identity.displayName}`
-  : '公共聊天室')
+const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
 
 function send() {
   const value = content.value.trim()

@@ -69,6 +69,10 @@ export class Chat {
   list() {
     return this.container.list()
   }
+
+  get roomId() {
+    return this.options.roomId
+  }
 }
 
 export default Chat
