@@ -48,7 +48,8 @@ async function requirePlatformAdmin(request, env) {
   })
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.authenticated || data.user?.role !== 'super_admin') {
-    return { ok: false, status: response.ok ? 403 : 401, error: 'FORBIDDEN' }
+    const upstreamStatus = response.ok ? 'ROLE' : `HTTP_${response.status}`
+    return { ok: false, status: response.ok ? 403 : 401, error: `FORBIDDEN_${upstreamStatus}` }
   }
   return { ok: true, user: data.user }
 }
