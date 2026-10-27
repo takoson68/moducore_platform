@@ -301,3 +301,8 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 - 聊天面板依伺服器分配的 `playerId` 比對自己的訊息，套用淡色外框與淡背景；不信任客戶端自報身份。
 - `npm run test:chat` 3/3、magic-siege Cloudflare Build 通過。
 - 已發布：Platform Chat `dep_platform-chat_v0.1.4` 與 magic-siege `dep_magic-siege_v0.1.45`；兩個 Workflow、WebSocket smoke、Static SPA smoke 與 verified deployment state 均通過。
+## 2026-10-27｜Platform Chat namespace rollover
+
+- 發現既有 Durable Object `magic-siege:public` 熱執行個體仍執行舊版程式，故線上仍回傳 `anonymous_*`；不是前端身份比對錯誤。
+- Chat Worker 改用 `CHAT_NAMESPACE_VERSION=2` 建立新 namespace，避免舊房間執行個體遮蔽玩家編號更新。
+- 待發布 Platform Chat `v0.1.5` 後重新確認 `chat.ready` 回傳 `player_001`。

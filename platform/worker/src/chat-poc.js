@@ -135,7 +135,8 @@ export default {
       return new Response('Project or room is not configured', { status: 503 })
     }
 
-    const id = env.PUBLIC_CHAT.idFromName(namespace)
+    const namespaceVersion = env.CHAT_NAMESPACE_VERSION || '1'
+    const id = env.PUBLIC_CHAT.idFromName(`${namespace}:v${namespaceVersion}`)
     return env.PUBLIC_CHAT.get(id).fetch(request)
   },
 }

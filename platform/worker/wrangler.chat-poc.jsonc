@@ -6,7 +6,8 @@
   "workers_dev": true,
   "preview_urls": false,
   "vars": {
-    "PROJECT_ID": "magic-siege"
+    "PROJECT_ID": "magic-siege",
+    "CHAT_NAMESPACE_VERSION": "2"
   },
   "durable_objects": {
     "bindings": [

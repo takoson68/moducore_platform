@@ -21,7 +21,7 @@ async function createRuntime(projectId = 'magic-siege') {
     modulesRoot: platformRoot,
     compatibilityDate: '2026-10-19',
     durableObjects: { PUBLIC_CHAT: { className: 'PublicChat', useSQLite: true } },
-    bindings: { PROJECT_ID: projectId },
+    bindings: { PROJECT_ID: projectId, CHAT_NAMESPACE_VERSION: '2' },
     port: 0,
   }))
 }
