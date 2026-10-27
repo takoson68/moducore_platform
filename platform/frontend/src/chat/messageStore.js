@@ -37,11 +37,29 @@ export class MessageStore {
     if (!message?.messageId) return false
     const current = this.store.get()
     if (current.messages.some(item => item.messageId === message.messageId)) return false
-    const messages = [...current.messages, message]
-      .sort((left, right) => (left.sequence || 0) - (right.sequence || 0))
-      .slice(-this.maxMessages)
+    const lastMessage = current.messages[current.messages.length - 1]
+    const arrivesInOrder = !lastMessage || (message.sequence || 0) >= (lastMessage.sequence || 0)
+    const messages = arrivesInOrder
+      ? [...current.messages, message].slice(-this.maxMessages)
+      : [...current.messages, message]
+          .sort((left, right) => (left.sequence || 0) - (right.sequence || 0))
+          .slice(-this.maxMessages)
     this.store.set({ ...current, messages, lastMessageAt: message.serverTime || Date.now() })
     return true
+  }
+
+  addMessages(batch) {
+    if (!Array.isArray(batch) || batch.length === 0) return 0
+    const current = this.store.get()
+    const seen = new Set(current.messages.map(item => item.messageId))
+    const additions = batch.filter(item => item?.messageId && !seen.has(item.messageId))
+    if (additions.length === 0) return 0
+    const messages = [...current.messages, ...additions]
+      .sort((left, right) => (left.sequence || 0) - (right.sequence || 0))
+      .slice(-this.maxMessages)
+    const last = messages[messages.length - 1]
+    this.store.set({ ...current, messages, lastMessageAt: last?.serverTime || current.lastMessageAt })
+    return additions.length
   }
 
   clear() {

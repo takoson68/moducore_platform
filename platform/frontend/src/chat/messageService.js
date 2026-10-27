@@ -25,6 +25,7 @@ export class MessageService {
   receive(event) {
     if (!event || typeof event.type !== 'string') return
     if (event.type === 'chat.ready') this.store.setIdentity(event.payload)
+    if (event.type === 'chat.history') this.store.addMessages(event.payload?.messages)
     if (event.type === 'chat.message.created') this.store.addMessage(event.payload)
     if (event.type === 'chat.error') this.store.addError(event.error?.message || 'Chat 事件錯誤')
     if (event.type === 'chat.message.ack' && event.requestId) this.pendingAcks.delete(event.requestId)

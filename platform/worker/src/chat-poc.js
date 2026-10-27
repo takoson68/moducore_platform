@@ -8,6 +8,7 @@ import {
 const MAX_PROCESSED_REQUESTS = 256
 const MAX_ROOMS = 500
 const CHAT_IDLE_TIMEOUT_MS = 10 * 60 * 1000
+const CHAT_HISTORY_LIMIT = 50
 const PLATFORM_AUTH_ORIGIN = 'https://dinecore-staging.takoson68.workers.dev'
 const PLATFORM_AUTH_PROJECT = 'dineCore'
 
@@ -159,36 +160,81 @@ export class ChatDirectory {
 }
 
 export class PublicChat {
-  constructor(state) {
+  constructor(state, env) {
     this.state = state
-    this.connections = new Map()
     this.processedRequests = new Map()
     this.sequence = 0
     this.playerSequence = 0
+    // 僅供測試調整 idle timeout，不設定時沿用正式預設值；wrangler.chat-poc.jsonc 不會設定此變數。
+    this.idleTimeoutMs = Number(env?.CHAT_IDLE_TIMEOUT_MS) || CHAT_IDLE_TIMEOUT_MS
+    // DO 自帶 SQLite storage 保存最近訊息、sequence 與 playerSequence，避免 DO 被回收或 hibernate 後歸零或遺失歷史。
+    this.state.blockConcurrencyWhile(async () => {
+      this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS chat_messages (
+        sequence INTEGER PRIMARY KEY,
+        message_id TEXT NOT NULL,
+        sender_id TEXT NOT NULL,
+        sender_display_name TEXT NOT NULL,
+        sender_player_number INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        server_time INTEGER NOT NULL
+      )`)
+      const [row] = this.state.storage.sql.exec('SELECT MAX(sequence) AS maxSequence FROM chat_messages').toArray()
+      this.sequence = row?.maxSequence || 0
+      this.playerSequence = (await this.state.storage.get('playerSequence')) || 0
+    })
+  }
+
+  loadHistory() {
+    return this.state.storage.sql
+      .exec('SELECT * FROM chat_messages ORDER BY sequence DESC LIMIT ?', CHAT_HISTORY_LIMIT)
+      .toArray()
+      .reverse()
+      .map(row => ({
+        messageId: row.message_id,
+        sequence: row.sequence,
+        sender: { id: row.sender_id, displayName: row.sender_display_name, playerNumber: row.sender_player_number },
+        content: row.content,
+        serverTime: row.server_time,
+      }))
+  }
+
+  persistMessage(message) {
+    this.state.storage.sql.exec(
+      'INSERT INTO chat_messages (sequence, message_id, sender_id, sender_display_name, sender_player_number, content, server_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      message.sequence, message.messageId, message.sender.id, message.sender.displayName, message.sender.playerNumber,
+      message.content, message.serverTime,
+    )
+    // 只保留最近 CHAT_HISTORY_LIMIT 筆，避免房間資料無限增長。
+    this.state.storage.sql.exec('DELETE FROM chat_messages WHERE sequence <= ?', message.sequence - CHAT_HISTORY_LIMIT)
   }
 
   async fetch(request) {
+    const url = new URL(request.url)
+    if (request.headers.get('X-Chat-Internal') === '1' && url.pathname === '/internal/connections') {
+      return Response.json({ connections: this.state.getWebSockets().length })
+    }
+
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
       return new Response('WebSocket upgrade required', { status: 426 })
     }
 
-    const url = new URL(request.url)
     const roomId = url.searchParams.get('roomId') || CHAT_DEFAULT_ROOM_ID
     const pair = new WebSocketPair()
     const client = pair[0]
     const server = pair[1]
     const connectionId = `connection_${crypto.randomUUID()}`
-    const playerNumber = ++this.playerSequence
+    this.playerSequence += 1
+    const playerNumber = this.playerSequence
+    await this.state.storage.put('playerSequence', this.playerSequence)
     const playerId = `player_${String(playerNumber).padStart(3, '0')}`
     const displayName = `玩家${String(playerNumber).padStart(3, '0')}`
 
-    server.accept()
-    const connection = { roomId, connectionId, playerId, playerNumber, displayName, idleTimer: null }
-    this.connections.set(server, connection)
-    this.scheduleIdleDisconnect(server, connection)
-    server.addEventListener('message', (event) => this.handleMessage(server, event.data))
-    server.addEventListener('close', () => this.removeConnection(server))
-    server.addEventListener('error', () => this.removeConnection(server))
+    // 改用 Hibernatable WebSockets：DO 可在連線存續期間被回收記憶體，
+    // 連線中繼資料改存在 socket 的 serializeAttachment，喚醒後透過 getWebSockets() 取回。
+    this.state.acceptWebSocket(server)
+    server.serializeAttachment({ roomId, connectionId, playerId, playerNumber, displayName, lastActiveAt: Date.now() })
+    await this.ensureIdleAlarm()
+
     this.send(server, {
       type: 'chat.ready',
       payload: {
@@ -201,25 +247,38 @@ export class PublicChat {
       },
     })
 
+    const history = this.loadHistory()
+    if (history.length > 0) {
+      this.send(server, { type: 'chat.history', payload: { messages: history } })
+    }
+
     return new Response(null, { status: 101, webSocket: client })
   }
 
-  removeConnection(socket) {
-    const connection = this.connections.get(socket)
-    if (connection?.idleTimer) clearTimeout(connection.idleTimer)
-    this.connections.delete(socket)
+  async ensureIdleAlarm() {
+    const candidate = Date.now() + this.idleTimeoutMs
+    const current = await this.state.storage.getAlarm()
+    if (current === null || current > candidate) await this.state.storage.setAlarm(candidate)
   }
 
-  scheduleIdleDisconnect(socket, connection) {
-    if (connection.idleTimer) clearTimeout(connection.idleTimer)
-    connection.idleTimer = setTimeout(() => {
-      if (this.connections.get(socket) !== connection) return
-      connection.idleTimer = null
-      try { socket.close(4000, 'idle_timeout') } catch { this.removeConnection(socket) }
-    }, CHAT_IDLE_TIMEOUT_MS)
+  // 單一 DO alarm 取代原本每連線一個 setTimeout；setTimeout 在 hibernate 後會遺失，alarm 則由 storage 持久排程。
+  async alarm() {
+    const now = Date.now()
+    let nextDeadline = null
+    for (const socket of this.state.getWebSockets()) {
+      const connection = socket.deserializeAttachment()
+      if (!connection) continue
+      const deadline = (connection.lastActiveAt || 0) + this.idleTimeoutMs
+      if (deadline <= now) {
+        try { socket.close(4000, 'idle_timeout') } catch { /* 已關閉則忽略 */ }
+        continue
+      }
+      if (nextDeadline === null || deadline < nextDeadline) nextDeadline = deadline
+    }
+    if (nextDeadline !== null) await this.state.storage.setAlarm(nextDeadline)
   }
 
-  handleMessage(socket, raw) {
+  async webSocketMessage(socket, raw) {
     let value
     try {
       value = JSON.parse(typeof raw === 'string' ? raw : new TextDecoder().decode(raw))
@@ -234,9 +293,11 @@ export class PublicChat {
       return
     }
 
-    const connection = this.connections.get(socket)
+    const connection = socket.deserializeAttachment()
     if (!connection) return
-    this.scheduleIdleDisconnect(socket, connection)
+    connection.lastActiveAt = Date.now()
+    socket.serializeAttachment(connection)
+    await this.ensureIdleAlarm()
 
     if (value.type === 'chat.ping') {
       this.send(socket, { type: 'chat.pong', payload: { serverTime: Date.now() } })
@@ -266,8 +327,17 @@ export class PublicChat {
     }
     const acknowledgement = { messageId: message.messageId, acceptedAt: message.serverTime }
     this.rememberRequest(`${connection.connectionId}:${value.requestId}`, acknowledgement)
+    this.persistMessage(message)
     this.send(socket, { type: 'chat.message.ack', requestId: value.requestId, payload: acknowledgement })
     this.broadcast({ type: 'chat.message.created', payload: message })
+  }
+
+  async webSocketClose(socket, code, reason, wasClean) {
+    // Hibernation 模式下連線清單由 runtime 的 getWebSockets() 維護，這裡不需要再手動移除。
+  }
+
+  async webSocketError(socket, error) {
+    // 同上，無額外狀態需要清理；錯誤已由 runtime 標記連線關閉。
   }
 
   rememberRequest(key, value) {
@@ -278,7 +348,7 @@ export class PublicChat {
   }
 
   broadcast(event) {
-    for (const socket of this.connections.keys()) this.send(socket, event)
+    for (const socket of this.state.getWebSockets()) this.send(socket, event)
   }
 
   sendError(socket, code, message, requestId) {

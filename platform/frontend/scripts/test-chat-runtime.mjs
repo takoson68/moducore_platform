@@ -40,6 +40,46 @@ test('MessageService 可驗證送出事件，MessageStore 去重並限制 ring b
   chat.dispose()
 })
 
+test('MessageStore 亂序到達仍排序正確，循序到達不整包重排', () => {
+  const mock = createMockWebSocketPair()
+  const chat = new Chat({ url: 'ws://mock', WebSocketImpl: mock.WebSocketImpl, maxMessages: 10 })
+  const messages = chat.store('messages')
+  messages.addMessage({ messageId: 'm1', sequence: 1, content: 'a' })
+  messages.addMessage({ messageId: 'm2', sequence: 2, content: 'b' })
+  messages.addMessage({ messageId: 'm0', sequence: 0, content: 'late-but-earlier' })
+  assert.deepEqual(messages.state.messages.map(item => item.messageId), ['m0', 'm1', 'm2'])
+  chat.dispose()
+})
+
+test('MessageStore.addMessages 批次合併歷史訊息並去重排序一次', () => {
+  const mock = createMockWebSocketPair()
+  const chat = new Chat({ url: 'ws://mock', WebSocketImpl: mock.WebSocketImpl, maxMessages: 10 })
+  const messages = chat.store('messages')
+  messages.addMessage({ messageId: 'm3', sequence: 3, content: 'c' })
+  const added = messages.addMessages([
+    { messageId: 'm1', sequence: 1, content: 'a' },
+    { messageId: 'm2', sequence: 2, content: 'b' },
+    { messageId: 'm3', sequence: 3, content: 'duplicate' },
+  ])
+  assert.equal(added, 2)
+  assert.deepEqual(messages.state.messages.map(item => item.messageId), ['m1', 'm2', 'm3'])
+  chat.dispose()
+})
+
+test('收到 chat.history 事件會將歷史訊息合併進 MessageStore', () => {
+  const mock = createMockWebSocketPair()
+  const chat = new Chat({ url: 'ws://mock', WebSocketImpl: mock.WebSocketImpl, maxMessages: 10 })
+  chat.service('messages').receive({
+    type: 'chat.history',
+    payload: { messages: [
+      { messageId: 'h1', sequence: 1, content: '歷史一' },
+      { messageId: 'h2', sequence: 2, content: '歷史二' },
+    ] },
+  })
+  assert.deepEqual(chat.store('messages').state.messages.map(item => item.messageId), ['h1', 'h2'])
+  chat.dispose()
+})
+
 test('多個 Chat 實例的 Container 與 Store 彼此隔離', () => {
   const mockA = createMockWebSocketPair()
   const mockB = createMockWebSocketPair()
