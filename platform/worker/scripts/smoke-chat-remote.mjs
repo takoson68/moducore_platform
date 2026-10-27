@@ -9,6 +9,14 @@ async function connect() {
     try {
       return await new Promise((resolve, reject) => {
     const socket = new WebSocket(endpoint)
+    socket.chatSmokeQueue = []
+    socket.chatSmokeWaiters = []
+    socket.on('message', data => {
+      const message = JSON.parse(data.toString())
+      const waiter = socket.chatSmokeWaiters.shift()
+      if (waiter) waiter(message)
+      else socket.chatSmokeQueue.push(message)
+    })
     const timeout = setTimeout(() => { socket.terminate(); reject(new Error('WebSocket 連線逾時')) }, 10000)
     socket.once('open', () => { clearTimeout(timeout); resolve(socket) })
     socket.once('error', reject)
@@ -22,13 +30,15 @@ async function connect() {
 }
 
 function nextMessage(socket) {
+  if (socket.chatSmokeQueue.length > 0) return Promise.resolve(socket.chatSmokeQueue.shift())
   return new Promise((resolve, reject) => {
-    const onMessage = data => { cleanup(); resolve(JSON.parse(data.toString())) }
-    const onError = error => { cleanup(); reject(error) }
-    const timeout = setTimeout(() => { cleanup(); reject(new Error('WebSocket 訊息逾時')) }, 10000)
-    const cleanup = () => { clearTimeout(timeout); socket.off('message', onMessage); socket.off('error', onError) }
-    socket.on('message', onMessage)
-    socket.once('error', onError)
+    const timeout = setTimeout(() => {
+      const index = socket.chatSmokeWaiters.indexOf(resolveMessage)
+      if (index >= 0) socket.chatSmokeWaiters.splice(index, 1)
+      reject(new Error('WebSocket 訊息逾時'))
+    }, 10000)
+    const resolveMessage = message => { clearTimeout(timeout); resolve(message) }
+    socket.chatSmokeWaiters.push(resolveMessage)
   })
 }
 
