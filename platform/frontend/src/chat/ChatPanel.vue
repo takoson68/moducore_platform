@@ -9,6 +9,9 @@ const props = defineProps({
 const collapsed = ref(true)
 const content = ref('')
 const state = computed(() => props.chat.store('messages').state)
+const title = computed(() => state.value.identity?.displayName
+  ? `公共聊天室・${state.value.identity.displayName}`
+  : '公共聊天室')
 
 function send() {
   const value = content.value.trim()
@@ -25,7 +28,7 @@ function send() {
 <template lang="pug">
 .platform-chat-panel(:class="{ collapsed }")
   button.platform-chat-toggle(type="button" @click="collapsed = !collapsed")
-    span 公共聊天室
+    span {{ title }}
     span {{ collapsed ? '展開' : '收合' }}
   template(v-if="!collapsed")
     .platform-chat-identity(v-if="state.identity") 你的編號：{{ state.identity.displayName }}
