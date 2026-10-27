@@ -41,3 +41,13 @@ test('game-demo 版本膠囊使用部署 Tag 注入的版本，不寫死舊版�
   assert.match(page, /\.game-demo-version\([^\n]+\) \{\{ releaseVersion \}\}/)
   assert.doesNotMatch(page, /\.game-demo-version[^\n]*v0\.1\.1/)
 })
+
+test('game-demo 以獨立 room namespace 掛載平台 Chat，不複製 Chat 核心', async () => {
+  const config = await import('../projects/game-demo/project.config.js')
+  assert.equal(config.default.chat.enabled, true)
+  assert.equal(config.default.chat.roomId, 'game-demo')
+  const page = await readFile(new URL('../projects/game-demo/modules/playground/pages/index.vue', import.meta.url), 'utf8')
+  assert.match(page, /new Chat\(\{ url: projectConfig\.chat\.endpoint, roomId: projectConfig\.chat\.roomId \}\)/)
+  assert.match(page, /chat\?\.dispose\(\)/)
+  assert.doesNotMatch(page, /new Container\(/)
+})

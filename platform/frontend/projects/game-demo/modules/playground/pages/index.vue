@@ -1,9 +1,15 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue';
 import Game from '@/game.js';
+import Chat from '@/chat/chat.js';
+import ChatPanel from '@/chat/ChatPanel.vue';
+import projectConfig from 'project-config-entry';
 import { createPlaygroundModule } from '../runtime.js';
 
 const game = new Game();
+const chat = projectConfig.chat?.enabled
+  ? new Chat({ url: projectConfig.chat.endpoint, roomId: projectConfig.chat.roomId })
+  : null;
 const canvasHost = ref(null);
 const releaseVersion = `v${import.meta.env.VITE_RELEASE_VERSION || 'dev'}`;
 let busy = false;
@@ -30,6 +36,7 @@ async function action(command) {
 
 // 掛載後建立完整畫布介面，遊戲先停留在開始畫面。
 onMounted(async () => {
+  chat?.start();
   try {
     await game.start({ modules: [createPlaygroundModule({
       element: canvasHost.value, action,
@@ -50,13 +57,17 @@ onMounted(async () => {
 });
 
 // 離開頁面時釋放引擎及輸入事件。
-onBeforeUnmount(() => { game.dispose().catch(console.error); });
+onBeforeUnmount(() => {
+  game.dispose().catch(console.error);
+  chat?.dispose();
+});
 </script>
 
 <template lang="pug">
 .game-demo-stage
   .game-demo-version(aria-label="目前展示版本") {{ releaseVersion }}
   .game-demo-canvas(ref="canvasHost")
+  ChatPanel(v-if="chat" :chat="chat")
 </template>
 
 <style lang="sass">
@@ -94,4 +105,8 @@ onBeforeUnmount(() => { game.dispose().catch(console.error); });
     &:focus-visible
       outline: 2px solid #c4dca0
       outline-offset: -2px
+// Host styling only; Chat layout and state remain platform-owned.
+:global(.platform-chat-panel)
+  position: fixed
+  z-index: 10
 </style>
