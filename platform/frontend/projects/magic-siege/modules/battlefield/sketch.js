@@ -1,14 +1,9 @@
 import { autoWave, board, cellAt, fullscreen, nextWave, panel, pause, refresh, speed } from './layout.js';
-import { createWaveSequence, maxWaves, routePosition, towerLevels, towerTypes } from './simulation.js';
-import { getBattlefieldMap, mapPathCells } from './maps.js';
+import { cellKind, createWaveSequence, maxWaves, routePosition, towerLevels, towerTypes } from './simulation.js';
+import { getBattlefieldMap } from './maps.js';
 
 const releaseVersion = import.meta.env.VITE_RELEASE_VERSION || 'dev';
 
-const key = (col, row) => `${col},${row}`;
-const pathCells = mapPathCells(1);
-const obstacles = new Set([[0,5],[2,0],[3,7],[7,0],[8,8]].map(([c,r]) => key(c,r)));
-const pathCellsFor = (state) => mapPathCells(state.level || 1);
-const obstaclesFor = (state) => new Set(getBattlefieldMap(state.level || 1).obstacles.map(([c,r]) => key(c,r)));
 const buildButton = { x: panel.x + 30, y: panel.y + 410, width: panel.width - 60, height: 62 };
 const upgradeButton = { x: panel.x + 24, y: panel.y + 410, width: 190, height: 62 };
 const sellButton = { x: panel.x + 230, y: panel.y + 410, width: 154, height: 62 };
@@ -18,13 +13,6 @@ const beamTowerButton = { x: panel.x + 270, y: panel.y + 278, width: 108, height
 const endingRestart = { x: 570, y: 604, width: 300, height: 68 };
 const contains = (rect, point) => point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
 
-function cellKind(state, col, row) {
-  if (!Number.isInteger(col) || !Number.isInteger(row) || col < 0 || row < 0 || col >= board.cols || row >= board.rows) return '未選取';
-  if (pathCellsFor(state).has(key(col, row))) return '道路';
-  if (obstaclesFor(state).has(key(col, row))) return '障礙物';
-  if (state.towers.some((tower) => tower.col === col && tower.row === row)) return '魔法塔';
-  return '可建造';
-}
 function button(p, rect, label, primary = false, disabled = false) {
   p.stroke(disabled ? '#33404d' : primary ? '#63dbff' : '#3d5872'); p.strokeWeight(primary ? 2 : 1);
   p.fill(disabled ? '#1b2633' : primary ? '#086a9e' : '#162337'); p.rect(rect.x, rect.y, rect.width, rect.height, 10);
@@ -63,9 +51,9 @@ function drawBoard(p,state){
     const level=Math.max(1,Math.min(5,bullet.towerLevel||1));
     const power=level-1;
     if(bullet.beam){
-      const source=state.towers[bullet.sourceTowerIndex];
-      if(source){
-        const sx=board.x+source.col*board.cell+34, sy=board.y+source.row*board.cell+34;
+      const source=state.towers.find((tower) => tower.id === bullet.sourceTowerId);
+      const sx=source ? board.x+source.col*board.cell+34 : bullet.sourceX, sy=source ? board.y+source.row*board.cell+34 : bullet.sourceY;
+      if(Number.isFinite(sx) && Number.isFinite(sy)){
         const beamColors=['#ff8be8','#ff6edb','#ff55c8','#ff9f45','#fff06a'];
         p.stroke(226,90,199,45+power*15); p.strokeWeight(12+power*5); p.line(sx,sy,bullet.x,bullet.y);
         p.stroke(beamColors[power]); p.strokeWeight(5+power*1.5); p.line(sx,sy,bullet.x,bullet.y);

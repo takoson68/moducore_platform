@@ -8,7 +8,7 @@ function createSession(overrides = {}) {
   const state = {
     selected: { col: 4, row: 4 }, mode: 'ready', previousMode: 'ready', wave: 1,
     lives: 20, gold: 100, towers: [], enemies: [], bullets: [], spawnIndex: 0,
-    spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, notice: '', error: '',
+    spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextTowerId: 1, nextBulletId: 1, kills: 0, notice: '', error: '',
     ...overrides,
   };
   return { state, set(values) { Object.assign(state, values); } };
@@ -126,6 +126,28 @@ test('同一格不能重複建塔或重複扣款', () => {
   assert.equal(session.state.towers.length, 1);
 });
 
+test('建塔使用穩定塔身分並拒絕道路與障礙物格', () => {
+  const session = createSession({ selected: { col: 0, row: 2 } });
+  const simulation = createBattlefieldSimulation(session);
+  assert.equal(simulation.build(), false);
+  session.state.selected = { col: 0, row: 5 };
+  assert.equal(simulation.build(), false);
+  session.state.selected = { col: 4, row: 4 };
+  assert.equal(simulation.build(), true);
+  session.state.selected = { col: 6, row: 4 };
+  assert.equal(simulation.build(), true);
+  assert.deepEqual(session.state.towers.map((tower) => tower.id), ['tower-1', 'tower-2']);
+});
+
+test('大時間差會補出對應數量的敵人', () => {
+  const session = createSession();
+  const simulation = createBattlefieldSimulation(session);
+  assert.equal(simulation.startWave(), true);
+  simulation.tick(3.2);
+  assert.equal(session.state.spawnIndex, 4);
+  assert.equal(session.state.enemies.length, 4);
+});
+
 test('十波敵人數量、類型與順序固定可重現', () => {
   for (let wave = 1; wave <= 10; wave += 1) {
     const first = createWaveSequence(wave);
@@ -235,9 +257,9 @@ test('可指定魔法射線塔並保留射線塔型', () => {
 test('攻擊效果快照保留塔型與等級供繪製層逐級呈現', () => {
   const session = createSession({ mode: 'battle', spawnIndex: 1, nextEnemyId: 2,
     towers: [
-      { col: 1, row: 2, type: 'single', level: 4, cooldown: 0, targetId: null },
-      { col: 1, row: 3, type: 'aoe', level: 3, cooldown: 0, targetId: null },
-      { col: 2, row: 3, type: 'beam', level: 5, cooldown: 0, targetId: null },
+      { id: 'tower-a', col: 1, row: 2, type: 'single', level: 4, cooldown: 0, targetId: null },
+      { id: 'tower-b', col: 1, row: 3, type: 'aoe', level: 3, cooldown: 0, targetId: null },
+      { id: 'tower-c', col: 2, row: 3, type: 'beam', level: 5, cooldown: 0, targetId: null },
     ],
     enemies: [{ id: 1, type: 'boss', hp: 900, maxHp: 900, distance: 120 }],
   });

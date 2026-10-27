@@ -1,5 +1,5 @@
 import { board } from './layout.js';
-import { getBattlefieldMap, levelDifficulty } from './maps.js';
+import { getBattlefieldMap, levelDifficulty, mapPathCells } from './maps.js';
 
 function routeSegments(level = 1) {
   const route = getBattlefieldMap(level).route.map(([col, row]) => ({
@@ -17,7 +17,11 @@ export const towerLevels = {
   4: { damage: 48, cooldown: 0.45, range: 160, cost: 200 },
   5: { damage: 72, cooldown: 0.35, range: 180, cost: 300 },
 };
-export const towerTypes = { single: { name: '單體塔', splashRadius: 0 }, aoe: { name: '群攻塔', splashRadius: 72 }, beam: { name: '魔法射線塔', splashRadius: 0, beam: true } };
+export const towerTypes = {
+  single: { name: '單體塔', splashRadius: 0, targeting: 'nearest' },
+  aoe: { name: '群攻塔', splashRadius: 72, targeting: 'nearest' },
+  beam: { name: '魔法射線塔', splashRadius: 0, beam: true, targeting: 'firstInRange' },
+};
 export const waveConfig = [
   null,
   { small: 5, large: 0 }, { small: 8, large: 0 }, { small: 8, large: 1 },
@@ -68,6 +72,16 @@ export function routePosition(distance, level = 1) {
   return { ...route.at(-1) };
 }
 
+export function cellKind(state, col, row) {
+  if (!Number.isInteger(col) || !Number.isInteger(row) || col < 0 || row < 0 || col >= board.cols || row >= board.rows) return '未選取';
+  if (mapPathCells(state.level || 1).has(`${col},${row}`)) return '道路';
+  if (getBattlefieldMap(state.level || 1).obstacles.some(([obstacleCol, obstacleRow]) => obstacleCol === col && obstacleRow === row)) return '障礙物';
+  if (state.towers.some((tower) => tower.col === col && tower.row === row)) return '魔法塔';
+  return '可建造';
+}
+
+export function canBuildAt(state, col, row) { return cellKind(state, col, row) === '可建造'; }
+
 export function createBattlefieldSimulation(session) {
   const update = (values) => session.set(values);
   const spawn = () => {
@@ -83,9 +97,11 @@ export function createBattlefieldSimulation(session) {
     const state = session.state;
     if (!state.selected) return false;
     const { col, row } = state.selected;
-    if (state.gold < 10 || state.towers.some((item) => item.col === col && item.row === row)) return false;
+    if (state.gold < 10 || !canBuildAt(state, col, row)) return false;
     const type = state.buildType || 'single';
-    update({ towers: [...state.towers, { col, row, type, level: 1, spent: 10, cooldown: 0, targetId: null, damage: 0, kills: 0 }], gold: state.gold - 10,
+    const nextTowerId = Number.isInteger(state.nextTowerId) ? state.nextTowerId : state.towers.length + 1;
+    const towerId = `tower-${nextTowerId}`;
+    update({ towers: [...state.towers, { id: towerId, col, row, type, level: 1, spent: 10, cooldown: 0, targetId: null, damage: 0, kills: 0 }], gold: state.gold - 10, nextTowerId: nextTowerId + 1,
       notice: `Lv.1 ${towerTypes[type].name}建造完成。` });
     return true;
   };
@@ -137,7 +153,7 @@ export function createBattlefieldSimulation(session) {
       passiveIncome = seconds * 2;
       incomeClock -= seconds;
     }
-    if (state.spawnIndex < waveSize && spawnClock >= 1) {
+    while (state.spawnIndex < waveSize && spawnClock >= 1) {
       spawnClock -= 1;
       spawn();
     }
@@ -163,17 +179,25 @@ export function createBattlefieldSimulation(session) {
       const locked = enemies.find((enemy) => enemy.id === tower.targetId);
       const lockedPoint = locked ? positions.get(locked.id) : null;
       const lockedInRange = lockedPoint && Math.hypot(lockedPoint.x - origin.x, lockedPoint.y - origin.y) <= stats.range;
-      const target = lockedInRange ? locked : enemies.reduce((nearest, enemy) => {
+      const nearestTarget = enemies.reduce((nearest, enemy) => {
         const point = positions.get(enemy.id);
         const distance = Math.hypot(point.x - origin.x, point.y - origin.y);
         if (distance > stats.range || (nearest && nearest.distance <= distance)) return nearest;
         return { enemy, distance };
       }, null)?.enemy;
+      const firstInRange = enemies.find((enemy) => {
+        const point = positions.get(enemy.id);
+        return Math.hypot(point.x - origin.x, point.y - origin.y) <= stats.range;
+      });
+      // 一般塔在取得最近目標後持續追蹤；目標死亡或離開射程才重新選擇。
+      // 射線塔同樣保留鎖定，但首次選擇遵循「最先進入射程」的目標規則。
+      const targeting = towerTypes[tower.type || 'single'].targeting;
+      const target = lockedInRange ? locked : targeting === 'firstInRange' ? firstInRange : nearestTarget;
       if (!target) return { ...tower, cooldown: 0, targetId: null };
-      const sourceTowerIndex = session.state.towers.indexOf(tower);
-      const existingBeam = tower.type === 'beam' && bullets.some((bullet) => bullet.beam && bullet.sourceTowerIndex === sourceTowerIndex && bullet.targetId === target.id);
-      if (existingBeam) bullets = bullets.map((bullet) => bullet.beam && bullet.sourceTowerIndex === sourceTowerIndex && bullet.targetId === target.id ? { ...bullet, damage: stats.damage * elapsed } : bullet);
-      else bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerIndex, towerLevel: tower.level, towerType: tower.type || 'single', x: origin.x, y: origin.y, damage: tower.type === 'beam' ? stats.damage * elapsed : stats.damage, beam: tower.type === 'beam', splashRadius: towerTypes[tower.type || 'single'].splashRadius });
+      const sourceTowerId = tower.id;
+      const existingBeam = tower.type === 'beam' && bullets.some((bullet) => bullet.beam && bullet.sourceTowerId === sourceTowerId && bullet.targetId === target.id);
+      if (existingBeam) bullets = bullets.map((bullet) => bullet.beam && bullet.sourceTowerId === sourceTowerId && bullet.targetId === target.id ? { ...bullet, damage: stats.damage * elapsed } : bullet);
+      else bullets.push({ id: nextBulletId, targetId: target.id, sourceTowerId, sourceX: origin.x, sourceY: origin.y, towerLevel: tower.level, towerType: tower.type || 'single', x: origin.x, y: origin.y, damage: tower.type === 'beam' ? stats.damage * elapsed : stats.damage, beam: tower.type === 'beam', splashRadius: towerTypes[tower.type || 'single'].splashRadius });
       nextBulletId += 1;
       return { ...tower, cooldown: tower.type === 'beam' ? 0 : stats.cooldown, targetId: target.id };
     });
@@ -192,8 +216,8 @@ export function createBattlefieldSimulation(session) {
             if (enemy.id !== bullet.targetId && Math.hypot(positions.get(enemy.id).x - impact.x, positions.get(enemy.id).y - impact.y) <= bullet.splashRadius) damage.set(enemy.id, (damage.get(enemy.id) || 0) + bullet.damage * 0.55);
           });
         }
-        damageByTower.set(bullet.sourceTowerIndex, (damageByTower.get(bullet.sourceTowerIndex) || 0) + bullet.damage);
-        finalHitByTarget.set(bullet.targetId, bullet.sourceTowerIndex);
+        damageByTower.set(bullet.sourceTowerId, (damageByTower.get(bullet.sourceTowerId) || 0) + bullet.damage);
+        finalHitByTarget.set(bullet.targetId, bullet.sourceTowerId);
         return bullet.beam ? [{ ...bullet, x: target.x, y: target.y }] : [];
       }
       if (bullet.beam) return [{ ...bullet, x: target.x, y: target.y }];
@@ -205,9 +229,9 @@ export function createBattlefieldSimulation(session) {
     const dead = new Set(enemies.filter((enemy) => enemy.hp <= 0).map((enemy) => enemy.id));
     enemies = enemies.filter((enemy) => !dead.has(enemy.id));
     bullets = bullets.filter((bullet) => !dead.has(bullet.targetId));
-    const updatedTowers = towers.map((tower, index) => ({ ...tower,
-      damage: (tower.damage || 0) + (damageByTower.get(index) || 0),
-      kills: (tower.kills || 0) + [...dead].filter((id) => finalHitByTarget.get(id) === index).length,
+    const updatedTowers = towers.map((tower) => ({ ...tower,
+      damage: (tower.damage || 0) + (damageByTower.get(tower.id) || 0),
+      kills: (tower.kills || 0) + [...dead].filter((id) => finalHitByTarget.get(id) === tower.id).length,
     }));
     const completed = session.state.spawnIndex >= waveSize && enemies.length === 0;
     const reward = [...dead].reduce((sum, id) => {
@@ -244,12 +268,12 @@ export function createBattlefieldSimulation(session) {
     toggleBuildType() { const type = session.state.buildType === 'aoe' ? 'single' : 'aoe'; update({ buildType: type, notice: `下次建造：${towerTypes[type].name}。` }); return type; },
     restartLevel() {
       const { level } = session.state;
-      update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, autoWave: false, levelTime: 0, score: 0, stars: 0, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: `第${level}關已重新開始。` });
+      update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, autoWave: false, levelTime: 0, score: 0, stars: 0, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextTowerId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: `第${level}關已重新開始。` });
       return true;
     },
     startLevel(level) {
       if (!Number.isInteger(level) || level < 1 || level > 5 || level !== session.state.level + 1 || session.state.mode !== 'victory') return false;
-      update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, autoWave: false, levelTime: 0, score: 0, stars: 0, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: `第${level}關準備完成。` });
+      update({ level, mode: 'ready', previousMode: 'ready', wave: 1, lives: 20, gold: 100, autoWave: false, levelTime: 0, score: 0, stars: 0, towers: [], enemies: [], bullets: [], spawnIndex: 0, spawnClock: 0, incomeClock: 0, nextEnemyId: 1, nextTowerId: 1, nextBulletId: 1, kills: 0, waveStats: { kills: 0, breaches: 0, goldEarned: 0, livesLost: 0 }, waveSummary: null, selected: { col: 4, row: 4 }, notice: `第${level}關準備完成。` });
       return true;
     },
     setSpeed(speed) {
