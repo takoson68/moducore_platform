@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 const props = defineProps({
   chat: { type: Object, required: true },
@@ -12,6 +12,10 @@ const content = ref('')
 const messagesEl = ref(null)
 const unreadCount = ref(0)
 const seenMessageCount = ref(0)
+const panelWidth = ref(300)
+const resizing = ref(false)
+let resizeStartX = 0
+let resizeStartWidth = 300
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)
 
@@ -24,6 +28,28 @@ async function scrollMessagesToBottom() {
   await nextTick()
   if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
 }
+
+function startResize(event) {
+  if (collapsed.value) return
+  resizing.value = true
+  resizeStartX = event.clientX
+  resizeStartWidth = panelWidth.value
+  window.addEventListener('pointermove', resizePanel)
+  window.addEventListener('pointerup', stopResize)
+}
+
+function resizePanel(event) {
+  if (!resizing.value) return
+  panelWidth.value = Math.min(520, Math.max(240, resizeStartWidth + event.clientX - resizeStartX))
+}
+
+function stopResize() {
+  resizing.value = false
+  window.removeEventListener('pointermove', resizePanel)
+  window.removeEventListener('pointerup', stopResize)
+}
+
+onBeforeUnmount(stopResize)
 
 watch(() => state.value.messages.length, messageCount => {
   const delta = Math.max(0, messageCount - seenMessageCount.value)
@@ -59,7 +85,8 @@ function send() {
 </script>
 
 <template lang="pug">
-.platform-chat-panel(:class="{ collapsed }")
+  .platform-chat-panel(:class="{ collapsed }" :style="!collapsed ? { width: `${panelWidth}px` } : undefined")
+    .platform-chat-resize-handle(v-if="!collapsed" role="separator" aria-label="拖曳調整聊天視窗寬度" @pointerdown="startResize")
   button.platform-chat-toggle(type="button" @click="toggle")
     span {{ title }}
     span.platform-chat-toggle__action
@@ -94,6 +121,17 @@ function send() {
   box-shadow: 0 8px 24px rgba(0, 0, 0, .28)
   &.collapsed
     width: auto
+.platform-chat-resize-handle
+  position: absolute
+  top: 14px
+  right: -5px
+  bottom: 14px
+  width: 10px
+  border-right: 2px solid rgba(110, 220, 255, .7)
+  cursor: ew-resize
+  opacity: .7
+  &:hover
+    opacity: 1
 .platform-chat-toggle
   display: flex
   justify-content: space-between
