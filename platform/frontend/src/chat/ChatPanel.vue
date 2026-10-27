@@ -3,10 +3,11 @@ import { computed, ref } from 'vue'
 
 const props = defineProps({
   chat: { type: Object, required: true },
+  startExpanded: { type: Boolean, default: false },
 })
 
 // 預設收合，避免初次進入時遮住塔防地圖與控制按鈕。
-const collapsed = ref(true)
+const collapsed = ref(!props.startExpanded)
 const content = ref('')
 const state = computed(() => props.chat.store('messages').state)
 const title = computed(() => `聊天室・${props.chat.roomId || 'public'}`)

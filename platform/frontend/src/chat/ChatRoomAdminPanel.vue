@@ -168,7 +168,7 @@ onBeforeUnmount(() => activeChat.value?.dispose())
         button.chat-room-admin__danger(type="button" @click="deactivateRoom(room)") 停用
 
   p.chat-room-admin__selected(v-if="activeRoom") 目前測試聊天室：{{ activeRoom.displayName }}（{{ activeRoom.roomId }}）
-  ChatPanel(v-if="activeChat" :chat="activeChat")
+  ChatPanel(v-if="activeChat" :chat="activeChat" start-expanded)
 </template>
 
 <style lang="sass">
