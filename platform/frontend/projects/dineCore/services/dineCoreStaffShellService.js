@@ -36,6 +36,12 @@
     to: '/staff/manager/visitor-stats'
   },
   {
+    key: 'chat-admin',
+    label: '平台聊天室',
+    path: '/staff/platform/chat-rooms',
+    to: '/staff/platform/chat-rooms'
+  },
+  {
     key: 'menu-admin',
     label: '菜單管理',
     path: '/staff/manager/menu-items',

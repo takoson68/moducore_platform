@@ -14,6 +14,7 @@ export default {
     'dashboard',
     'reports',
     'visitor-stats',
+    'chat-admin',
     'audit-close',
     'menu-admin',
     'table-admin',

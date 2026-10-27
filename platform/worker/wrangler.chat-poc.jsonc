@@ -7,13 +7,19 @@
   "preview_urls": false,
   "vars": {
     "PROJECT_ID": "magic-siege",
-    "CHAT_NAMESPACE_VERSION": "2"
+    "CHAT_NAMESPACE_VERSION": "2",
+    "AUTH_ORIGIN": "https://dinecore-staging.takoson68.workers.dev",
+    "AUTH_PROJECT_ID": "dineCore"
   },
   "durable_objects": {
     "bindings": [
       {
         "name": "PUBLIC_CHAT",
         "class_name": "PublicChat"
+      },
+      {
+        "name": "CHAT_DIRECTORY",
+        "class_name": "ChatDirectory"
       }
     ]
   },
@@ -21,6 +27,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["PublicChat"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["ChatDirectory"]
     }
   ]
 }

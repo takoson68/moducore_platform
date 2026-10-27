@@ -96,6 +96,14 @@ const staffRouteRegistry = [
     superAdminOnly: true
   },
   {
+    key: 'chat-admin',
+    label: '平台聊天室',
+    path: '/staff/platform/chat-rooms',
+    to: '/staff/platform/chat-rooms',
+    roles: [],
+    superAdminOnly: true
+  },
+  {
     key: 'audit-close',
     label: '關帳與稽核',
     path: '/staff/manager/audit-close',

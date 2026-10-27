@@ -20,7 +20,10 @@ async function createRuntime(projectId = 'magic-siege') {
     rootPath: platformRoot,
     modulesRoot: platformRoot,
     compatibilityDate: '2026-10-19',
-    durableObjects: { PUBLIC_CHAT: { className: 'PublicChat', useSQLite: true } },
+    durableObjects: {
+      PUBLIC_CHAT: { className: 'PublicChat', useSQLite: true },
+      CHAT_DIRECTORY: { className: 'ChatDirectory', useSQLite: true },
+    },
     bindings: { PROJECT_ID: projectId, CHAT_NAMESPACE_VERSION: '2' },
     port: 0,
   }))
@@ -110,6 +113,26 @@ test('非 WebSocket 請求不會被當成聊天連線接受', async () => {
   try {
     const response = await mf.dispatchFetch('http://localhost/ws/chat?roomId=public')
     assert.equal(response.status, 426)
+  } finally {
+    await mf.dispose()
+  }
+})
+
+test('聊天室目錄可公開讀取，但建立聊天室必須是管理員', async () => {
+  const mf = await createRuntime()
+  try {
+    const base = (await mf.ready).toString()
+    const client = await connect(base, 'public')
+    await waitFor(client.messages, (event) => event.type === 'chat.ready')
+    const rooms = await mf.dispatchFetch(`${base}api/chat/rooms`)
+    assert.equal(rooms.status, 200)
+    const payload = await rooms.json()
+    assert.equal(payload.success, true)
+    assert.equal(payload.rooms.some(room => room.roomId === 'public'), true)
+
+    const create = await mf.dispatchFetch(`${base}api/chat/rooms`, { method: 'POST', body: JSON.stringify({ roomId: 'admin-test', displayName: '測試房間' }) })
+    assert.equal(create.status, 401)
+    client.socket.close()
   } finally {
     await mf.dispose()
   }
