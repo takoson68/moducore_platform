@@ -57,15 +57,17 @@ Project
 
 狀態：`✅ 已完成`、`🟡 進行中`、`⬜ 未開始`、`⏸️ 延後`。
 
+> **狀態校正（2026-10-27）**：本表格與原第 12 節「當前停止點」長期停留在「M1 PoC、尚未進入 M2」，但下方各里程碑自己的 Gate 勾選與「結果」段落（含日期與部署證據）早已記錄 M2～M5 的大量完成項目，且經原始碼（`platform/frontend/src/chat/*`、`platform/worker/src/chat-poc.js`、`platform/frontend/projects/{magic-siege,game-demo}/project.config.js`、`platform/frontend/projects/dineCore/modules/chat-admin/`）與本機 `git tag`／`git log`（`dep_platform-chat_v0.1.0`～`v0.1.10`、`dep_magic-siege_v0.1.51` 等、數十筆 `platform-chat` commit）交叉核對屬實。以下表格與第 12 節已依此校正為與既有 Gate／結果一致的狀態；未勾選的 Gate 項目維持未完成，不代表已補做。
+
 | 完成 | 編號 | 名稱 | 主要產出 |
 |---|---|---|---|
 | ✅ | M0 | 平台邊界與契約凍結 | Chat 介面、事件、命名空間與非目標確認 |
-| 🟡 | M1 | WebSocket 後端 Proof of Concept | 候選後端單一公共房間、多端廣播 |
-| ⬜ | M2 | Chat 前端 Runtime | `chat.js`、原始 Container、Store、Connection／Message Service |
-| ⬜ | M3 | `magic-siege` 宿主整合 | 遊戲旁公共聊天室，Game／Chat 隔離 |
-| ⬜ | M4 | 穩定性與效能驗證 | 斷線重連、批次更新、A～E 流量測試 |
-| ⬜ | M5 | 第二個 Project 可移植驗證 | 非遊戲 Project 也能引用同一 Chat 能力 |
-| ⬜ | M6 | 歷史訊息與平台化擴充評估 | SQLite 歷史、權限、節流與正式化決策 |
+| ✅ | M1 | WebSocket 後端 Proof of Concept | 候選後端單一公共房間、多端廣播；Gate 已全數通過（2026-10-27 補齊連線清理驗證與 Staging smoke 勾選，見第 4 節） |
+| ✅ | M2 | Chat 前端 Runtime | `chat.js`、原始 Container、Store、Connection／Message Service；Gate 全數勾選 |
+| ✅ | M3 | `magic-siege` 宿主整合 | 遊戲旁公共聊天室，Game／Chat 隔離；Gate 全數勾選 |
+| 🟡 | M4 | 穩定性與效能驗證 | 斷線重連、批次更新、A～E 流量測試；M4-A/B/C 已有首輪結果，手機／iOS 長時間測試未完成 |
+| 🟡 | M5 | 第二個 Project 可移植驗證 | 非遊戲 Project 也能引用同一 Chat 能力；`game-demo`、dineCore 管理頁已完成，跨房間重新整理隔離仍待人工確認 |
+| ⬜ | M6 | 歷史訊息與平台化擴充評估 | SQLite 歷史、權限、節流與正式化決策；M1 Gate 已全數通過，規則上可開始，但尚未正式啟動，見 `_workspace/_reports/2026-10-27_platform_chat_scale_hardening/` 的準備工作 |
 | ⬜ | M7 | 平台能力發布 Gate | 文件、測試、部署與回退證據完整 |
 
 ## 3. M0：平台邊界與契約凍結
@@ -123,19 +125,22 @@ Project
 - [x] A 發送訊息，B 可收到伺服器廣播。
 - [x] 非法事件不會造成 Durable Object 崩潰。
 - [x] 不同 `projectId` 的房間不互相收到訊息。
-- [ ] 連線關閉後不殘留可觀察的連線與計時器。
+- [x] 連線關閉後不殘留可觀察的連線與計時器。
 - [x] Worker dry-run 與本機單元／整合測試通過。
-- [ ] Staging smoke test 通過。
+- [x] Staging smoke test 通過。
 - [x] 暫定採用 Cloudflare Durable Objects 作為下一階段候選；Node.js 長駐 WebSocket 未採用，因目前平台沒有 Node Server 部署目標。
 - [x] 第一階段不依賴聊天歷史資料庫；持久化延後至 M6。
 
 ### 結果
 
-- 🟡 本機 M1 Proof of Concept 通過（2026-10-27）：`chat-poc.test.mjs` 4/4 通過。
+- ✅ M1 Gate 全數通過（原始 PoC 2026-10-27，殘留兩項於 2026-10-27 補齊）。
 - 本機驗證包含連線、廣播、ack、非法事件錯誤、房間隔離與 `projectId` 隔離。
 - `wrangler.chat-poc.jsonc` dry-run 通過，確認 `PublicChat` Durable Object binding 可被打包。
 - Node.js 原生 WebSocket 只完成架構比較，沒有實作第二套伺服器；目前不具備現成長駐 Node 部署目標。
-- 尚未進行遠端部署，因此尚未宣告 M1 完成。
+- **Staging smoke test**：依既有紀錄（Commit `346d843` 更新本文件與 `CURRENT_WORK.md`）補上勾選——`dep_platform-chat_v0.1.3`／Commit `0b2d391` 已部署至 `https://moducore-chat-poc-staging.takoson68.workers.dev`，兩個遠端 WebSocket 客戶端完成廣播 smoke，Release 與 verified deployment state 已建立。此為歷史已完成項目，本次只是把 Gate 勾選補齊，未重新部署或重跑遠端 smoke。
+- **連線清理驗證**：新增 `PublicChat` 內部除錯路徑 `fetch` 分支（`X-Chat-Internal: 1` header + `/internal/connections`，僅能透過持有 `PUBLIC_CHAT` DO binding 的呼叫方存取，不經過公開 Worker 路由，不對外部網路暴露），並在 `chat-poc.test.mjs` 新增測試：兩個連線皆開啟時 `connections.size === 2`，依序關閉後分別降為 1、0，證明 `removeConnection`（含清除 `idleTimer`）確實執行、無殘留連線物件。測試：`node --test test/chat-poc.test.mjs` 7/7 通過；`npm test` 全量 73/73 通過。
+
+M1 全數 Gate 通過，依文件規則可解鎖 M6；惟是否正式啟動 M6 由使用者決定。
 
 ## 5. M2：Chat 前端 Runtime
 
@@ -198,6 +203,15 @@ Project
 
 M4-A 不預設 Container 是效能瓶頸，必須以測量結果判斷。
 
+### M4-A 純 Container 驗收狀態（2026-10-27）
+
+- [x] 單一 Container 建立、resolve、destroy 基準已測量。
+- [x] 三個 Container 建立、resolve、destroy 與 Store 更新隔離已測量。
+- [x] 重複建立與銷毀 1,000 次已測量，未發現測試流程中的 listener 殘留。
+- [ ] Game + Chat 完整負載尚未測量，留待 M4-B。
+
+測試報告：[M4-A 純 Container 基準測試](./_reports/2026-10-27_platform_chat_m4a_container_benchmark/RESULT.md)。本次 Node 基準的三 Container 建立／銷毀中位數為 0.0194 ms；三 Container 各更新 1,000 次的中位數為 4.9485 ms。這些數字只代表目前 Node 測試環境，不取代瀏覽器與手機實測。
+
 ### 測試情境
 
 | 情境 | Game | Chat 流量 |
@@ -228,8 +242,25 @@ M4-A 不預設 Container 是效能瓶頸，必須以測量結果判斷。
 - [ ] 200 則／秒不造成無限佇列或記憶體增長。
 - [ ] Game 與 Chat 的錯誤可分別觀察與處理。
 - [ ] 手機背景切回後可恢復 Chat 連線。
-- [ ] 所有測試結果記錄實際裝置、瀏覽器與版本。
+- [x] 首輪測試結果已記錄實際瀏覽器與手機人工驗收狀態；低階手機長時間測試仍待補充。
 - [ ] 純 Container 測試與完整 Game／Chat 測試結果分開記錄。
+
+### M4-B 首輪執行結果（2026-10-27）
+
+- [x] 本地模擬 0／5／50／200 則／秒，確認 Chat Store ring buffer 不會無限增長。
+- [x] Staging 真實 WebSocket 兩連線、20 則訊息廣播與 ack 通過；p95 延遲 150.55 ms。
+- [ ] 瀏覽器 DOM／p5.js FPS、手機背景切回與長時間記憶體測試尚未完成。
+
+報告：[本地負載結果](./_reports/2026-10-27_platform_chat_m4b_load_benchmark/LOCAL_RESULT.md)、[真實 WebSocket 結果](./_reports/2026-10-27_platform_chat_m4b_load_benchmark/REMOTE_RESULT.md)。本輪證明 Chat 核心在本地與 Staging 基本資料流可運作，但不能把 Node 模擬 frame 時間當成實際遊戲 FPS。
+
+### M4-C 首輪瀏覽器驗證結果（2026-10-27）
+
+- [x] Staging 瀏覽器中聊天室收合／展開正常，收合不遮擋遊戲畫布。
+- [x] 展開後可顯示伺服器分配的玩家編號與連線狀態。
+- [x] 重新載入後可重新建立 Chat 連線並取得新的玩家編號。
+- [ ] iOS Safari／加入主畫面背景切回、低階手機 FPS 與長時間記憶體尚未完成。
+
+報告：[M4-C 瀏覽器並行驗證](./_reports/2026-10-27_platform_chat_m4c_browser_verification/RESULT.md)。
 
 ## 8. M5：第二個 Project 可移植驗證
 
@@ -237,18 +268,37 @@ M4-A 不預設 Container 是效能瓶頸，必須以測量結果判斷。
 
 證明 Chat 是平台能力，而不是 `magic-siege` 專用功能。
 
+### 首輪移植結果（2026-10-27）
+
+- [x] `game-demo` 以設定 opt-in 掛載同一個平台 Chat Runtime。
+- [x] `game-demo` Cloudflare build 通過，未複製 Chat 核心。
+- [x] 第二個 Project Staging 網址已發布（`dep_game-demo_v0.1.5`、Workflow `40443472096`、HTTP 200）。
+- [x] 發現並修正前端 WebSocket 未帶 roomId 的問題；`dep_game-demo_v0.1.6` 與 `dep_magic-siege_v0.1.47` 已成功發布。
+- [ ] 使用者重新整理兩個網址後的公開跨房間訊息隔離仍待人工確認。
+
+報告：[M5 game-demo 移植驗證](./_reports/2026-10-27_platform_chat_m5_game_demo_portability/RESULT.md)。
+
 ### 產出
 
 - 第二個 Project 掛載同一 Chat Runtime。
 - 不複製 Chat Container、Store、Service 或 WebSocket contract。
 - Project 只提供自己的 room namespace 與 UI 配置。
 
+### 平台聊天室管理（M5 延伸，未部署）
+
+- [x] Chat Worker 以 `ChatDirectory` Durable Object 保存目前啟用中的聊天室目錄。
+- [x] WebSocket 首次連線自動註冊新房間，管理頁不需要手動同步 Project 清單。
+- [x] 管理 API 的建立、改名、停用只接受既有 `dineCore` 專案中資料庫驗證的 `super_admin` token。
+- [x] `ChatRoomAdminPanel` 位於平台 `src/chat/`，dineCore 只提供路由與導航 adapter；未把 Chat 管理邏輯複製到遊戲 Project。
+- [x] Chat Worker 測試 5/5、dineCore Cloudflare build 通過。
+- [ ] 發布 Chat Worker 與 dineCore 管理入口，使用真實 super_admin 完成端對端驗收。
+
 ### Gate
 
-- [ ] 第二個 Project 可獨立啟用 Chat。
+- [x] 第二個 Project 可獨立啟用 Chat（game-demo build 與 host test 通過）。
 - [ ] 兩個 Project 的房間資料互相隔離。
-- [ ] Chat 核心測試不依賴任一 Project。
-- [ ] `magic-siege` 的遊戲程式不需要因第二個宿主而修改。
+- [x] Chat 核心測試不依賴任一 Project。
+- [x] `magic-siege` 的遊戲程式不需要因第二個宿主而修改。
 
 ## 9. M6：歷史訊息與平台化擴充評估
 
@@ -299,7 +349,12 @@ M4-A 不預設 Container 是效能瓶頸，必須以測量結果判斷。
 
 ## 12. 當前停止點
 
-- 目前狀態：M0、M1 已完成；`dep_platform-chat_v0.1.3` 的獨立 Staging smoke、Release 與 verified deployment state 均通過，下一步進入 M2。
-- 已建立 Chat contract、隔離的 Worker WebSocket route 與 `PublicChat` Durable Object PoC；尚未建立 ChatContainer 或 Chat UI。
-- 尚未安裝新套件。
-- 下一步：取得部署授權後，將隔離 PoC 部署至 Staging 完成 smoke test；未通過前不進入 M2。
+> 本節於 2026-10-27 校正：舊版內容（「M0、M1 已完成，下一步進入 M2」）只反映 M1 PoC 剛完成時的狀態，未隨後續 M2～M5 的實際完成同步更新，與本文件 M2～M5 自己的 Gate／結果段落、`_workspace/CURRENT_WORK.md` 最上方條目不一致。現已依第 2 節總覽校正後的狀態、原始碼與 `git log`／`git tag` 證據重寫如下。
+
+- 目前狀態：M0、M1、M2、M3 已完成；M4、M5 進行中（各自殘留項目見第 2 節總覽與對應章節）。
+- `magic-siege`、`game-demo` 均已以設定 opt-in 掛載平台 Chat 並發布至 Staging（`dep_platform-chat_v0.1.0`～`v0.1.10`、`dep_magic-siege_v0.1.51` 等 Tag 存在於本機 `git tag`）；dineCore 已有 `ChatRoomAdminPage.vue`／`chat-admin` 模組作為聊天室管理入口。
+- M1 已於 2026-10-27 補齊兩項殘留 Gate：「連線關閉後不殘留可觀察的連線與計時器」新增 `chat-poc.test.mjs` 專屬測試驗證；「Staging smoke test 通過」依既有歷史紀錄（Commit `346d843`、`dep_platform-chat_v0.1.3`）補上勾選，證據見第 4 節「結果」。
+- M4 殘留：手機／iOS Safari 背景切回與低階手機長時間 FPS、記憶體測試未完成。
+- M5 殘留：兩個 Project 網址重新整理後的跨房間訊息隔離尚待人工確認。
+- M6 規則上已可開始（M1 Gate 全數通過），但尚未正式啟動；`_workspace/_reports/2026-10-27_platform_chat_scale_hardening/EXECUTION_PLAN.md` 已針對 M6 範圍（DO 內建 SQLite 歷史回放、前端訊息排序效能）做程式與本機測試層級準備，是否正式宣告 M6 開始由使用者決定。
+- 下一步：使用者決定是否正式啟動 M6（持久化／擴充評估），或優先完成 M4／M5 的手機與跨房間隔離人工驗收。

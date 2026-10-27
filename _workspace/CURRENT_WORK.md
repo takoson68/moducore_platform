@@ -6,6 +6,42 @@ authority: work-state
 
 # 當前工作
 
+## 2026-10-27 續作停止點：scale-hardening 報告結案（暫不部署）
+
+使用者確認 `_workspace/_reports/2026-10-27_platform_chat_scale_hardening/` 報告到此為止，暫不部署到 Staging 驗證。M1（前端排序效能）、M2（DO 內建 SQLite 歷史持久化）、M3（WebSocket Hibernation）均已完成並通過本機測試，報告狀態已標記 `done`（本機範圍）。未 Commit／Push／部署，`wrangler.chat-poc.jsonc` 未修改。`_workspace/PLATFORM_CHAT_EXECUTION_MILESTONES.md` 的 M6 是否正式啟動、M4／M5 的手機與跨房間隔離人工驗收，均未另外處理。
+
+唯一下一步：無待辦；下一步工作項目由使用者另外提出。
+
+## 2026-10-27 續作停止點：scale-hardening M3（WebSocket Hibernation）完成
+
+`PublicChat` Durable Object 改用 Hibernatable WebSockets：`server.accept()` + `addEventListener` 改為 `state.acceptWebSocket(server)` + `webSocketMessage`／`webSocketClose`／`webSocketError`；連線中繼資料改用 `serializeAttachment`／`deserializeAttachment` 存活於 hibernation 之間，`this.connections` Map 移除改以 `state.getWebSockets()` 為唯一連線來源；每連線一個 `setTimeout` 的 idle 斷線改為單一 DO `alarm()`（`setTimeout` 在 DO hibernate 後會遺失，`alarm` 由 storage 持久排程不會）；`playerSequence` 改存入 `state.storage`，避免 hibernate／回收後重新從 0 計數與既有連線的 `playerNumber` 衝突。
+
+新增兩項測試：idle timeout 由 alarm 驅動正確關閉閒置連線、不影響仍活躍連線（驗證時改為輪詢 DO 內部連線數，而非依賴 ws client 端 `close` 事件到達時機，因實測後者明顯落後於 DO 內部狀態）。`chat-poc.test.mjs` 8/8、Worker 全量測試 74/74 通過，重跑 3 次無 flaky。
+
+**未能驗證的項目**：Miniflare 5.x 未提供強制觸發 DO 記憶體回收／喚醒的測試 API，因此「DO 被真正 hibernate 後再喚醒，既有連線 attachment 不遺失」只驗證了讀寫邏輯正確，未能在本機獨立複測真實 hibernate-wake 週期；這是 Cloudflare Hibernation API 自身的文件保證，但本輪沒有獨立證據。另外 `processedRequests`（請求去重 Map）仍只存在記憶體，跨 hibernate 可能遺失，為已知殘留風險（已記錄於 scale-hardening 報告，機率低、前端有 `messageId` 去重擋住重複顯示）。
+
+未 Commit／Push／部署，`wrangler.chat-poc.jsonc` 未修改。`_workspace/_reports/2026-10-27_platform_chat_scale_hardening/EXECUTION_PLAN.md` 的 M1／M2／M3 均已完成。
+
+唯一下一步：使用者決定是否授權部署到 Staging 驗證真實 Hibernation 行為，或是否正式啟動 `PLATFORM_CHAT_EXECUTION_MILESTONES.md` 的 M6。
+
+## 2026-10-27 續作停止點：PLATFORM_CHAT_EXECUTION_MILESTONES.md M1 殘留 Gate 補齊
+
+依使用者要求補齊 M1 剩餘兩項 Gate：
+1. **連線關閉後不殘留可觀察的連線與計時器**：在 `PublicChat.fetch` 新增內部除錯分支（`X-Chat-Internal: 1` + `/internal/connections`），僅能透過持有 `PUBLIC_CHAT` DO binding 的呼叫方存取，未經過公開 Worker 路由，不對外部網路暴露；`chat-poc.test.mjs` 新增測試驗證連線關閉後 `connections.size` 正確遞減至 0。
+2. **Staging smoke test 通過**：查證既有 Commit `346d843`（`docs(platform-chat): record staging verification`）與 `CURRENT_WORK.md` 歷史紀錄，確認 `dep_platform-chat_v0.1.3`／Commit `0b2d391` 已於 Staging 完成兩個遠端 WebSocket 客戶端廣播 smoke，Release 與 verified deployment state 已建立；本次只是把既有證據補上 Gate 勾選，未重新部署或重跑遠端 smoke。
+
+`chat-poc.test.mjs` 7/7、Worker 全量測試 73/73 通過。`PLATFORM_CHAT_EXECUTION_MILESTONES.md` 的 M1 已全數勾選並更新總覽表格與第 12 節為「M0/M1/M2/M3 完成，M4/M5 進行中，M6/M7 未開始」。M1 全數 Gate 通過後，規則上已可啟動 M6，但是否正式宣告 M6 開始由使用者決定；本次未宣告 M6 開始，也未 Commit／Push／部署。
+
+唯一下一步：使用者決定是否正式啟動 M6，或繼續執行 `_workspace/_reports/2026-10-27_platform_chat_scale_hardening/EXECUTION_PLAN.md` 的 M3（WebSocket Hibernation）。
+
+## 2026-10-27 最新停止點：Platform Chat 里程碑狀態校正 + 效能／快取硬化 M1／M2 完成
+
+`_workspace/PLATFORM_CHAT_EXECUTION_MILESTONES.md` 的總覽表格與原第 12 節「當前停止點」長期停留在下方「M1 完成，下一步進入 Staging smoke」的舊狀態，但 M2～M5 各節自己的 Gate／結果早已記錄大量完成項目，且與實際原始碼（`platform/frontend/src/chat/*`、`platform/worker/src/chat-poc.js`、`magic-siege`／`game-demo` 的 chat opt-in 設定、dineCore `chat-admin` 模組）及本機 `git tag dep_platform-chat_v0.1.0~v0.1.10`、數十筆 `platform-chat` commit 一致。已校正該文件總覽表格與第 12 節為：M0／M2／M3 完成，M1／M4／M5 進行中（各自殘留項目已列出），M6／M7 未開始。
+
+另依使用者要求，針對「效能、資料變多後暫存快取、DOM 節點過多」三個問題建立獨立執行書 `_workspace/_reports/2026-10-27_platform_chat_scale_hardening/EXECUTION_PLAN.md`，完成其中 M1（前端 `MessageStore` 排序效能優化、新增 `addMessages` 批次合併）與 M2（`PublicChat` Durable Object 改用自帶 SQLite storage 保存最近 50 筆訊息並在新連線回放 `chat.history`）。前端 `test:chat` 8/8、Worker `chat-poc.test.mjs` 6/6、Worker 全量測試 72/72 通過。未 Commit／Push／部署；未宣告 `PLATFORM_CHAT_EXECUTION_MILESTONES.md` 的 M6 已開始（該文件規定 M6 需等 M1 殘留 Gate 通過才能開始）。
+
+唯一下一步：使用者決定是否補齊 M1 殘留 Gate（連線清理驗證、Staging smoke test）以正式解鎖 M6，或繼續執行 scale-hardening 報告的 M3（WebSocket Hibernation，風險較高、與 M1 殘留 Gate 直接相關，尚未開始）。
+
 ## 2026-10-27 最新停止點：Platform Chat M1 本機 Proof of Concept 完成
 
 M1 已建立隔離的 `platform/worker/src/chat-poc.js`、`PublicChat` Durable Object、`wrangler.chat-poc.jsonc` 與 4 項 WebSocket／廣播／錯誤／房間隔離測試。`node --test test/chat-poc.test.mjs` 4/4 通過，Wrangler dry-run 通過；未接入 `magic-siege`、未建立 Chat UI、未修改既有 Worker route、未安裝套件、未 Commit／Push／部署。Node.js 長駐 WebSocket 僅完成比較，未另建伺服器。
@@ -306,3 +342,129 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 - 發現既有 Durable Object `magic-siege:public` 熱執行個體仍執行舊版程式，故線上仍回傳 `anonymous_*`；不是前端身份比對錯誤。
 - Chat Worker 改用 `CHAT_NAMESPACE_VERSION=2` 建立新 namespace，避免舊房間執行個體遮蔽玩家編號更新。
 - 已發布 Platform Chat `dep_platform-chat_v0.1.5`；遠端 `chat.ready` 已確認回傳 `player_001`／玩家001。
+
+## 2026-10-27｜M4-A 純 Container 基準測試
+
+- 新增 `platform/frontend/scripts/container-benchmark.mjs` 與 `npm run benchmark:container`，直接使用原始 `Container`，測量單一／三實例生命週期、三實例各自 Store 更新，以及 1,000 次建立／銷毀循環。
+- 基準通過：三 Container 建立／銷毀中位數 0.0194 ms；三 Container 各更新 1,000 次中位數 4.9485 ms；循環 1,000 次中位數 0.4815 ms。
+- 報告：`_workspace/_reports/2026-10-27_platform_chat_m4a_container_benchmark/RESULT.md`；M4-A 前四項已勾選，Game + Chat 完整負載仍待 M4-B。
+- 唯一下一步：進行本地模擬訊息與真實 WebSocket 的 Game + Chat 負載測試，觀察 FPS、訊息延遲、DOM 更新與斷線資源釋放。
+
+## 2026-10-27｜M4-B 首輪 Chat 負載測試
+
+- 新增 `platform/frontend/scripts/chat-load-benchmark.mjs` 與 `npm run benchmark:chat-load`，完成 0／5／50／200 則／秒的本地 Chat Store 負載矩陣；200 則輸入在 ring buffer 上限 100 下保留 60 則，沒有無限增長。
+- 新增 `platform/worker/scripts/benchmark-chat-remote.mjs`，Staging 兩連線、20 則真實 WebSocket 廣播／ack 通過，p95 延遲 150.55 ms；結果見 `_workspace/_reports/2026-10-27_platform_chat_m4b_load_benchmark/`。
+- `npm run test:chat` 3/3、`npm run test:game` 8/8 通過。
+- 尚未完成瀏覽器 DOM／p5.js FPS、手機背景切回與長時間記憶體測試；下一步需用實際瀏覽器做 M4-C（裝置驗證）再決定是否進 M5。
+
+## 2026-10-27｜M4-C 首輪瀏覽器驗證
+
+- Staging 瀏覽器驗證通過：聊天室收合／展開、玩家編號、已連線狀態、重新載入後重新連線均正常；收合時不遮擋遊戲畫布。
+- 驗證報告：`_workspace/_reports/2026-10-27_platform_chat_m4c_browser_verification/RESULT.md`。
+- 尚未完成：真實 iOS Safari／加入主畫面背景切回、低階手機 FPS、長時間記憶體與斷線重連裝置測試。
+- 唯一下一步：在使用者手機上完成 M4-C 裝置驗收；若通過，再進入 M5 第二個 Project 移植驗證。
+
+## 2026-10-27｜M4-C 裝置驗收完成／M5 首輪移植
+
+- 使用者確認手機手測可以；M4-C 首輪裝置驗收完成，剩餘僅低階手機長時間與背景切回的補充測試。
+- `game-demo` 已掛載同一平台 Chat Runtime：Page 只建立 `Chat`／`ChatPanel`，卸載時 dispose，沒有複製平台核心。
+- `game-demo` 使用獨立 `game-demo` room namespace；`npm run test:game` 9/9、`VITE_PROJECT=game-demo npm run build:cloudflare`、deployment plan 測試通過；結果見 `_workspace/_reports/2026-10-27_platform_chat_m5_game_demo_portability/RESULT.md`。
+- 唯一下一步：建立或確認第二個 Project 的 Staging 發布入口，使用獨立 room namespace 做跨 Project 隔離測試；目前未部署。
+
+## 2026-10-27｜M5 Staging 部署前隔離驗收
+
+- `https://game-demo-staging.takoson68.workers.dev/` HTTP 200，既有入口可存取。
+- Worker Chat 隔離測試 4/4 通過：不同 room 與不同 projectId 不互相廣播。
+- 本輪未建立 Deployment、未向公開聊天室送出測試訊息；報告見 `_workspace/_reports/2026-10-27_platform_chat_m5_staging_preflight/RESULT.md`。
+- 已發布 `dep_game-demo_v0.1.5`，Workflow `40443472096` 成功，網址 `https://game-demo-staging.takoson68.workers.dev/` 回應 HTTP 200。
+
+## 2026-10-27｜M5 roomId 連線修正與雙站重新發布
+
+- 發現根因：Chat 建立 WebSocket 時未把 `roomId` 放入 URL，兩個 Project 都落到 Worker 預設 `public` room。
+- 修正 `buildChatConnectionUrl()` 並新增 runtime 測試；Chat 4/4、Game 9/9、magic-siege／game-demo build 均通過。
+- 已發布 `dep_game-demo_v0.1.6`（Workflow `40443860075`）與 `dep_magic-siege_v0.1.47`（Workflow `40443860035`），報告見 `_workspace/_reports/2026-10-27_platform_chat_m5_room_isolation_fix/RESULT.md`。
+- 唯一下一步：使用者重新整理兩個網址後，各送一則測試訊息，確認 `game-demo` 與 `public` room 不互相收到。
+
+## 2026-10-27｜Chat 標題顯示目前玩家編號
+
+- Chat 標題改為 `公共聊天室・玩家XXX`；尚未取得伺服器身分時回退為 `公共聊天室`。
+- `dep_game-demo_v0.1.7`（Workflow `40444022863`）與 `dep_magic-siege_v0.1.48`（Workflow `40444022843`）均成功。
+- 瀏覽器重新載入 magic-siege 後已確認標題顯示 `公共聊天室・玩家011`。
+
+## 2026-10-27｜Chat 標題改為聊天室識別
+
+- 使用者確認標題應顯示聊天室，而非玩家；標題已改為 `聊天室・public`／`聊天室・game-demo`，玩家編號仍保留在展開內容。
+- `dep_game-demo_v0.1.8`（Workflow `40444244504`）與 `dep_magic-siege_v0.1.49`（Workflow `40444244576`）均成功。
+- 以 `?v=0.1.49` 重新載入 magic-siege 已確認畫面顯示 `聊天室・public`；若瀏覽器仍顯示舊標題，請加版本 query 或強制重新整理以清除舊 bundle cache。
+
+## 2026-10-27｜平台聊天室管理入口（未部署）
+
+- Chat Worker 新增 Durable Object 房間目錄：WebSocket 首次連線會自動註冊房間，管理 API 支援公開列出、`super_admin` 建立／改名／停用。
+- 管理 API 由 Chat Worker 轉向既有 `dineCore` `/api/session`，以 `X-Project: dineCore` 與 Bearer token 驗證資料庫中的 `super_admin`；前端不自行信任角色。
+- 新增平台共用 `platform/frontend/src/chat/ChatRoomAdminPanel.vue`，dineCore 僅以 `chat-admin` 模組掛載 `/staff/platform/chat-rooms` 管理入口。
+- 驗證：Chat Worker 5/5、Chat Worker dry-run、`VITE_PROJECT=dineCore npm run build:cloudflare` 通過。
+- 尚未部署；下一步是依使用者授權發布 Chat Worker 與 dineCore，並以既有 dineCore super_admin 登入測試建立、改名、停用及跨 Project 自動出現。
+
+## 2026-10-27｜平台聊天室管理入口已發布
+
+- Commit `dd14bf3` 已推送至 `world-oop`，並建立 `dep_platform-chat_v0.1.6`、`dep_dinecore_v0.1.1`。
+- Chat Worker Workflow `40449039297` 成功；公開 `/api/chat/rooms` 回應 HTTP 200，目前已列出 `public` 房間。
+- dineCore Workflow `40449039658` 成功；`https://dinecore-staging.takoson68.workers.dev/staff/platform/chat-rooms` 回應 HTTP 200。
+- 兩個 Workflow 的 Worker 測試、Build、部署、公開端點、驗證流程與 verified deployment state 均通過。
+- 待使用者以既有 `dineCore super_admin` 登入 dineCore，進入「平台聊天室」完成建立、改名、停用的端對端人工驗收。
+
+## 2026-10-27｜聊天室 10 分鐘閒置斷線（未部署）
+
+- Chat Worker 對每條 WebSocket 連線設定 10 分鐘閒置計時器；收到有效客戶端事件會重設計時，逾時以專用 close code `4000`／`idle_timeout` 關閉。
+- 前端 `ConnectionService` 收到閒置關閉後停止自動重連，避免閒置連線被無限重建；使用者重新展開聊天室或聚焦輸入框時才重新連線。
+- 驗證：Chat Runtime 5/5、Chat Worker 5/5、Worker dry-run、dineCore Cloudflare build 通過。
+- 尚未部署；需另建立 `dep_platform-chat` 與受影響 Project 的新版本後，才可在線上以 10 分鐘規則驗收。
+
+## 2026-10-27｜dineCore 平台聊天室測試帳號
+
+- 已在遠端 `dineCore` D1 建立原有快速登入使用的 `manager` 測試帳號，角色為 `manager`、狀態啟用；密碼只以 scrypt 雜湊保存，未寫入程式或報告。
+- 原先為了測試平台聊天室暫設的 `super_admin` 角色已修正回 `manager`，以符合 dineCore 快速登入與既有 mock 行為。
+- dineCore `/api/login` 與 `/api/session` 驗證成功。
+- 針對 Chat Worker 寫入權限驗證發現跨 Worker `/api/session` GET 可能命中快取，已補上 `cache: 'no-store'` 與 `Cache-Control: no-cache`；修正尚未部署。
+- 待下一次 Chat Worker 發布後，再用此帳號完成聊天室建立／改名／停用端對端驗收。
+
+## 2026-10-27｜閒置斷線與驗證快取修正已發布
+
+- `dep_platform-chat_v0.1.7`、`dep_magic-siege_v0.1.50`、`dep_game-demo_v0.1.9` 已成功部署。
+- Workflow：`40450044037`、`40450044498`、`40450044676`；三個 staging Smoke Gate 均通過。
+- Chat Worker `/api/chat/rooms` HTTP 200；magic-siege 與 game-demo 公開入口 HTTP 200。
+- 10 分鐘閒置斷線與身份驗證 `no-store` 修正已上線；dineCore `manager` 測試帳號仍維持原本 `manager` 角色。
+
+## 2026-10-27｜建立平台聊天室 super_admin 並修正跨 Worker 驗證
+
+- 已在遠端 `dineCore` D1 建立獨立的 `super_admin` 測試帳號（帳號密碼已直接交付使用者，未寫入文件）；原有 `manager / manager123` 仍維持 `manager` 快速登入用途。
+- `dep_platform-chat_v0.1.10` 已發布，Workflow `40456608416` 成功；Chat Worker 改用 `dinecore-staging` Service Binding 驗證平台管理員，避免跨 Worker HTTP 子請求回 404。
+- 已以新 `super_admin` 登入並完成聊天室管理 API Smoke：建立房間 HTTP 201、停用房間 HTTP 200；測試房間已停用，不會留在公開房間清單。
+- 管理入口：`https://dinecore-staging.takoson68.workers.dev/staff/platform/chat-rooms`。使用 `manager` 登入會回到 manager dashboard，必須改用 `super_admin` 登入。
+- `dep_dinecore_v0.1.2` 已發布聊天室管理頁的「進入聊天室」與即時對話框；線上已驗證可展開 `聊天室・public` 並顯示訊息輸入框。
+- `dep_dinecore_v0.1.3` 已發布登入頁的兩組測試帳號快速填入：`manager / manager123` 與 `super_admin / superadmin123`。
+- `dep_dinecore_v0.1.4` 已發布：點選「進入聊天室」後直接展開訊息對話框，不需再按第二次展開；Workflow `40461158823` 成功。
+
+## 2026-10-27｜聊天室新訊息自動捲到底部
+
+- `ChatPanel` 的訊息區現在會在新訊息加入及展開對話框時自動捲到最底，避免新訊息被留在捲軸下方看不到。
+- `npm run test:chat` 5/5、dineCore build 通過。
+- 已發布 `dep_magic-siege_v0.1.51`、`dep_game-demo_v0.1.10`、`dep_dinecore_v0.1.5`；magic-siege Workflow `40461769564`、game-demo Workflow `40461770035` 已成功。
+
+## 2026-10-27｜聊天室收合未讀提示
+
+- `ChatPanel` 收合時收到新訊息會顯示未讀數，展開後清除並捲到最新訊息。
+- 已發布 `dep_magic-siege_v0.1.52`、`dep_game-demo_v0.1.11`、`dep_dinecore_v0.1.6`，三個 Workflow 均成功。
+
+## 2026-10-27｜訊息時間與聊天室寬度調整
+
+- 每則訊息右側顯示半透明、較小兩級的 `HH:MM` 時間。
+- 聊天視窗展開後右側新增可拖曳寬度把手，寬度限制 240～520px。
+- `npm run test:chat` 8/8、dineCore build 通過；已發布 `dep_magic-siege_v0.1.54`、`dep_game-demo_v0.1.13`、`dep_dinecore_v0.1.8`，三個 Workflow 均成功。
+
+## 2026-10-27｜聊天室面板結構與時間欄位修正
+
+- 修正 `ChatPanel.vue` Pug 縮排，讓標題、訊息與輸入框正確留在聊天面板內；右側拖曳寬度把手仍保留。
+- 修正訊息時間欄位對應：Worker 廣播使用 `serverTime`，前端現在以 `serverTime`（並相容 `timestamp`）顯示右側半透明小字 `HH:MM`。
+- 驗證：`npm run test:chat` 8/8、`VITE_PROJECT=magic-siege npm run build:cloudflare` 通過。
+- 已發布 `dep_magic-siege_v0.1.55`、`dep_game-demo_v0.1.14`、`dep_dinecore_v0.1.9`（面板結構修正），以及 `dep_magic-siege_v0.1.56`、`dep_game-demo_v0.1.15`、`dep_dinecore_v0.1.10`（時間欄位修正）；六個 Workflow 均成功。
