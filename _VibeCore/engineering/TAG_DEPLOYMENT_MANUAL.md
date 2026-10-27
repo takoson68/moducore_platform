@@ -11,7 +11,7 @@
 | game-demo | `dep_game-demo_vX.Y.Z` | `game-demo-staging` |
 | dineCore | `dep_dinecore_vX.Y.Z` | `dinecore-staging` |
 | project-b | `dep_project-b_vX.Y.Z` | `project-b-staging` |
-| platform-chat | `dep_platform-chat_vX.Y.Z` | `moducore-chat-poc` |
+| platform-chat | `dep_platform-chat_vX.Y.Z` | `moducore-chat-poc-staging` |
 
 版本必須採三段式，例如 `0.1.0`。需要預發布版本時可使用 `1.0.0-rc.1`。
 

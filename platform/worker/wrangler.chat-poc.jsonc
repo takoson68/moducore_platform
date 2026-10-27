@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "moducore-chat-poc",
+  "name": "moducore-chat-poc-staging",
   "main": "src/chat-poc.js",
   "compatibility_date": "2026-10-21",
   "workers_dev": true,

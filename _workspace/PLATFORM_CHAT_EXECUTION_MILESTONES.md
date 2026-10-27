@@ -299,7 +299,7 @@ M4-A 不預設 Container 是效能瓶頸，必須以測量結果判斷。
 
 ## 12. 當前停止點
 
-- 目前狀態：M0 已完成，M1 本機 Proof of Concept 與獨立 Staging smoke 已完成；下一步進入 M2。
+- 目前狀態：M0 已完成，M1 本機 Proof of Concept 已完成；獨立 Staging smoke 已通過，但部署紀錄 target 格式仍待修正後重跑，完成後才進入 M2。
 - 已建立 Chat contract、隔離的 Worker WebSocket route 與 `PublicChat` Durable Object PoC；尚未建立 ChatContainer 或 Chat UI。
 - 尚未安裝新套件。
 - 下一步：取得部署授權後，將隔離 PoC 部署至 Staging 完成 smoke test；未通過前不進入 M2。

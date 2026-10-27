@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 const targets = {
   'game-demo': { target: 'game-demo-staging', project: 'game-demo', database: false, frontend: true, staticSite: true, websocket: false, config: 'wrangler.game-demo-staging.json' },
   'magic-siege': { target: 'magic-siege-staging', project: 'magic-siege', database: false, frontend: true, staticSite: true, websocket: false, config: 'wrangler.magic-siege-staging.json' },
-  'platform-chat': { target: 'moducore-chat-poc', project: 'platform-chat', database: false, frontend: false, staticSite: false, websocket: true, config: 'wrangler.chat-poc.jsonc' },
+  'platform-chat': { target: 'moducore-chat-poc-staging', project: 'platform-chat', database: false, frontend: false, staticSite: false, websocket: true, config: 'wrangler.chat-poc.jsonc' },
   dinecore: { target: 'dinecore-staging', project: 'dineCore', database: true, frontend: true, staticSite: false, websocket: false, config: 'wrangler.dinecore-staging.json' },
   'project-b': { target: 'project-b-staging', project: 'project-b', database: true, frontend: true, staticSite: false, websocket: false, config: 'wrangler.project-b-staging.json' },
 }

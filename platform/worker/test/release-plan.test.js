@@ -23,7 +23,7 @@ test('部署 Tag 只解析白名單專案與語意版本', () => {
     projectKey: 'magic-siege', version: '0.1.0', tag: 'dep_magic-siege_v0.1.0', artifactSource: 'build',
   })
   assert.deepEqual(parseDeploymentTag('dep_platform-chat_v0.1.0'), {
-    target: 'moducore-chat-poc', project: 'platform-chat', database: false,
+    target: 'moducore-chat-poc-staging', project: 'platform-chat', database: false,
     frontend: false, staticSite: false, websocket: true, config: 'wrangler.chat-poc.jsonc',
     projectKey: 'platform-chat', version: '0.1.0', tag: 'dep_platform-chat_v0.1.0', artifactSource: 'build',
   })
