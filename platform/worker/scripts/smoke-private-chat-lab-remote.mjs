@@ -19,6 +19,8 @@ const status = await new Promise((resolve, reject) => {
   socket.once('unexpected-response', (_request, response) => {
     clearTimeout(timeout)
     resolve(response.statusCode)
+    response.resume()
+    socket.terminate()
   })
 })
 assert.equal(status, 400)
