@@ -14,8 +14,10 @@ main.chatcore-page.chatcore-entry
     p.chatcore-lead
       | chatCore 是獨立的實驗 Project，用來逐步驗證私人文字聊天室、裝置連線與本機聊天紀錄。
     p.chatcore-note
-      | 目前僅提供實驗入口與控制台，不含登入、會員資料或可用聊天室。
-    RouterLink.chatcore-button(to="/console") 前往控制台
+      | 目前可建立雙人測試聊天室並分享連結。只傳合成測試文字；不含會員登入、聊天紀錄或 E2E 加密。
+    nav.chatcore-actions
+      RouterLink.chatcore-button(to="/lab") 開始測試聊天室
+      RouterLink.chatcore-console(to="/console") 前往控制台
 
   footer.chatcore-footer
     span ModuCore Project · chatCore
@@ -89,6 +91,17 @@ main.chatcore-page.chatcore-entry
 
 .chatcore-button:hover
   background: #1e4d92
+
+.chatcore-actions
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  gap: 18px
+
+.chatcore-console
+  color: #34516f
+  font-weight: 700
+  text-decoration: none
 
 .chatcore-footer
   display: flex
