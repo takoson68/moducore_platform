@@ -105,17 +105,17 @@ main.chat-shell(:class="`mode-${viewMode}`")
     .topbar-status
       span.status-indicator(:class="{ active: isActive }")
       span.status-label RTCDataChannel:
-      strong(:class="{ active: isActive }") {{ isActive ? 'Connected (Active)' : status.state === 'waiting' ? 'Waiting for peers' : status.state === 'partial' ? 'Partially connected' : 'Not connected' }}
+      strong(:class="{ active: isActive }") {{ status.state === 'connected' ? 'Connected (Active)' : status.state === 'partial' ? 'Partially connected' : status.state === 'waiting' ? 'Waiting for peers' : ['connecting', 'signaling'].includes(status.state) ? 'Connecting' : 'Not connected' }}
       i.status-divider
       span.status-label 延遲:
       strong {{ averageLatency === null ? '—' : `${averageLatency} ms` }}
       i.status-divider
-      span.transport-label DTLS/SCTP 傳輸加密
+      span.transport-label(title="僅代表 WebRTC 傳輸通道加密，不代表登入身分驗證或 E2E 加密") 傳輸加密：DTLS/SCTP
     .topbar-actions
       .view-toggle(role="group" aria-label="聊天版面模式")
         button(:class="{ selected: viewMode === 'integrated' }" @click="viewMode = 'integrated'") 整合視圖
         button(:class="{ selected: viewMode === 'focused' }" @click="viewMode = 'focused'") 專注聊天
-      span.avatar TK
+      span.avatar 訪客
 
   .workspace
     aside.project-sidebar(v-if="viewMode === 'integrated'")
@@ -127,7 +127,6 @@ main.chat-shell(:class="`mode-${viewMode}`")
       .directory-item
         span ♧
         span dineCore
-        small ↗
       .directory-item
         span ⌘
         span ModuCore 遊戲
@@ -139,7 +138,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
         span ›
       .capability-item
         span ◉
-        span 一對一私人連線
+        span 多人文字聊天室
         small.m1-tag M1b
       .capability-item.muted
         span ♧
@@ -153,12 +152,10 @@ main.chat-shell(:class="`mode-${viewMode}`")
         .telemetry-title 連線遙測 (Telemetry)
         .telemetry-row
           span Channel:
-          code chat-data-channel
+          code chat-text
         .telemetry-row
           span 累計流量:
           strong {{ formatBytes(totalTraffic) }}
-        .telemetry-meter
-          span(:style="{ width: totalTraffic ? '62%' : '0%' }")
       .sidebar-foot Staging 實驗環境
 
     section.dashboard(v-if="viewMode === 'integrated'")
@@ -175,7 +172,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
         .heading-line
           h2 CAPABILITIES
           span.section-badge 聊天核心能力
-        span.module-count 3 個模組
+        span.module-count 3 項能力
       .capability-cards
         article.capability-card.unavailable
           .card-heading
@@ -191,7 +188,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
           .card-footer Multi-room Router
         article.capability-card.available
           .card-heading
-            h3 一對一私人連線
+            h3 多人文字聊天室
             span.m1-tag M1b 實驗
           p 提供最多五位 Peer 的 RTCDataChannel 實驗；支援低延遲文字串流與信號除錯。
           .card-footer
@@ -248,12 +245,20 @@ main.chat-shell(:class="`mode-${viewMode}`")
           .title-line
             h2 {{ session ? `Room ${roomId}` : '聊天室' }}
             span.online-badge(:class="{ connected: isActive }") {{ participants.count }} 在線
-          p {{ session ? 'M1 RTCDataChannel 實驗室頻道' : '建立或加入房間開始測試' }}
+          p {{ session ? 'M1b RTCDataChannel 實驗室頻道' : '建立或加入房間開始測試' }}
         .chat-header-actions
           button.icon-button(type="button" :disabled="!session || !roomId" title="複製邀請連結" @click="copyInviteLink") ↗
           button.icon-button(type="button" :disabled="!session" title="離開聊天室" @click="disconnect") ⏻
       .chat-notice(v-if="roomNotice") {{ roomNotice }}
       .chat-warning 知道房間連結的測試者都可以加入；請只傳送合成測試文字。
+      .room-entry(v-if="viewMode === 'focused' && !session")
+        label.room-entry-field
+          span 房間代碼
+          input(v-model="roomId" maxlength="64" autocomplete="off" placeholder="輸入朋友提供的房間代碼")
+        .room-entry-actions
+          button.primary-button(type="button" @click="createRoom") 建立新聊天室
+          button.secondary-button(type="button" :disabled="!roomId.trim()" @click="connect") 加入聊天室
+      p.error-message(v-if="errorMessage && viewMode === 'focused'") {{ errorMessage }}
       .message-list(aria-live="polite" aria-relevant="additions")
         .connection-pill(v-if="session") ▣ 對點傳輸通道 {{ isActive ? '已就緒' : status.detail }}
         p.empty-state(v-if="messages.length === 0") {{ session ? '連線後從任一 Peer 傳送合成測試文字。' : '先建立新聊天室，或輸入房間代碼加入朋友的聊天室。' }}
@@ -266,7 +271,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
       .chat-composer-area
         .quick-actions
           span 快捷資訊:
-          span.quick-pill ⚡ Ping 測試
+          span.quick-pill ▣ 合成文字模式
           span.quick-pill ◉ {{ status.state }}
           span.quick-pill ▥ {{ participants.connectedCount }} / {{ participants.count }} 連線
         form.message-form(@submit.prevent="sendText")
@@ -519,10 +524,27 @@ main.chat-shell(:class="`mode-${viewMode}`")
   font-size: 12px
 
 .dashboard
+  scrollbar-color: #34435b #0b1220
+  scrollbar-width: thin
   min-width: 0
   padding: 30px clamp(20px, 2vw, 38px)
   overflow-y: auto
   max-height: calc(100vh - 72px)
+
+.dashboard::-webkit-scrollbar, .message-list::-webkit-scrollbar
+  width: 8px
+
+.dashboard::-webkit-scrollbar-track, .message-list::-webkit-scrollbar-track
+  border-radius: 8px
+  background: #0b1220
+
+.dashboard::-webkit-scrollbar-thumb, .message-list::-webkit-scrollbar-thumb
+  border: 2px solid #0b1220
+  border-radius: 8px
+  background: #34435b
+
+.dashboard::-webkit-scrollbar-thumb:hover, .message-list::-webkit-scrollbar-thumb:hover
+  background: #4b6385
 
 .dashboard-heading
   display: flex
@@ -671,7 +693,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
   gap: 9px
   margin-top: 18px
 
-.room-field
+.room-field, .room-entry-field
   display: grid
   min-width: 150px
   flex: 1
@@ -679,7 +701,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
   color: #8090a7
   font-size: 11px
 
-.room-field input
+.room-field input, .room-entry-field input
   box-sizing: border-box
   width: 100%
   min-height: 38px
@@ -872,7 +894,40 @@ main.chat-shell(:class="`mode-${viewMode}`")
 .chat-notice
   margin: 8px 16px 0
 
+.room-entry
+  display: grid
+  gap: 10px
+  margin: 12px 16px 0
+  padding: 13px
+  border: 1px solid #26344a
+  border-radius: 12px
+  background: #111b2c
+
+.room-entry-field
+  display: grid
+  gap: 6px
+  color: #8c9bb0
+  font-size: 11px
+  font-weight: 650
+
+.room-entry-field input
+  min-height: 40px
+  padding: 0 11px
+  border: 1px solid #2a3850
+  border-radius: 8px
+  color: var(--text)
+  background: #090f1d
+
+.room-entry-actions
+  display: flex
+  gap: 8px
+
+.room-entry-actions button
+  flex: 1
+
 .message-list
+  scrollbar-color: #34435b #0b1220
+  scrollbar-width: thin
   display: flex
   min-height: 0
   flex: 1
@@ -1069,7 +1124,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
     padding: 16px
   .room-controls
     align-items: stretch
-  .room-field
+  .room-field, .room-entry-field
     min-width: 100%
   .experiment-heading
     flex-wrap: wrap
