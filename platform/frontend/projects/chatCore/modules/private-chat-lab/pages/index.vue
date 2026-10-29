@@ -118,7 +118,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
       span.avatar 訪客
 
   .workspace
-    aside.project-sidebar(v-if="viewMode === 'integrated'")
+    aside.project-sidebar
       h2 PROJECT DIRECTORY
       .directory-item.current
         span ◉
@@ -297,6 +297,26 @@ main.chat-shell(:class="`mode-${viewMode}`")
   font-family: Inter, "Segoe UI", "Noto Sans TC", sans-serif
   font-size: 14px
   overflow: hidden
+
+.chat-shell *
+  scrollbar-color: #34435b #0b1220
+  scrollbar-width: thin
+
+.chat-shell *::-webkit-scrollbar
+  width: 8px
+  height: 8px
+
+.chat-shell *::-webkit-scrollbar-track
+  border-radius: 8px
+  background: #0b1220
+
+.chat-shell *::-webkit-scrollbar-thumb
+  border: 2px solid #0b1220
+  border-radius: 8px
+  background: #34435b
+
+.chat-shell *::-webkit-scrollbar-thumb:hover
+  background: #4b6385
 
 .topbar
   position: sticky
@@ -524,27 +544,10 @@ main.chat-shell(:class="`mode-${viewMode}`")
   font-size: 12px
 
 .dashboard
-  scrollbar-color: #34435b #0b1220
-  scrollbar-width: thin
   min-width: 0
   padding: 30px clamp(20px, 2vw, 38px)
   overflow-y: auto
   max-height: calc(100vh - 72px)
-
-.dashboard::-webkit-scrollbar, .message-list::-webkit-scrollbar
-  width: 8px
-
-.dashboard::-webkit-scrollbar-track, .message-list::-webkit-scrollbar-track
-  border-radius: 8px
-  background: #0b1220
-
-.dashboard::-webkit-scrollbar-thumb, .message-list::-webkit-scrollbar-thumb
-  border: 2px solid #0b1220
-  border-radius: 8px
-  background: #34435b
-
-.dashboard::-webkit-scrollbar-thumb:hover, .message-list::-webkit-scrollbar-thumb:hover
-  background: #4b6385
 
 .dashboard-heading
   display: flex
@@ -926,8 +929,6 @@ main.chat-shell(:class="`mode-${viewMode}`")
   flex: 1
 
 .message-list
-  scrollbar-color: #34435b #0b1220
-  scrollbar-width: thin
   display: flex
   min-height: 0
   flex: 1
@@ -1051,14 +1052,13 @@ main.chat-shell(:class="`mode-${viewMode}`")
   font-size: 10px
 
 .mode-focused .workspace
-  grid-template-columns: minmax(0, 1fr)
+  grid-template-columns: 250px minmax(0, 1fr)
   min-height: calc(100vh - 72px)
-  justify-items: center
 
 .mode-focused .chat-pane
   position: relative
   top: auto
-  width: min(100%, 1050px)
+  width: 100%
   height: calc(100vh - 72px)
   border-right: 1px solid var(--line)
 
@@ -1084,6 +1084,10 @@ main.chat-shell(:class="`mode-${viewMode}`")
     grid-template-columns: minmax(0, 1fr) minmax(320px, 42vw)
   .project-sidebar
     display: none
+  .mode-focused .workspace
+    grid-template-columns: 210px minmax(0, 1fr)
+  .mode-focused .project-sidebar
+    display: flex
   .dashboard
     padding: 22px 18px
   .dashboard-heading
@@ -1113,6 +1117,18 @@ main.chat-shell(:class="`mode-${viewMode}`")
     display: flex
     min-height: calc(100vh - 100px)
     flex-direction: column
+  .project-sidebar
+    display: none
+  .mode-focused .project-sidebar
+    display: flex
+    width: 100%
+    max-height: 190px
+    overflow-y: auto
+    padding: 14px 16px
+  .mode-focused .project-sidebar .capability-heading
+    margin-top: 8px !important
+  .mode-focused .project-sidebar .telemetry-card
+    margin-top: 8px
   .dashboard
     max-height: none
     overflow: visible
