@@ -312,7 +312,7 @@ jobs:
         working-directory: platform/worker
         run: node scripts/smoke-chat-remote.mjs wss://${{ matrix.target }}.takoson68.workers.dev/ws/chat
 
-      - name: Verify private chat lab Signaling
+      - name: Verify private chat lab requires an authenticated one-time ticket
         if: matrix.privateChat == true
         working-directory: platform/worker
         run: node scripts/smoke-private-chat-lab-remote.mjs wss://${{ matrix.target }}.takoson68.workers.dev/ws/private-chat-lab

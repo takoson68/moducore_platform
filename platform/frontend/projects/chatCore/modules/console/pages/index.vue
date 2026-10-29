@@ -8,7 +8,7 @@ const plannedCapabilities = [
   {
     id: 'private-connection',
     title: '一對一私人連線',
-    description: 'M1 提供兩個 Peer 的 RTCDataChannel 實驗；會員邀請及正式聊天室尚未開放。',
+    description: 'M1b 提供最多五位參與者的 RTCDataChannel Full Mesh 實驗；會員邀請及正式聊天室尚未開放。',
     route: '/lab'
   }
 ]

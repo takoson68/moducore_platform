@@ -12,7 +12,7 @@ function resolveIceServers() {
   }
 }
 
-export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onPeers, onJoined }) {
+export function createPrivateChatLabSession({ onState, onMessage, onAcknowledgement, onMetrics, onPeers, onJoined }) {
   let socket = null
   let selfPeerId = null
   let joinedRoom = false
@@ -78,6 +78,50 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onP
     sendSocket({ type: 'lab.signal', payload: { to: peerId, signal } })
   }
 
+  function sendPeerEvent(peerId, event) {
+    const channel = peers.get(peerId)?.channel
+    if (channel?.readyState !== 'open' || channel.bufferedAmount > 256 * 1024) return false
+    channel.send(JSON.stringify({ protocol: 'chatCore.v1', ...event }))
+    return true
+  }
+
+  function sendAcknowledgement(peerId, messageId, stage) {
+    if (!['received', 'persisted', 'read'].includes(stage)) return false
+    return sendPeerEvent(peerId, { type: 'ack', messageId, stage })
+  }
+
+  function decodeDataChannelMessage(peer, data) {
+    let event
+    try { event = JSON.parse(String(data)) } catch { event = null }
+    if (event?.protocol !== 'chatCore.v1') {
+      onMessage?.({
+        messageId: null,
+        senderPeerId: peer.peerId,
+        sender: `對方 ${peer.peerId.slice(0, 8)}`,
+        text: String(data),
+        at: Date.now(),
+        legacy: true,
+      })
+      return
+    }
+    if (event.type === 'message') {
+      const message = event.message
+      if (!message || typeof message.id !== 'string' || typeof message.text !== 'string' || message.text.length > 2000) return
+      sendAcknowledgement(peer.peerId, message.id, 'received')
+      onMessage?.({
+        messageId: message.id,
+        senderPeerId: peer.peerId,
+        sender: `對方 ${peer.peerId.slice(0, 8)}`,
+        text: message.text,
+        at: Number.isFinite(message.at) ? message.at : Date.now(),
+      })
+      return
+    }
+    if (event.type === 'ack' && typeof event.messageId === 'string' && ['received', 'persisted', 'read'].includes(event.stage)) {
+      onAcknowledgement?.({ peerId: peer.peerId, messageId: event.messageId, stage: event.stage })
+    }
+  }
+
   function installDataChannel(peer, channel) {
     peer.channelCleanups.forEach(cleanup => cleanup())
     peer.channelCleanups = []
@@ -86,7 +130,7 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onP
       updateRoomState()
     }, peer.channelCleanups)
     listen(channel, 'message', event => {
-      onMessage?.({ sender: `對方 ${peer.peerId.slice(0, 8)}`, text: String(event.data), at: Date.now() })
+      decodeDataChannelMessage(peer, event.data)
     }, peer.channelCleanups)
     listen(channel, 'close', () => {
       updateRoomState()
@@ -273,7 +317,7 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onP
     }
   }
 
-  function connect({ roomId, signalingUrl }) {
+  function connect({ roomId, ticket, signalingUrl }) {
     if (socket || closed) throw new Error('連線已啟動或已釋放。')
     if (!roomId || roomId.length > 64 || !/^[A-Za-z0-9_-]+$/.test(roomId)) {
       throw new Error('房間代碼限 1–64 個英數字、底線或連字號。')
@@ -285,7 +329,9 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onP
       ? 'ws://127.0.0.1:8787/ws/private-chat-lab'
       : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/private-chat-lab`)
     const url = new URL(resolvedSignalingUrl)
+    if (!ticket) throw new Error('缺少一次性房間 Ticket，請重新登入後加入。')
     url.searchParams.set('roomId', roomId)
+    url.searchParams.set('ticket', ticket)
     socket = new WebSocket(url)
     listen(socket, 'open', () => {
       emitState('signaling', 'Signaling WebSocket 已連線，正在加入實驗房間')
@@ -311,16 +357,17 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onP
     onPeers?.({ count: 0, connectedCount: 0, remoteCount: 0, peers: [] })
   }
 
-  function sendText(text) {
+  function sendText(text, messageId = null) {
     let sentCount = 0
+    const recipientPeerIds = []
+    const message = { id: messageId || crypto.randomUUID(), text, at: Date.now(), senderPeerId: selfPeerId }
     for (const peer of peers.values()) {
       if (peer.channel?.readyState !== 'open') continue
-      peer.channel.send(text)
+      if (!sendPeerEvent(peer.peerId, { type: 'message', message })) continue
       sentCount += 1
+      recipientPeerIds.push(peer.peerId)
     }
-    if (sentCount === 0) return false
-    onMessage?.({ sender: '我', text, at: Date.now(), recipientCount: sentCount })
-    return sentCount
+    return sentCount ? recipientPeerIds : false
   }
 
   function dispose() {
@@ -334,5 +381,15 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onP
     emitState('disconnected', '連線與 Peer 資源已釋放')
   }
 
-  return { connect, sendText, dispose, iceServersConfigured: iceServers.length > 0 }
+  return {
+    connect,
+    sendText,
+    sendAcknowledgement,
+    sendRead: (peerId, messageId) => sendAcknowledgement(peerId, messageId, 'read'),
+    getConnectedPeerIds: () => [...peers.values()]
+      .filter(peer => peer.channel?.readyState === 'open')
+      .map(peer => peer.peerId),
+    dispose,
+    iceServersConfigured: iceServers.length > 0,
+  }
 }

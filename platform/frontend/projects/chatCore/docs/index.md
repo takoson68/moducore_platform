@@ -9,6 +9,9 @@
 3. [`M0A_RESULT.md`](./M0A_RESULT.md)：chatCore 入口與控制台實驗結果。
 4. [`M1_RESULT.md`](./M1_RESULT.md)：雙瀏覽器 WebRTC DataChannel、聊天室連結與 Staging Signaling 結果。
 5. [`M1B_RESULT.md`](./M1B_RESULT.md)：五人以下 Full Mesh 聊天室連線擴充結果。
+6. [`M2_RESULT.md`](./M2_RESULT.md)：裝置本機 IndexedDB 歷史與 outbox 結果。
+7. [`M3_RESULT.md`](./M3_RESULT.md)：received／persisted ACK、messageId 去重與 READ 結果。
+8. [`M4_RESULT.md`](./M4_RESULT.md)：dineCore 來源驗證、ChatCore Session、一次性房間 Ticket 與 20 人／裝置實驗上限。
 
 Project 身分及實驗發布邊界見 [`D001_project_identity.md`](../decisions/D001_project_identity.md) 與 [`D002_remote_experiment.md`](../decisions/D002_remote_experiment.md)。
 

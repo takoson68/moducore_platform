@@ -592,10 +592,10 @@ chatCore 能否以獨立 Project 載入，讓使用者從專屬進入頁面抵�
 
 ### 最小步驟
 
-1. 依 M0 確認的授權邊界，使用既有 dineCore `/api/session` 驗證 dineCore token；明確限制可進入 chatCore 的來源與作用範圍，不將 token 當作 chatCore tenant token。
-2. 由受信任的服務端建立短效、一次性 WebSocket ticket。
+1. 依 M0 確認的授權邊界，透過既有 dineCore Auth Service 驗證登入；只允許 Worker `CHATCORE_MEMBER_USERNAMES` 合成測試帳號名稱名單。上游 dineCore Bearer 由 Worker 立即撤銷，不回傳瀏覽器，也不當作 chatCore tenant token。
+2. 由受信任的服務端建立 30 分鐘 chatCore scope Session 與 60 秒、房間限定的一次性 WebSocket Ticket；Session 記錄可登出撤銷，過期記錄由 Durable Object alarm 清理。
 3. 將已驗證 `(tenantId, userId, deviceId)` 綁定 socket attachment。
-4. 建立房間 membership 與 20 會員／20 在線裝置限制。
+4. M4 先以實驗 allowlist 作為 cohort membership，並實作每房 20 會員／20 在線裝置限制；逐房名冊與控制台管理留在 M4a。
 5. Signaling 只能送給同房且仍在線的 target peer。
 6. Session／membership 失效時拒絕後續操作或關閉連線。
 
@@ -1043,4 +1043,4 @@ Client CPU / memory / peer 數：
 
 ## 11. 下一步
 
-M0 與 M0a 已完成；M1 已建立 chatCore 專屬的公開 Staging 入口與雙 Peer RTCDataChannel 實驗。M1 結果及尚待外部網路／TURN 驗證的項目記錄於 `M1_RESULT.md`。每階段完成後仍須先檢討結果，再由使用者決定是否進入下一階段；不得因網站已可使用而自動啟動 M2。
+M0、M0a、M1b、M2 與 M3 已完成；M1b 的跨實體網路及 TURN 成功率／成本仍待補測。M2 結果見 `M2_RESULT.md`，M3 結果見 `M3_RESULT.md`。M4 合成自動測試 Gate 通過，結果見 `M4_RESULT.md`；真實 dineCore Staging Auth Service、`CHATCORE_SESSION_SECRET` 與 `CHATCORE_MEMBER_USERNAMES` 尚待配置與人工驗證，故 M4 Staging Gate 未完成。目前停止於 M4 Gate，先檢討 Staging 設定與驗證方式，再決定是否進入 M4a；每階段完成後均不得自動推進。
