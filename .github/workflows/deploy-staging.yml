@@ -14,6 +14,7 @@ on:
         default: game-demo
         options:
           - game-demo
+          - chatcore
           - magic-siege
           - platform-chat
           - dinecore
@@ -127,6 +128,7 @@ jobs:
             platform/worker/wrangler.dinecore-staging.json
             platform/worker/wrangler.project-b-staging.json
             platform/worker/wrangler.chat-poc.jsonc
+            platform/worker/wrangler.chatcore-staging.jsonc
           sparse-checkout-cone-mode: false
 
       - name: Resolve immutable source commit
@@ -309,6 +311,11 @@ jobs:
         if: matrix.websocket == true
         working-directory: platform/worker
         run: node scripts/smoke-chat-remote.mjs wss://${{ matrix.target }}.takoson68.workers.dev/ws/chat
+
+      - name: Verify private chat lab Signaling
+        if: matrix.privateChat == true
+        working-directory: platform/worker
+        run: node scripts/smoke-private-chat-lab-remote.mjs wss://${{ matrix.target }}.takoson68.workers.dev/ws/private-chat-lab
 
       - name: Verify remote authentication and D1 session lifecycle
         if: matrix.database == true

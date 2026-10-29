@@ -15,6 +15,11 @@ test('部署 Tag 只解析白名單專案與語意版本', () => {
     frontend: true, staticSite: true, websocket: false, config: 'wrangler.game-demo-staging.json',
     projectKey: 'game-demo', version: '0.1.0', tag: 'dep_game-demo_v0.1.0', artifactSource: 'build',
   })
+  assert.deepEqual(parseDeploymentTag('dep_chatcore_v0.1.0'), {
+    target: 'chatcore-staging', project: 'chatCore', database: false,
+    frontend: true, staticSite: true, websocket: false, privateChat: true, config: 'wrangler.chatcore-staging.jsonc',
+    projectKey: 'chatcore', version: '0.1.0', tag: 'dep_chatcore_v0.1.0', artifactSource: 'build',
+  })
   assert.equal(parseDeploymentTag('dep_dinecore_v1.2.3-rc.1').target, 'dinecore-staging')
   assert.equal(parseDeploymentTag('dep_project-b_v2.0.0').database, true)
   assert.deepEqual(parseDeploymentTag('dep_magic-siege_v0.1.0'), {
@@ -38,6 +43,7 @@ test('一般分支、未知專案與不完整版本不能成為部署 Tag', () =
 test('手動救援只允許單一白名單專案', () => {
   assert.equal(manualDeploymentPlan('project-b', 'abc123').target, 'project-b-staging')
   assert.equal(manualDeploymentPlan('magic-siege', 'abc123').target, 'magic-siege-staging')
+  assert.equal(manualDeploymentPlan('chatcore', 'abc123').target, 'chatcore-staging')
   assert.throws(() => manualDeploymentPlan('all'), /未知的手動部署專案/)
 })
 

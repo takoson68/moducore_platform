@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "moducore-private-chat-lab-local",
+  "main": "src/private-chat-lab.js",
+  "compatibility_date": "2026-10-19",
+  "workers_dev": false,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [
+      { "name": "PRIVATE_CHAT_LAB", "class_name": "PrivateChatLabRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["PrivateChatLabRoom"] }
+  ]
+}
