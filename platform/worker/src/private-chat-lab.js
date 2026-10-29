@@ -1,7 +1,7 @@
 const ROOM_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 const PEER_ID_PATTERN = /^[0-9a-f-]{36}$/i
 const MAX_SIGNAL_BYTES = 48 * 1024
-const MAX_PEERS = 2
+const MAX_PEERS = 5
 
 function errorEvent(code, message) {
   return JSON.stringify({ type: 'lab.error', payload: { code, message } })
@@ -98,7 +98,7 @@ export class PrivateChatLabRoom {
       return
     }
     if (peers.length >= MAX_PEERS) {
-      send(socket, JSON.parse(errorEvent('ROOM_FULL', 'M1 實驗房間僅允許兩個 Peer')))
+      send(socket, JSON.parse(errorEvent('ROOM_FULL', 'M1b 實驗房間最多允許五位參與者')))
       socket.close(4002, 'room_full')
       return
     }

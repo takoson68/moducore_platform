@@ -8,6 +8,7 @@
 2. [`M0_RESULT.md`](./M0_RESULT.md)：M0 隔離邊界與 Staging 歷史回放驗收結果。
 3. [`M0A_RESULT.md`](./M0A_RESULT.md)：chatCore 入口與控制台實驗結果。
 4. [`M1_RESULT.md`](./M1_RESULT.md)：雙瀏覽器 WebRTC DataChannel、聊天室連結與 Staging Signaling 結果。
+5. [`M1B_RESULT.md`](./M1B_RESULT.md)：五人以下 Full Mesh 聊天室連線擴充結果。
 
 Project 身分及實驗發布邊界見 [`D001_project_identity.md`](../decisions/D001_project_identity.md) 與 [`D002_remote_experiment.md`](../decisions/D002_remote_experiment.md)。
 

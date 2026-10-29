@@ -86,25 +86,25 @@ test('同一合成房間可加入兩個 Peer 並雙向轉送 offer 與 ICE candi
   }
 })
 
-test('實驗房間只允許兩個 Peer，其他房間保持隔離', async () => {
+test('實驗房間最多允許五個 Peer，第六個被拒絕且其他房間保持隔離', async () => {
   const mf = await createRuntime()
   try {
     const base = (await mf.ready).toString()
-    const first = await connect(base, 'm1-lab', '00000000-0000-4000-8000-000000000011')
-    await waitFor(first.messages, event => event.type === 'lab.joined')
-    const second = await connect(base, 'm1-lab', '00000000-0000-4000-8000-000000000012')
-    await waitFor(second.messages, event => event.type === 'lab.joined')
-    const third = await connect(base, 'm1-lab', '00000000-0000-4000-8000-000000000013')
-    const rejected = await waitFor(third.messages, event => event.type === 'lab.error')
+    const peers = []
+    for (let index = 0; index < 5; index += 1) {
+      const peer = await connect(base, 'm1-lab', `00000000-0000-4000-8000-00000000001${index + 1}`)
+      peers.push(peer)
+      await waitFor(peer.messages, event => event.type === 'lab.joined')
+    }
+    const sixth = await connect(base, 'm1-lab', '00000000-0000-4000-8000-000000000016')
+    const rejected = await waitFor(sixth.messages, event => event.type === 'lab.error')
     assert.equal(rejected.payload.code, 'ROOM_FULL')
 
     const otherRoom = await connect(base, 'other-lab', '00000000-0000-4000-8000-000000000014')
     await waitFor(otherRoom.messages, event => event.type === 'lab.joined')
     assert.equal(otherRoom.messages.some(event => event.type === 'lab.peer-joined'), false)
 
-    first.socket.close()
-    second.socket.close()
-    third.socket.close()
+    for (const peer of [...peers, sixth]) peer.socket.close()
     otherRoom.socket.close()
   } finally {
     await mf.dispose()

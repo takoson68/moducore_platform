@@ -49,33 +49,32 @@ async function waitFor(events, predicate, timeoutMs = 8000) {
 }
 
 const roomId = `smoke-${crypto.randomUUID()}`
-const [first, second, third] = await Promise.all([
-  connect(roomId, crypto.randomUUID()),
-  connect(roomId, crypto.randomUUID()),
-  connect(roomId, crypto.randomUUID()),
-])
+const peers = await Promise.all(Array.from({ length: 6 }, () => connect(roomId, crypto.randomUUID())))
 
 try {
-  first.socket.send(JSON.stringify({ type: 'lab.join', payload: { peerId: first.peerId } }))
-  const firstJoined = await waitFor(first.events, event => event.type === 'lab.joined')
+  const joined = []
+  for (const peer of peers.slice(0, 5)) {
+    peer.socket.send(JSON.stringify({ type: 'lab.join', payload: { peerId: peer.peerId } }))
+    joined.push(await waitFor(peer.events, event => event.type === 'lab.joined'))
+  }
 
-  second.socket.send(JSON.stringify({ type: 'lab.join', payload: { peerId: second.peerId } }))
-  const secondJoined = await waitFor(second.events, event => event.type === 'lab.joined')
-
-  third.socket.send(JSON.stringify({ type: 'lab.join', payload: { peerId: third.peerId } }))
-  const rejection = await waitFor(third.events, event => event.type === 'lab.error')
+  const sixth = peers[5]
+  sixth.socket.send(JSON.stringify({ type: 'lab.join', payload: { peerId: sixth.peerId } }))
+  const rejection = await waitFor(sixth.events, event => event.type === 'lab.error')
   assert.equal(rejection.payload.code, 'ROOM_FULL')
 
+  const first = peers[0]
+  const second = peers[1]
   first.socket.send(JSON.stringify({ type: 'lab.signal', payload: {
-    to: secondJoined.payload.peerId,
+    to: joined[1].payload.peerId,
     signal: { kind: 'offer', description: 'synthetic-staging-smoke-sdp' },
   } }))
   const forwarded = await waitFor(second.events, event => event.type === 'lab.signal')
-  assert.equal(forwarded.payload.from, firstJoined.payload.peerId)
+  assert.equal(forwarded.payload.from, joined[0].payload.peerId)
   assert.equal(forwarded.payload.signal.description, 'synthetic-staging-smoke-sdp')
-  console.log('Private Chat Lab Staging Signaling passed: two peers joined, offer relayed, third peer rejected.')
+  console.log('Private Chat Lab Staging Signaling passed: five peers joined, offer relayed, sixth peer rejected.')
 } finally {
-  for (const peer of [first, second, third]) {
+  for (const peer of peers) {
     try {
       peer.socket.close()
       const terminateTimer = setTimeout(() => peer.socket.terminate(), 500)

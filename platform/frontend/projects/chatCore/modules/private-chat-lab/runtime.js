@@ -12,18 +12,54 @@ function resolveIceServers() {
   }
 }
 
-export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
+export function createPrivateChatLabSession({ onState, onMessage, onMetrics, onPeers, onJoined }) {
   let socket = null
   let selfPeerId = null
+  let joinedRoom = false
+  let joinRejected = false
   let closed = false
-  let metricsTimer = null
   let signalingEvents = 0
   const peers = new Map()
+  const remotePeerIds = new Set()
   const socketCleanups = []
   const iceServers = resolveIceServers()
 
   function emitState(state, detail = '') {
     onState?.({ state, detail })
+  }
+
+  function updateRoomState() {
+    if (closed) return
+    const connectedPeers = [...remotePeerIds].filter(peerId => peers.get(peerId)?.channel?.readyState === 'open')
+    const peerStates = [...remotePeerIds].map(peerId => {
+      const peer = peers.get(peerId)
+      return {
+        peerId,
+        state: peer?.channel?.readyState === 'open' ? 'connected' : peer?.connection.connectionState || 'connecting',
+      }
+    })
+    onPeers?.({
+      peerId: selfPeerId,
+      count: (selfPeerId ? 1 : 0) + remotePeerIds.size,
+      connectedCount: (selfPeerId ? 1 : 0) + connectedPeers.length,
+      remoteCount: remotePeerIds.size,
+      peers: peerStates,
+    })
+
+    if (!selfPeerId) return
+    if (remotePeerIds.size === 0) {
+      emitState('waiting', '房間已加入，等待其他參與者')
+    } else if (connectedPeers.length === remotePeerIds.size) {
+      emitState('connected', `${connectedPeers.length + 1} 人已透過 DataChannel 連線`)
+    } else if (connectedPeers.length > 0) {
+      emitState('partial', `${connectedPeers.length}/${remotePeerIds.size} 位 Peer 已連線`)
+    } else if (peerStates.some(peer => peer.state === 'failed')) {
+      emitState('failed', '部分 Peer 的 ICE 連線失敗')
+    } else if (peerStates.some(peer => peer.state === 'disconnected')) {
+      emitState('recovering', '部分 Peer 連線中斷，等待 ICE 恢復')
+    } else {
+      emitState('connecting', `正在連線 ${remotePeerIds.size} 位 Peer`)
+    }
   }
 
   function listen(target, type, handler, cleanupList) {
@@ -47,13 +83,13 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
     peer.channelCleanups = []
     peer.channel = channel
     listen(channel, 'open', () => {
-      emitState('connected', `DataChannel 已連線：${peer.peerId}`)
+      updateRoomState()
     }, peer.channelCleanups)
     listen(channel, 'message', event => {
       onMessage?.({ sender: `對方 ${peer.peerId.slice(0, 8)}`, text: String(event.data), at: Date.now() })
     }, peer.channelCleanups)
     listen(channel, 'close', () => {
-      if (!closed) emitState('waiting', 'DataChannel 已關閉')
+      updateRoomState()
     }, peer.channelCleanups)
     listen(channel, 'error', () => {
       if (!closed) emitState('error', 'DataChannel 發生錯誤')
@@ -68,10 +104,10 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
     peer.peerCleanups.forEach(cleanup => cleanup())
     try { peer.channel?.close() } catch { /* 已關閉則略過。 */ }
     try { peer.connection.close() } catch { /* 已關閉則略過。 */ }
-    if (reason && !closed) emitState('waiting', reason)
+    if (reason && !closed) updateRoomState()
   }
 
-  function connectionMetrics(connection) {
+  function connectionMetrics(connection, peerId) {
     return connection.getStats().then(reports => {
       const values = [...reports.values()]
       const pair = values.find(report =>
@@ -80,6 +116,7 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
       const local = pair ? reports.get(pair.localCandidateId) : null
       const remote = pair ? reports.get(pair.remoteCandidateId) : null
       return {
+        peerId,
         signalingEvents,
         connectionState: connection.connectionState,
         iceState: connection.iceConnectionState,
@@ -102,6 +139,7 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
   function createPeer(peerId) {
     const existing = peers.get(peerId)
     if (existing) return existing
+    remotePeerIds.add(peerId)
 
     const connection = new RTCPeerConnection({ iceServers })
     const peer = {
@@ -113,6 +151,7 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
       remoteCandidates: [],
       offerStarted: false,
       iceRestarted: false,
+      metricsTimer: null,
     }
     peers.set(peerId, peer)
 
@@ -125,31 +164,29 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
     listen(connection, 'datachannel', event => installDataChannel(peer, event.channel), peer.peerCleanups)
     listen(connection, 'connectionstatechange', () => {
       const state = connection.connectionState
-      if (state === 'connected') emitState('connected', `WebRTC 已連線：${peerId}`)
-      if (state === 'connecting') emitState('connecting', `正在建立 WebRTC 連線：${peerId}`)
-      if (state === 'disconnected') emitState('recovering', '連線中斷，等待 ICE 恢復')
+      updateRoomState()
       if (state === 'failed') {
-        emitState('failed', 'ICE 連線失敗')
         if (selfPeerId < peerId && !peer.iceRestarted) restartIce(peer)
       }
     }, peer.peerCleanups)
     listen(connection, 'iceconnectionstatechange', () => {
       if (connection.iceConnectionState === 'failed') {
-        emitState('failed', 'ICE 連線失敗')
         if (selfPeerId < peerId && !peer.iceRestarted) restartIce(peer)
       }
+      updateRoomState()
     }, peer.peerCleanups)
 
-    metricsTimer = setInterval(() => {
-      connectionMetrics(connection)
+    peer.metricsTimer = setInterval(() => {
+      connectionMetrics(connection, peer.peerId)
         .then(metrics => onMetrics?.(metrics))
         .catch(() => {})
     }, 1500)
     peer.peerCleanups.push(() => {
-      if (metricsTimer !== null) clearInterval(metricsTimer)
-      metricsTimer = null
+      if (peer.metricsTimer !== null) clearInterval(peer.metricsTimer)
+      peer.metricsTimer = null
     })
 
+    updateRoomState()
     if (selfPeerId < peerId) startOffer(peer)
     return peer
   }
@@ -216,8 +253,11 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
     }
     if (event.type === 'lab.joined') {
       selfPeerId = event.payload.peerId
-      emitState('waiting', `已加入 ${event.payload.roomId}，peerId ${selfPeerId}`)
+      joinedRoom = true
+      onJoined?.({ roomId: event.payload.roomId, peerId: selfPeerId })
+      event.payload.peers.forEach(peerId => remotePeerIds.add(peerId))
       event.payload.peers.forEach(createPeer)
+      updateRoomState()
     } else if (event.type === 'lab.peer-joined') {
       createPeer(event.payload.peerId)
     } else if (event.type === 'lab.signal') {
@@ -225,8 +265,10 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
       handleSignal(event.payload.from, event.payload.signal)
         .catch(error => emitState('error', `WebRTC 協商錯誤：${error.message}`))
     } else if (event.type === 'lab.peer-left') {
+      remotePeerIds.delete(event.payload.peerId)
       disposePeer(event.payload.peerId, `Peer 已離開：${event.payload.peerId}`)
     } else if (event.type === 'lab.error') {
+      if (!joinedRoom) joinRejected = true
       emitState('error', `${event.payload.code}：${event.payload.message}`)
     }
   }
@@ -252,6 +294,7 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
     listen(socket, 'message', event => handleSocketMessage(event.data), socketCleanups)
     listen(socket, 'close', () => {
       if (!closed) {
+        if (joinRejected) return
         emitState('signaling-disconnected', 'Signaling WebSocket 已中斷')
         disposeAllPeers()
       }
@@ -264,15 +307,20 @@ export function createPrivateChatLabSession({ onState, onMessage, onMetrics }) {
 
   function disposeAllPeers() {
     for (const peerId of [...peers.keys()]) disposePeer(peerId)
+    remotePeerIds.clear()
+    onPeers?.({ count: 0, connectedCount: 0, remoteCount: 0, peers: [] })
   }
 
   function sendText(text) {
-    const channel = [...peers.values()].map(peer => peer.channel)
-      .find(candidate => candidate?.readyState === 'open')
-    if (!channel) return false
-    channel.send(text)
-    onMessage?.({ sender: '我', text, at: Date.now() })
-    return true
+    let sentCount = 0
+    for (const peer of peers.values()) {
+      if (peer.channel?.readyState !== 'open') continue
+      peer.channel.send(text)
+      sentCount += 1
+    }
+    if (sentCount === 0) return false
+    onMessage?.({ sender: '我', text, at: Date.now(), recipientCount: sentCount })
+    return sentCount
   }
 
   function dispose() {

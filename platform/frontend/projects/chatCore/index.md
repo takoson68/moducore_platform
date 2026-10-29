@@ -28,8 +28,7 @@
 - `project.config.js`：Project 身分及模組清單。
 - `layout/`：Project 頁面承載殼層。
 - `modules/entry/`：實驗入口頁。
-- `modules/console/`：能力狀態與本地 Project 連結。
-- `modules/private-chat-lab/`：M1 兩個 Peer 的 DataChannel 實驗與房間邀請頁。
+- `modules/private-chat-lab/`：M1b 最多五人 Full Mesh DataChannel 實驗、房間邀請與專注聊天介面。
 - `styles/sass/main.sass`：Project 基礎樣式。
 - `docs/`：實驗里程碑及執行結果。
 - `decisions/`：Project 邊界與架構決策。
@@ -38,14 +37,14 @@
 
 - 啟動選擇：`VITE_PROJECT=chatCore`。
 - 進入頁：`/`，由 `entry` 模組註冊。
-- 控制台：`/console`，由 `console` 模組註冊。
+- 聊天實驗：`/console`，由 `private-chat-lab` 模組註冊，提供整合視圖與專注聊天兩種模式；目前沒有登入或角色判斷，兩種模式都開放給實驗參與者，且不代表管理權限。
 - 啟動設定：`project.config.js`；模組收集入口：`modules/index.js`。
 
 ## 5. 模組與頁面範圍
 
 - `entry`：實驗介紹及控制台連結。
-- `console`：會員管理、聊天室管理、一對一私人連線的狀態卡片，以及明確設定的其他 Project 連結。
-- `/lab` 使用 chatCore 專屬 Signaling Worker；Staging 可讓朋友以房間連結加入，不提供歷史保存。
+- `/console` 提供整合視圖與專注聊天兩種版面，任何實驗參與者皆可切換；目前沒有登入／角色機制，整合視圖僅為實驗資訊導覽，不授予管理權限。
+- `/lab` 使用 chatCore 專屬 Signaling Worker；Staging 可讓最多五位參與者以房間連結加入，不提供歷史保存或會員控管。
 
 ## 6. 專案限制
 
@@ -62,6 +61,7 @@
 - `docs/index.md`
 - `docs/M0A_RESULT.md`
 - `docs/M1_RESULT.md`
+- `docs/M1B_RESULT.md`
 - `docs/P2P_CHAT_MILESTONES.md`
 - `layout/`
 - `modules/`
