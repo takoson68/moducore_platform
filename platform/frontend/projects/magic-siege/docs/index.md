@@ -12,6 +12,10 @@
 4. `ModuCore × 塔防遊戲：容器使用策略 v1.0.md`：專案如何使用現有 Game Runtime；實際架構決策另見 `../decisions/`。
 5. `assets/geometry-prototype-screen-v1.png`：第一版幾何原型完整畫面稿，作為地圖、HUD、建造面板與操作層級的實作參考。
 6. `LEVEL_2_MAP_DESIGN.md`：第二關地圖路線、障礙與關卡切換規格。
+7. `LEVEL_AUTHORING_GUIDE.md`：新增後續關卡時使用的標準欄位、Checklist 與驗收 Gate。
+8. `TOWER_AUTHORING_GUIDE.md`：新增塔型時使用的玩法、資料、UI、測試與部署流程。
+9. `ENEMY_AUTHORING_GUIDE.md`：新增怪物種類、速度、血量、突破、獎勵與特殊能力時使用的流程。
+10. `NEXT_MILESTONE_EXECUTION_PLAN.md`：五關版本後續 M6～M11 執行順序、範圍與驗收 Gate。
 
 ## 畫面稿狀態
 
