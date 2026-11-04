@@ -246,6 +246,7 @@ onMounted(async () => {
     })
     drawGoogleMarkers(AdvancedMarkerElement, PinElement)
     mapState.value = 'ready'
+    void locateCurrentPosition()
   } catch (error) {
     mapState.value = 'error'
     mapMessage.value = error instanceof Error ? error.message : 'Google 地圖載入失敗。'
@@ -345,7 +346,15 @@ main.map-home
         :disabled="isLocating"
         @click="locateCurrentPosition"
       )
-        span.location-glyph(:class="{ locating: isLocating }" aria-hidden="true")
+        svg.location-icon(
+          :class="{ locating: isLocating }"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        )
+          path.location-crosshair(d="M12 2v3M12 19v3M2 12h3M19 12h3")
+          circle.location-ring(cx="12" cy="12" r="7.5")
+          circle.location-center(cx="12" cy="12" r="2")
 
       article.place-card
         button.close-card(type="button" aria-label="關閉地點卡片") ×
@@ -767,22 +776,20 @@ main.map-home
   cursor: wait
   opacity: .76
 
-.location-glyph
-  width: 19px
-  height: 19px
+.location-icon
+  width: 22px
+  height: 22px
   display: block
-  position: relative
-  border: 2px solid var(--egm-green-700)
-  border-radius: 50%
+  fill: none
+  stroke: var(--egm-green-700)
+  stroke-linecap: round
+  stroke-width: 1.8
 
-.location-glyph::after
-  content: ''
-  position: absolute
-  inset: 4px
-  border-radius: 50%
-  background: var(--egm-green-700)
+.location-center
+  fill: var(--egm-green-700)
+  stroke: none
 
-.location-glyph.locating
+.location-icon.locating
   animation: locating-pulse 900ms ease-in-out infinite alternate
 
 @keyframes locating-pulse
