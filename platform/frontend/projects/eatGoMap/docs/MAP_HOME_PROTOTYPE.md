@@ -42,7 +42,7 @@ Vite 的 `VITE_` 變數會進入瀏覽器，因此此 Key 不是伺服器密鑰�
 - `VITE_PROJECT=eatGoMap npm run build:cloudflare -- --outDir /tmp/eatgomap-google-maps-check`：成功，72 modules。
 - 本機 Google 地圖已載入大阪難波區域，畫面可讀到 Google 地圖圖資來源與兩個美食標記；尚未驗證所有分類下的標記、縮放與手機裝置操作。
 - 尚未驗證 Key 的最終網域限制；使用者決定待網域確定後再設定 Google Cloud 限制。
-- Staging `0.1.2` 已由 GitHub Environment Secret 注入 Key 並實際載入 Google 地圖；`0.1.3` 已部署左上角 Logo 重新整理按鈕，`0.1.4` 已部署精簡 Header，`0.1.5` 已部署背景同色與定位按鈕定位功能；`0.1.6` 加入首次載入即請求位置及 SVG 準星圖示，部署中。
+- Staging `0.1.2` 已由 GitHub Environment Secret 注入 Key 並實際載入 Google 地圖；`0.1.3` 已部署左上角 Logo 重新整理按鈕，`0.1.4` 已部署精簡 Header，`0.1.5` 已部署背景同色與定位按鈕定位功能，`0.1.6` 已部署首次載入即請求位置及 SVG 準星圖示。
 - 桌面瀏覽器：首頁、分類切換與 Marker 顯示正常。
 - 390 × 844、DPR 3 手機 viewport：文件寬高等於 viewport，沒有水平溢出；首頁內容與底部導覽可見。
 - 瀏覽器 Console：沒有 error 或 warning。

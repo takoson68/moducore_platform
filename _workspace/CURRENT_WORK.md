@@ -6,9 +6,9 @@ authority: work-state
 
 # 當前工作
 
-## 2026-11-04 eatGoMap 首次載入定位與定位圖示修正（準備部署 v0.1.6）
+## 2026-11-04 eatGoMap 首次載入定位與定位圖示修正 v0.1.6
 
-使用者要求網站載入地圖時即詢問目前位置，並指出定位按鈕圖示歪斜。已在 Google Map 初始化後自動呼叫瀏覽器 Geolocation；授權時地圖移至座標並顯示藍點，拒絕時顯示 GPS／網站位置權限提示，定位按鈕仍可重試。定位按鈕已換成對齊的 SVG 準星。Cloudflare 建置 72 modules 成功；使用載入前注入的模擬座標驗證首次載入即新增定位 marker、地圖定位完成訊息、Header/body 顏色相同及 SVG 無旋轉。下一步發布新的 Staging v0.1.6。
+使用者要求網站載入地圖時即詢問目前位置，並指出定位按鈕圖示歪斜。已在 Google Map 初始化後自動呼叫瀏覽器 Geolocation；授權時地圖移至座標並顯示藍點，拒絕時顯示 GPS／網站位置權限提示，定位按鈕仍可重試。定位按鈕已換成對齊的 SVG 準星。Cloudflare 建置 72 modules 成功；使用載入前注入的模擬座標驗證首次載入即新增定位 marker、地圖定位完成訊息、Header/body 顏色相同及 SVG 無旋轉。Staging `v0.1.6` 已部署：Commit `b30171db2928d3714b1067d5b9c8a3fde8594112`、Tag `dep_eatgomap_v0.1.6`、Workflow `41793045701` 成功；公開 Staging 隔離瀏覽器驗收通過。
 
 ## 2026-11-04 eatGoMap 目前位置定位與 Header 背景一致性修正 v0.1.5
 
