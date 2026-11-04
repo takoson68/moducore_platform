@@ -13,7 +13,7 @@
 | `project-a/` | Project A；Vite 未設定 `VITE_PROJECT` 時的預設 fallback | `project.config.js` |
 | `project-b/` | Project B，含 employee、task、vote 等設定模組 | `project.config.js` |
 | `dineCore/` | 餐廳點餐與營運工作流程 | `project.config.js` |
-| `eatGoMap/` | 食旅共享地圖與日誌；目前提供合成資料的地圖首頁視覺原型 | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` → `modules/index.md` |
+| `eatGoMap/` | 食旅共享地圖與日誌；目前提供合成資料的地圖首頁視覺原型，Staging 目標為 `eatgomap-staging` | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` → `modules/index.md` |
 | `chatCore/` | 私人聊天室技術實驗入口與控制台 | `index.md` → `project.config.js` → `docs/index.md` |
 | `flowCenter/` | 企業內部請假、採購、公告、任務與審核流程 | `project.config.js` |
 | `game-demo/` | Game 能力的最小遊戲試玩 Project | `project.config.js`；遊戲能力從 `../../src/app/game/index.md` 導讀 |

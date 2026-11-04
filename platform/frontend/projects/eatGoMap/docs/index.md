@@ -13,5 +13,6 @@
 ## 文件狀態
 
 - 本目錄內容目前屬於需求探索與規劃資料。
+- Staging 目標為 `eatgomap-staging`，預定網址為 `https://eatgomap-staging.takoson68.workers.dev`；此目標只部署目前前端原型，不包含合作方 API、資料庫或正式服務。
 - 未標示為正式 API 契約、資料庫 Schema 或已完成實作者，均不得視為現況證明。
 - 專案方向、限制與假設的主文件仍為 [`PROJECT_CONTEXT.md`](../PROJECT_CONTEXT.md)。

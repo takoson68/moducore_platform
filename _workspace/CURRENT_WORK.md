@@ -6,6 +6,10 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-04 eatGoMap Staging 部署設定與首次草圖發布
+
+使用者要求將 `eatGoMap` 部署至 Staging 供檢視草圖，並授權新增部署設定。新增靜態 Worker 目標 `eatgomap-staging`（`https://eatgomap-staging.takoson68.workers.dev`）、手動 workflow 選項與 `dep_eatgomap_vX.Y.Z` Tag 白名單；本次首次版本預定 `0.1.0`。目標不綁 D1、不呼叫合作方 API，僅包含合成資料首頁。前端建置 71 modules、API token transport 3/3、Worker 78/78、Wrangler dry-run 與 Release ZIP 封裝均通過。遠端部署尚待本次精確 Commit 推送後的 GitHub Actions Workflow 完成；版本控制台白名單未擴充，因此此 Project 不會出現在版本控制台。
+
 ## 2026-11-04 eatGoMap 地圖首頁視覺原型
 
 依使用者要求，`eatGoMap` 已從純文件骨架推進為可載入的地圖首頁視覺原型。新增 `map-home` Module、`/` 公開路由、Project LayoutRoot 與全域樣式入口；畫面沿用草稿的暖白／深綠色系、搜尋列、美食／旅遊與距離篩選、難波靜態地圖質感、合成 Marker、地點卡片及地圖／收藏／日誌底部導覽。分類、距離及 Marker 可做本機 UI 互動；所有地點與狀態都是合成假資料，未串 Google Maps、定位、後端 API、照片服務或正式身分。後續先由使用者檢視首頁視覺與資訊層級，再決定是否調整定稿；不得將此畫面視為地圖或 API 功能完成。

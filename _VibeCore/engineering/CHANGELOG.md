@@ -1,3 +1,7 @@
+## 2026-11-04
+
+- 新增 `eatGoMap` Staging 靜態 Worker 目標 `eatgomap-staging`，可由 `dep_eatgomap_vX.Y.Z` Tag 發布目前的前端原型；不綁定 D1 或合作方 API。
+
 ## 2026-10-22
 
 - 新增 chatCore Staging 發布目標，使用獨立 Static Assets Worker 與 Private Chat Lab Signaling Durable Object；不綁定 D1，並維持與既有公開聊天室路由／Durable Object 隔離。
