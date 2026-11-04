@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-11-04T05:35:41.483Z",
+  "node": "v26.0.0",
+  "gcAvailable": true,
+  "sampleCount": 30,
+  "warmupCount": 5,
+  "updateCountPerContainer": 1000,
+  "churnCount": 1000,
+  "heapUsedBeforeBytes": 6710720,
+  "heapUsedAfterBytes": 6886144,
+  "heapDeltaBytes": 175424,
+  "benchmarks": {
+    "single": {
+      "label": "single container create / resolve / destroy",
+      "samples": 30,
+      "minMs": 0.0081,
+      "medianMs": 0.0102,
+      "p95Ms": 0.0329,
+      "maxMs": 0.0341
+    },
+    "triple": {
+      "label": "three containers create / resolve / destroy",
+      "samples": 30,
+      "minMs": 0.0119,
+      "medianMs": 0.0155,
+      "p95Ms": 0.0326,
+      "maxMs": 0.0837
+    },
+    "isolatedUpdates": {
+      "label": "three containers isolated store updates",
+      "samples": 30,
+      "minMs": 4.306,
+      "medianMs": 4.6455,
+      "p95Ms": 5.6731,
+      "maxMs": 5.9147,
+      "updatesPerSample": 3000,
+      "notificationsPerSample": 3000
+    },
+    "churn": {
+      "label": "repeated container create / destroy (1000 cycles)",
+      "samples": 30,
+      "minMs": 0.4053,
+      "medianMs": 0.443,
+      "p95Ms": 0.5679,
+      "maxMs": 0.7225
+    }
+  }
+}

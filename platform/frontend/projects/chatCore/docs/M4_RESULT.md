@@ -26,15 +26,16 @@ M4 將既有 dineCore 會員登入接到 chatCore 私人聊天室實驗，並將
 
 結果：`node --test test/private-chat-lab.test.mjs` 4/4 通過；完整 Worker suite 78/78 通過。
 
-## 尚未驗證／Gate
+## Staging Gate 結果
 
 - 已在 dineCore Staging 建立三個專用合成測試會員：`admin1`、`admin2`、`admin3`，皆為一般 `member` 角色；三者的登入及登出 API 均已驗證成功。這些帳號僅供 chatCore 實驗，不代表管理員權限。
 - 已以本機 Miniflare、臨時本機 Session secret、`CHATCORE_MEMBER_USERNAMES=admin1,admin2,admin3`，經實際 Staging dineCore Auth Service 完成 ChatCore Worker 登入與登出整合驗證（HTTP 200）。臨時 secret 未寫入檔案。
-- `wrangler.chatcore-staging.jsonc` 現在列出這三個合成帳號名稱；已為 Cloudflare Staging Worker 設定隨機 `CHATCORE_SESSION_SECRET`。`dep_chatcore_v0.1.5` 的部署步驟成功，Worker 與 Static Assets 已上線。
-- 部署 Workflow 在匿名 WebSocket smoke 檢查收到預期 HTTP 400 後卡住；該 smoke 當時未消耗拒絕回應、未結束 socket。這是檢查腳本清理問題，不是 Worker 拒絕行為失敗。已補上 response body drain 與 socket terminate；修正後本機對 Staging endpoint 重跑 smoke，正常結束並通過。原 run `40847017330` 因 job 卡住而取消，故該 Tag 未形成成功 Release／Deployment 紀錄。
+- `wrangler.chatcore-staging.jsonc` 列出這三個合成帳號名稱；Cloudflare Staging Worker 已設定隨機 `CHATCORE_SESSION_SECRET`，值未寫入 Repository。
+- `dep_chatcore_v0.1.5` 曾成功部署 Worker 與 Static Assets，但其匿名 WebSocket smoke 收到預期 HTTP 400 後因腳本未消耗拒絕回應而卡住。已修正腳本，加上 response body drain 與 socket terminate；修正版對 Staging endpoint 本機重跑正常結束。原 run `40847017330` 已取消，該 Tag 未形成成功 Release／Deployment 紀錄。
+- 修正後以 `dep_chatcore_v0.1.6`（Commit `454e38d`）完成發布。Workflow `40847827037` 成功，涵蓋建置、Worker 全量測試、部署、SPA fallback、匿名 Ticket 拒絕 smoke、GitHub Release 與 Staging Deployment 紀錄。
 - 部署後手動端對端驗證已通過：Staging ChatCore API 登入／Session 還原／Ticket 簽發均 HTTP 200，Ticket WebSocket 成功加入房間，登出後 Session 失效。另在 Staging `/console` 實際操作頁面頂部會員登入表單成功顯示測試會員，隨後由 UI 登出。
-- 尚未以 Staging 環境驗證部署後的 DineCore Auth Service binding，也未測量跨實體網路 TURN 成功率／relay 成本。
+- 部署後的 ChatCore Worker 經 Staging DineCore Auth Service binding 完成登入驗證；尚未測量跨實體網路 TURN 成功率／relay 成本（屬 M1b 連線實驗）。
 - Worker API 為 Vite 本機開發提供直接連至 `127.0.0.1:8787` 的跨來源請求；同源 Staging 不走此跨來源路徑。
 - 本階段只用合成測試身份與明文，不代表已適合真實私人訊息。
 
-M4 程式、自動測試、部署後 API／WebSocket 驗證及 UI 登入／登出均通過。部署 Workflow 的完整成功紀錄仍待修正 smoke 的新 Tag 流程完成；M4a 仍依每階段檢討原則等待本 Gate 的正式 Release／Deployment 證據。
+M4 Gate 通過：程式、自動測試、部署後 API／WebSocket 與 UI 登入／登出均已驗證，並有 `dep_chatcore_v0.1.6` 成功 Release／Deployment 證據。M4a 尚未開始，依每階段檢討原則等待使用者決定是否進入下一階段。

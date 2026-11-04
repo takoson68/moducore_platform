@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-10-27T03:12:12.028Z",
+  "node": "v26.0.0",
+  "scenarios": [
+    {
+      "ratePerSecond": 0,
+      "inputMessages": 0,
+      "retainedMessages": 0,
+      "ringBufferLimit": 100,
+      "elapsedMs": 0.2909,
+      "frameP95Ms": 0.0085,
+      "frameMaxMs": 0.0299
+    },
+    {
+      "ratePerSecond": 5,
+      "inputMessages": 5,
+      "retainedMessages": 5,
+      "ringBufferLimit": 100,
+      "elapsedMs": 0.4381,
+      "frameP95Ms": 0.0215,
+      "frameMaxMs": 0.128
+    },
+    {
+      "ratePerSecond": 50,
+      "inputMessages": 50,
+      "retainedMessages": 50,
+      "ringBufferLimit": 100,
+      "elapsedMs": 1.2478,
+      "frameP95Ms": 0.0296,
+      "frameMaxMs": 0.0343
+    },
+    {
+      "ratePerSecond": 200,
+      "inputMessages": 200,
+      "retainedMessages": 60,
+      "ringBufferLimit": 100,
+      "elapsedMs": 1.5859,
+      "frameP95Ms": 0.0503,
+      "frameMaxMs": 0.0952
+    }
+  ],
+  "limitations": [
+    "本測試使用 MockWebSocket 與 Node Store，沒有包含瀏覽器 DOM／p5.js render。",
+    "ratePerSecond 以固定 60 個 frame 內注入訊息，代表本地處理成本，不代表真實網路排程。"
+  ]
+}

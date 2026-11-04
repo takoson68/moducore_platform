@@ -6,6 +6,9 @@
   "scripts": {
     "test:game": "node --test scripts/test-game.mjs scripts/test-game-release-assets.mjs",
     "test:chat": "node --test scripts/test-chat-runtime.mjs",
+    "test:private-chat-lab": "node --test scripts/test-private-chat-lab.mjs",
+    "benchmark:container": "node --expose-gc scripts/container-benchmark.mjs",
+    "benchmark:chat-load": "node scripts/chat-load-benchmark.mjs",
     "test:employee": "node --experimental-vm-modules --test scripts/test-employee-service.mjs",
     "dev": "vite",
     "build": "vite build",
