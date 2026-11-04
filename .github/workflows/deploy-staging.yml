@@ -165,6 +165,7 @@ jobs:
           VITE_PROJECT: ${{ matrix.project }}
           VITE_API_MODE: real
           VITE_RELEASE_VERSION: ${{ matrix.version }}
+          VITE_GOOGLE_MAPS_API_KEY: ${{ matrix.project == 'eatGoMap' && secrets.VITE_GOOGLE_MAPS_API_KEY || '' }}
         run: npm run build:cloudflare -- --outDir ../worker/.assets/${{ matrix.target }}
 
       - name: Prepare non-frontend Worker package

@@ -17,7 +17,7 @@
 
 ## 明確未完成
 
-- 本機 `.env.local` 已設定 Google Maps API Key，實際底圖已載入；Key 尚未套用最終網域限制，且不會提交到 Repository 或 Staging。
+- 本機 `.env.local` 已設定 Google Maps API Key，實際底圖已載入；最終網域限制尚未設定。
 - 未要求瀏覽器定位權限。
 - 未呼叫合作方後端 API。
 - 未建立收藏、打卡、日誌或身分的持久狀態。
@@ -32,12 +32,14 @@
 
 Vite 的 `VITE_` 變數會進入瀏覽器，因此此 Key 不是伺服器密鑰；必須用 API 與網站來源限制保護，且不可提交 `.env.local`。
 
+公開 Staging 建置只從 GitHub `staging` Environment Secret `VITE_GOOGLE_MAPS_API_KEY` 注入 eatGoMap。Key 會包含在瀏覽器下載的前端程式中；最終網域確定後，再在 Google Cloud 限制 Maps JavaScript API 與允許來源。
+
 ## 驗證
 
 - `VITE_PROJECT=eatGoMap npm run build:cloudflare -- --outDir /tmp/eatgomap-google-maps-check`：成功，72 modules。
 - 本機 Google 地圖已載入大阪難波區域，畫面可讀到 Google 地圖圖資來源與兩個美食標記；尚未驗證所有分類下的標記、縮放與手機裝置操作。
 - 尚未驗證 Key 的最終網域限制；使用者決定待網域確定後再設定 Google Cloud 限制。
-- Staging `0.1.1` 已部署，首頁與 SPA 路由 Smoke 通過；部署成品未包含本機 Key，因此線上頁面顯示未設定提示與視覺回退。
+- Staging `0.1.1` 使用未注入 Key 的舊版部署，首頁與 SPA 路由 Smoke 通過；下一個版本改由 GitHub Environment Secret 提供 Key。
 - 桌面瀏覽器：首頁、分類切換與 Marker 顯示正常。
 - 390 × 844、DPR 3 手機 viewport：文件寬高等於 viewport，沒有水平溢出；首頁內容與底部導覽可見。
 - 瀏覽器 Console：沒有 error 或 warning。
