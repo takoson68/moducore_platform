@@ -181,16 +181,9 @@ main.map-home
       .brand-row
         button.brand-home-button(type="button" aria-label="重新整理食旅地圖" title="重新整理網站" @click="refreshSite")
           .brand-mark(aria-hidden="true") 路
-          .brand-copy
-            span.eyebrow EAT · GO · MAP
-            h1 食旅地圖
-        button.people-button(type="button" aria-label="切換使用者")
-          span.people-dot 阿
-          span.people-dot 小
-
-      label.search-box
-        span.search-icon(aria-hidden="true") ⌕
-        input(type="search" placeholder="搜尋店家或地點" aria-label="搜尋店家或地點")
+        label.search-box
+          span.search-icon(aria-hidden="true") ⌕
+          input(type="search" placeholder="搜尋店家或地點" aria-label="搜尋店家或地點")
 
       .filter-row(aria-label="地圖篩選")
         button.filter-chip(
@@ -325,7 +318,7 @@ main.map-home
   height: min(900px, calc(100dvh - 48px))
   min-height: 680px
   display: grid
-  grid-template-rows: auto minmax(0, 1fr) 76px
+  grid-template-rows: auto minmax(0, 1fr) 56px
   position: relative
   overflow: hidden
   border: 10px solid #17201f
@@ -336,19 +329,21 @@ main.map-home
 .map-header
   position: relative
   z-index: 20
-  padding: 17px 18px 11px
+  padding: 10px 16px 9px
   background: linear-gradient(145deg, var(--egm-green-900), var(--egm-green-700))
   color: white
 
 .brand-row
   display: flex
   align-items: center
-  margin-bottom: 10px
+  gap: 10px
+  margin-bottom: 0
 
 .brand-home-button
   display: flex
   align-items: center
-  gap: 9px
+  justify-content: center
+  flex: 0 0 36px
   padding: 0
   border: 0
   background: transparent
@@ -368,50 +363,10 @@ main.map-home
   font-weight: 900
   font-size: 16px
 
-.brand-copy
-  display: grid
-  gap: 1px
-
-.brand-copy h1
-  margin: 0
-  font-size: 22px
-  letter-spacing: .08em
-
-.eyebrow
-  font-size: 9px
-  font-weight: 800
-  letter-spacing: .24em
-  color: rgba(255,255,255,.66)
-
-.people-button
-  margin-left: auto
-  display: flex
-  align-items: center
-  padding: 5px 7px
-  border: 0
-  border-radius: 999px
-  background: rgba(255,255,255,.14)
-  cursor: pointer
-
-.people-dot
-  width: 25px
-  height: 25px
-  display: grid
-  place-items: center
-  border: 2px solid var(--egm-green-800)
-  border-radius: 50%
-  background: #f8e4d4
-  color: #8a4b38
-  font-size: 11px
-  font-weight: 900
-
-.people-dot + .people-dot
-  margin-left: -8px
-  background: #dbe8df
-  color: #315e50
-
 .search-box
   height: 40px
+  flex: 1
+  min-width: 0
   display: flex
   align-items: center
   gap: 8px
@@ -848,7 +803,7 @@ main.map-home
   z-index: 20
   display: grid
   grid-template-columns: repeat(3, 1fr)
-  padding: 8px 18px 10px
+  padding: 2px 18px
   border-top: 1px solid #e8e1d7
   background: rgba(255,253,249,.98)
 
@@ -856,7 +811,7 @@ main.map-home
   display: grid
   justify-items: center
   align-content: center
-  gap: 4px
+  gap: 1px
   border: 0
   background: transparent
   color: #68726f
@@ -868,7 +823,7 @@ main.map-home
   color: var(--egm-green-700)
 
 .nav-icon
-  font-size: 19px
+  font-size: 15px
 
 .prototype-note
   max-width: 390px
@@ -931,7 +886,7 @@ main.map-home
   .map-home
     display: block
     padding: 0
-    background: #fffdf9
+    background: linear-gradient(145deg, var(--egm-green-900), var(--egm-green-700))
 
   .app-frame
     width: 100%
@@ -946,9 +901,6 @@ main.map-home
     padding-left: 16px
     padding-right: 16px
 
-  .bottom-nav
-    padding-bottom: max(10px, env(safe-area-inset-bottom))
-
 @media (max-height: 730px) and (min-width: 561px)
   .app-frame
     min-height: 650px
@@ -957,9 +909,6 @@ main.map-home
   .map-header
     padding-top: 16px
     padding-bottom: 12px
-
-  .brand-row
-    margin-bottom: 11px
 
   .place-card
     grid-template-columns: 76px minmax(0, 1fr)
