@@ -313,7 +313,7 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 - [x] 顯示 queued／running／success／failed 狀態。
 - [x] 防止同 Project 併發部署；不同 Project 可獨立排程。
 
-完成日期：2026-10-22（控制台接線）。證據：新增 GitHub ID 操作員白名單、Repository 權限再驗證、受控 `deploy-staging.yml` Dispatch adapter、正式 Tag／Release 原件白名單、Operation ID run-name、Project mutex、狀態讀取與 append-only Audit sink。控制台預設使用受控 adapter；部署只透過既有 Staging Workflow，瀏覽器不持有憑證。Workflow Dispatch 仍未由本次工程實際觸發，因為尚未 Push 本地變更，也未授權外部部署。
+完成日期：2026-10-22（程式接線並 Push）。證據：新增 GitHub ID 操作員白名單、Repository 權限再驗證、受控 `deploy-staging.yml` Dispatch adapter、正式 Tag／Release 原件白名單、Operation ID run-name、Project mutex、狀態讀取與 append-only Audit sink。控制台預設使用受控 adapter；部署只透過既有 Staging Workflow，瀏覽器不持有憑證。Commit `8a840d2a135c29371affcf5e69e681c8fe52e138` 已 Push 至 `origin/world-oop`；一般分支 Push 沒有觸發部署。2026-10-22 已由控制台成功 Dispatch，Run `39716761323` 完成。
 
 ### M7-3 操作功能
 
@@ -325,7 +325,7 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 - [x] 每 Project 至少保留一個已驗證版本。
 - [x] 批次刪除需二次確認並列出不可恢復影響。
 
-完成日期：2026-10-22（控制台程式接線）。證據：same-origin JSON POST、每次操作重新驗證 GitHub 身份與 Snapshot、verified Release 部署、previous 回退及 Operation 狀態輪詢已接到受控 Workflow adapter；real mode 不提供 Release 刪除。歷史瀏覽器驗收只驗證過 simulation adapter，不視為真實部署驗收。本輪未觸發 Workflow 或變更 Cloudflare。
+完成日期：2026-10-22（程式接線並 Push）。證據：same-origin JSON POST、每次操作重新驗證 GitHub 身份與 Snapshot、verified Release 部署、previous 回退及 Operation 狀態輪詢已接到受控 Workflow adapter；real mode 不提供 Release 刪除。Commit `8a840d2a135c29371affcf5e69e681c8fe52e138` 已 Push；歷史瀏覽器驗收只驗證過 simulation adapter，不視為真實部署驗收。管理頁真實部署與 current／previous 更新已於 M7-4 遠端驗收。
 
 ### M7-4 Tag 與控制台真實 Staging 驗收
 
@@ -333,10 +333,11 @@ Gate：控制台可準確顯示版本，但沒有部署、刪除或回退按鈕�
 - [x] 以 GitHub CLI 伺服器端身份與白名單授權；Tag／Project／Release Hash Gate 保持有效。
 - [x] 部署指定已驗證 Release ZIP，previous 回退重用同一 Release；狀態完成後自動更新 Snapshot。
 - [x] 真實 mode 嚴格限 Staging，禁止瀏覽器直接呼叫 GitHub／Cloudflare 寫入 API。
-- [ ] 將本機變更 Push 至 `world-oop` 後，從管理頁部署一個已驗證 Release，確認 Workflow、Smoke、current／previous 與線上網址均完成更新。
-- [ ] 從一般 Tag Push 再驗證新版本自動部署完成；不重用既有 Tag。
+- [x] 將本機變更 Push 至 `world-oop` 後，從管理頁部署一個已驗證 Release，確認 Workflow、Smoke、current／previous 與線上網址均完成更新。
+- [x] 從一般 Tag Push 再驗證新版本自動部署完成；不重用既有 Tag。
+- [x] 驗證 game-demo 畫面顯示版本膠囊與部署 Tag 一致，確保測試時可直接辨識新舊版。
 
-程式與本機測試完成日期：2026-10-22。證據：Console 27/27、語法檢查與 `git diff --check` 通過。本次 Commit／Push 本身不觸發部署；尚未從控制台 Dispatch、未建立新 Tag，也未改動線上 Staging。遠端兩項 Gate 保持未完成。
+程式與本機測試完成日期：2026-10-22。管理頁版本替換與 Tag Push 自動部署遠端驗收均完成。控制台操作 `b7306b1c-7cb6-4cf3-a54f-1f8ea4a0aa0b` 部署 `dep_game-demo_v0.1.0`；Run `39716761323` 成功，ZIP SHA-256 `9b2c947ff6cd8e84cc3fbe9aeb966622ee1f8eab68074c3834887456c0328c69`，Smoke passed，Cloudflare Version `7359ea7a-4d4f-4894-8e7e-dac32df7233f`，current／previous 與 HTTP 200 均已驗證。其後 Push 全新 Tag `dep_game-demo_v0.1.2`，由 `push` 觸發 Run `39716991344` 成功；Release ZIP Hash `0c0bd0d7106a136b630fa360cc8b33d7e058a8e71306d543f1fc418a8fede9ef` verified、Smoke passed、Cloudflare Version `b93281db-840d-4abd-a643-b5eb9ad41d9c`，首頁與遊戲 SPA HTTP 200。該版瀏覽器驗收發現畫面仍顯示舊版，已修正為 Workflow 注入 Tag 版本並重新發布 `dep_game-demo_v0.1.3`；Run `39717450520`（push）成功，Commit `de29c3ce2a6b3a7d80348438d931cb64e38935a9`，Release ZIP SHA-256 `7039d8647a27139d1d9318fa21e83c2eb1c2346531a5c4ed03dd773bf1bc1716` verified，Smoke passed，Cloudflare Version `0ff22f36-b948-426c-ac6f-0226f34c8b79`。控制台 Snapshot current 為 `v0.1.3`、previous 為 `v0.1.2`；瀏覽器已實際確認畫面版本膠囊顯示 `v0.1.3`。部署手冊已新增此畫面版本一致性驗收，避免未來只看 Workflow 綠燈而漏掉 UI 版本。
 
 Gate：完成 M7-4 的兩項遠端驗收後，才宣告「Tag 自動部署＋管理頁選版本替換」整體完成。Production 不屬本計畫目標。
 
@@ -374,69 +375,35 @@ Gate：成品大小、漏洞與保存成本有可驗證標準。
 
 ## M9：Production 發布
 
-目標：Staging 穩定後才建立正式發布，不共用隱含權限。
+狀態：不列入本專案目標／不執行（2026-10-22 使用者確認本專案僅供興趣使用、不打算營運，也不需要正式版）。
 
-- [x] 定義 `prod_<project>_v<version>` Tag。
-- [ ] Production 使用獨立 Workflow 或明確分離 Job。
-- [ ] GitHub Production Environment 啟用人工核准。
-- [ ] Staging／Production Secrets、Worker、D1 與網址完全分離。
-- [ ] Production 首次發布前完成備份／回復與容量檢查。
-- [ ] Production 部署後執行只會產生可清理資料的 Smoke。
-- [ ] 定義失敗停止、Worker 回復與 D1 不自動倒退程序。
+本專案目前的部署目標是 Staging：完成檔案後建立符合規則的 `dep_<project>_v<version>` Tag，自動部署到 Staging，並可透過版本控制台切換已驗證版本。Production、`prod_*` Tag、正式 Workflow、正式 Worker／D1、Secrets 與正式上線驗收皆不屬於待辦；M7 Staging 驗收不受此決定影響。
 
-### M9-1 發布設計與停用骨架
-
-- [x] 建立 Production 發布隔離契約。
-- [x] 建立 `prod_*` Tag 白名單、SemVer 與 Staging Tag 拒絕測試。
-- [x] 固定三個 Production Worker 與兩個 Production D1 的獨立命名。
-- [x] 定義 Environment reviewer、Secret、備份／還原、容量、可清理 Smoke 與失敗回復 Gate。
-- [x] 在真實資源與人工核准未成立前，禁止啟用 Production Workflow。
-
-完成日期：2026-10-22。證據：`PRODUCTION_DEPLOYMENT_CONTRACT.md` 固定 `prod_<project>_v<semver>`、獨立 Environment、Worker／D1、Workflow／Secret、人工核准、D1 備份還原、可清理 Smoke 與不自動倒退 Schema；`production-release-plan.mjs` 提供機器白名單與隔離檢查。M9-1 只完成設計與 parser，正式發布仍停用。
-
-### M9-2 正式資源與核准佈建
-
-- [x] 確認並固定 Production Worker／D1 命名及 workers.dev 正式網址。
-- [x] 建立 `production` Environment 並設定 required reviewer。
-- [ ] 建立最小權限 Production Secrets。
-- [x] 建立兩個全新 D1 並記錄實際 ID；建立三份隔離 Wrangler 設定。
-- [ ] 部署三個 Production Worker（須經獨立 Workflow 與首次發布 Gate）。
-- [ ] 建立 D1 備份並完成隔離還原演練及容量檢查。
-
-進度紀錄：2026-10-22 已建立 GitHub `production` Environment，required reviewer 為唯一 Repository collaborator `takoson68`，`can_admins_bypass=false`。目前沒有第二位 reviewer，GitHub 允許該帳號核准自己的部署。Cloudflare 建立兩個空 APAC D1：dinecore `2893f276-ae35-4944-8022-bb2a9bb3524c`、project-b `282acec5-29e9-4c1d-9c7f-0a079d592722`；未套 Migration。三份 Wrangler 設定已建立；Worker 尚未部署，Production Secret 尚未設定。
-
-### M9-3 Workflow 與首次發布驗收
-
-- [ ] 建立獨立 `deploy-production.yml` 並驗證普通 Push／`dep_*` 不觸發。
-- [ ] 先 dry-run，再以單一 `prod_*` Tag 驗證人工核准。
-- [ ] 驗證可清理 Smoke、Release、current／previous 與失敗停止。
-- [ ] 實測 Worker 回復；D1 Schema 不自動倒退。
-
-Gate：Production 不可能由 Staging Tag、普通 Push 或控制台未授權操作觸發。
+歷史處理：曾建立 Production 發布設計／parser、GitHub `production` Environment、兩個空 D1、隔離 Wrangler 設定，並做 Migration 前空白基線備份還原演練。這些是已發生的探索紀錄，不代表 Production 里程碑仍進行中。資源與本機備份目前保留，不部署、不套 Migration、不建立 Secret、不觸發 Workflow，也不在本計畫內清理；若使用者未來明確改變目標，再另行盤點與決定。
 
 ## 4. 遺漏補強清單
 
 以下項目是初版清單容易遺漏、已納入里程碑的部分：
 
-- [ ] Tag 必須指向已包含新 Workflow 的遠端 Commit，否則不會使用新流程。
-- [ ] Tag 與 Release 資產不可移動、覆寫或重用。
-- [ ] 手動救援必須只允許單 Project，不能用 `all`。
-- [ ] 部署用 Commit 必須以 Checkout 後的實際 `git rev-parse HEAD` 記錄。
-- [ ] 部署失敗不能建立成功 Release，也不能更新 current／previous。
-- [ ] ZIP 解壓需防 Zip Slip、符號連結逃逸與壓縮炸彈。
-- [ ] 控制台需要權威狀態來源，不能只依賴 localStorage。
-- [ ] 控制台不能把第三方寫入 Token 放到瀏覽器。
-- [ ] 同 Project 需部署互斥，避免 current／previous 競態。
-- [ ] 前端版本回退與 D1 Schema 回復必須分開。
-- [ ] 必須驗證 GitHub Release 寫入權限及 Environment Secret 可用性。
-- [ ] 正式 Release 與七天診斷 Artifact 的保存責任不同。
-- [ ] 部署紀錄必須同時保存 Tag、Commit、ZIP Hash、Workflow Run、Cloudflare Version ID 與 Smoke 結果。
+- [x] Tag 必須指向已包含新 Workflow 的遠端 Commit，否則不會使用新流程。證據：M1 新 Workflow Push 後，由 v0.1.0–v0.1.3 的 Tag Runs 成功使用 Tag Workflow。
+- [x] 一般 Tag 更新會以 `github.event.created != true` 在部署計畫前拒絕；同名 Release 已存在或 GitHub API 狀態無法確認時也會在部署前 fail-closed。單元測試涵蓋首次建立、更新、缺少事件欄位與手動救援；Run `39718382703` 的首次建立閘門通過。限制：有 Repository 管理權限者若同時刪除 Tag 與 Release，仍可抹除既有紀錄後重建；這不是 Workflow 可自行防止的權限邊界。
+- [x] 手動救援必須只允許單 Project，不能用 `all`。證據：workflow_dispatch choice 與 release-plan 白名單測試。
+- [x] 部署用 Commit 必須以 Checkout 後的實際 `git rev-parse HEAD` 記錄。證據：Workflow `Resolve immutable source commit`。
+- [x] 部署失敗不能建立成功 Release，也不能更新 current／previous。證據：成功 Release／Deployment 步驟排在部署及 Smoke 後；失敗演練與狀態測試通過。
+- [x] ZIP 解壓需防 Zip Slip、符號連結逃逸與壓縮炸彈。證據：Release package 單元測試拒絕絕對／穿越路徑、連結與異常大小。
+- [x] 控制台需要權威狀態來源，不能只依賴 localStorage。證據：Snapshot 由 GitHub Deployments／Releases 取得，Console 27/27。
+- [x] 控制台不能把第三方寫入 Token 放到瀏覽器。證據：受控 server-side GitHub CLI adapter 與敏感資料掃描。
+- [x] 同 Project 需部署互斥，避免 current／previous 競態。證據：Workflow concurrency group 與 Console operation mutex 測試。
+- [x] 前端版本回退與 D1 Schema 回復必須分開。證據：Schema compatibility Gate 只向前相容，不執行 Migration rollback。
+- [x] 必須驗證 GitHub Release 寫入權限及 Environment Secret 可用性。證據：成功 Tag Run 建立 Release 並部署 Staging Environment。
+- [x] 正式 Release 與七天診斷 Artifact 的保存責任不同。證據：Release 永久保存政策與 Actions Artifact 7 天設定。
+- [x] 部署紀錄必須同時保存 Tag、Commit、ZIP Hash、Workflow Run、Cloudflare Version ID 與 Smoke 結果。證據：GitHub Deployment payload 與 Release manifest。
 
 ## 5. 目前停止點
 
-目前停止 M7-4 遠端驗收。使用者確認此興趣專案不需要 Production，故 M9 永久不列入當前待辦。控制台與 Tag 部署程式只處理 Staging；本地變更尚未 Push，因此管理頁真實 Workflow Dispatch 尚未在線上驗收。需先由使用者明確授權 Push／部署後，依 M7-4 完成線上驗收。
+M7-4 遠端驗收完成：管理頁可替換 verified Release；全新 Tag Push 會自動部署並完成 Release、Smoke、current／previous 更新；game-demo 畫面版本膠囊已實際驗證與 Tag 一致。Production 不列入目標。第 4 節補強盤點與 Tag 更新／重用 fail-closed 閘門均已 Push 並以 `dep_game-demo_v0.1.4` 完成 Staging 首次建立流程驗收。
 
-Tag 正常部署已由三個 Project 的歷史實跑證明；下一步是取得 Push／線上 Staging 驗收授權，執行 M7-4 管理頁替換與新 Tag 全鏈驗收。一般 Push 不部署，Production 權限盤點不是待辦。
+Tag 部署與管理頁版本替換目標已完成，且瀏覽器可直接顯示新 Tag 版本；一般 Branch Push 不部署，Production 權限盤點不是待辦。第 4 節已依程式、測試與遠端首次 Tag Run 證據結案。Tag 防重用閘門在 Run `39718382703` 通過；`dep_game-demo_v0.1.4` Release、Smoke、Cloudflare 部署成功，fresh browser 顯示 `v0.1.4`。管理員同時刪除 Tag 與 Release 後重建仍屬權限層級風險。
 
 ## 6. 完成紀錄
 
@@ -460,11 +427,15 @@ Tag 正常部署已由三個 Project 的歷史實跑證明；下一步是取得 
 | 2026-10-21 | M6-2 唯讀畫面 | 完成 | `platform/release-console`；真實 Snapshot 三 Project healthy；Console 2/2、Worker 62/62；瀏覽器驗收 | 尚待 M6-3 安全邊界正式 Gate |
 | 2026-10-21 | M6-3 安全邊界 | 完成 | 回環限定；GET-only；敏感 Snapshot Guard；安全標頭；Console 5/5、Worker 62/62；真實掃描 clean | M7 寫入能力尚未設計或啟用 |
 | 2026-10-21 | M7-1 身份與授權 | 完成 | GitHub 身份＋Repository 權限上限；三角色矩陣；重新驗證／確認；Audit 契約；Console 9/9 | 遠端 Dispatch 尚未實跑 |
-| 2026-10-22 | M7-2 Workflow Dispatch 橋接接線 | 本機完成 | 控制台預設受控 adapter；verified Release／Operation ID／狀態輪詢；Console 27/27 | 尚未 Push 或觸發真實 Workflow |
+| 2026-10-22 | M7-2 Workflow Dispatch 橋接 | 完成並實跑 | Commit `8a840d2`；控制台預設受控 adapter；verified Release／Operation ID／狀態輪詢；Console 27/27；一般分支 Push 無部署；Run `39716761323` 由控制台成功觸發 | 新 Tag Push 自動部署驗收仍待完成 |
 | 2026-10-22 | M8-2 Bundle 與相依 | 完成 | 初始 JS 1,279,377 → 115,211 bytes；p5-engine lazy chunk 1,151,810 bytes；npm audit 9 high → 0；三 Project Build 與相關測試通過 | p5 引擎 chunk 仍大於 500 kB；進入遊戲 Route 後仍會下載 |
-| 2026-10-22 | M8-3 保存政策 | 完成 | Release 永久；Artifact 7 天；最低 3 verified；冷卻 30 天；容量 normal；Console policy tests | Production 尚未設計；R2 僅在 Critical 條件成立後評估 |
-| 2026-10-22 | M9-1 Production 設計 | 完成 | 正式發布隔離契約；prod Tag parser；Worker／D1 命名與隔離測試 | Production Environment／Secret／Cloudflare 資源／Workflow 均未建立，正式發布仍停用 |
-| 2026-10-22 | M9-2 GitHub Environment Gate | 部分完成 | `production` Environment 已設定 required reviewer `takoson68`，管理員繞過關閉；API 回讀確認 | 唯一 reviewer 可核准自己的部署；Cloudflare 資源、Secrets 與 Workflow 尚未建立 |
-| 2026-10-22 | M9-2 Production D1 與 Wrangler 設定 | 部分完成 | 兩個空 D1 建立於 APAC；ID 記錄於契約與設定；未套 Migration | Worker 尚未部署；Production Secret、備份／還原演練與 Workflow 未完成 |
+| 2026-10-22 | M8-3 保存政策 | 完成 | Release 永久；Artifact 7 天；最低 3 verified；冷卻 30 天；容量 normal；Console policy tests | R2 僅在 Critical 條件成立後評估；Production 不列入目標 |
+| 2026-10-22 | M9 Production 探索 | 停止／不列入目標 | 使用者確認興趣專案不需要正式版；Production workflow、secret、worker 部署與首次發布均不執行 | 曾建立的 Environment、空 D1、Wrangler 設定及備份暫予保留；不屬待辦 |
+| 2026-10-22 | M9 歷史設計與資源盤點 | 已記錄；不作為完成里程碑 | 曾建立隔離契約與 parser、`production` Environment、兩個空 D1、Wrangler 設定；Migration 前空白基線備份還原證據見 `M9_2_D1_BACKUP_RESTORE_DRILL.md` | 未部署 Worker、未建 Secret、未套 Migration；未來若改變目標須重新盤點 |
 | 2026-10-21 | M7-3 操作功能 | 完成 | Same-origin POST；部署／previous 回退／queued 取消／批次刪除保護；Console 19/19；瀏覽器模擬驗收 | simulation only；真實寫入仍停用 |
 | 2026-10-21 | M8-1 game-demo 成品瘦身 | 完成 | 48→4 檔；2,316,900→1,284,517 bytes；Build／ZIP／HTTP／瀏覽器／game tests 7/7 | 未建立 Tag 或部署 |
+| 2026-10-22 | M7-4 控制台 Dispatch 接線與驗收 | 程式完成並 Push；第一項遠端 Gate 完成 | Commit `8a840d2`；Console 27/27；verified Release 部署／previous 回退已接上受控 adapter；一般分支 Push 未觸發部署；管理頁部署 Run `39716761323` 成功 | 待以全新 Tag 驗證 Push 自動部署 |
+| 2026-10-22 | M7-4 管理頁版本替換遠端驗收 | 完成 | Operation `b7306b1c-7cb6-4cf3-a54f-1f8ea4a0aa0b`；Run `39716761323` success；`dep_game-demo_v0.1.0` verified ZIP SHA-256 `9b2c947f…`；Smoke passed；Cloudflare Version `7359ea7a-4d4f-4894-8e7e-dac32df7233f`；current v0.1.0／previous v0.1.1；首頁與 SPA HTTP 200 | 尚待 M7-4 新 Tag Push 自動部署驗收 |
+| 2026-10-22 | M7-4 全新 Tag Push 自動部署驗收 | 完成 | 全新 `dep_game-demo_v0.1.2` Push 觸發 Run `39716991344` success；Release ZIP SHA-256 `0c0bd0d7…` verified；Smoke passed；Cloudflare Version `b93281db-840d-4abd-a643-b5eb9ad41d9c`；控制台 current v0.1.2／previous v0.1.0；首頁與 SPA HTTP 200 | 遊戲畫面版本膠囊仍顯示硬編碼 `v0.1.1`，建議改讀取建置版本 |
+| 2026-10-22 | Tag 版本膠囊動態顯示 | 完成並 Staging 驗收 | Workflow 將 `matrix.version` 注入 `VITE_RELEASE_VERSION`；Game tests 8/8；本機 Build 確認 v0.1.3；Commit `de29c3c` 與 Tag `dep_game-demo_v0.1.3`；Run `39717450520` 成功；Cloudflare Version `0ff22f36-b948-426c-ac6f-0226f34c8b79`；瀏覽器可見 `v0.1.3` | 新 Tag 驗收時需持續確認畫面膠囊與 Release Tag 一致 |
+| 2026-10-22 | Tag 更新／重用部署前閘門 | 完成並 Staging 驗收 | Commit `f14f6546a3787d4faaa5b2a354f8ab15905b149d` Push 至 `world-oop`；Worker 66/66；全新 `dep_game-demo_v0.1.4` Run `39718382703` success，`Reject updated or reused deployment Tag` 通過；Release 三資產、遊戲 Smoke、Deployment success；fresh browser 顯示 `v0.1.4` | Repository 管理員若同時刪除 Tag 與 Release，仍可清除重建前提 |
