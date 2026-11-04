@@ -8,7 +8,7 @@ authority: work-state
 
 ## 2026-11-04 eatGoMap 手機版地圖首頁版面調整
 
-依使用者提供的 iPhone 畫面完成兩輪調整：底部導覽列縮為固定 56px；Header 精簡為左側單獨 Logo、右側搜尋框，移除中英文標題與兩個使用者圖示，篩選列保留。手機版頁面、`html` 與 `body` 背景使用 Header 相同的深綠漸層。`VITE_PROJECT=eatGoMap npm run build:cloudflare -- --outDir /tmp/eatgomap-header-compact-check` 成功（72 modules）；本機 390px viewport 確認 Header 高 106px、地圖區高 562px、導覽列高 56px。未部署，等待使用者檢視。
+依使用者提供的 iPhone 畫面完成調整：底部導覽列固定 56px；Header 精簡為左側單獨 Logo、右側搜尋框，移除中英文標題與兩個使用者圖示，篩選列保留。手機版頁面、`html` 與 `body` 背景使用 Header 相同的深綠漸層。`VITE_PROJECT=eatGoMap npm run build:cloudflare -- --outDir /tmp/eatgomap-header-compact-check` 成功（72 modules）。Staging v0.1.4 已部署：Commit `ce6d5756409a3f27e561432f62a2cac5b8bffd18`、Tag `dep_eatgomap_v0.1.4`、Workflow `41791094205` 成功；瀏覽器確認 Logo、搜尋框同列，標題／使用者按鈕移除、Google Maps 載入、導覽列 56px，頁面 Smoke 通過。
 
 ## 2026-11-04 eatGoMap Staging Logo 重新整理 v0.1.3
 
