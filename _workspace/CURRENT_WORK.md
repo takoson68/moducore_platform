@@ -6,9 +6,9 @@ authority: work-state
 
 # 當前工作
 
-## 2026-11-04 eatGoMap Google Maps 原型與 Staging v0.1.1
+## 2026-11-04 eatGoMap Google Maps 原型與 Staging v0.1.2
 
-首頁已整合 Google Maps JavaScript API、難波底圖與五個合成 Advanced Marker；搜尋框調為 40px。Google Key 僅放在本機忽略檔 `platform/frontend/.env.local`，沒有進入 Commit 或 Staging 成品。Staging v0.1.1 已部署至 `https://eatgomap-staging.takoson68.workers.dev`：Commit `34ce3a00422967503f20fa4665a2f4e2ec8aeb60`、Tag `dep_eatgomap_v0.1.1`、Workflow `41785942308` 成功，首頁與 `/version-check` 均 HTTP 200；Release 已保存 ZIP、manifest、checksum。部署 Gate：前端 Build 72 modules、API transport 3/3、Worker 78/78、Wrangler dry-run 通過，並確認部署成品不含本機 Key。由於尚未完成 Google Cloud 網域限制，Staging 不載入 Key，會顯示未設定提示與視覺回退；待最終網域確定後再限制 Key 並設定 Staging 注入。
+首頁已整合 Google Maps JavaScript API、難波底圖與五個合成 Advanced Marker；搜尋框調為 40px。Staging v0.1.2 已部署至 `https://eatgomap-staging.takoson68.workers.dev`：Commit `bcab258c79c4abe38e3df0c44be67ab5639a8332`、Tag `dep_eatgomap_v0.1.2`、Workflow `41786674646` 成功，已在公開瀏覽器確認 `window.google.maps` 與 `.gm-style` 地圖節點存在，頁面顯示 Google 地圖資料與難波底圖。Google Key 由 GitHub `staging` Environment Secret 注入 eatGoMap 建置，不寫入 Git；前端 Key 可由瀏覽器取得。依使用者決定，最終網域尚未確定，Google Cloud 網域/API 限制稍後再設定。建置、API transport、Worker 測試、Wrangler dry-run 與 Staging 部署流程均通過；地點仍為合成標記，後端功能尚未串接。
 
 ## 2026-11-04 eatGoMap Staging 部署設定與首次草圖發布
 
