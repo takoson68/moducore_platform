@@ -1,5 +1,12 @@
 ## 2026-10-22
 
+- 新增 chatCore Staging 發布目標，使用獨立 Static Assets Worker 與 Private Chat Lab Signaling Durable Object；不綁定 D1，並維持與既有公開聊天室路由／Durable Object 隔離。
+
+- 整合 Repository AI 導讀：根 `AGENTS.md` 增加任務路由，`platform/` 子系統與 Workspace 主題資料補上索引；縮減 AI 初始化必讀為最小集合，並校正既有 Project 文件例外及 Worker 移植現況描述。
+- 將 `GEMINI.md` 收斂為通用入口轉址，並使 `STARTUP_DECLARATION.md` 的啟動確認成為內部 Gate，消除與 `AGENTS.md` 直接執行規則的衝突。
+- 將 `dinecore-*` Skills 標示為歷史 PHP/MySQL 範例並補上 Worker/D1 防誤用邊界；各 Skill 與 Workspace 研究／草稿資料夾增設局部索引，根層架構報告移入 `_workspace/_reports/`。
+- 將 `_ai-context/_index.md` 與 `_workspace/_index.md` 正名為各自目錄的 `index.md`，並更新入口引用以符合 Index-based Reading Protocol。
+- 新增部署請求關鍵字路由：明確區分 Staging 新版本 Tag 發布、既有版本控制台切換與一般 Git 推送；將「我要部署」的必要 Commit／Push／新 Tag 授權範圍及安全停止條件同步到 AI 導引、工程工作流程與 Git 規則。
 - 版本控制台預設模式接上受控 GitHub Staging Workflow Dispatch；可從已驗證 Release 部署指定版本或回退 previous，輪詢執行狀態並刷新 current／previous。操作保留 loopback、same-origin、GitHub 身分／角色、完整確認字串與 Audit Gate；瀏覽器不接觸寫入憑證，Production 與 Release 刪除不在本次啟用範圍。
 - 更新 Tag／Release 控制台執行里程碑與操作手冊，明確區分本機程式驗證和遠端 Staging 驗收；未 Push／Dispatch 的項目仍列為未完成。
 
@@ -11,6 +18,16 @@
 - 新增獨立 `game-demo-staging` Static Assets Worker 設定；遊戲專案不綁 D1、不覆蓋既有 dineCore／project-b Staging。Cloudflare 公開部署、首頁、SPA fallback 與入口資產 Smoke Test 通過。
 - 將 `moduCore_Game` 的可選遊戲能力整合回主平台：新增 `Game` 類別、遊戲私有 Container、生命週期、p5／FPS 適配器、`game-demo` Project 與遊戲回歸測試。
 - `Container` 類別改為可匯出並允許注入 services；既有平台單例仍使用原本 services，未更動預設 Project、既有 Projects 或部署流程。
+
+## 2026-10-15
+
+- 參考 `h5-basic-style` 的 AI 導讀與工作恢復方式，新增根目錄 `AGENTS.md` 作為跨 AI 工具入口
+- 建立 `_ai-context/` 操作層，包含 AI 實作引導、架構摘要、工程摘要、導讀、紀錄、Git 與語言規則
+- `_ai-context/` 僅負責導讀與工作方式，正式裁決仍由 `_VibeCore/` 負責，避免複製規則後形成雙重真相
+- 新增 `AI_WORKFLOW.md`，定義任務開始、證據分類、驗證矩陣、完成條件及資料分流
+- 新增 `_workspace/CURRENT_WORK.md` 與 `_workspace/_index.md`，建立最小可恢復的工作狀態
+- 更新 `AI_PROJECT_ENTRY.md` 的現況專案清單、最小導讀與 Cloudflare Workers + D1 後端方向
+- 未修改 `_VibeCore/world/`，既有 World 裁決層級維持不變
 
 ## 2026-03-10
 

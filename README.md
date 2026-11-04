@@ -1,5 +1,7 @@
 # ModuCore Platform
 
+> AI／Agent 導讀請從根目錄 [`AGENTS.md`](./AGENTS.md) 開始；可執行程式子系統由 [`platform/index.md`](./platform/index.md) 導讀。本文是平台概念介紹，不取代 `_VibeCore/` 正式治理、索引或實際程式證據。
+
 **ModuCore Platform** 是一套以 **前端架構治理** 為核心的工作平台導向系統實驗專案，  
 專為「需要反覆產出同類型前端、且長期維護成本高」的中大型 SaaS / 企業前端團隊而設計。
 

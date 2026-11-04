@@ -121,16 +121,19 @@ skill 本身 **不產生裁決語句**。
 
 ## 8. 目前已可用 Skills
 
+- 每個 Skill 先讀其目錄 `index.md`，再讀 `SKILL.md`；局部索引負責適用範圍與必要 Contract 路由。
 - `module-scaffold`
   - 建立 / 補齊 frontend 模組骨架，並對齊 MODULE_TEMPLATE_CONTRACT
 - `dinecore-api-smoke-check`
-  - 針對 dineCore 核心 API 進行快速健康檢查與故障分流
+  - 歷史 PHP/MySQL dineCore Guest／Staff API 的快速健康檢查與故障分流；Workers 目前只實作 Auth、Health、Employees 等路由，該 Skill 的舊 Guest／Staff URL 不可當成 Worker 現況
 - `dinecore-auth-repair`
-  - 修復 dineCore staff 401（token 傳遞、staff profile、角色驗證）
+  - 歷史 PHP/MySQL dineCore Staff 401 診斷；query token、MySQL profile／seed 範例不適用 Worker/D1，Worker Session 也明確拒絕 query token
 - `dinecore-db-repair`
-  - 修復 dineCore 缺表/缺欄位導致的 500，並做回歸驗證
+  - 歷史 PHP/MySQL dineCore 缺表／欄位診斷；MySQL `SHOW` 與舊 migration 不可直接用於 D1
 - `local-ip-mobile-test`
   - 將本機服務開成同網段手機可直接測試的 IP 網址
+
+上述三個 `dinecore-*` Skills 是 PHP/MySQL 歷史案例策略，不是目前 Worker API 已移植完成的證明。任何遠端／資料寫入前，先按該 Skill 的 local index 核對現況、影響及授權；不可把舊 SQL、Token 傳遞方式或環境 URL 機械套用到 Worker/D1。
 
 ---
 

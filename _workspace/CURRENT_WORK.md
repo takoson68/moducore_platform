@@ -1,10 +1,92 @@
 ---
 status: active
-updated: 2026-10-22
+updated: 2026-10-29
 authority: work-state
 ---
 
 # 當前工作
+
+## 2026-11-04 eatGoMap 地圖首頁視覺原型
+
+依使用者要求，`eatGoMap` 已從純文件骨架推進為可載入的地圖首頁視覺原型。新增 `map-home` Module、`/` 公開路由、Project LayoutRoot 與全域樣式入口；畫面沿用草稿的暖白／深綠色系、搜尋列、美食／旅遊與距離篩選、難波靜態地圖質感、合成 Marker、地點卡片及地圖／收藏／日誌底部導覽。分類、距離及 Marker 可做本機 UI 互動；所有地點與狀態都是合成假資料，未串 Google Maps、定位、後端 API、照片服務或正式身分。後續先由使用者檢視首頁視覺與資訊層級，再決定是否調整定稿；不得將此畫面視為地圖或 API 功能完成。
+
+## 2026-11-04 eatGoMap Project 文件與草稿備份完成
+
+依使用者要求建立 `platform/frontend/projects/eatGoMap/` 文件型 Project 骨架，暫定名稱 `eatGoMap`、顯示名稱「食旅共享地圖與日誌」。已建立 `project.config.js`、Project `index.md`、`PROJECT_CONTEXT.md`、`docs/`、`decisions/`，並以純文件入口保留 `layout/`、`modules/`、`styles/`；沒有建立 Vue 頁面、路由、模組註冊或 API 程式。HackMD 初步需求已另存 2026-11-04 Markdown 原文快照，整理後的介面架構、前後端外部 API 邊界、兩人私人使用與身分延後決策亦已收斂到 Project 文件；原始 PNG 另備份至 `docs/assets/`。前後端維持獨立 Repository、另設共用契約 Repository 的構想已記錄為 `proposed`，尚未與後端確認，因此未建立遠端 Repository、Submodule 或其他 Git 連線。`platform/frontend/projects/index.md` 已登錄此 Project，並明確標示目前不可載入。後續先與後端確認共用文件工作流，再決定是否採用 `eatGoMap-contracts` 與引用方式；開始實作前另需確認第一個里程碑與正式 API 契約討論範圍。
+
+## 2026-10-29 工作區索引直接維護未完成清單
+
+依使用者要求，`_workspace/index.md` 現在直接列出精簡未完成事項及詳情連結，避免每次恢復工作都展開大量文件。清單目前包含 ChatCore M4a（先檢視 M4 結果、等使用者決定）及 M1b 跨實體網路／TURN 成本驗證；M1b 不阻擋 M4 Gate。`_ai-context/紀錄管理規則.md` 已明定 index 摘要與 `CURRENT_WORK.md` 最新停止點需同步維護；`_workspace/_reports/index.md` 的 chatCore 尚未建立描述已更新。相對 Markdown 連結檢查通過，未改程式碼、未 Commit／Push。後續先讀 `_workspace/index.md`，再只開啟使用者選定待辦的詳情。
+
+## 2026-10-29 chatCore M4 身分與房間 Ticket 實驗
+
+依使用者「下一步」完成執行書 M4。ChatCore 專屬 Worker 代驗 dineCore 帳密、立即撤銷上游 dineCore Bearer，並為 `CHATCORE_MEMBER_USERNAMES` 名單內會員簽發 30 分鐘 chatCore scope Session；前端沿用既有 auth/token store。Ticket 綁定會員、tenant、deviceId、roomId，60 秒且只可使用一次。WebSocket 僅接受 Ticket；peerId 由 Worker 產生，同房轉送 Signaling。每房限制 20 個不同會員與 20 個在線裝置，同帳號多裝置可有獨立 peerId。M4 暫用全域合成實驗名單作 cohort membership，尚無逐房成員管理，留待 M4a。
+
+合成 Worker Auth Service 自動測試 4/4 通過，涵蓋 Project 標頭、跨 tenant Bearer 拒絕、會員 allowlist、Session 映射／登出撤銷、Ticket replay、同房轉送、跨房目標拒絕、匿名 WS 拒絕與第 21 裝置拒絕。完整 Worker suite 78/78，ChatCore Cloudflare build 82 modules，Wrangler deploy dry-run 通過。已建立 dineCore Staging 合成測試會員 `admin1`、`admin2`、`admin3`（一般 member），並驗證其登入／登出。以本機 Miniflare 和臨時本機 secret 經真實 Staging Auth Service 完成本機整合；另對已部署 ChatCore Staging 實測登入、Session 還原、Ticket、WebSocket 入房及登出撤銷，全部通過，並在 `/console` UI 成功登入後登出。`dep_chatcore_v0.1.6`／Commit `454e38d`、Workflow `40847827037` 成功，含 Worker 全量測試、靜態頁、匿名 Ticket smoke、Release 與 Deployment 紀錄。`v0.1.5` 曾部署但 Workflow 卡在 smoke 腳本未釋放拒絕 response，已取消其 run；修正後 v0.1.6 完整通過。M4 Gate 通過，結果見 `platform/frontend/projects/chatCore/docs/M4_RESULT.md`。M1b 跨實體網路／TURN 成本仍待驗證；M4a 未開始，等使用者檢討決定。
+
+測試會員是 dineCore Staging 的一般 member 帳號，使用者表示實驗結束時若需清除可再清理，目前保留以供後續實驗使用。此里程碑已部署並完成 M4 Gate；先檢討 M4 結果，再依使用者決定是否開始 M4a。沒有進行跨實體網路／TURN 成本測量，該項保留給 M1b 實驗。
+
+## 2026-10-29 chatCore M3 Gate 通過，等待檢討
+
+依使用者「下一步」指示，完成執行書 M3：Private Chat Lab DataChannel 使用 `chatCore.v1` envelope 與穩定 `messageId`；收件端在解析後回 received、IndexedDB 寫入／確認成功後回 persisted；重複 ID 不重複保存。發送端逐本次目標 Peer 投影 received／persisted／READ，所有目標 Peer persisted 才移除本機 outbox。10 秒未確認標逾時並保留手動重試；重試沿用同一 ID。READ 僅在頁面前景、聊天室區域實際可見、訊息 IntersectionObserver 可視至少 60% 且已保存時寫入本機並發送。
+
+實驗中加上 256 KiB DataChannel bufferedAmount 上限；高於上限拒送並保留 outbox，不做流量排程。M3 不含伺服器 queue、離線 Peer 保證、跨裝置 history/read 同步、會員授權或 E2E。實作限制在 chatCore 模組；新增 repository/read policy 測試與 `docs/M3_RESULT.md`。
+
+驗證：Cloudflare build 82 modules；Private Chat Lab 3/3、既有前端 Chat runtime 8/8 通過。兩個本機瀏覽器環境成功傳輸 10 則合成文字；僅可視訊息發出 READ，訊息捲入可視區後才補 READ。暫時注入接收端 IDB unavailable，觀察到 received 1/1、persisted 0/1、10 秒逾時及 outbox 保留；恢復 IDB 後沿用同 ID 重試，收件端保存並回 persisted，注入碼已移除。未以瀏覽器故意丟 ACK；ACK 重複冪等由資料層測試覆蓋。未部署、未 Commit／Push、未改 Worker／公開聊天室。
+
+結果記於 `platform/frontend/projects/chatCore/docs/M3_RESULT.md`。M3 Gate 通過；先由使用者檢討，再決定是否進 M4。M1b 跨實體網路與 TURN 成功率／成本仍待驗證。
+
+## 2026-10-29 chatCore M2 Gate 通過，等待檢討
+
+依使用者「從執行書下一步開始」指示，完成 M2 IndexedDB 本機 history/outbox。檢查 `world.services.storage()` 發現其 IDB 失敗會靜默降級 memory，模組無法確認持久化，因此依執行書新增模組私有薄型 repository，未修改平台核心。發送訊息與 outbox 原子寫入後才交給 DataChannel；接收訊息 IDB 保存成功後才標示已保存。DataChannel 接受不作為 delivered/persisted 證明；因 M3 ACK 尚未存在，未確認 outbox 保留並可手動重試，UI 明示重試可能造成重複。
+
+同時完成前述 chatCore UI 待辦：外層與內層捲軸統一；左側最近房間清單保留 30 項；點擊切入並連線；網址／欄位有房間代碼時以「加入聊天室」為藍色主按鈕。房間目錄只存 localStorage；訊息與 outbox 存 IndexedDB；兩者都不跨裝置同步。當前仍是最多五人通用實驗房間，未區分一對一／群組類型。
+
+驗證：Cloudflare build 81 modules；前端 Chat runtime 8/8、Worker 77/77；本機 Worker + Chrome 與 In-App Browser 兩個隔離瀏覽器環境建立 DataChannel，傳送／接收、重載 history/outbox、未確認 outbox 重試均已人工驗證。測試注入 IndexedDB 不可用時 UI 顯示儲存錯誤，發送端未送出資料。未部署、未 Commit／Push。M1b 跨實體網路與 TURN 仍待驗證；M2 不代表 M3 ACK Gate 通過。
+
+結果記於 `platform/frontend/projects/chatCore/docs/M2_RESULT.md`。下一步先由使用者檢討 M2，再決定是否開始 M3；不得把 DataChannel send 成功標成收件端已保存。
+
+## 2026-10-29 最新續作：chatCore 參考 Gemini UI 細節調整
+
+使用者提供 Gemini UI 分享連結作為細節參考。依參考畫面調整時保留實際程式資料，不沿用畫面中的虛構 Peer 名稱、18ms 延遲、封包遺失率或示範訊息。修正專注聊天模式原本缺少房間控制的可用性問題：未連線時可直接在專注模式建立新聊天室或輸入房間代碼加入；整合模式繼續使用實驗卡內的房間控制。同步細修：版號仍顯示建置值、改為通道傳輸加密說明並標明非 E2E、修正多人聊天室名稱、通道名依實作顯示 `chat-text`、移除固定百分比的虛假流量條、傳輸狀態分開呈現 Partial／Connecting。
+
+驗證：`VITE_PROJECT=chatCore VITE_RELEASE_VERSION=0.1.2 npm run build:cloudflare -- --outDir /tmp/chatcore-ui-refine-check` 成功（80 modules）；`git diff --check` 通過。本機 `/console` 瀏覽器已切換兩種模式，確認專注模式顯示建立／加入控制，填入代碼後加入按鈕啟用。這輪尚未部署；`dep_chatcore_v0.1.2` Staging 仍為前一版 UI。
+
+再依使用者意見將整合／訊息區原生捲軸改為深色細捲軸（Firefox 與 WebKit 樣式）；瀏覽器確認捲軸寬 8px、軌道為深色，視覺不再出現白色粗條。Build 與 diff check 通過，未部署。
+
+唯一下一步：由使用者檢視本機細節調整，再決定是否部署下一個 Staging patch 版。
+
+
+## 2026-10-29 最新續作：chatCore 聊天實驗頁雙模式 UI
+
+依使用者最新確認，沒有登入／角色機制時，整合視圖與專注聊天兩種模式都開放給測試者使用；兩者共用同一聊天室連線，整合視圖不代表管理員權限。`modules/private-chat-lab/pages/index.vue` 已改為深色三欄整合視圖及可切換的專注聊天版面，整合模式包含 Project 導覽、能力卡、房間控制、實際 Peer/ICE 狀態與右側聊天；聊天可建立／加入房間、複製邀請連結及以 Enter 傳送合成文字。未加入會員角色、歷史持久化或檔案傳送。`runtime.js` 的參與者摘要包含本機 Peer ID。Project 索引、Context、設定能力名稱及入口文案已對齊雙模式決策。
+
+驗證：明確設定 `VITE_PROJECT=chatCore` 後 staging build 成功（80 modules）；`git diff --check` 通過；本機 `/console` Accessibility tree 確認雙模式切換、整合視圖元件與聊天室控制可載入。第一次未指定 Project 的 staging build 使用現有 `.env` 建置 dineCore，未作為 chatCore 驗證。之後依「部署」指示發布 `dep_chatcore_v0.1.2`（Commit `5323f9a`）；Workflow 40834185811 通過 Worker／Static Assets 部署、SPA smoke 與五人 Signaling smoke。線上頁首 `v0.1.2` 及兩種模式切換已由瀏覽器確認。
+
+唯一下一步：在本次 Staging 版以多瀏覽器驗證五人 RTCDataChannel Full Mesh，尤其是跨裝置／網路、訊息廣播及單一 Peer 離線後的恢復；Signaling Workflow smoke 不代表已完成該項 P2P 驗收。結果記於 `platform/frontend/projects/chatCore/docs/M1B_RESULT.md`。
+
+
+## 2026-10-29 最新停止點：chatCore P2P M0a Gate 通過，等待使用者檢討
+
+依使用者連續「下一步」指示，完成 M0a：建立獨立 `platform/frontend/projects/chatCore/`，提供 `/` 實驗入口與 `/console` 控制台，經 Project 自有 `modules/index.js` 註冊路由。控制台列出會員管理、聊天室管理、一對一私人連線三項尚未開放能力；Game Demo Staging 連結由本地設定登錄並另開分頁，不攜帶 token／ticket。Project 文件、里程碑計畫及 M0 結果已由 `docs/index.md` 導讀，工作區報告目錄保留存檔。結果見 `platform/frontend/projects/chatCore/docs/M0A_RESULT.md`。
+
+`VITE_PROJECT=chatCore` Cloudflare build 成功，產物位於 `/tmp/moducore-chatcore-m0a`；瀏覽器直接載入入口與控制台深層路由成功。另以本機瀏覽器檢視 dineCore 桌邊入口與 game-demo 遊戲／公開聊天室入口，均可載入。未修改平台 Router／Container、其他 Project 或公開聊天室；未執行測試套件、未部署。
+
+唯一下一步：由使用者檢討 M0a 的 Project 定位、控制台資訊及連結方式，再決定是否進入 M1（兩個瀏覽器建立 RTCDataChannel）。不得自動進入 M1。
+
+## 2026-10-29 前次停止點：chatCore P2P M0 首次 Gate 未通過
+
+已依 `P2P_CHAT_MILESTONES.md` 執行 M0，結果見 `_workspace/_reports/2026-10-29_chatcore_p2p_plan/M0_RESULT.md`。獨立 chatCore Project／tenant、dineCore 作過渡期外部身分來源、chatCore-scoped Auth 轉接與私人 Chat namespace 已形成可測試候選方案；未建立 Project 或產品程式。前端 Chat 8/8、公開 Chat 契約 4/4、Worker 公開 Chat 8/8、Auth 13/13 本機通過。game-demo Staging 公開聊天室送出合成訊息後當頁可見，但重整及另一分頁沒有歷史回放；dineCore Staging 桌邊點餐入口可見。此差異已記錄 `ISSUE-20261029-001`；唯讀部署紀錄顯示 active Chat Worker 版本早於本機歷史持久化 commit，為最有力解釋，線上新版尚未驗證。M0 Gate 判定 failed，依階段規則未進 M0a；未修改產品程式、安裝套件、部署或寫入會員資料。
+
+唯一下一步：若使用者決定另行發布本機已驗證的 Chat Worker 至 Staging，需依部署流程執行並重做 M0 手動 Gate；通過後先檢討結果，再決定是否進 M0a。M0 本身不包含部署，不得將本機測試通過當作線上歷史驗收通過。
+
+## 2026-10-29 前次停止點：chatCore 獨立 Project 定位確認（當時尚未建立頁面、未啟動 M0）
+
+已依使用者確認的 11 項決策建立 `_workspace/_reports/2026-10-29_chatcore_p2p_plan/P2P_CHAT_MILESTONES.md`，定位為獨立 chatCore Project 的漸進式技術實驗。原先誤置於 dineCore `docs/` 的文件已移出；dineCore 僅為第一階段身分來源，chatCore 的 Project／tenant 授權邊界須在 M0 確認。文件定義 M0～M9：公開聊天室隔離、2 Peer DataChannel、IndexedDB history/outbox、received／persisted／READ、正式 Session／ticket／ACL、7 天逐收件者離線 queue、5 裝置 Full Mesh、PWA 前景／背景、10／20 裝置成本壓測與 7 天備份提醒。已明定不做跨裝置歷史同步、任一裝置 persisted 即完成 user-scope delivery、WebSocket 採前景活動與背景重連實驗、第一階段只使用合成明文，且不修改平台核心或既有公開聊天室。
+
+本輪修正規劃文件歸屬與索引，並依使用者要求新增 M0a：chatCore 專屬進入頁面、控制台與日後 Project 連結區。M0a 要求獨立 `VITE_PROJECT` 載入、由 Project 模組註冊路由、以本地設定登錄受控連結、目標 Project 自行驗證身分。後續需求補入 M4a（聊天室與既有會員管理）、M4b（一對一邀請／私人連線）、M10（獨立共用會員身分及 Project 授權邊界）、M11（控制台新增共用會員）。現有 Worker 帳號與 Session 以 tenant 分隔且沒有一般會員建立 API；dineCore 會員僅作過渡實驗來源，不預先透過 chatCore 新增 dineCore 帳號。尚未建立 chatCore Project 頁面、未修改產品程式碼、未安裝套件、未執行測試或部署。所有新里程碑尚未開始。
+
+唯一下一步：由使用者另行明確指定是否開始 chatCore Project 建立或 M0；未取得指令前不得自動進入實作。
 
 ## 2026-10-27 續作停止點：scale-hardening 報告結案（暫不部署）
 
@@ -468,3 +550,16 @@ CI https://github.com/takoson68/moducore_platform/actions/runs/38692452088 在 S
 - 修正訊息時間欄位對應：Worker 廣播使用 `serverTime`，前端現在以 `serverTime`（並相容 `timestamp`）顯示右側半透明小字 `HH:MM`。
 - 驗證：`npm run test:chat` 8/8、`VITE_PROJECT=magic-siege npm run build:cloudflare` 通過。
 - 已發布 `dep_magic-siege_v0.1.55`、`dep_game-demo_v0.1.14`、`dep_dinecore_v0.1.9`（面板結構修正），以及 `dep_magic-siege_v0.1.56`、`dep_game-demo_v0.1.15`、`dep_dinecore_v0.1.10`（時間欄位修正）；六個 Workflow 均成功。
+
+## 2026-10-27｜聊天室連線狀態燈
+
+- 聊天室標題前新增狀態燈：綠色代表線上、黃色代表連線中／重試中、灰色代表離線或尚未連線；同時提供狀態的無障礙標籤。
+- 驗證：`npm run test:chat` 8/8、`VITE_PROJECT=magic-siege npm run build:cloudflare` 通過；線上 `v0.1.57` 已確認連線中黃色、連線後綠色。
+- 已發布 `dep_magic-siege_v0.1.57`、`dep_game-demo_v0.1.16`、`dep_dinecore_v0.1.11`，三個 Workflow 均成功。
+
+## 2026-10-27｜切換聊天室後歷史訊息未載入修正
+
+- 原因：管理端切換聊天室時會建立新的 `Chat`，但 Vue 重用已展開的 `ChatPanel`，沒有重新呼叫新聊天室的 `start()`；因此畫面顯示空白，但伺服器訊息沒有被刪除。
+- 修正：監聽 `props.chat` 變更，面板已展開時自動啟動新連線並載入該聊天室歷史訊息。
+- 驗證：`npm run test:chat` 8/8、`VITE_PROJECT=dineCore npm run build:cloudflare` 通過。
+- 已發布 `dep_magic-siege_v0.1.58`、`dep_game-demo_v0.1.17`、`dep_dinecore_v0.1.12`，三個 Workflow 均成功。

@@ -5,6 +5,8 @@ description: 修復 dineCore 因缺表/缺欄位導致的 500，重點處理 tab
 
 # DineCore DB Repair
 
+> **適用範圍：歷史 PHP/MySQL dineCore Schema 診斷。** 先讀本目錄 `index.md`；`SHOW TABLES`、`SHOW COLUMNS` 與舊 MySQL Migration 不適用 D1/SQLite。Worker 任務改讀 `platform/worker/index.md` 及目標 D1 Migration／測試；不得從此 Skill 直接對遠端資料庫執行變更。
+
 ## 何時使用
 
 - `entry-context` / `order-tracker` 出現 500

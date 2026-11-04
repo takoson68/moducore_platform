@@ -5,6 +5,8 @@ description: 對 dineCore 核心 API 做快速健康檢查（guest/staff/login/s
 
 # DineCore API Smoke Check
 
+> **適用範圍：歷史 PHP/MySQL dineCore Guest／Staff API。** 目前 `platform/worker/src/index.js` 尚未註冊這些業務端點；Worker 只提供其路由表列出的 API。使用前先讀本目錄 `index.md` 和 `platform/worker/index.md`，不可把此清單當成 Worker Smoke 或 Staging 發布驗收。
+
 ## 何時使用
 
 - 使用者回報「整站怪怪的」
@@ -15,6 +17,8 @@ description: 對 dineCore 核心 API 做快速健康檢查（guest/staff/login/s
 
 - 後端可連（`moducore_platform.test` 或指定 base URL）
 - 資料庫已啟動
+- 僅對明確指定且允許測試的本機／測試環境執行；登入測試會建立 Session，完成後須登出／清理測試狀態。
+- 不將 Token 放入 URL；如目標為 Worker，應使用 Worker 契約及測試，不執行本 Skill 中的舊 query-token 例子。
 
 ## 固定檢查清單
 

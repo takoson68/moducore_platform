@@ -4,3 +4,12 @@ node_modules
 /ai
 /ai_new
 /platform/release-console/data/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
+
+# Local AI tool and Cloudflare cache state
+/.claude/
+/.mcp.json
+/.wrangler/

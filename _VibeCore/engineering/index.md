@@ -139,7 +139,7 @@ Engineering 層用於約束「如何工作」，
 
 - **純人類暫存思考**
   → `_workspace/`
-  （AI 不得主動讀取或引用其內容）
+  （AI 預設不得全量讀取；只可主動讀取 `_workspace/CURRENT_WORK.md` 與當前任務直接相關、已由索引或使用者指向的文件）
 
 原則：
 
@@ -186,6 +186,8 @@ Git 僅用於保存進度與歷史脈絡，
 
 - 不得自行 commit
 - 不得自行 push
+
+例外：使用者明確說「我要部署／部署這版／發布新版本」時，依 `AI_WORKFLOW.md` 與 `GIT_AUTOMATION.md` 授權執行該次 Staging 發布必要的精確白名單 Commit、分支 Push 與全新部署 Tag Push；不得擴及無關修改或 Production。版本替換／回退改走 `TAG_DEPLOYMENT_MANUAL.md` 控制台流程。
 
 ---
 
@@ -272,6 +274,15 @@ Git 僅用於保存進度與歷史脈絡，
 
 ---
 
+## Rule 11：AI Work Continuity（AI 工作連續性）
+
+- AI 的任務開始、證據分類、驗證、完成條件與工作資料分流，依 `_VibeCore/engineering/AI_WORKFLOW.md` 執行。
+- 新對話或上下文重置時，允許主動讀取 `_workspace/CURRENT_WORK.md` 以恢復停止點。
+- `CURRENT_WORK.md` 不具治理裁決權；其內容必須由 Git、原始碼、設定與正式文件交叉驗證。
+- 任務結束、暫停或範圍改變時，必須更新 `CURRENT_WORK.md`，避免下次重新分析已完成工作。
+
+---
+
 ## Invariants
 
 - 工程紀律優先於短期速度
@@ -294,6 +305,8 @@ Git 僅用於保存進度與歷史脈絡，
   → `_VibeCore/engineering/IDENTITY_ACCESS_CONTRACT.md`
 - 模組樣板 Contract
   → `_VibeCore/engineering/MODULE_TEMPLATE_CONTRACT.md`
+- AI 工程工作流程
+  → `_VibeCore/engineering/AI_WORKFLOW.md`
 - Tag 部署操作手冊
   → `_VibeCore/engineering/TAG_DEPLOYMENT_MANUAL.md`
 - 版本控制台資料契約

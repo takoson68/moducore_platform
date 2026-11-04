@@ -5,6 +5,8 @@ description: 修復 dineCore staff 401 問題（token/header、staff profile 對
 
 # DineCore Auth Repair
 
+> **適用範圍：歷史 PHP/MySQL dineCore Staff 認證診斷。** 先讀本目錄 `index.md`；本文件提及的 query-token、MySQL profile／seed 與舊 Staff 路徑不可直接套用至 Worker/D1。Worker Session 明確拒絕 query token，且目前未移植 dineCore Staff 業務端點。
+
 ## 何時使用
 
 - `STAFF_SESSION_REQUIRED` 持續出現

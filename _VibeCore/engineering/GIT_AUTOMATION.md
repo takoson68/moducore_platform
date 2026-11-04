@@ -26,6 +26,12 @@ Git 不是：
 - 不要自行 `git add / commit`
 - 不要主動 `git push`
 
+### Staging 部署關鍵字的有限例外
+
+使用者明確說「我要部署」「部署這版」「發布新版本」或「Tag 部署」時，依 `_VibeCore/engineering/AI_WORKFLOW.md` 的部署請求流程及 `_VibeCore/engineering/TAG_DEPLOYMENT_MANUAL.md` 執行。這代表使用者已授權該次 Staging 發布所必需、且限於本次變更白名單的 Commit、目標分支 Push 與全新唯一部署 Tag Push，不必再單獨等待「推送」確認。
+
+此例外不適用一般 Git 保存；單獨「推送」「Push」「儲存進度」仍不部署。它不授權納入無關檔案、Production、刪除／移動／重用 Tag 或 Release、資料回復及其他超出本次 Staging 發布的外部變更。遇到不能安全隔離的既有修改或部署 Gate 失敗時停止，不可擴大白名單。
+
 ---
 
 ## 基本流程

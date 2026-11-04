@@ -1,20 +1,28 @@
+---
+status: active
+authority: repository-entry
+updated: 2026-10-15
+implemented: true
+---
+
 # AI 專案入口
 
 ## 用途
 此檔案是 AI 代理在此儲存庫中工作的實務入口點。
 
-請在閱讀以下內容後使用本檔：
+根目錄 `AGENTS.md` 是跨 AI 工具的實務入口；本檔負責把 VibeCore 規則映射到目前 Repository。請在閱讀以下內容後使用本檔：
 
 1. `_VibeCore/STARTUP_DECLARATION.md`
 2. `_VibeCore/RootIndex.md`
 3. 相關的 `_VibeCore/**/index.md`
+4. `_workspace/CURRENT_WORK.md`（只用於恢復停止點）
 
 若任務涉及 project instance 的建立、理解或整理，另需依序閱讀：
 
-4. `_VibeCore/projects/index.md`
-5. `_VibeCore/projects/PROJECT_AUTHORING_STANDARD.md`
-6. `_VibeCore/projects/PROJECT_SCAFFOLD_PROTOCOL.md`
-7. `_VibeCore/projects/templates/index.md`
+5. `_VibeCore/projects/index.md`
+6. `_VibeCore/projects/PROJECT_AUTHORING_STANDARD.md`
+7. `_VibeCore/projects/PROJECT_SCAFFOLD_PROTOCOL.md`
+8. `_VibeCore/projects/templates/index.md`
 
 它的角色與 world 文件不同：
 
@@ -30,6 +38,10 @@
 
 - `_VibeCore/`
   - 治理、world 規則、工程筆記、專案層定義
+- `_ai-context/`
+  - AI 初始化、操作方式與任務關鍵字導讀；正式裁決仍以 `_VibeCore/` 為準
+- `platform/`
+  - Vue/Vite 前端、歷史 PHP 後端、Cloudflare Worker/D1 與本機版本控制台；子系統入口見 `platform/index.md`
 - `platform/frontend/`
   - 目前實際運作中的 Vue + Vite 前端執行環境
 - `platform/backend/`
@@ -55,9 +67,11 @@
    - 專案層的意義
 3. `_VibeCore/projects/PROJECT_AUTHORING_STANDARD.md`
    - project 文件的固定寫法與章節責任
-4. `platform/frontend/` 與 `platform/backend/` 下的實際原始碼
-   - 目前實作的真實狀況
-5. 根目錄 `README.md`
+4. `platform/frontend/` 與 `platform/backend/` 下的實際原始碼、設定、測試與命令輸出
+   - 目前實作的真實狀況；不得因實作存在就反向放寬 World 規則
+5. `_workspace/CURRENT_WORK.md`
+   - 只提供最近停止點，不具架構裁決權
+6. 根目錄 `README.md`
    - 提供上下文概覽，但不能完全視為真實來源
 
 實務解讀：
@@ -75,17 +89,13 @@
 1. `_VibeCore/STARTUP_DECLARATION.md`
 2. `_VibeCore/RootIndex.md`
 3. `_VibeCore/world/index.md`
-4. `_VibeCore/world/00_PURPOSE.md` 到 `_VibeCore/world/09_WORLD_RULES.md`
-5. `_VibeCore/projects/index.md`
-6. `_VibeCore/projects/PROJECT_AUTHORING_STANDARD.md`
-7. `platform/frontend/src/main.js`
-8. `platform/frontend/src/world.js`
-9. `platform/frontend/src/app/boot/boot.js`
-10. `platform/frontend/src/app/container/`
-11. `platform/frontend/src/router/`
-12. `platform/frontend/projects/loadProject.js`
-13. `platform/frontend/projects/modulesRegistry.js`
-14. 目前啟用的專案 `platform/frontend/projects/{project-name}/`
+4. `_VibeCore/engineering/index.md`
+5. `_VibeCore/engineering/AI_WORKFLOW.md`
+6. `_workspace/CURRENT_WORK.md`
+7. 依當前任務進入相關層級的 `index.md`
+8. 只讀取與任務直接相關的原始碼
+
+不再將所有 World 文件、所有 Project 文件或所有歷史報告列為每次初始化必讀；需要使用某層裁決時，再依該層 `index.md` 完整讀取其要求內容。
 
 若任務涉及後端/API 行為，也請閱讀：
 
@@ -253,39 +263,25 @@ world 文件將 container 描述為能力閘道。
 
 ## 目前啟用的專案表面
 
-`platform/frontend/projects/` 下目前的專案目錄包括：
+`platform/frontend/projects/` 下目前可見的 Project 設定目錄包括：
 
 - `project-a`
 - `project-b`
+- `dineCore`
+- `flowCenter`
+- `game-demo`
 - `modudesk`
 - `_proTemp`
 
-觀察到的常見專案結構：
+各目錄至少以 `project.config.js` 宣告名稱、tenant 與 modules；Project 依演進需求含 `layout/`、`modules/`、`styles/`，並可能有 `components/`、`services/`、`composables/` 等程式目錄。新專案文件格式與既有專案例外依 `_VibeCore/projects/index.md` 裁決，不把模板列出的文件誤當成每個歷史 Project 都已存在。
 
-- `index.md`
-- `PROJECT_CONTEXT.md`
-- `project.config.js`
-- `layout/`
-- `modules/`
-- `styles/`
-- `decisions/`
-- 可選的 `components/`、`services/`、`composables/`
-
-建議假設：
-
-- `modudesk` 看起來是持續演進中的活躍專案
-- `project-a` 與 `project-b` 是已建立的範例/參考實作
-- `_proTemp` 看起來像是樣板或暫存專案
-
-請將其視為工作推論，而不是 world 規則。
-
-若某個專案缺少 `index.md` 或 `PROJECT_CONTEXT.md`，應視為 project 文件結構尚未補齊，而不是默認其可以自由格式運作。
+Project 清單和模組配置以 [`platform/frontend/projects/index.md`](../platform/frontend/projects/index.md) 與各 `project.config.js` 為準，不以此處快照推定哪一個是目前使用者的工作目標。依 `_VibeCore/projects/index.md`，既有歷史 Project 不因缺少 `index.md`／`PROJECT_CONTEXT.md` 就自動判定文件違規；新建或明確要求整理的 Project 才依規格補建文件。不得把舊專案缺件規則誤套至所有既有目錄。
 
 ---
 
 ## 後端現況
 
-後端存在，但看起來比前端 world 模型更精簡。
+`platform/backend/` 的 PHP 8 + PDO MySQL 保留為 API 行為、資料模型與移植驗證參考；`platform/worker/` 已包含 Cloudflare Workers JavaScript + D1／SQLite 的移植實作、Migration、測試與部署設定。不能將「目標 Runtime」誤讀為尚無任何 Worker 實作，也不能僅因 Worker 已存在就宣稱所有 PHP API 均已移植。
 
 已知入口脈絡：
 
@@ -297,6 +293,8 @@ world 文件將 container 描述為能力閘道。
 
 - 不要假設前端 world 的抽象在後端程式碼中有完整對映
 - 在宣稱對等性之前，先直接從後端原始碼驗證行為
+- 不為既有 PHP 後端新增功能；新功能與移植目標以 Workers JavaScript 為準
+- 未完成契約對照與資料遷移驗證前，不刪除 PHP 參考實作
 
 ---
 
@@ -351,7 +349,8 @@ world 文件將 container 描述為能力閘道。
 2. `platform/frontend/package.json`
 3. `platform/frontend/vite.config.js`
 4. 目前啟用專案的 `dist/` 目標行為
-5. 後端公開資產目的地
+5. `platform/frontend/vite.config.js` 中既有 PHP public 複製行為
+6. `_workspace/_reports/2026-10-15_moducore_cloudflare_node_d1/EXECUTION_SPEC.md`
 
 ---
 
