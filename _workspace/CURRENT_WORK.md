@@ -6,6 +6,10 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-04 eatGoMap Staging Logo 重新整理 v0.1.3（部署中）
+
+使用者將網站加入主畫面後，希望可由左上角 Logo 主動重新載入，取得最新部署版本。品牌圖示與標題已改為按鈕，點擊執行 `window.location.reload()`；即將以 Tag `dep_eatgomap_v0.1.3` 發布到 `eatgomap-staging`。部署完成後補上 Workflow 與瀏覽器驗收結果。
+
 ## 2026-11-04 eatGoMap Google Maps 原型與 Staging v0.1.2
 
 首頁已整合 Google Maps JavaScript API、難波底圖與五個合成 Advanced Marker；搜尋框調為 40px。Staging v0.1.2 已部署至 `https://eatgomap-staging.takoson68.workers.dev`：Commit `bcab258c79c4abe38e3df0c44be67ab5639a8332`、Tag `dep_eatgomap_v0.1.2`、Workflow `41786674646` 成功，已在公開瀏覽器確認 `window.google.maps` 與 `.gm-style` 地圖節點存在，頁面顯示 Google 地圖資料與難波底圖。Google Key 由 GitHub `staging` Environment Secret 注入 eatGoMap 建置，不寫入 Git；前端 Key 可由瀏覽器取得。依使用者決定，最終網域尚未確定，Google Cloud 網域/API 限制稍後再設定。建置、API transport、Worker 測試、Wrangler dry-run 與 Staging 部署流程均通過；地點仍為合成標記，後端功能尚未串接。

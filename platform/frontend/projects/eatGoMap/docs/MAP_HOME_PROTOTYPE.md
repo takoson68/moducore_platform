@@ -13,6 +13,7 @@
 - 提供地圖／收藏／日誌底部導覽外觀。
 - 桌面版增加視覺原型說明，手機版維持單一 App 畫面。
 - 接入 Google Maps JavaScript API，在大阪難波顯示真實底圖與五個合成地點標記；點選標記會更新地點卡並移動地圖中心。
+- 左上角品牌標誌與標題可點擊重新載入網站，方便安裝為主畫面捷徑後手動取得最新部署版本。
 - 以 `VITE_GOOGLE_MAPS_API_KEY` 從本機環境載入 API Key，並提供無 Key 時的清楚提示與靜態視覺回退。
 
 ## 明確未完成
@@ -39,7 +40,7 @@ Vite 的 `VITE_` 變數會進入瀏覽器，因此此 Key 不是伺服器密鑰�
 - `VITE_PROJECT=eatGoMap npm run build:cloudflare -- --outDir /tmp/eatgomap-google-maps-check`：成功，72 modules。
 - 本機 Google 地圖已載入大阪難波區域，畫面可讀到 Google 地圖圖資來源與兩個美食標記；尚未驗證所有分類下的標記、縮放與手機裝置操作。
 - 尚未驗證 Key 的最終網域限制；使用者決定待網域確定後再設定 Google Cloud 限制。
-- Staging `0.1.1` 使用未注入 Key 的舊版部署，首頁與 SPA 路由 Smoke 通過；下一個版本改由 GitHub Environment Secret 提供 Key。
+- Staging `0.1.2` 已由 GitHub Environment Secret 注入 Key 並實際載入 Google 地圖；重新整理按鈕於 `0.1.3` 隨本次變更部署。
 - 桌面瀏覽器：首頁、分類切換與 Marker 顯示正常。
 - 390 × 844、DPR 3 手機 viewport：文件寬高等於 viewport，沒有水平溢出；首頁內容與底部導覽可見。
 - 瀏覽器 Console：沒有 error 或 warning。

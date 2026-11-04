@@ -100,6 +100,10 @@ function cycleDistance() {
   distance.value = distances[(currentIndex + 1) % distances.length]
 }
 
+function refreshSite() {
+  window.location.reload()
+}
+
 function drawGoogleMarkers(AdvancedMarkerElement, PinElement) {
   googleMarkers.forEach(marker => { marker.map = null })
   googleMarkers = visiblePlaces.value.map(place => {
@@ -175,10 +179,11 @@ main.map-home
   section.app-frame(aria-label="食旅地圖首頁視覺原型")
     header.map-header
       .brand-row
-        .brand-mark(aria-hidden="true") 路
-        .brand-copy
-          span.eyebrow EAT · GO · MAP
-          h1 食旅地圖
+        button.brand-home-button(type="button" aria-label="重新整理食旅地圖" title="重新整理網站" @click="refreshSite")
+          .brand-mark(aria-hidden="true") 路
+          .brand-copy
+            span.eyebrow EAT · GO · MAP
+            h1 食旅地圖
         button.people-button(type="button" aria-label="切換使用者")
           span.people-dot 阿
           span.people-dot 小
@@ -340,12 +345,23 @@ main.map-home
   align-items: center
   margin-bottom: 10px
 
+.brand-home-button
+  display: flex
+  align-items: center
+  gap: 9px
+  padding: 0
+  border: 0
+  background: transparent
+  color: inherit
+  text-align: left
+  cursor: pointer
+
 .brand-mark
   width: 36px
   height: 36px
   display: grid
   place-items: center
-  margin-right: 9px
+  margin-right: 0
   border: 1px solid rgba(255,255,255,.32)
   border-radius: 12px
   background: rgba(255,255,255,.13)
