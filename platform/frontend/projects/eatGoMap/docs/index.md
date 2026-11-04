@@ -7,8 +7,9 @@
 1. [`sources/HACKMD_INITIAL_REQUIREMENTS_2026-11-04.md`](./sources/HACKMD_INITIAL_REQUIREMENTS_2026-11-04.md)：2026 年 11 月 4 日擷取的 HackMD Markdown 原文快照。
 2. [`PROJECT_BRIEF.md`](./PROJECT_BRIEF.md)：目前已知產品需求、畫面架構、資料概念、API 邊界與開發順序。
 3. [`MAP_HOME_PROTOTYPE.md`](./MAP_HOME_PROTOTYPE.md)：目前可瀏覽首頁的完成範圍、未完成功能與驗證結果。
-4. [`SOURCE_REGISTRY.md`](./SOURCE_REGISTRY.md)：外部需求文件、原始草稿圖與本地備份位置。
-5. [`assets/大阪食旅共享地圖與日誌.png`](./assets/大阪食旅共享地圖與日誌.png)：手機介面草稿原圖備份。
+4. [`../modules/index.md`](../modules/index.md)：目前模組入口與 Google Maps 整合範圍。
+5. [`SOURCE_REGISTRY.md`](./SOURCE_REGISTRY.md)：外部需求文件、原始草稿圖與本地備份位置。
+6. [`assets/大阪食旅共享地圖與日誌.png`](./assets/大阪食旅共享地圖與日誌.png)：手機介面草稿原圖備份。
 
 ## 文件狀態
 

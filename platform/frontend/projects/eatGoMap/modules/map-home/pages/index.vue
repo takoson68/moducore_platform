@@ -1,9 +1,18 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { loadGoogleMaps } from '../googleMaps.js'
 
 const activeMode = ref('food')
 const distance = ref('附近 1 公里')
 const selectedPlaceId = ref('namba-ramen')
+const mapElement = ref(null)
+const mapState = ref('loading')
+const mapMessage = ref('正在連接 Google 地圖…')
+
+let googleMap
+let googleMarkers = []
+
+const mapCenter = { lat: 34.6687, lng: 135.5013 }
 
 const places = [
   {
@@ -15,6 +24,7 @@ const places = [
     owner: '阿宇收藏',
     status: '尚未打卡',
     detail: '濃郁雞白湯與現做叉燒',
+    coordinates: { lat: 34.6672, lng: 135.5018 },
     tone: 'coral'
   },
   {
@@ -26,6 +36,7 @@ const places = [
     owner: '小林收藏',
     status: '已打卡',
     detail: '外酥內軟的在地人氣小吃',
+    coordinates: { lat: 34.6688, lng: 135.5014 },
     tone: 'coral'
   },
   {
@@ -37,6 +48,7 @@ const places = [
     owner: '共同收藏',
     status: '想去看看',
     detail: '天守閣與公園散步路線',
+    coordinates: { lat: 34.6873, lng: 135.5262 },
     tone: 'teal'
   },
   {
@@ -48,6 +60,7 @@ const places = [
     owner: '阿宇收藏',
     status: '已打卡',
     detail: '藏在巷弄裡的靜謐寺院',
+    coordinates: { lat: 34.6685, lng: 135.5071 },
     tone: 'teal'
   },
   {
@@ -59,6 +72,7 @@ const places = [
     owner: '小林收藏',
     status: '尚未打卡',
     detail: '巨大獅子殿是代表性景觀',
+    coordinates: { lat: 34.6628, lng: 135.4959 },
     tone: 'teal'
   }
 ]
@@ -85,6 +99,75 @@ function cycleDistance() {
   const currentIndex = distances.indexOf(distance.value)
   distance.value = distances[(currentIndex + 1) % distances.length]
 }
+
+function drawGoogleMarkers(AdvancedMarkerElement, PinElement) {
+  googleMarkers.forEach(marker => { marker.map = null })
+  googleMarkers = visiblePlaces.value.map(place => {
+    const pin = new PinElement({
+      background: place.tone === 'coral' ? '#ec6b4f' : '#118178',
+      borderColor: '#fffdf9',
+      glyphColor: '#fff',
+      glyphText: place.icon,
+      scale: 1.1
+    })
+    const marker = new AdvancedMarkerElement({
+      map: googleMap,
+      position: place.coordinates,
+      title: place.name,
+      content: pin.element,
+      gmpClickable: true
+    })
+    marker.addEventListener('gmp-click', () => {
+      selectedPlaceId.value = place.id
+      googleMap.panTo(place.coordinates)
+    })
+    return marker
+  })
+}
+
+watch([visiblePlaces, selectedPlaceId], () => {
+  if (!googleMap) return
+  const place = places.find(item => item.id === selectedPlaceId.value)
+  if (place) googleMap.panTo(place.coordinates)
+})
+
+onMounted(async () => {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim()
+  if (!apiKey) {
+    mapState.value = 'needs-key'
+    mapMessage.value = '請在 platform/frontend/.env.local 設定 Google Maps API Key，才能載入真實地圖。'
+    return
+  }
+
+  try {
+    const maps = await loadGoogleMaps(apiKey)
+    const [{ Map }, { AdvancedMarkerElement, PinElement }] = await Promise.all([
+      maps.importLibrary('maps'),
+      maps.importLibrary('marker')
+    ])
+
+    googleMap = new Map(mapElement.value, {
+      center: mapCenter,
+      zoom: 15,
+      mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID',
+      clickableIcons: false,
+      fullscreenControl: false,
+      mapTypeControl: false,
+      streetViewControl: false
+    })
+    drawGoogleMarkers(AdvancedMarkerElement, PinElement)
+    mapState.value = 'ready'
+  } catch (error) {
+    mapState.value = 'error'
+    mapMessage.value = error instanceof Error ? error.message : 'Google 地圖載入失敗。'
+  }
+})
+
+onUnmounted(() => {
+  googleMarkers.forEach(marker => { marker.map = null })
+  googleMarkers = []
+  googleMap = null
+})
 </script>
 
 <template lang="pug">
@@ -124,19 +207,25 @@ main.map-home
           | {{ distance }}
           span.chevron(aria-hidden="true") ⌄
 
-    section.map-canvas(aria-label="大阪難波地圖示意")
-      .map-grid(aria-hidden="true")
-      .river(aria-hidden="true")
-      .road.road-a(aria-hidden="true")
-      .road.road-b(aria-hidden="true")
-      .road.road-c(aria-hidden="true")
-      .district-label.namba-label
-        strong 難波
-        span Namba
-      .district-label.dotonbori-label 道頓堀川
-      .district-label.station-label
-        span.station-symbol(aria-hidden="true") M
-        | 南海難波站
+    section.map-canvas(aria-label="大阪難波地圖")
+      .google-map(ref="mapElement" aria-label="Google 地圖")
+      .map-status(v-if="mapState !== 'ready'" :class="`map-status-${mapState}`" role="status")
+        strong {{ mapState === 'loading' ? '正在載入地圖' : mapState === 'needs-key' ? 'Google 地圖尚未設定' : 'Google 地圖載入失敗' }}
+        span {{ mapMessage }}
+
+      template(v-if="mapState !== 'ready'")
+        .map-grid(aria-hidden="true")
+        .river(aria-hidden="true")
+        .road.road-a(aria-hidden="true")
+        .road.road-b(aria-hidden="true")
+        .road.road-c(aria-hidden="true")
+        .district-label.namba-label
+          strong 難波
+          span Namba
+        .district-label.dotonbori-label 道頓堀川
+        .district-label.station-label
+          span.station-symbol(aria-hidden="true") M
+          | 南海難波站
 
       .legend-card
         strong 共享收藏地點
@@ -148,6 +237,7 @@ main.map-home
           | 已打卡／旅遊景點
 
       button.map-marker(
+        v-if="mapState !== 'ready'"
         v-for="place in visiblePlaces"
         :key="place.id"
         type="button"
@@ -192,7 +282,7 @@ main.map-home
   aside.prototype-note
     span.prototype-tag VISUAL PROTOTYPE
     h2 先把旅行的期待，放進地圖裡。
-    p 目前使用合成地點與靜態地圖質感，專注確認手機首頁的資訊層級與操作節奏。
+    p 使用 Google 地圖底圖與合成地點標記；收藏、打卡與日誌資料仍是尚未串接的介面原型。
     .note-list
       span
         b 01
@@ -241,26 +331,26 @@ main.map-home
 .map-header
   position: relative
   z-index: 20
-  padding: 25px 20px 16px
+  padding: 17px 18px 11px
   background: linear-gradient(145deg, var(--egm-green-900), var(--egm-green-700))
   color: white
 
 .brand-row
   display: flex
   align-items: center
-  margin-bottom: 18px
+  margin-bottom: 10px
 
 .brand-mark
-  width: 43px
-  height: 43px
+  width: 36px
+  height: 36px
   display: grid
   place-items: center
-  margin-right: 11px
+  margin-right: 9px
   border: 1px solid rgba(255,255,255,.32)
-  border-radius: 14px
+  border-radius: 12px
   background: rgba(255,255,255,.13)
   font-weight: 900
-  font-size: 18px
+  font-size: 16px
 
 .brand-copy
   display: grid
@@ -268,7 +358,7 @@ main.map-home
 
 .brand-copy h1
   margin: 0
-  font-size: 27px
+  font-size: 22px
   letter-spacing: .08em
 
 .eyebrow
@@ -288,8 +378,8 @@ main.map-home
   cursor: pointer
 
 .people-dot
-  width: 29px
-  height: 29px
+  width: 25px
+  height: 25px
   display: grid
   place-items: center
   border: 2px solid var(--egm-green-800)
@@ -305,18 +395,18 @@ main.map-home
   color: #315e50
 
 .search-box
-  height: 50px
+  height: 40px
   display: flex
   align-items: center
-  gap: 10px
-  padding: 0 17px
-  border-radius: 18px
+  gap: 8px
+  padding: 0 14px
+  border-radius: 15px
   background: #fffdf9
   box-shadow: 0 8px 18px rgba(4, 48, 44, .16)
 
 .search-icon
   color: #64716f
-  font-size: 28px
+  font-size: 24px
   line-height: 1
 
 .search-box input
@@ -326,7 +416,7 @@ main.map-home
   outline: 0
   background: transparent
   color: var(--egm-ink)
-  font-size: 16px
+  font-size: 14px
 
 .search-box input::placeholder
   color: #858e8b
@@ -334,22 +424,22 @@ main.map-home
 .filter-row
   display: grid
   grid-template-columns: auto auto 1fr
-  gap: 9px
-  margin-top: 13px
+  gap: 8px
+  margin-top: 9px
 
 .filter-chip
-  min-height: 38px
+  min-height: 34px
   display: flex
   align-items: center
   justify-content: center
-  gap: 7px
-  padding: 0 14px
+  gap: 6px
+  padding: 0 11px
   border: 1px solid rgba(255,255,255,.2)
   border-radius: 999px
   background: rgba(255,255,255,.92)
   color: #31433f
   font-weight: 800
-  font-size: 13px
+  font-size: 12px
   cursor: pointer
   transition: transform 160ms ease, background 160ms ease, color 160ms ease
 
@@ -362,7 +452,7 @@ main.map-home
 
 .chip-icon
   color: var(--egm-green-700)
-  font-size: 16px
+  font-size: 14px
 
 .distance-chip
   justify-self: stretch
@@ -374,6 +464,37 @@ main.map-home
   position: relative
   overflow: hidden
   background: #e8e2d5
+
+.google-map
+  position: absolute
+  z-index: 0
+  inset: 0
+
+.map-status
+  position: absolute
+  z-index: 10
+  left: 50%
+  top: 50%
+  width: min(82%, 330px)
+  display: grid
+  gap: 7px
+  padding: 15px 17px
+  border: 1px solid rgba(255,255,255,.8)
+  border-radius: 17px
+  background: rgba(255,253,249,.94)
+  box-shadow: 0 12px 32px rgba(35,48,44,.18)
+  color: var(--egm-ink)
+  transform: translate(-50%, -50%)
+  backdrop-filter: blur(12px)
+
+.map-status strong
+  color: var(--egm-green-900)
+  font-size: 14px
+
+.map-status span
+  color: var(--egm-muted)
+  font-size: 12px
+  line-height: 1.6
 
 .map-grid
   position: absolute
@@ -805,7 +926,9 @@ main.map-home
     box-shadow: none
 
   .map-header
-    padding-top: max(20px, env(safe-area-inset-top))
+    padding-top: max(14px, env(safe-area-inset-top))
+    padding-left: 16px
+    padding-right: 16px
 
   .bottom-nav
     padding-bottom: max(10px, env(safe-area-inset-bottom))

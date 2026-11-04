@@ -53,7 +53,7 @@
 - 主要設定來源：`project.config.js`。
 - 目前入口：`/`，由 `map-home` 模組提供地圖首頁視覺原型。
 - 啟動方式：`VITE_PROJECT=eatGoMap`。
-- 當前僅有合成資料與靜態地圖質感，不代表地圖 SDK、定位或 API 已完成。
+- 首頁已接入 Google Maps JavaScript API 與合成地點標記；本機未設定有效 API Key 時會顯示設定提示及靜態回退。定位與後端 API 尚未完成。
 
 ## 5. 模組與頁面範圍
 
@@ -67,8 +67,8 @@
 
 - 初期使用者為兩位已知成員，身分驗證不是第一階段阻塞項目。
 - 後端由合作開發者維護並部署在獨立伺服器，前端只透過 API 交換資料。
-- Google Maps、照片儲存、CORS、API 認證與環境分流尚待雙方確認。
-- 本階段只建立地圖首頁視覺原型，不串接外部地圖、後端或照片服務。
+- Google Maps Key 的最終網站來源限制、地點搜尋、照片儲存、CORS、API 認證與環境分流尚待確認。
+- 本階段已接入 Google Maps 底圖；尚未串接合作方後端或照片服務。
 
 ## 7. 文件 Registry
 
@@ -91,6 +91,7 @@
 - `modules/map-home/index.js`
 - `modules/map-home/routes.js`
 - `modules/map-home/pages/index.vue`
+- `modules/map-home/googleMaps.js`
 - `styles/index.md`
 - `styles/sass/main.sass`
 
