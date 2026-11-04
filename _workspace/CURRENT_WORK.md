@@ -6,6 +6,10 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-04 eatGoMap 目前位置定位與 Header 背景一致性修正（尚未部署）
+
+針對 Header 與頁面背景交界色差，原因是相同漸層在不同大小元素分開繪製；目前改用共用純色 `#0d6961`。定位按鈕已接入瀏覽器 Geolocation：使用者點擊後取得一次座標、將 Google Map 平移至座標並顯示目前位置點；權限拒絕、定位不可用、逾時與非 HTTPS 環境均提供 GPS／瀏覽器位置權限提示。本機 `localhost` 以模擬座標 37.7749,-122.4194 驗證地圖移動與藍點呈現，也驗證權限拒絕訊息；背景計算值確認 Header、html、body 同為 `rgb(13, 105, 97)`。Cloudflare 建置 72 modules 成功。這些變更尚未部署；Staging 仍是 v0.1.4，區網 HTTP (`192.168.50.113:5173`) 不屬於 Secure Context，手機定位需使用 HTTPS Staging／網域並允許瀏覽器定位。
+
 ## 2026-11-04 eatGoMap 手機版地圖首頁版面調整
 
 依使用者提供的 iPhone 畫面完成調整：底部導覽列固定 56px；Header 精簡為左側單獨 Logo、右側搜尋框，移除中英文標題與兩個使用者圖示，篩選列保留。手機版頁面、`html` 與 `body` 背景使用 Header 相同的深綠漸層。`VITE_PROJECT=eatGoMap npm run build:cloudflare -- --outDir /tmp/eatgomap-header-compact-check` 成功（72 modules）。Staging v0.1.4 已部署：Commit `ce6d5756409a3f27e561432f62a2cac5b8bffd18`、Tag `dep_eatgomap_v0.1.4`、Workflow `41791094205` 成功；瀏覽器確認 Logo、搜尋框同列，標題／使用者按鈕移除、Google Maps 載入、導覽列 56px，頁面 Smoke 通過。

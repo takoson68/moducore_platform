@@ -8,9 +8,14 @@ const selectedPlaceId = ref('namba-ramen')
 const mapElement = ref(null)
 const mapState = ref('loading')
 const mapMessage = ref('正在連接 Google 地圖…')
+const isLocating = ref(false)
+const locationMessage = ref('')
 
 let googleMap
 let googleMarkers = []
+let CurrentLocationMarker
+let currentLocationMarker
+let locationMessageTimer
 
 const mapCenter = { lat: 34.6687, lng: 135.5013 }
 
@@ -104,6 +109,85 @@ function refreshSite() {
   window.location.reload()
 }
 
+function showLocationMessage(message) {
+  locationMessage.value = message
+  window.clearTimeout(locationMessageTimer)
+  locationMessageTimer = window.setTimeout(() => {
+    locationMessage.value = ''
+  }, 6500)
+}
+
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      maximumAge: 30000,
+      timeout: 15000
+    })
+  })
+}
+
+async function locateCurrentPosition() {
+  if (isLocating.value) return
+
+  if (!window.isSecureContext) {
+    showLocationMessage('目前位置需要 HTTPS 安全連線。請開啟 GPS，並允許瀏覽器存取此網站的位置。')
+    return
+  }
+
+  if (!navigator.geolocation) {
+    showLocationMessage('此瀏覽器不支援定位，請改用支援位置服務的瀏覽器。')
+    return
+  }
+
+  if (!googleMap || !CurrentLocationMarker) {
+    showLocationMessage('地圖仍在載入，請稍後再點定位。')
+    return
+  }
+
+  isLocating.value = true
+
+  try {
+    const position = await getCurrentPosition()
+    const coordinates = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude
+    }
+    googleMap.panTo(coordinates)
+    googleMap.setZoom(Math.max(16, googleMap.getZoom() || 15))
+
+    if (currentLocationMarker) {
+      currentLocationMarker.position = coordinates
+      currentLocationMarker.map = googleMap
+    } else {
+      const markerContent = document.createElement('span')
+      markerContent.className = 'current-location-dot'
+      markerContent.setAttribute('aria-hidden', 'true')
+      currentLocationMarker = new CurrentLocationMarker({
+        map: googleMap,
+        position: coordinates,
+        title: '目前位置',
+        content: markerContent,
+        zIndex: 1000
+      })
+    }
+
+    showLocationMessage('已定位到目前位置。')
+  } catch (error) {
+    if (error?.code === 1) {
+      showLocationMessage('請開啟裝置 GPS／定位服務，並允許瀏覽器存取此網站的位置。')
+    } else if (error?.code === 2) {
+      showLocationMessage('無法取得位置，請確認裝置 GPS／定位服務已開啟後重試。')
+    } else if (error?.code === 3) {
+      showLocationMessage('定位逾時，請檢查 GPS／定位服務是否開啟後重試。')
+    } else {
+      showLocationMessage('定位失敗，請檢查 GPS 是否開啟，並確認瀏覽器已允許此網站使用位置。')
+    }
+  } finally {
+    isLocating.value = false
+  }
+}
+
 function drawGoogleMarkers(AdvancedMarkerElement, PinElement) {
   googleMarkers.forEach(marker => { marker.map = null })
   googleMarkers = visiblePlaces.value.map(place => {
@@ -149,6 +233,7 @@ onMounted(async () => {
       maps.importLibrary('maps'),
       maps.importLibrary('marker')
     ])
+    CurrentLocationMarker = AdvancedMarkerElement
 
     googleMap = new Map(mapElement.value, {
       center: mapCenter,
@@ -168,8 +253,11 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.clearTimeout(locationMessageTimer)
   googleMarkers.forEach(marker => { marker.map = null })
   googleMarkers = []
+  if (currentLocationMarker) currentLocationMarker.map = null
+  currentLocationMarker = null
   googleMap = null
 })
 </script>
@@ -248,8 +336,16 @@ main.map-home
           span {{ place.icon }}
         span.marker-name {{ place.name }}
 
-      button.location-button(type="button" aria-label="回到目前位置")
-        span ◎
+      p.location-message(v-if="locationMessage" role="status" aria-live="polite") {{ locationMessage }}
+
+      button.location-button(
+        type="button"
+        :aria-label="isLocating ? '正在取得目前位置' : '定位到目前位置'"
+        :title="isLocating ? '正在定位…' : '定位到目前位置'"
+        :disabled="isLocating"
+        @click="locateCurrentPosition"
+      )
+        span.location-glyph(:class="{ locating: isLocating }" aria-hidden="true")
 
       article.place-card
         button.close-card(type="button" aria-label="關閉地點卡片") ×
@@ -330,7 +426,7 @@ main.map-home
   position: relative
   z-index: 20
   padding: 10px 16px 9px
-  background: linear-gradient(145deg, var(--egm-green-900), var(--egm-green-700))
+  background: var(--eatgomap-header-background)
   color: white
 
 .brand-row
@@ -667,6 +763,64 @@ main.map-home
   font-size: 24px
   cursor: pointer
 
+.location-button:disabled
+  cursor: wait
+  opacity: .76
+
+.location-glyph
+  width: 19px
+  height: 19px
+  display: block
+  position: relative
+  border: 2px solid var(--egm-green-700)
+  border-radius: 50%
+
+.location-glyph::after
+  content: ''
+  position: absolute
+  inset: 4px
+  border-radius: 50%
+  background: var(--egm-green-700)
+
+.location-glyph.locating
+  animation: locating-pulse 900ms ease-in-out infinite alternate
+
+@keyframes locating-pulse
+  from
+    opacity: .4
+    transform: scale(.82)
+  to
+    opacity: 1
+    transform: scale(1.08)
+
+.location-message
+  position: absolute
+  z-index: 12
+  top: 128px
+  left: 50%
+  width: min(calc(100% - 32px), 340px)
+  margin: 0
+  padding: 11px 14px
+  border: 1px solid rgba(13,105,97,.16)
+  border-radius: 14px
+  background: rgba(255,253,249,.97)
+  box-shadow: 0 8px 22px rgba(31,46,42,.18)
+  color: var(--egm-ink)
+  font-size: 12px
+  font-weight: 700
+  line-height: 1.5
+  text-align: center
+  transform: translateX(-50%)
+
+.current-location-dot
+  width: 22px
+  height: 22px
+  display: block
+  border: 3px solid white
+  border-radius: 50%
+  background: #4285f4
+  box-shadow: 0 1px 5px rgba(22,52,92,.55), 0 0 0 5px rgba(66,133,244,.2)
+
 .place-card
   position: absolute
   z-index: 10
@@ -886,7 +1040,7 @@ main.map-home
   .map-home
     display: block
     padding: 0
-    background: linear-gradient(145deg, var(--egm-green-900), var(--egm-green-700))
+    background: var(--eatgomap-header-background)
 
   .app-frame
     width: 100%

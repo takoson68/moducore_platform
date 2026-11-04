@@ -39,7 +39,7 @@
 
 ## 6. 非目標
 
-- 本階段已選用 Google Maps JavaScript API 顯示地圖底圖；仍不處理定位權限、API Client、後端程式、資料庫 Schema、部署與第三方服務申請。
+- 本階段已選用 Google Maps JavaScript API 顯示地圖底圖；目前位置由使用者點擊後透過瀏覽器 Geolocation 取得，不持續追蹤或分享。合作方 API Client、後端程式、資料庫 Schema 與第三方服務申請仍不在此階段範圍。
 - 本專案不承諾：目前的 UI 草稿即為最終視覺、目前需求已完成 API 合約，或合作方伺服器已具備正式上線條件。
 
 ## 7. 已知限制

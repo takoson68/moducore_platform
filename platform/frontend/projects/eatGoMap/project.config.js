@@ -9,7 +9,7 @@ export default {
   capabilities: ['map-home-visual-prototype', 'google-maps-javascript-api'],
   constraints: [
     '首頁使用 Google Maps JavaScript API 顯示大阪難波底圖與合成地點標記；本機 Key 由 .env.local 提供，Staging Key 由 GitHub Environment Secret 注入；最終網域確定後再設定 API 與來源限制。',
-    '目前不串接定位、後端 API 或照片服務。',
+    '目前位置只在使用者按下定位按鈕後透過瀏覽器 Geolocation 取得；不持續追蹤、不分享位置，亦不串接後端 API 或照片服務。',
     '前端預計部署於 ModuCore 的前端環境，後端由合作開發者以獨立伺服器提供 API。',
     '前端不得直接存取後端資料庫，所有後端事實一律透過 API 交換。',
     '第一階段優先規劃地圖、地點收藏與打卡；旅遊日誌於後續階段實作。'

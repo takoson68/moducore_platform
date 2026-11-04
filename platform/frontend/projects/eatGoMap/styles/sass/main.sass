@@ -2,8 +2,11 @@ html, body, #app
   min-height: 100%
   margin: 0
 
+:root
+  --eatgomap-header-background: #0d6961
+
 html
-  background: linear-gradient(145deg, #0a514b, #118178)
+  background: var(--eatgomap-header-background)
 
 *, *::before, *::after
   box-sizing: border-box
@@ -11,7 +14,7 @@ html
 body
   min-width: 320px
   margin: 0
-  background: linear-gradient(145deg, #0a514b, #118178)
+  background: var(--eatgomap-header-background)
   font-family: Inter, ui-rounded, "SF Pro Rounded", "Noto Sans TC", "PingFang TC", system-ui, sans-serif
   text-rendering: optimizeLegibility
   -webkit-font-smoothing: antialiased
