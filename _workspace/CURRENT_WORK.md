@@ -6,9 +6,9 @@ authority: work-state
 
 # 當前工作
 
-## 2026-11-04 eatGoMap Staging Logo 重新整理 v0.1.3（部署中）
+## 2026-11-04 eatGoMap Staging Logo 重新整理 v0.1.3
 
-使用者將網站加入主畫面後，希望可由左上角 Logo 主動重新載入，取得最新部署版本。品牌圖示與標題已改為按鈕，點擊執行 `window.location.reload()`；即將以 Tag `dep_eatgomap_v0.1.3` 發布到 `eatgomap-staging`。部署完成後補上 Workflow 與瀏覽器驗收結果。
+使用者將網站加入主畫面後，希望可由左上角 Logo 主動重新載入，取得最新部署版本。品牌圖示與標題已改為按鈕，點擊執行 `window.location.reload()`。Staging `v0.1.3` 已以 Commit `4072a74c6f9cdd64e36cc179e737e893c91c6010`、Tag `dep_eatgomap_v0.1.3` 部署成功；GitHub Actions Workflow `41787400517` 完成，建置 72 modules、API transport、Worker 測試及 Staging Smoke 通過。已在公開瀏覽器點擊 Logo，確認瀏覽器導覽類型為 `reload`，重新載入後 Google Maps 仍正常 (`window.google.maps` 存在、`.gm-style` 節點 1 個)。
 
 ## 2026-11-04 eatGoMap Google Maps 原型與 Staging v0.1.2
 
