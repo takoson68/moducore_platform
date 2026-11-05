@@ -19,6 +19,7 @@ const searchSuggestions = ref([])
 const isSearching = ref(false)
 const searchMessage = ref('')
 const searchedPlace = ref(null)
+const selectedFavoriteId = ref(null)
 const isSavingFavorite = ref(false)
 const loadingFavoriteIds = ref(new Set())
 const editingFavoriteId = ref(null)
@@ -62,6 +63,7 @@ let SearchMarkerElement
 let FavoritePinElement
 let favoriteMarkers = []
 let mapPoiClickListener
+let automaticDetailsRefreshStarted = false
 
 const mapCenter = { lat: 25.0641, lng: 121.5336 }
 const PLACE_DETAILS_TIMEOUT_MS = 15_000
@@ -137,19 +139,25 @@ const visiblePlaces = computed(() => {
 const selectedPlace = computed(() => {
   return places.find(place => place.id === selectedPlaceId.value) || null
 })
-const hasSelectedPlace = computed(() => Boolean(selectedMapPoi.value || searchedPlace.value || selectedPlace.value))
+const selectedFavorite = computed(() => savedPlaces.value.find(place => place.id === selectedFavoriteId.value) || null)
+const hasSelectedPlace = computed(() => Boolean(selectedFavorite.value || selectedMapPoi.value || searchedPlace.value || selectedPlace.value))
 const activePlace = computed(() => {
+  if (selectedFavorite.value) {
+    return { ...selectedFavorite.value, name: selectedFavorite.value.displayName, tone: 'purple', kind: 'favorite' }
+  }
   if (selectedMapPoi.value) {
     return { name: '地圖上的地標', tone: 'teal', kind: 'poi' }
   }
   return searchedPlace.value || selectedPlace.value
 })
 const selectedPlaceIsSaved = computed(() => {
+  if (selectedFavorite.value) return true
   if (selectedMapPoi.value) return savedPlaceIds.value.has(selectedMapPoi.value.id)
   if (!searchedPlace.value) return Boolean(selectedPlace.value)
   return savedPlaceIds.value.has(searchedPlace.value.id)
 })
 const selectedPlaceKicker = computed(() => {
+  if (selectedFavorite.value) return selectedFavorite.value.personalNote ? '我的收藏紀錄' : '已收藏 · 尚未建立打卡紀錄'
   if (selectedMapPoi.value) return selectedPlaceIsSaved.value ? '已收藏' : 'Google 地圖地標'
   if (!searchedPlace.value) {
     return selectedPlace.value ? `${selectedPlace.value.owner} · ${selectedPlace.value.status}` : ''
@@ -157,10 +165,12 @@ const selectedPlaceKicker = computed(() => {
   return selectedPlaceIsSaved.value ? '已收藏 · 尚未打卡' : '尚未收藏'
 })
 const selectedPlaceDetail = computed(() => {
+  if (selectedFavorite.value) return selectedFavorite.value.displayAddress || `Place ID：${selectedFavorite.value.id}`
   if (selectedMapPoi.value) return '地點名稱與地址請查看 Google 地圖資訊窗。'
   return searchedPlace.value?.address || selectedPlace.value?.detail || ''
 })
 const selectedPlaceAction = computed(() => {
+  if (selectedFavorite.value) return '建立打卡'
   if (selectedMapPoi.value) return selectedPlaceIsSaved.value ? '已收藏' : '加入收藏'
   return selectedPlaceIsSaved.value ? '打卡' : '收藏'
 })
@@ -168,11 +178,12 @@ const savedPlaceCount = computed(() => savedPlaces.value.length)
 
 async function fetchPlaceDetails(placeId) {
   if (!Place) throw new Error('Places library 尚未載入')
-  const place = new Place({ id: placeId })
+  const requestedPlace = new Place({ id: placeId })
   let timeoutId
+  let response
   try {
-    await Promise.race([
-      place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'nationalPhoneNumber'] }),
+    response = await Promise.race([
+      requestedPlace.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'nationalPhoneNumber'] }),
       new Promise((_, reject) => {
         timeoutId = window.setTimeout(() => reject(new Error('Places Details 查詢逾時')), PLACE_DETAILS_TIMEOUT_MS)
       })
@@ -180,7 +191,8 @@ async function fetchPlaceDetails(placeId) {
   } finally {
     window.clearTimeout(timeoutId)
   }
-  const coordinates = place.location?.toJSON?.()
+  const place = response?.place || requestedPlace
+  const coordinates = place.location?.toJSON?.() || place.location || null
   const details = {
     name: place.displayName?.toString() || '',
     address: place.formattedAddress || '',
@@ -195,7 +207,7 @@ async function fetchPlaceDetails(placeId) {
 
 async function refreshFavoriteDetails(favorite, { quiet = false } = {}) {
   const placeId = favoritePlaceId(favorite)
-  if (!placeId || !Place || loadingFavoriteIds.value.has(placeId)) return false
+  if (!placeId || !Place) return false
   const next = new Set(loadingFavoriteIds.value)
   next.add(placeId)
   loadingFavoriteIds.value = next
@@ -217,10 +229,12 @@ async function refreshFavoriteDetails(favorite, { quiet = false } = {}) {
   }
 }
 
-function refreshExpiredFavoriteDetails() {
+async function refreshExpiredFavoriteDetails() {
+  if (automaticDetailsRefreshStarted) return
+  automaticDetailsRefreshStarted = true
   for (const item of favoriteStore.state.items) {
     if (!item.detailsFetchedAt || Date.now() - item.detailsFetchedAt >= 30 * 24 * 60 * 60 * 1000) {
-      void refreshFavoriteDetails(item, { quiet: true })
+      await refreshFavoriteDetails(item, { quiet: true })
     }
   }
 }
@@ -267,6 +281,7 @@ async function removeSavedPlace(placeId) {
 
 // 搜尋到合成地點時切回既有卡片，不沿用外部搜尋結果。
 function selectMockPlace(placeId) {
+  selectedFavoriteId.value = null
   selectedMapPoi.value = null
   searchedPlace.value = null
   selectedPlaceId.value = placeId
@@ -274,11 +289,20 @@ function selectMockPlace(placeId) {
   searchMarker = null
 }
 
+function selectFavoritePlace(place) {
+  selectedPlaceId.value = null
+  selectedMapPoi.value = null
+  searchedPlace.value = null
+  selectedFavoriteId.value = place.id
+  googleMap?.panTo(place.coordinates)
+}
+
 // 關閉地點卡片並清除目前搜尋、選取與暫存標記。
 function closePlaceCard() {
   selectedPlaceId.value = null
   selectedMapPoi.value = null
   searchedPlace.value = null
+  selectedFavoriteId.value = null
   searchQuery.value = ''
   searchSuggestions.value = []
   searchMessage.value = ''
@@ -320,24 +344,29 @@ async function toggleSearchedPlaceSaved() {
 
 // 底圖 POI 收藏將 Place ID 存入 D1，再以 Place ID 取得並快取詳情。
 async function handlePlacePrimaryAction() {
+  if (selectedFavorite.value) {
+    showLocationMessage('打卡、評分與照片功能尚未建立；目前先顯示已保存的個人紀錄。')
+    return
+  }
   if (selectedMapPoi.value) {
     const selectedPoi = selectedMapPoi.value
     if (selectedPlaceIsSaved.value || isSavingFavorite.value) return
+    if (!Place) {
+      showLocationMessage('Places 資料服務尚未載入，這次未新增收藏。')
+      return
+    }
 
     isSavingFavorite.value = true
     try {
-      const favorite = await favoriteStore.addFavorite({ placeId: selectedPoi.id, kind: 'poi' })
-      const detailsSaved = await refreshFavoriteDetails(favorite, { quiet: true })
-      if (detailsSaved) {
-        showLocationMessage('已加入收藏，地點資訊已保存至此瀏覽器。')
-      } else {
-        const latest = favoriteStore.state.items.find(item => item.id === selectedPoi.id)
-        showLocationMessage(latest?.detailsRefreshFailures >= 2
-          ? '已加入收藏，但地點資料查詢連續失敗 2 次，已停止再次呼叫。'
-          : '已加入收藏，但地點資料尚未保存；可到收藏頁再查詢一次。')
-      }
-    } catch {
-      showLocationMessage('無法連接收藏 API，尚未加入收藏。')
+      await favoriteStore.addFavorite({
+        placeId: selectedPoi.id,
+        kind: 'poi',
+        fetchDetails: fetchPlaceDetails
+      })
+      showLocationMessage('已加入收藏，名稱、地址、電話與座標已保存至此瀏覽器。')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '收藏未完成，請稍後再試。'
+      showLocationMessage(`收藏未完成：${message}`)
     } finally {
       isSavingFavorite.value = false
     }
@@ -372,7 +401,6 @@ function refreshSite() {
 function openTab(tab) {
   activeTab.value = tab
   if (tab !== 'map') closeSearchSuggestions()
-  if (tab === 'favorites') refreshExpiredFavoriteDetails()
 }
 
 // 依輸入文字向 Places Autocomplete 請求店家、地標與地址建議。
@@ -438,6 +466,7 @@ async function showGooglePlace(place, fallbackName = '', addSearchMarker = true)
   window.clearTimeout(autocompleteTimer)
   if (searchMarker) searchMarker.map = null
   searchMarker = null
+  selectedFavoriteId.value = null
   selectedMapPoi.value = null
   searchSuggestions.value = []
   searchMessage.value = ''
@@ -504,6 +533,7 @@ function handleGoogleMapClick(event) {
   }
 
   selectedPlaceId.value = null
+  selectedFavoriteId.value = null
   searchedPlace.value = null
   selectedMapPoi.value = { id: event.placeId }
   searchQuery.value = ''
@@ -629,26 +659,25 @@ function drawFavoriteMarkers() {
     .filter(place => place.coordinates && Number.isFinite(place.coordinates.lat) && Number.isFinite(place.coordinates.lng))
     .map(place => {
       const pin = FavoritePinElement ? new FavoritePinElement({
-        background: '#0d6961',
+        background: '#a855f7',
         borderColor: '#fffdf9',
         glyphColor: '#fff',
         glyphText: '★',
         scale: 1.05
       }) : undefined
-      return new SearchMarkerElement({
+      const marker = new SearchMarkerElement({
         map: googleMap,
         position: place.coordinates,
         title: place.displayName,
+        gmpClickable: true,
         ...(pin ? { content: pin } : {})
       })
+      marker.addEventListener('gmp-click', () => selectFavoritePlace(place))
+      return marker
     })
 }
 
 watch(savedPlaces, drawFavoriteMarkers, { deep: true })
-
-watch(() => favoriteStore.state.items.map(item => favoritePlaceId(item)).filter(Boolean).join('|'), () => {
-  if (Place) refreshExpiredFavoriteDetails()
-})
 
 watch([visiblePlaces, selectedPlaceId], () => {
   if (!googleMap) return
@@ -657,7 +686,7 @@ watch([visiblePlaces, selectedPlaceId], () => {
 })
 
 onMounted(async () => {
-  void favoriteStore.hydrate()
+  const favoriteHydration = favoriteStore.hydrate()
   viewportMeta = document.querySelector('meta[name="viewport"]')
   originalViewportContent = viewportMeta?.content
   if (viewportMeta) {
@@ -697,7 +726,8 @@ onMounted(async () => {
       Place = placesLibrary.Place
       googleMap.setOptions({ clickableIcons: true })
       mapPoiClickListener = googleMap.addListener('click', handleGoogleMapClick)
-      void favoriteStore.hydrate().then(refreshExpiredFavoriteDetails)
+      await favoriteHydration
+      await refreshExpiredFavoriteDetails()
     } catch {
       // Places 不可用時仍保留底圖與既有地圖互動，並停用無法載入卡片的底圖 POI。
     }
@@ -857,25 +887,33 @@ main.map-home
           circle.location-ring(cx="12" cy="12" r="7.5")
           circle.location-center(cx="12" cy="12" r="2")
 
-      article.place-card(v-if="hasSelectedPlace" :class="{ 'poi-action-card': selectedMapPoi }")
+      article.place-card(v-if="hasSelectedPlace" :class="{ 'poi-action-card': selectedMapPoi, 'favorite-place-card': selectedFavorite }")
         button.close-card(type="button" aria-label="關閉地點卡片" @click="closePlaceCard") ×
         .place-thumb(v-if="!selectedMapPoi" :class="activePlace.tone" aria-hidden="true")
-          span {{ searchedPlace ? '地' : activePlace.kind === 'food' ? '麵' : '旅' }}
+          span {{ selectedFavorite ? '★' : searchedPlace ? '地' : activePlace.kind === 'food' ? '麵' : '旅' }}
         .place-card-content
           .place-heading
             div
               span.place-kicker {{ selectedPlaceKicker }}
               h2 {{ activePlace.name }}
             button.bookmark-button(
-              v-if="!selectedMapPoi"
+              v-if="!selectedMapPoi && !selectedFavorite"
               type="button"
               :class="{ saved: selectedPlaceIsSaved }"
               :aria-label="selectedPlaceIsSaved ? '取消收藏此地點' : '收藏此地點'"
               @click="toggleSearchedPlaceSaved"
             ) {{ selectedPlaceIsSaved ? '◆' : '◇' }}
           p {{ selectedPlaceDetail }}
-          .place-actions(:class="{ 'single-action': selectedMapPoi }")
-            button.secondary-action(v-if="!selectedMapPoi" type="button") 查看詳情
+          .favorite-place-details(v-if="selectedFavorite")
+            p(v-if="selectedFavorite.phone") 電話：{{ selectedFavorite.phone }}
+            p.favorite-personal-note(v-if="selectedFavorite.personalNote") {{ selectedFavorite.personalNote }}
+            p.favorite-empty-record(v-else) 尚未輸入個人留言或心得。
+            .favorite-record-summary
+              span 尚未打卡
+              span 尚未評分
+              span 尚未加入照片
+          .place-actions(:class="{ 'single-action': selectedMapPoi || selectedFavorite }")
+            button.secondary-action(v-if="!selectedMapPoi && !selectedFavorite" type="button") 查看詳情
             button.primary-action(
               type="button"
               :disabled="Boolean(selectedMapPoi && (selectedPlaceIsSaved || isSavingFavorite))"
@@ -1702,6 +1740,9 @@ main.map-home
 .place-thumb.teal
   background: linear-gradient(145deg, #80c9b7, #176b61)
 
+.place-thumb.purple
+  background: linear-gradient(145deg, #d8b4fe, #9333ea)
+
 .place-thumb span
   position: relative
   z-index: 1
@@ -1750,6 +1791,34 @@ main.map-home
   margin: 7px 0 10px
   color: var(--egm-muted)
   font-size: 11px
+
+.favorite-place-details
+  display: grid
+  gap: 6px
+  margin: 8px 0 10px
+
+.favorite-place-details p
+  margin: 0
+
+.favorite-place-details .favorite-personal-note
+  padding: 8px 10px
+  border-radius: 10px
+  background: #fff4e5
+  color: #75461f
+  line-height: 1.5
+
+.favorite-record-summary
+  display: flex
+  flex-wrap: wrap
+  gap: 5px
+
+.favorite-record-summary span
+  padding: 4px 7px
+  border-radius: 999px
+  background: #f3eee7
+  color: #7b6d60
+  font-size: 10px
+  font-weight: 800
 
 .place-actions
   display: grid

@@ -7,11 +7,30 @@ const PLACE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 function favoriteId(item = {}) {
   const id = item.id || item.place_id || item.placeId
-  return typeof id === 'string' && id.trim() ? id.trim() : null
+  if (typeof id !== 'string' || !id.trim()) return null
+  const normalized = id.trim()
+  return normalized === 'undefined' || normalized === 'null' ? null : normalized
+}
+
+function normalizeDetailsPayload(details = {}) {
+  const rawCoordinates = details.coordinates || details.location
+  const coordinates = Array.isArray(rawCoordinates)
+    ? { lat: Number(rawCoordinates[0]), lng: Number(rawCoordinates[1]) }
+    : rawCoordinates?.toJSON?.() || rawCoordinates
+  return {
+    name: String(details.name ?? details.displayName ?? ''),
+    address: String(details.address ?? details.formattedAddress ?? ''),
+    phone: String(details.phone ?? details.nationalPhoneNumber ?? ''),
+    coordinates: coordinates && Number.isFinite(Number(coordinates.lat)) && Number.isFinite(Number(coordinates.lng))
+      ? { lat: Number(coordinates.lat), lng: Number(coordinates.lng) }
+      : null
+  }
 }
 
 function normalizePlaceRecord(id, record = {}) {
-  const coordinates = record.coordinates || record.details?.coordinates
+  if (typeof id !== 'string' || !id.trim()) throw new Error('地點資料缺少有效 Place ID')
+  const details = normalizeDetailsPayload(record.details || record)
+  const coordinates = details.coordinates
   const lat = Number(coordinates?.lat)
   const lng = Number(coordinates?.lng)
   const fetchedAt = Number(record.detailsFetchedAt || record.details?.fetchedAt || 0)
@@ -21,10 +40,10 @@ function normalizePlaceRecord(id, record = {}) {
     id,
     kind: record.kind === 'search' ? 'search' : 'poi',
     savedAt: Number(record.savedAt) || Date.now(),
-    name: detailsAreFresh && typeof record.name === 'string' ? record.name : '',
-    address: detailsAreFresh && typeof record.address === 'string' ? record.address : '',
+    name: detailsAreFresh ? details.name : '',
+    address: detailsAreFresh ? details.address : '',
     coordinates: detailsAreFresh && validCoordinates ? { lat, lng } : null,
-    phone: detailsAreFresh && typeof record.phone === 'string' ? record.phone : '',
+    phone: detailsAreFresh ? details.phone : '',
     detailsFetchedAt: detailsAreFresh ? fetchedAt : 0,
     detailsRefreshFailures: Math.max(0, Math.min(2, Number(record.detailsRefreshFailures) || 0)),
     detailsRefreshError: typeof record.detailsRefreshError === 'string' ? record.detailsRefreshError : '',
@@ -32,6 +51,12 @@ function normalizePlaceRecord(id, record = {}) {
     customAddress: typeof record.customAddress === 'string' ? record.customAddress : '',
     personalNote: typeof record.personalNote === 'string' ? record.personalNote : ''
   }
+}
+
+function hasCompleteDetails(details) {
+  return Boolean(details?.name && details?.address && details?.coordinates &&
+    Number.isFinite(details.coordinates.lat) && details.coordinates.lat >= -90 && details.coordinates.lat <= 90 &&
+    Number.isFinite(details.coordinates.lng) && details.coordinates.lng >= -180 && details.coordinates.lng <= 180)
 }
 
 function storageKey(id) {
@@ -92,47 +117,85 @@ export function createEatGoMapFavoriteStore() {
         return hydrationPromise
       },
       async persistPlace(store, place) {
+        if (typeof place?.id !== 'string' || !place.id.trim()) {
+          throw new Error('拒絕保存沒有有效 Place ID 的地點資料')
+        }
         const item = normalizePlaceRecord(place.id, place)
-        await world.services.storage().set(storageKey(item.id), item)
+        const storage = world.services.storage()
+        const key = storageKey(item.id)
+        await storage.set(key, item)
+        const storedValue = await storage.get(key)
+        const persisted = normalizePlaceRecord(item.id, storedValue || {})
+        if (persisted.id !== item.id || persisted.detailsFetchedAt !== item.detailsFetchedAt ||
+          (item.detailsFetchedAt > 0 && (
+            persisted.name !== item.name || persisted.address !== item.address ||
+            persisted.phone !== item.phone || persisted.coordinates?.lat !== item.coordinates?.lat ||
+            persisted.coordinates?.lng !== item.coordinates?.lng
+          ))) {
+          throw new Error('收藏資料寫入瀏覽器儲存後讀回不一致')
+        }
         const items = store.get().items.map(existing => existing.id === item.id ? item : existing)
         if (!items.some(existing => existing.id === item.id)) items.unshift(item)
         store.set({ ...store.get(), items })
-        return item
+        return persisted
       },
       async addFavorite(store, favorite) {
         await store.hydrate()
-        const id = favorite.placeId || favorite.id
-        await createFavorite({ placeId: id })
+        const id = favoriteId(favorite)
+        if (!id) throw new Error('Google 地標沒有提供有效 Place ID，未加入收藏')
+
+        const { fetchDetails, ...favoriteRecord } = favorite
         const existing = store.get().items.find(item => item.id === id)
-        const failures = Number(await world.services.storage().get(refreshFailureKey(id))) || 0
-        const item = normalizePlaceRecord(id, {
+        const storage = world.services.storage()
+        const failures = Number(await storage.get(refreshFailureKey(id))) || 0
+        let details = normalizeDetailsPayload(favoriteRecord)
+        let detailsFetchedAt = Number(favoriteRecord.detailsFetchedAt || existing?.detailsFetchedAt || 0)
+
+        if (!hasCompleteDetails(details) || !detailsFetchedAt || Date.now() - detailsFetchedAt >= PLACE_CACHE_TTL_MS) {
+          if (typeof fetchDetails !== 'function') {
+            throw new Error('收藏前缺少地點名稱、地址或座標，無法寫入本機資料')
+          }
+          if (failures >= 2) throw new Error('此 Place ID 已連續查詢失敗 2 次，已停止再次呼叫')
+          try {
+            details = normalizeDetailsPayload(await fetchDetails(id))
+            if (!hasCompleteDetails(details)) throw new Error('Place Details 未回傳完整名稱、地址與座標')
+            detailsFetchedAt = Date.now()
+          } catch (error) {
+            await storage.set(refreshFailureKey(id), Math.min(2, failures + 1))
+            throw error
+          }
+        }
+
+        await createFavorite({ placeId: id })
+        await storage.remove(refreshFailureKey(id))
+        const item = await store.persistPlace({
           ...existing,
-          ...favorite,
+          ...favoriteRecord,
+          ...details,
           id,
-          kind: favorite.kind,
-          detailsRefreshFailures: failures,
-          detailsFetchedAt: favorite.detailsFetchedAt || existing?.detailsFetchedAt
+          kind: favoriteRecord.kind,
+          detailsFetchedAt,
+          detailsRefreshFailures: 0,
+          detailsRefreshError: ''
         })
-        await world.services.storage().set(storageKey(id), item)
-        const items = [item, ...store.get().items.filter(current => current.id !== id)]
-        store.set({ ...store.get(), items, syncState: 'ready' })
+        store.set({ ...store.get(), syncState: 'ready' })
         return item
       },
       async updatePlaceDetails(store, { placeId, details }) {
+        if (typeof placeId !== 'string' || !placeId.trim()) throw new Error('更新地點資料缺少有效 Place ID')
         const existing = store.get().items.find(item => item.id === placeId) || { id: placeId }
-        return store.persistPlace(store, {
+        const normalized = normalizeDetailsPayload(details)
+        if (!hasCompleteDetails(normalized)) throw new Error('地點資料缺少名稱、地址或有效座標')
+        return store.persistPlace({
           ...existing,
-          name: details.name || '',
-          address: details.address || '',
-          coordinates: details.coordinates || null,
-          phone: details.phone || '',
+          ...normalized,
           detailsFetchedAt: Date.now()
         })
       },
       async savePersonalFields(store, { placeId, customName, customAddress, personalNote }) {
         const existing = store.get().items.find(item => item.id === placeId)
         if (!existing) throw new Error('找不到本機收藏資料')
-        return store.persistPlace(store, {
+        return store.persistPlace({
           ...existing,
           customName: customName ?? existing.customName,
           customAddress: customAddress ?? existing.customAddress,
@@ -145,6 +208,7 @@ export function createEatGoMapFavoriteStore() {
         store.set({ ...store.get(), items: store.get().items.filter(item => item.id !== placeId), syncState: 'ready' })
       },
       async refreshPlaceDetails(store, { placeId, fetchDetails }) {
+        if (typeof placeId !== 'string' || !placeId.trim()) throw new Error('更新地點資料缺少有效 Place ID')
         const existing = store.get().items.find(item => item.id === placeId)
         if (!existing) return null
         const fresh = existing.detailsFetchedAt > 0 && Date.now() - existing.detailsFetchedAt < PLACE_CACHE_TTL_MS
@@ -161,7 +225,7 @@ export function createEatGoMapFavoriteStore() {
             await storage.set(refreshFailureKey(placeId), failures)
             const current = store.get().items.find(item => item.id === placeId)
             if (current) {
-              await store.persistPlace(store, {
+              await store.persistPlace({
                 ...current,
                 detailsRefreshFailures: failures,
                 detailsRefreshError: refreshFailureMessage(error)
@@ -169,13 +233,24 @@ export function createEatGoMapFavoriteStore() {
             }
             throw error
           }
+          details = normalizeDetailsPayload(details)
+          if (!hasCompleteDetails(details)) {
+            const error = new Error('地點資料格式不完整：需要名稱、地址與有效座標')
+            const storage = world.services.storage()
+            const failures = Math.min(2, (Number(await storage.get(refreshFailureKey(placeId))) || 0) + 1)
+            await storage.set(refreshFailureKey(placeId), failures)
+            const current = store.get().items.find(item => item.id === placeId)
+            if (current) await store.persistPlace({
+              ...current,
+              detailsRefreshFailures: failures,
+              detailsRefreshError: refreshFailureMessage(error)
+            })
+            throw error
+          }
           await world.services.storage().remove(refreshFailureKey(placeId))
-          return store.persistPlace(store, {
+          return store.persistPlace({
             ...existing,
-            name: details.name || '',
-            address: details.address || '',
-            coordinates: details.coordinates || null,
-            phone: details.phone || '',
+            ...details,
             detailsFetchedAt: Date.now(),
             detailsRefreshFailures: 0,
             detailsRefreshError: ''

@@ -17,7 +17,7 @@
 - Google 底圖 POI 店家／地標可點選；點擊後保留 Google 原生資訊窗，eatGoMap 自有卡片提供收藏操作。確認收藏時先將 Place ID 送到 Worker API，再用 Place ID 查詢並保存詳情至本機 IndexedDB；自訂 Marker 點選仍開啟原有地點卡片。
 - 按下收藏後，Worker API/D1 成功建立收藏，收藏頁立刻顯示該筆資料；`map-home` Store 同步更新並經平台 Storage capability 寫入瀏覽器。
 - Places 搜尋建議選取會取得當次顯示所需的名稱、地址、座標與電話；收藏時將資料按 Place ID 保存於本機。使用者自訂名稱、地址與個人日記也在該筆本機資料中。
-- 收藏頁中仍在快取期限內的座標會畫成深綠星號 Marker；缺少資料或超過 30 天時，以 Place ID 查詢並更新地點詳情。詳見 [`D008_place_id_indexeddb_cache.md`](../decisions/D008_place_id_indexeddb_cache.md)。
+- 收藏頁中仍在快取期限內的座標會畫成高辨識亮紫色星號 Marker；點擊 Marker 會開啟 eatGoMap 自有地點卡，顯示已保存的自訂名稱、地址、電話與個人日記，尚未建立的打卡、評分與照片則顯示未建立狀態。缺少資料或超過 30 天時，以 Place ID 查詢並更新地點詳情。詳見 [`D008_place_id_indexeddb_cache.md`](../decisions/D008_place_id_indexeddb_cache.md)。
 - 卡片右上角 × 會清除選取地點、搜尋建議與搜尋欄內容，並移除搜尋結果暫存 Marker。
 - 選取搜尋結果後，地點卡片顯示 Google 回傳的名稱與地址；未收藏時可收藏，已收藏時主要按鈕顯示「打卡」。收藏狀態由 Worker API/D1 保存，Store 維護 API 狀態投影與瀏覽器快取；打卡尚未串接後端。
 - 地圖預設中心為台北中山區；載入時即向瀏覽器請求目前位置，成功後將 Google 地圖移至目前座標並顯示藍色定位點。右側定位按鈕使用 SVG 準星圖示並可重試；定位失敗時提示檢查 GPS、瀏覽器位置權限或 HTTPS 連線。
