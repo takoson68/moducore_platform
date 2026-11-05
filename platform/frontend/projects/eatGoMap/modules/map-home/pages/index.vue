@@ -25,12 +25,23 @@ const editingFavoriteId = ref(null)
 const editFavoriteName = ref('')
 const editFavoriteAddress = ref('')
 const editFavoriteNote = ref('')
-const savedPlaceIds = computed(() => new Set(favoriteStore.state.items.map(place => place.id)))
-const savedPlaces = computed(() => favoriteStore.state.items.map(item => ({
-  ...item,
-  displayName: item.customName || item.name || `已收藏地點 ${item.id.slice(0, 8)}`,
-  displayAddress: item.customAddress || item.address
-})))
+function favoritePlaceId(item) {
+  const id = item?.id || item?.place_id || item?.placeId
+  return typeof id === 'string' && id.trim() ? id.trim() : null
+}
+
+const savedPlaceIds = computed(() => new Set(favoriteStore.state.items.map(favoritePlaceId).filter(Boolean)))
+const savedPlaces = computed(() => favoriteStore.state.items
+  .filter(item => favoritePlaceId(item))
+  .map(item => {
+    const id = favoritePlaceId(item)
+    return {
+      ...item,
+      id,
+      displayName: item.customName || item.name || `已收藏地點 ${id.slice(0, 8)}`,
+      displayAddress: item.customAddress || item.address
+    }
+  }))
 const favoriteApiState = computed(() => favoriteStore.state.syncState)
 
 let googleMap
