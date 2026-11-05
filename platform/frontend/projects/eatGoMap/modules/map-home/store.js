@@ -27,6 +27,7 @@ function normalizePlaceRecord(id, record = {}) {
     phone: detailsAreFresh && typeof record.phone === 'string' ? record.phone : '',
     detailsFetchedAt: detailsAreFresh ? fetchedAt : 0,
     detailsRefreshFailures: Math.max(0, Math.min(2, Number(record.detailsRefreshFailures) || 0)),
+    detailsRefreshError: typeof record.detailsRefreshError === 'string' ? record.detailsRefreshError : '',
     customName: typeof record.customName === 'string' ? record.customName : '',
     customAddress: typeof record.customAddress === 'string' ? record.customAddress : '',
     personalNote: typeof record.personalNote === 'string' ? record.personalNote : ''
@@ -39,6 +40,11 @@ function storageKey(id) {
 
 function refreshFailureKey(id) {
   return `eatGoMap:place-refresh-failures:${encodeURIComponent(id)}`
+}
+
+function refreshFailureMessage(error) {
+  const message = error?.message || String(error || '未知錯誤')
+  return String(message).replace(/AIza[0-9A-Za-z_-]{20,}/g, '[已隱藏 API 金鑰]').slice(0, 240)
 }
 
 export function createEatGoMapFavoriteStore() {
@@ -157,7 +163,8 @@ export function createEatGoMapFavoriteStore() {
             if (current) {
               await store.persistPlace(store, {
                 ...current,
-                detailsRefreshFailures: failures
+                detailsRefreshFailures: failures,
+                detailsRefreshError: refreshFailureMessage(error)
               })
             }
             throw error
@@ -170,7 +177,8 @@ export function createEatGoMapFavoriteStore() {
             coordinates: details.coordinates || null,
             phone: details.phone || '',
             detailsFetchedAt: Date.now(),
-            detailsRefreshFailures: 0
+            detailsRefreshFailures: 0,
+            detailsRefreshError: ''
           })
         })().finally(() => detailsRefreshes.delete(placeId))
         detailsRefreshes.set(placeId, refresh)

@@ -646,9 +646,9 @@ function drawFavoriteMarkers() {
 
 watch(savedPlaces, drawFavoriteMarkers, { deep: true })
 
-watch(() => favoriteStore.state.items, () => {
+watch(() => favoriteStore.state.items.map(item => favoritePlaceId(item)).filter(Boolean).join('|'), () => {
   if (Place) refreshExpiredFavoriteDetails()
-}, { deep: true })
+})
 
 watch([visiblePlaces, selectedPlaceId], () => {
   if (!googleMap) return
@@ -907,6 +907,7 @@ main.map-home
               p(v-else) Place ID：{{ place.id }}
               p(v-if="place.phone") 電話：{{ place.phone }}
               p(v-if="place.personalNote") {{ place.personalNote }}
+              p.favorite-refresh-error(v-if="place.detailsRefreshError" :title="place.detailsRefreshError") 查詢錯誤：{{ place.detailsRefreshError }}
               button.favorite-details-button(type="button" :disabled="!Place || loadingFavoriteIds.has(place.id) || place.detailsRefreshFailures >= 2" @click="refreshFavoriteDetails(place)")
                 | {{ loadingFavoriteIds.has(place.id) ? '更新中…' : place.detailsRefreshFailures >= 2 ? '已停止查詢（失敗 2 次）' : '重新查詢地點資料' }}
           button.remove-favorite(type="button" :aria-label="`移除 ${place.displayName} 收藏`" @click="removeSavedPlace(place.id)") 移除
@@ -1252,6 +1253,11 @@ main.map-home
   font-size: 10px
   text-overflow: ellipsis
   white-space: nowrap
+
+.favorite-item-content p.favorite-refresh-error
+  color: #a94330
+  white-space: normal
+  overflow-wrap: anywhere
 
 .favorite-details-button
   margin-top: 4px
