@@ -1,23 +1,58 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import world from '@/world.js'
 import { loadGoogleMaps } from '../googleMaps.js'
 
+const favoriteStore = world.store('eatGoMapFavoriteStore')
 const activeMode = ref('food')
+const activeTab = ref('map')
 const distance = ref('附近 1 公里')
-const selectedPlaceId = ref('namba-ramen')
+const selectedPlaceId = ref(null)
+const selectedMapPoi = ref(null)
 const mapElement = ref(null)
 const mapState = ref('loading')
 const mapMessage = ref('正在連接 Google 地圖…')
 const isLocating = ref(false)
 const locationMessage = ref('')
+const searchQuery = ref('')
+const searchSuggestions = ref([])
+const isSearching = ref(false)
+const searchMessage = ref('')
+const searchedPlace = ref(null)
+const isSavingFavorite = ref(false)
+const loadingFavoriteIds = ref(new Set())
+const editingFavoriteId = ref(null)
+const editFavoriteName = ref('')
+const editFavoriteAddress = ref('')
+const editFavoriteNote = ref('')
+const savedPlaceIds = computed(() => new Set(favoriteStore.state.items.map(place => place.id)))
+const savedPlaces = computed(() => favoriteStore.state.items.map(item => ({
+  ...item,
+  displayName: item.customName || item.name || `已收藏地點 ${item.id.slice(0, 8)}`,
+  displayAddress: item.customAddress || item.address
+})))
+const favoriteApiState = computed(() => favoriteStore.state.syncState)
 
 let googleMap
 let googleMarkers = []
 let CurrentLocationMarker
 let currentLocationMarker
 let locationMessageTimer
+let viewportMeta
+let originalViewportContent
+let AutocompleteSuggestion
+let AutocompleteSessionToken
+let Place
+let autocompleteSessionToken
+let autocompleteTimer
+let autocompleteRequestId = 0
+let searchMarker
+let SearchMarkerElement
+let FavoritePinElement
+let favoriteMarkers = []
+let mapPoiClickListener
 
-const mapCenter = { lat: 34.6687, lng: 135.5013 }
+const mapCenter = { lat: 25.0641, lng: 121.5336 }
 
 const places = [
   {
@@ -88,14 +123,202 @@ const visiblePlaces = computed(() => {
 })
 
 const selectedPlace = computed(() => {
-  return places.find(place => place.id === selectedPlaceId.value) || places[0]
+  return places.find(place => place.id === selectedPlaceId.value) || null
 })
+const hasSelectedPlace = computed(() => Boolean(selectedMapPoi.value || searchedPlace.value || selectedPlace.value))
+const activePlace = computed(() => {
+  if (selectedMapPoi.value) {
+    return { name: '地圖上的地標', tone: 'teal', kind: 'poi' }
+  }
+  return searchedPlace.value || selectedPlace.value
+})
+const selectedPlaceIsSaved = computed(() => {
+  if (selectedMapPoi.value) return savedPlaceIds.value.has(selectedMapPoi.value.id)
+  if (!searchedPlace.value) return Boolean(selectedPlace.value)
+  return savedPlaceIds.value.has(searchedPlace.value.id)
+})
+const selectedPlaceKicker = computed(() => {
+  if (selectedMapPoi.value) return selectedPlaceIsSaved.value ? '已收藏' : 'Google 地圖地標'
+  if (!searchedPlace.value) {
+    return selectedPlace.value ? `${selectedPlace.value.owner} · ${selectedPlace.value.status}` : ''
+  }
+  return selectedPlaceIsSaved.value ? '已收藏 · 尚未打卡' : '尚未收藏'
+})
+const selectedPlaceDetail = computed(() => {
+  if (selectedMapPoi.value) return '地點名稱與地址請查看 Google 地圖資訊窗。'
+  return searchedPlace.value?.address || selectedPlace.value?.detail || ''
+})
+const selectedPlaceAction = computed(() => {
+  if (selectedMapPoi.value) return selectedPlaceIsSaved.value ? '已收藏' : '加入收藏'
+  return selectedPlaceIsSaved.value ? '打卡' : '收藏'
+})
+const savedPlaceCount = computed(() => savedPlaces.value.length)
+
+async function fetchPlaceDetails(placeId) {
+  if (!Place) throw new Error('Places library 尚未載入')
+  const place = new Place({ id: placeId })
+  await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'nationalPhoneNumber'] })
+  const coordinates = place.location?.toJSON?.()
+  return {
+    name: place.displayName?.toString() || '',
+    address: place.formattedAddress || '',
+    coordinates: coordinates || null,
+    phone: place.nationalPhoneNumber || ''
+  }
+}
+
+async function refreshFavoriteDetails(favorite, { force = false, quiet = false } = {}) {
+  if (!Place || loadingFavoriteIds.value.has(favorite.id)) return
+  const next = new Set(loadingFavoriteIds.value)
+  next.add(favorite.id)
+  loadingFavoriteIds.value = next
+  try {
+    if (force) {
+      await favoriteStore.updatePlaceDetails({ placeId: favorite.id, details: await fetchPlaceDetails(favorite.id) })
+    } else {
+      await favoriteStore.refreshPlaceDetails({ placeId: favorite.id, fetchDetails: fetchPlaceDetails })
+    }
+  } catch {
+    if (!quiet) showLocationMessage('無法更新這個地點的名稱、地址與座標，請稍後再試。')
+  } finally {
+    const updated = new Set(loadingFavoriteIds.value)
+    updated.delete(favorite.id)
+    loadingFavoriteIds.value = updated
+  }
+}
+
+function refreshExpiredFavoriteDetails() {
+  for (const item of favoriteStore.state.items) {
+    if (!item.detailsFetchedAt || Date.now() - item.detailsFetchedAt >= 30 * 24 * 60 * 60 * 1000) {
+      void refreshFavoriteDetails(item, { quiet: true })
+    }
+  }
+}
+
+function beginFavoriteEdit(favorite) {
+  editingFavoriteId.value = favorite.id
+  // Leave the form blank unless the user previously saved their own values.
+  editFavoriteName.value = favorite.customName || ''
+  editFavoriteAddress.value = favorite.customAddress || ''
+  editFavoriteNote.value = favorite.personalNote || ''
+}
+
+function cancelFavoriteEdit() {
+  editingFavoriteId.value = null
+  editFavoriteName.value = ''
+  editFavoriteAddress.value = ''
+  editFavoriteNote.value = ''
+}
+
+async function saveFavoriteLabels(favorite) {
+  try {
+    await favoriteStore.savePersonalFields({
+      placeId: favorite.id,
+      customName: editFavoriteName.value,
+      customAddress: editFavoriteAddress.value,
+      personalNote: editFavoriteNote.value
+    })
+    cancelFavoriteEdit()
+    showLocationMessage('已儲存你輸入的收藏名稱與地址。')
+  } catch {
+    showLocationMessage('無法將自訂名稱或地址儲存至此瀏覽器。')
+  }
+}
+
+async function removeSavedPlace(placeId) {
+  try {
+    await favoriteStore.removeFavorite(placeId)
+  } catch {
+    showLocationMessage('收藏 API 無法連線，尚未移除地點。')
+    return
+  }
+  showLocationMessage('已從此瀏覽器移除收藏。')
+}
+
+// 搜尋到合成地點時切回既有卡片，不沿用外部搜尋結果。
+function selectMockPlace(placeId) {
+  selectedMapPoi.value = null
+  searchedPlace.value = null
+  selectedPlaceId.value = placeId
+  if (searchMarker) searchMarker.map = null
+  searchMarker = null
+}
+
+// 關閉地點卡片並清除目前搜尋、選取與暫存標記。
+function closePlaceCard() {
+  selectedPlaceId.value = null
+  selectedMapPoi.value = null
+  searchedPlace.value = null
+  searchQuery.value = ''
+  searchSuggestions.value = []
+  searchMessage.value = ''
+  isSearching.value = false
+  autocompleteSessionToken = null
+  autocompleteRequestId += 1
+  window.clearTimeout(autocompleteTimer)
+  if (searchMarker) searchMarker.map = null
+  searchMarker = null
+}
+
+async function toggleSearchedPlaceSaved() {
+  if (!searchedPlace.value) {
+    showLocationMessage('這個示意地點已收藏；打卡功能尚未串接後端。')
+    return
+  }
+
+  if (savedPlaceIds.value.has(searchedPlace.value.id)) {
+    await removeSavedPlace(searchedPlace.value.id)
+    return
+  }
+
+  try {
+    const place = searchedPlace.value
+    await favoriteStore.addFavorite({
+      placeId: place.id,
+      kind: 'search',
+      name: place.name,
+      address: place.address,
+      coordinates: place.coordinates,
+      phone: place.phone || '',
+      detailsFetchedAt: Date.now()
+    })
+    showLocationMessage('已加入收藏。')
+  } catch {
+    showLocationMessage('無法連接收藏 API，尚未加入收藏。')
+  }
+}
+
+// 底圖 POI 收藏將 Place ID 存入 D1，再以 Place ID 取得並快取詳情。
+async function handlePlacePrimaryAction() {
+  if (selectedMapPoi.value) {
+    const selectedPoi = selectedMapPoi.value
+    if (selectedPlaceIsSaved.value || isSavingFavorite.value) return
+
+    isSavingFavorite.value = true
+    try {
+      const favorite = await favoriteStore.addFavorite({ placeId: selectedPoi.id, kind: 'poi' })
+      await refreshFavoriteDetails(favorite, { force: true, quiet: true })
+      showLocationMessage('已加入收藏，地點資訊已保存至此瀏覽器。')
+    } catch {
+      showLocationMessage('無法連接收藏 API，尚未加入收藏。')
+    } finally {
+      isSavingFavorite.value = false
+    }
+    return
+  }
+
+  if (!selectedPlaceIsSaved.value) {
+    toggleSearchedPlaceSaved()
+    return
+  }
+  showLocationMessage('打卡功能尚未串接後端。')
+}
 
 function selectMode(mode) {
   activeMode.value = mode
 
-  if (!visiblePlaces.value.some(place => place.id === selectedPlaceId.value)) {
-    selectedPlaceId.value = visiblePlaces.value[0]?.id || places[0].id
+  if (selectedPlaceId.value && !visiblePlaces.value.some(place => place.id === selectedPlaceId.value)) {
+    selectedPlaceId.value = null
   }
 }
 
@@ -107,6 +330,154 @@ function cycleDistance() {
 
 function refreshSite() {
   window.location.reload()
+}
+
+function openTab(tab) {
+  activeTab.value = tab
+  if (tab !== 'map') closeSearchSuggestions()
+  if (tab === 'favorites') refreshExpiredFavoriteDetails()
+}
+
+// 依輸入文字向 Places Autocomplete 請求店家、地標與地址建議。
+function updateSearchSuggestions() {
+  window.clearTimeout(autocompleteTimer)
+  searchMessage.value = ''
+
+  const input = searchQuery.value.trim()
+  if (input.length === 0) autocompleteSessionToken = null
+  if (input.length < 2 || !AutocompleteSuggestion || !googleMap) {
+    searchSuggestions.value = []
+    isSearching.value = false
+    autocompleteRequestId += 1
+    if (input.length >= 2 && !AutocompleteSuggestion) {
+      searchMessage.value = 'Google 地點搜尋尚未就緒，請確認 Places API (New) 已啟用。'
+    }
+    return
+  }
+
+  if (!autocompleteSessionToken) autocompleteSessionToken = new AutocompleteSessionToken()
+  const requestId = ++autocompleteRequestId
+  isSearching.value = true
+  autocompleteTimer = window.setTimeout(async () => {
+    try {
+      const request = {
+        input,
+        sessionToken: autocompleteSessionToken,
+        language: 'zh-TW'
+      }
+      const bounds = googleMap.getBounds()
+      if (bounds) request.locationBias = bounds
+
+      const { suggestions = [] } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
+      if (requestId !== autocompleteRequestId) return
+      searchSuggestions.value = suggestions
+        .filter(item => item.placePrediction)
+        .slice(0, 6)
+        .map(item => ({
+          prediction: item.placePrediction,
+          text: item.placePrediction.text.toString()
+        }))
+      if (searchSuggestions.value.length === 0) searchMessage.value = '找不到符合的店家或地址。'
+    } catch {
+      if (requestId === autocompleteRequestId) {
+        searchSuggestions.value = []
+        searchMessage.value = '搜尋無法使用，請確認 Google Cloud 已啟用 Places API (New)。'
+      }
+    } finally {
+      if (requestId === autocompleteRequestId) isSearching.value = false
+    }
+  }, 250)
+}
+
+// 收合搜尋建議清單並清除暫存提示。
+function closeSearchSuggestions() {
+  searchSuggestions.value = []
+  searchMessage.value = ''
+}
+
+// 顯示 Google 地點資料，將地點卡片、地圖中心與搜尋標記同步更新。
+async function showGooglePlace(place, fallbackName = '', addSearchMarker = true) {
+  const requestId = ++autocompleteRequestId
+  window.clearTimeout(autocompleteTimer)
+  if (searchMarker) searchMarker.map = null
+  searchMarker = null
+  selectedMapPoi.value = null
+  searchSuggestions.value = []
+  searchMessage.value = ''
+  isSearching.value = false
+  searchQuery.value = fallbackName
+  searchedPlace.value = {
+    id: place.id,
+    name: fallbackName || '載入地點資訊…',
+    address: '',
+    tone: 'teal',
+    kind: 'search'
+  }
+
+  try {
+    await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'nationalPhoneNumber'] })
+    if (requestId !== autocompleteRequestId || !googleMap) return
+    if (!place.location) {
+      showLocationMessage('無法取得此地點的位置，請改選其他地點。')
+      return
+    }
+
+    const name = place.displayName?.toString() || fallbackName || '地圖地標'
+    searchQuery.value = name
+    searchedPlace.value = {
+      id: place.id,
+      name,
+      address: place.formattedAddress || '',
+      tone: 'teal',
+      kind: 'search',
+      coordinates: place.location.toJSON(),
+      phone: place.nationalPhoneNumber || ''
+    }
+    searchSuggestions.value = []
+    autocompleteSessionToken = null
+    googleMap.panTo(place.location)
+    googleMap.setZoom(Math.max(16, googleMap.getZoom() || 15))
+
+    if (addSearchMarker) {
+      searchMarker = new SearchMarkerElement({
+        map: googleMap,
+        position: place.location,
+        title: name
+      })
+    }
+    showLocationMessage(place.formattedAddress ? `已定位：${name}・${place.formattedAddress}` : `已定位：${name}`)
+  } catch {
+    showLocationMessage('地點卡片已顯示搜尋名稱，但無法取得完整位置資料，請再試一次。')
+  } finally {
+    autocompleteSessionToken = null
+    if (requestId === autocompleteRequestId) isSearching.value = false
+  }
+}
+
+// 選取搜尋建議後沿用 Places Autocomplete 的 Place 物件與計費 Session。
+function selectSearchSuggestion(item) {
+  void showGooglePlace(item.prediction.toPlace(), item.text)
+}
+
+// 接收底圖 POI 點擊；保留 Google 原生資訊窗，只用 placeId 提供收藏操作。
+function handleGoogleMapClick(event) {
+  if (!event.placeId) {
+    selectedMapPoi.value = null
+    return
+  }
+
+  selectedPlaceId.value = null
+  searchedPlace.value = null
+  selectedMapPoi.value = { id: event.placeId }
+  searchQuery.value = ''
+  searchSuggestions.value = []
+  searchMessage.value = ''
+  isSearching.value = false
+  autocompleteSessionToken = null
+  autocompleteRequestId += 1
+  window.clearTimeout(autocompleteTimer)
+  if (searchMarker) searchMarker.map = null
+  searchMarker = null
 }
 
 function showLocationMessage(message) {
@@ -202,16 +573,45 @@ function drawGoogleMarkers(AdvancedMarkerElement, PinElement) {
       map: googleMap,
       position: place.coordinates,
       title: place.name,
-      content: pin.element,
+      content: pin,
       gmpClickable: true
     })
     marker.addEventListener('gmp-click', () => {
-      selectedPlaceId.value = place.id
+      selectMockPlace(place.id)
       googleMap.panTo(place.coordinates)
     })
     return marker
   })
 }
+
+function drawFavoriteMarkers() {
+  favoriteMarkers.forEach(marker => { marker.map = null })
+  favoriteMarkers = []
+  if (!googleMap || !SearchMarkerElement) return
+  favoriteMarkers = savedPlaces.value
+    .filter(place => place.coordinates && Number.isFinite(place.coordinates.lat) && Number.isFinite(place.coordinates.lng))
+    .map(place => {
+      const pin = FavoritePinElement ? new FavoritePinElement({
+        background: '#0d6961',
+        borderColor: '#fffdf9',
+        glyphColor: '#fff',
+        glyphText: '★',
+        scale: 1.05
+      }) : undefined
+      return new SearchMarkerElement({
+        map: googleMap,
+        position: place.coordinates,
+        title: place.displayName,
+        ...(pin ? { content: pin } : {})
+      })
+    })
+}
+
+watch(savedPlaces, drawFavoriteMarkers, { deep: true })
+
+watch(() => favoriteStore.state.items, () => {
+  if (Place) refreshExpiredFavoriteDetails()
+}, { deep: true })
 
 watch([visiblePlaces, selectedPlaceId], () => {
   if (!googleMap) return
@@ -220,6 +620,13 @@ watch([visiblePlaces, selectedPlaceId], () => {
 })
 
 onMounted(async () => {
+  void favoriteStore.hydrate()
+  viewportMeta = document.querySelector('meta[name="viewport"]')
+  originalViewportContent = viewportMeta?.content
+  if (viewportMeta) {
+    viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
+  }
+
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim()
   if (!apiKey) {
     mapState.value = 'needs-key'
@@ -234,6 +641,8 @@ onMounted(async () => {
       maps.importLibrary('marker')
     ])
     CurrentLocationMarker = AdvancedMarkerElement
+    SearchMarkerElement = AdvancedMarkerElement
+    FavoritePinElement = PinElement
 
     googleMap = new Map(mapElement.value, {
       center: mapCenter,
@@ -244,7 +653,19 @@ onMounted(async () => {
       mapTypeControl: false,
       streetViewControl: false
     })
+    try {
+      const placesLibrary = await maps.importLibrary('places')
+      AutocompleteSuggestion = placesLibrary.AutocompleteSuggestion
+      AutocompleteSessionToken = placesLibrary.AutocompleteSessionToken
+      Place = placesLibrary.Place
+      googleMap.setOptions({ clickableIcons: true })
+      mapPoiClickListener = googleMap.addListener('click', handleGoogleMapClick)
+      void favoriteStore.hydrate().then(refreshExpiredFavoriteDetails)
+    } catch {
+      // Places 不可用時仍保留底圖與既有地圖互動，並停用無法載入卡片的底圖 POI。
+    }
     drawGoogleMarkers(AdvancedMarkerElement, PinElement)
+    drawFavoriteMarkers()
     mapState.value = 'ready'
     void locateCurrentPosition()
   } catch (error) {
@@ -254,9 +675,20 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (viewportMeta && originalViewportContent) viewportMeta.content = originalViewportContent
+  viewportMeta = null
+  originalViewportContent = undefined
   window.clearTimeout(locationMessageTimer)
+  window.clearTimeout(autocompleteTimer)
+  autocompleteRequestId += 1
+  mapPoiClickListener?.remove()
+  mapPoiClickListener = null
+  if (searchMarker) searchMarker.map = null
+  searchMarker = null
   googleMarkers.forEach(marker => { marker.map = null })
   googleMarkers = []
+  favoriteMarkers.forEach(marker => { marker.map = null })
+  favoriteMarkers = []
   if (currentLocationMarker) currentLocationMarker.map = null
   currentLocationMarker = null
   googleMap = null
@@ -266,15 +698,47 @@ onUnmounted(() => {
 <template lang="pug">
 main.map-home
   section.app-frame(aria-label="食旅地圖首頁視覺原型")
-    header.map-header
-      .brand-row
+    header.map-header(:class="{ 'map-header-page': activeTab !== 'map' }")
+      .brand-row(v-if="activeTab === 'map'")
         button.brand-home-button(type="button" aria-label="重新整理食旅地圖" title="重新整理網站" @click="refreshSite")
           .brand-mark(aria-hidden="true") 路
-        label.search-box
-          span.search-icon(aria-hidden="true") ⌕
-          input(type="search" placeholder="搜尋店家或地點" aria-label="搜尋店家或地點")
+        .search-area
+          label.search-box
+            span.search-icon(aria-hidden="true") ⌕
+            input(
+              v-model="searchQuery"
+              type="search"
+              placeholder="搜尋店家或地址"
+              aria-label="搜尋店家或地址"
+              role="combobox"
+              aria-autocomplete="list"
+              :aria-expanded="searchSuggestions.length > 0 || isSearching || Boolean(searchMessage)"
+              aria-controls="place-search-results"
+              @input="updateSearchSuggestions"
+              @keydown.esc="closeSearchSuggestions"
+            )
+          .search-suggestions(
+            v-if="searchSuggestions.length || isSearching || searchMessage"
+            id="place-search-results"
+            role="listbox"
+          )
+            button.search-suggestion(
+              v-for="(item, index) in searchSuggestions"
+              :key="`${item.text}-${index}`"
+              type="button"
+              role="option"
+              @click="selectSearchSuggestion(item)"
+            )
+              span.suggestion-icon(aria-hidden="true") ⌖
+              span {{ item.text }}
+            p.search-feedback(v-if="isSearching" role="status") 搜尋中…
+            p.search-feedback(v-else-if="searchMessage" role="status") {{ searchMessage }}
 
-      .filter-row(aria-label="地圖篩選")
+      .page-header(v-else)
+        h1 {{ activeTab === 'favorites' ? '我的最愛' : '旅遊日誌' }}
+        span(v-if="activeTab === 'favorites'") {{ savedPlaceCount }} 個收藏地點
+
+      .filter-row(v-if="activeTab === 'map'" aria-label="地圖篩選")
         button.filter-chip(
           type="button"
           :class="{ active: activeMode === 'food' }"
@@ -294,7 +758,7 @@ main.map-home
           | {{ distance }}
           span.chevron(aria-hidden="true") ⌄
 
-    section.map-canvas(aria-label="大阪難波地圖")
+    section.map-canvas(v-show="activeTab === 'map'" aria-label="大阪難波地圖")
       .google-map(ref="mapElement" aria-label="Google 地圖")
       .map-status(v-if="mapState !== 'ready'" :class="`map-status-${mapState}`" role="status")
         strong {{ mapState === 'loading' ? '正在載入地圖' : mapState === 'needs-key' ? 'Google 地圖尚未設定' : 'Google 地圖載入失敗' }}
@@ -331,7 +795,7 @@ main.map-home
         :class="[place.tone, { selected: selectedPlaceId === place.id }]"
         :style="place.position"
         :aria-label="`查看 ${place.name}`"
-        @click="selectedPlaceId = place.id"
+        @click="selectMockPlace(place.id)"
       )
         span.marker-bubble
           span {{ place.icon }}
@@ -356,36 +820,88 @@ main.map-home
           circle.location-ring(cx="12" cy="12" r="7.5")
           circle.location-center(cx="12" cy="12" r="2")
 
-      article.place-card
-        button.close-card(type="button" aria-label="關閉地點卡片") ×
-        .place-thumb(:class="selectedPlace.tone" aria-hidden="true")
-          span {{ selectedPlace.kind === 'food' ? '麵' : '旅' }}
+      article.place-card(v-if="hasSelectedPlace" :class="{ 'poi-action-card': selectedMapPoi }")
+        button.close-card(type="button" aria-label="關閉地點卡片" @click="closePlaceCard") ×
+        .place-thumb(v-if="!selectedMapPoi" :class="activePlace.tone" aria-hidden="true")
+          span {{ searchedPlace ? '地' : activePlace.kind === 'food' ? '麵' : '旅' }}
         .place-card-content
           .place-heading
             div
-              span.place-kicker {{ selectedPlace.owner }} · {{ selectedPlace.status }}
-              h2 {{ selectedPlace.name }}
-            button.bookmark-button(type="button" aria-label="收藏此地點") ◆
-          p {{ selectedPlace.detail }}
-          .place-actions
-            button.secondary-action(type="button") 查看詳情
-            button.primary-action(type="button") 打卡
+              span.place-kicker {{ selectedPlaceKicker }}
+              h2 {{ activePlace.name }}
+            button.bookmark-button(
+              v-if="!selectedMapPoi"
+              type="button"
+              :class="{ saved: selectedPlaceIsSaved }"
+              :aria-label="selectedPlaceIsSaved ? '取消收藏此地點' : '收藏此地點'"
+              @click="toggleSearchedPlaceSaved"
+            ) {{ selectedPlaceIsSaved ? '◆' : '◇' }}
+          p {{ selectedPlaceDetail }}
+          .place-actions(:class="{ 'single-action': selectedMapPoi }")
+            button.secondary-action(v-if="!selectedMapPoi" type="button") 查看詳情
+            button.primary-action(
+              type="button"
+              :disabled="Boolean(selectedMapPoi && (selectedPlaceIsSaved || isSavingFavorite))"
+              @click="handlePlacePrimaryAction"
+            ) {{ isSavingFavorite && selectedMapPoi ? '加入中…' : selectedPlaceAction }}
+
+    section.favorites-page(v-if="activeTab === 'favorites'" aria-label="收藏地點列表")
+      p.favorites-notice(v-if="favoriteApiState === 'ready'") 收藏清單由 API 同步；D1 只保存 Place ID。地點名稱、地址、座標、電話與你的自訂名稱／備註保存在此瀏覽器，資料超過 30 天後會在下次使用時重新查詢。
+      p.favorites-notice(v-else-if="favoriteApiState === 'loading'") 正在載入收藏清單…
+      p.favorites-notice(v-else) 目前顯示此瀏覽器上次快取的收藏；API 無法連線，變更不會成功。
+      .favorites-list(v-if="savedPlaces.length")
+        article.favorite-item(v-for="place in savedPlaces" :key="place.id")
+          .favorite-thumb(:class="place.kind === 'poi' ? 'teal' : 'coral'" aria-hidden="true")
+            span {{ place.kind === 'poi' ? '地' : '⌖' }}
+          .favorite-item-content
+            span.favorite-kicker {{ place.kind === 'poi' ? 'Google 地圖地標' : '搜尋地點' }}
+            template(v-if="editingFavoriteId === place.id")
+              input.favorite-edit-input(v-model="editFavoriteName" type="text" maxlength="255" placeholder="輸入自訂名稱" aria-label="自訂收藏名稱")
+              input.favorite-edit-input(v-model="editFavoriteAddress" type="text" maxlength="1000" placeholder="輸入自訂地址或備註" aria-label="自訂收藏地址或備註")
+              textarea.favorite-edit-input(v-model="editFavoriteNote" maxlength="5000" placeholder="記下你的心得或日記" aria-label="個人地點日記")
+              p.favorite-edit-hint 自訂名稱與地址只保存於此瀏覽器，不會寫入後端。
+              .favorite-edit-actions
+                button.favorite-details-button(type="button" @click="saveFavoriteLabels(place)") 儲存
+                button.favorite-details-button(type="button" @click="cancelFavoriteEdit") 取消
+            template(v-else)
+              button.favorite-name-button(type="button" title="點擊編輯收藏名稱" @click="beginFavoriteEdit(place)") {{ place.displayName }}
+              p(v-if="place.displayAddress") {{ place.displayAddress }}
+              p(v-else-if="place.coordinates") {{ place.coordinates.lat.toFixed(5) }}, {{ place.coordinates.lng.toFixed(5) }}
+              p(v-else) Place ID：{{ place.id }}
+              p(v-if="place.phone") 電話：{{ place.phone }}
+              p(v-if="place.personalNote") {{ place.personalNote }}
+              button.favorite-details-button(type="button" :disabled="!Place || loadingFavoriteIds.has(place.id)" @click="refreshFavoriteDetails(place, { force: true })")
+                | {{ loadingFavoriteIds.has(place.id) ? '更新中…' : '重新查詢地點資料' }}
+          button.remove-favorite(type="button" :aria-label="`移除 ${place.displayName} 收藏`" @click="removeSavedPlace(place.id)") 移除
+      .favorites-empty(v-else)
+        span.favorites-empty-icon(aria-hidden="true") ♢
+        h2 還沒有收藏地點
+        p 在地圖上點選地標，再加入收藏，就會出現在這裡。
+        button.return-map-button(type="button" @click="openTab('map')") 回到地圖
+
+    section.favorites-page.journal-placeholder(v-else-if="activeTab === 'journal'" aria-label="旅遊日誌")
+      .favorites-empty
+        span.favorites-empty-icon(aria-hidden="true") ▤
+        h2 旅遊日誌尚未開放
+        p 日誌功能會在打卡與旅程整理流程完成後加入。
+        button.return-map-button(type="button" @click="openTab('map')") 回到地圖
 
     nav.bottom-nav(aria-label="主要導覽")
-      button.nav-item.active(type="button")
+      button.nav-item(type="button" :class="{ active: activeTab === 'map' }" @click="openTab('map')")
         span.nav-icon(aria-hidden="true") ●
         span 地圖
-      button.nav-item(type="button")
+      button.nav-item(type="button" :class="{ active: activeTab === 'favorites' }" @click="openTab('favorites')")
         span.nav-icon(aria-hidden="true") ♢
         span 收藏
-      button.nav-item(type="button")
+        span.nav-count(v-if="savedPlaceCount") {{ savedPlaceCount }}
+      button.nav-item(type="button" :class="{ active: activeTab === 'journal' }" @click="openTab('journal')")
         span.nav-icon(aria-hidden="true") ▤
         span 日誌
 
   aside.prototype-note
     span.prototype-tag VISUAL PROTOTYPE
     h2 先把旅行的期待，放進地圖裡。
-    p 使用 Google 地圖底圖與合成地點標記；收藏、打卡與日誌資料仍是尚未串接的介面原型。
+    p 使用 Google 地圖底圖與合成地點標記；收藏已可保存並在地圖標記，打卡與日誌仍待串接。
     .note-list
       span
         b 01
@@ -438,6 +954,25 @@ main.map-home
   background: var(--eatgomap-header-background)
   color: white
 
+.map-header-page
+  padding-top: 12px
+  padding-bottom: 12px
+
+.page-header
+  display: flex
+  align-items: baseline
+  justify-content: space-between
+  min-height: 36px
+
+.page-header h1
+  margin: 0
+  font-size: 18px
+  font-weight: 900
+
+.page-header span
+  color: rgba(255,255,255,.78)
+  font-size: 12px
+
 .brand-row
   display: flex
   align-items: center
@@ -480,6 +1015,14 @@ main.map-home
   background: #fffdf9
   box-shadow: 0 8px 18px rgba(4, 48, 44, .16)
 
+.search-area
+  position: relative
+  flex: 1
+  min-width: 0
+
+.search-area .search-box
+  width: 100%
+
 .search-icon
   color: #64716f
   font-size: 24px
@@ -496,6 +1039,53 @@ main.map-home
 
 .search-box input::placeholder
   color: #858e8b
+
+.search-suggestions
+  position: absolute
+  z-index: 40
+  top: calc(100% + 7px)
+  left: 0
+  right: 0
+  display: grid
+  max-height: min(45dvh, 320px)
+  overflow-y: auto
+  padding: 6px
+  border: 1px solid rgba(21, 37, 35, .1)
+  border-radius: 15px
+  background: #fffdf9
+  box-shadow: 0 12px 28px rgba(4, 48, 44, .22)
+  color: var(--egm-ink)
+
+.search-suggestion
+  display: flex
+  align-items: center
+  gap: 10px
+  min-height: 44px
+  padding: 8px 10px
+  border: 0
+  border-radius: 10px
+  background: transparent
+  color: inherit
+  text-align: left
+  font: inherit
+  font-size: 13px
+  cursor: pointer
+
+.search-suggestion:hover,
+.search-suggestion:focus-visible
+  outline: 0
+  background: #e8f2ef
+
+.suggestion-icon
+  flex: 0 0 auto
+  color: var(--egm-green-700)
+  font-size: 18px
+
+.search-feedback
+  margin: 0
+  padding: 10px
+  color: var(--egm-muted)
+  font-size: 12px
 
 .filter-row
   display: grid
@@ -540,6 +1130,182 @@ main.map-home
   position: relative
   overflow: hidden
   background: #e8e2d5
+
+.favorites-page
+  min-height: 0
+  overflow-y: auto
+  padding: 14px 14px 24px
+  background: #f7f4ed
+
+.favorites-notice
+  margin: 0 0 12px
+  padding: 10px 12px
+  border-radius: 12px
+  background: #e5f1ee
+  color: #386c66
+  font-size: 11px
+  line-height: 1.6
+
+.favorites-list
+  display: grid
+  gap: 10px
+
+.favorite-item
+  display: grid
+  grid-template-columns: 54px minmax(0, 1fr) auto
+  align-items: center
+  gap: 10px
+  padding: 11px
+  border: 1px solid rgba(35,48,44,.08)
+  border-radius: 17px
+  background: #fffdf9
+  box-shadow: 0 5px 14px rgba(35,48,44,.07)
+
+.favorite-thumb
+  width: 54px
+  height: 54px
+  display: grid
+  place-items: center
+  border-radius: 14px
+  background: linear-gradient(145deg, #8bc9b7, #16776d)
+  color: white
+  font-size: 24px
+  font-weight: 900
+
+.favorite-thumb.coral
+  background: linear-gradient(145deg, #f1a27e, #ca5841)
+
+.favorite-item-content
+  min-width: 0
+
+.favorite-kicker
+  color: var(--egm-green-700)
+  font-size: 10px
+  font-weight: 900
+
+.favorite-item-content h2
+  overflow: hidden
+  margin: 3px 0
+  color: var(--egm-ink)
+  font-size: 14px
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.favorite-name-button
+  display: block
+  max-width: 100%
+  overflow: hidden
+  margin: 3px 0
+  padding: 0
+  border: 0
+  background: transparent
+  color: var(--egm-ink)
+  font: inherit
+  font-size: 14px
+  font-weight: 900
+  text-align: left
+  text-overflow: ellipsis
+  white-space: nowrap
+  cursor: pointer
+
+.favorite-item-content p
+  overflow: hidden
+  margin: 0
+  color: var(--egm-muted)
+  font-size: 10px
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.favorite-details-button
+  margin-top: 4px
+  padding: 0
+  border: 0
+  background: transparent
+  color: var(--egm-green-700)
+  font: inherit
+  font-size: 10px
+  font-weight: 800
+  cursor: pointer
+
+.favorite-details-button:disabled
+  opacity: .5
+  cursor: not-allowed
+
+.favorite-edit-input
+  display: block
+  width: 100%
+  min-width: 0
+  margin-top: 5px
+  padding: 6px 8px
+  border: 1px solid #c8d9d3
+  border-radius: 8px
+  background: white
+  color: var(--egm-ink)
+  font: inherit
+  font-size: 11px
+
+.favorite-edit-hint
+  margin: 5px 0 0 !important
+  color: var(--egm-muted)
+  font-size: 9px !important
+  line-height: 1.4
+  white-space: normal !important
+
+.favorite-edit-actions
+  display: flex
+  gap: 10px
+
+.remove-favorite
+  padding: 7px 8px
+  border: 0
+  border-radius: 9px
+  background: #f6e9e3
+  color: #a74f3c
+  font: inherit
+  font-size: 10px
+  font-weight: 800
+  cursor: pointer
+
+.favorites-empty
+  display: grid
+  justify-items: center
+  align-content: center
+  min-height: 260px
+  padding: 20px
+  color: var(--egm-muted)
+  text-align: center
+
+.favorites-empty-icon
+  display: grid
+  place-items: center
+  width: 56px
+  height: 56px
+  border-radius: 18px
+  background: #e5f1ee
+  color: var(--egm-green-700)
+  font-size: 28px
+
+.favorites-empty h2
+  margin: 14px 0 6px
+  color: var(--egm-ink)
+  font-size: 16px
+
+.favorites-empty p
+  max-width: 230px
+  margin: 0 0 14px
+  font-size: 12px
+  line-height: 1.6
+
+.return-map-button
+  padding: 9px 18px
+  border: 1px solid var(--egm-green-700)
+  border-radius: 999px
+  background: white
+  color: var(--egm-green-700)
+  font: inherit
+  font-size: 12px
+  font-weight: 900
+  cursor: pointer
 
 .google-map
   position: absolute
@@ -844,6 +1610,12 @@ main.map-home
   box-shadow: 0 16px 35px rgba(31, 46, 42, .23)
   backdrop-filter: blur(12px)
 
+.place-card.poi-action-card
+  grid-template-columns: minmax(0, 1fr)
+
+.place-actions.single-action
+  grid-template-columns: minmax(0, 1fr)
+
 .close-card
   position: absolute
   top: 8px
@@ -969,6 +1741,7 @@ main.map-home
   background: rgba(255,253,249,.98)
 
 .nav-item
+  position: relative
   display: grid
   justify-items: center
   align-content: center
@@ -985,6 +1758,18 @@ main.map-home
 
 .nav-icon
   font-size: 15px
+
+.nav-count
+  position: absolute
+  top: 3px
+  right: calc(50% - 26px)
+  min-width: 15px
+  padding: 1px 4px
+  border-radius: 999px
+  background: var(--egm-green-700)
+  color: white
+  font-size: 9px
+  line-height: 1.4
 
 .prototype-note
   max-width: 390px

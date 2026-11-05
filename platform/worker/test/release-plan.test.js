@@ -21,6 +21,11 @@ test('部署 Tag 只解析白名單專案與語意版本', () => {
     projectKey: 'chatcore', version: '0.1.0', tag: 'dep_chatcore_v0.1.0', artifactSource: 'build',
   })
   assert.equal(parseDeploymentTag('dep_dinecore_v1.2.3-rc.1').target, 'dinecore-staging')
+  assert.deepEqual(parseDeploymentTag('dep_eatgomap_v0.2.0'), {
+    target: 'eatgomap-staging', project: 'eatGoMap', database: true, migrations: 'migrations/eatgomap',
+    frontend: true, staticSite: false, websocket: false, config: 'wrangler.eatgomap-staging.json',
+    projectKey: 'eatgomap', version: '0.2.0', tag: 'dep_eatgomap_v0.2.0', artifactSource: 'build',
+  })
   assert.equal(parseDeploymentTag('dep_project-b_v2.0.0').database, true)
   assert.deepEqual(parseDeploymentTag('dep_magic-siege_v0.1.0'), {
     target: 'magic-siege-staging', project: 'magic-siege', database: false,

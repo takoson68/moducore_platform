@@ -53,7 +53,7 @@
 - 主要設定來源：`project.config.js`。
 - 目前入口：`/`，由 `map-home` 模組提供地圖首頁視覺原型。
 - 啟動方式：`VITE_PROJECT=eatGoMap`。
-- 首頁已接入 Google Maps JavaScript API 與合成地點標記；本機未設定有效 API Key 時會顯示設定提示及靜態回退。定位與後端 API 尚未完成。
+- 首頁已接入 Google Maps JavaScript API、Places 搜尋與瀏覽器定位；收藏使用暫用 Worker/D1 API，合作方正式 API 尚未串接。
 
 ## 5. 模組與頁面範圍
 
@@ -61,14 +61,14 @@
 - 預定主要頁面：地圖、收藏、日誌。
 - 預定主要互動：搜尋地點、依距離與分類篩選、收藏、評分、評論、照片、建立旅程與查看足跡。
 - `map-home`：提供地圖首頁視覺原型、合成 Marker、分類切換、距離切換與地點卡片互動。
-- 收藏與日誌目前只呈現底部導覽外觀，尚無對應路由或功能。
+- 收藏存在與否以 eatGoMap Worker API／D1 為事實來源，D1 僅保存 Place ID；`map-home` Store 經平台 Storage capability 以 Place ID 將地點詳情及個人欄位存入瀏覽器 IndexedDB。缺漏或超過 30 天時，使用 Place ID 重新取得詳情並更新；有效座標用於收藏 Marker。合作方共享 API 尚未串接；日誌頁目前顯示尚未開放提示。
 
 ## 6. 專案限制
 
 - 初期使用者為兩位已知成員，身分驗證不是第一階段阻塞項目。
 - 後端由合作開發者維護並部署在獨立伺服器，前端只透過 API 交換資料。
 - Google Maps Key 的最終網站來源限制、地點搜尋、照片儲存、CORS、API 認證與環境分流尚待確認。
-- 本階段已接入 Google Maps 底圖；尚未串接合作方後端或照片服務。
+- 本階段已接入 Google Maps 底圖、Places 搜尋與 eatGoMap 暫用收藏 API；尚未串接合作方後端或照片服務。
 
 ## 7. 文件 Registry
 

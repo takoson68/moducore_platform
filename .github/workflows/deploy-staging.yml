@@ -126,6 +126,7 @@ jobs:
             platform/worker/scripts/release-plan.mjs
             platform/worker/scripts/schema-compatibility.mjs
             platform/worker/migrations/*
+            platform/worker/migrations/eatgomap/**
             platform/worker/wrangler.dinecore-staging.json
             platform/worker/wrangler.project-b-staging.json
             platform/worker/wrangler.eatgomap-staging.json
@@ -141,8 +142,9 @@ jobs:
         if: matrix.database == true && matrix.artifactSource != 'release'
         id: schema
         run: |
+          migration_dir='${{ matrix.migrations || 'migrations' }}'
           node .deployment-control/platform/worker/scripts/schema-compatibility.mjs derive \
-            --migrations .deployment-control/platform/worker/migrations
+            --migrations ".deployment-control/platform/worker/$migration_dir"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -260,7 +262,7 @@ jobs:
         working-directory: platform/worker
         run: |
           node ../../.deployment-control/platform/worker/scripts/schema-compatibility.mjs check \
-            --migrations ../../.deployment-control/platform/worker/migrations \
+            --migrations "../../.deployment-control/platform/worker/${{ matrix.migrations || 'migrations' }}" \
             --minimum '${{ steps.package-evidence.outputs.minimum-schema-version }}' \
             --config ../../.deployment-control/platform/worker/${{ matrix.config }} \
             --phase before
@@ -283,7 +285,7 @@ jobs:
         working-directory: platform/worker
         run: |
           node ../../.deployment-control/platform/worker/scripts/schema-compatibility.mjs check \
-            --migrations ../../.deployment-control/platform/worker/migrations \
+            --migrations "../../.deployment-control/platform/worker/${{ matrix.migrations || 'migrations' }}" \
             --minimum '${{ steps.package-evidence.outputs.minimum-schema-version }}' \
             --config ../../.deployment-control/platform/worker/${{ matrix.config }} \
             --phase after
@@ -310,6 +312,11 @@ jobs:
           curl --retry 5 --retry-all-errors --retry-delay 2 --fail --silent --show-error "$base/" | grep 'id="app"'
           curl --retry 5 --retry-all-errors --retry-delay 2 --fail --silent --show-error "$base/version-check" | grep 'id="app"'
 
+      - name: Verify eatGoMap API persistence and coordinate expiration contract
+        if: matrix.project == 'eatGoMap'
+        working-directory: platform/worker
+        run: node scripts/smoke-eatgomap-remote.mjs https://${{ matrix.target }}.takoson68.workers.dev ${{ matrix.target }}
+
       - name: Verify WebSocket chat broadcast
         if: matrix.websocket == true
         working-directory: platform/worker
@@ -321,7 +328,7 @@ jobs:
         run: node scripts/smoke-private-chat-lab-remote.mjs wss://${{ matrix.target }}.takoson68.workers.dev/ws/private-chat-lab
 
       - name: Verify remote authentication and D1 session lifecycle
-        if: matrix.database == true
+        if: matrix.project == 'dineCore' || matrix.project == 'project-b'
         working-directory: platform/worker
         env:
           VERIFY_PEER_ISOLATION: '1'

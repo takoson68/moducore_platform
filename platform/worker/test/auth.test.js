@@ -10,7 +10,7 @@ let mf, db, password
 const project = 'project-b'
 const base = 'https://example.test'
 const sql = (text, ...values) => db.prepare(text).bind(...values)
-const modules = ['index.js', 'auth.js', 'credentials.js', 'response.js', 'employees.js'].map(name => ({
+const modules = ['index.js', 'auth.js', 'credentials.js', 'response.js', 'employees.js', 'eatgomap-favorites.js'].map(name => ({
   type: 'ESModule', path: fileURLToPath(new URL(`../src/${name}`, import.meta.url)),
 }))
 

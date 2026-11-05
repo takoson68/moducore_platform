@@ -10,8 +10,9 @@
 ### 目前實作基線
 
 - 已建立 `map-home` 地圖首頁視覺原型與 `/` 公開路由。
-- 已呈現搜尋、分類／距離篩選、合成 Marker、地點卡片與底部導覽。
-- 當前地圖紋理、地點與狀態均為合成假資料；尚未接入地圖 SDK、定位或後端 API。
+- 已呈現搜尋、分類／距離篩選、合成 Marker、地點卡片與底部導覽；搜尋以 Google Places API (New) 查詢店家／地標與地址。
+- 收藏清單以 eatGoMap Worker API／D1 為事實來源，D1 僅保存 Place ID；`map-home` Store 經平台 Storage capability 以 Place ID 將地點詳情與使用者自訂欄位／個人日記保存於目前瀏覽器。資料缺漏或超過 30 天時，使用 Place ID 重新查詢並更新。有效快取座標用於收藏 Marker。這是 eatGoMap 暫用 API，日誌頁仍為未開放提示。現行流程依 [`D008_place_id_indexeddb_cache.md`](../decisions/D008_place_id_indexeddb_cache.md)。
+- 地圖底圖與店家／地址搜尋已接入 Google Maps JavaScript API 與 Places API (New)；收藏已接入 eatGoMap 暫用 Worker/D1，打卡尚未接入合作方後端 API。
 
 ## 1. 產品概念
 
@@ -143,7 +144,8 @@
 
 - 前後端預計維持獨立 Repository；是否另建 `eatGoMap-contracts` 共用契約 Repository，以及採 Submodule、Subtree 或外部連結引用，尚待與後端開發者確認。
 - 地圖供應商、計費／配額與金鑰限制方式。
-- 外部地點搜尋由前端或後端呼叫。
+- Google 地點搜尋由前端透過 Maps JavaScript API 的 Places library 呼叫；合作方後端仍負責共享收藏與打卡事實。
+- 搜尋結果卡片依 Worker API 回傳並載入 Store 的收藏狀態決定主要操作：未收藏可收藏，已收藏顯示「打卡」；收藏狀態可於不同瀏覽器讀取。打卡尚未串接後端。
 - 合作方後端框架、環境、網域、HTTPS、CORS 與自動部署方式。
 - API base URL、版本策略、回應 envelope、錯誤格式、日期時區與分頁規則。
 - 地點去重、外部資料快照更新與來源失效策略。
@@ -151,3 +153,8 @@
 - 旅程打卡的自動推薦、人工選取與排序規則。
 - 身分識別何時升級為正式驗證。
 - 類 App 體驗最終採 PWA、WebView 或其他形式。
+
+## 11. 已確認決策
+
+- Google 底圖 POI 點選採 Google 原生資訊窗呈現資訊；確認收藏後，以 Place ID 查詢詳情並保存於本機 IndexedDB。D1 只保存 Place ID；每筆地點本機記錄包含名稱、地址、座標、電話及個人自訂欄位，缺漏或超過 30 天時再查詢更新。Google 資料留存規則仍須依官方條款逐欄確認。詳見 [`D008_place_id_indexeddb_cache.md`](../decisions/D008_place_id_indexeddb_cache.md)。
+- 2026-11-05 建立 eatGoMap 收藏 Worker API 與 D1 Staging 目標；和合作方正式 API 分離。D1 是暫用收藏事實來源，合作方 API 契約完成後再替換。

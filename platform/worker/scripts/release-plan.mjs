@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url'
 
 const targets = {
   'game-demo': { target: 'game-demo-staging', project: 'game-demo', database: false, frontend: true, staticSite: true, websocket: false, config: 'wrangler.game-demo-staging.json' },
-  eatgomap: { target: 'eatgomap-staging', project: 'eatGoMap', database: false, frontend: true, staticSite: true, websocket: false, config: 'wrangler.eatgomap-staging.json' },
+  eatgomap: { target: 'eatgomap-staging', project: 'eatGoMap', database: true, migrations: 'migrations/eatgomap', frontend: true, staticSite: false, websocket: false, config: 'wrangler.eatgomap-staging.json' },
   chatcore: { target: 'chatcore-staging', project: 'chatCore', database: false, frontend: true, staticSite: true, websocket: false, privateChat: true, config: 'wrangler.chatcore-staging.jsonc' },
   'magic-siege': { target: 'magic-siege-staging', project: 'magic-siege', database: false, frontend: true, staticSite: true, websocket: false, config: 'wrangler.magic-siege-staging.json' },
   'platform-chat': { target: 'moducore-chat-poc-staging', project: 'platform-chat', database: false, frontend: false, staticSite: false, websocket: true, config: 'wrangler.chat-poc.jsonc' },

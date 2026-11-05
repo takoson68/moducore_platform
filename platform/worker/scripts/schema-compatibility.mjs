@@ -41,10 +41,17 @@ export function evaluateSchemaCompatibility({ available, applied, minimum, requi
 }
 
 function remoteMigrations(config) {
-  const output = execFileSync('npx', [
-    'wrangler', 'd1', 'execute', 'DB', '--remote', '--config', config,
-    '--command', 'SELECT id, name FROM d1_migrations ORDER BY id', '--json',
-  ], { encoding: 'utf8' })
+  let output
+  try {
+    output = execFileSync('npx', [
+      'wrangler', 'd1', 'execute', 'DB', '--remote', '--config', config,
+      '--command', 'SELECT id, name FROM d1_migrations ORDER BY id', '--json',
+    ], { encoding: 'utf8' })
+  } catch (error) {
+    const detail = `${error.stdout || ''}\n${error.stderr || ''}\n${error.message || ''}`
+    if (/no such table:\s*d1_migrations/i.test(detail)) return []
+    throw error
+  }
   const response = JSON.parse(output)
   if (!response?.[0]?.success || !Array.isArray(response[0].results)) throw new Error('無法讀取遠端 Migration 狀態')
   return response[0].results.map((row) => row.name)

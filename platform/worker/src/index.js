@@ -1,5 +1,6 @@
 import { login, logout, session } from './auth.js'
 import { listEmployees, createEmployee, updateEmployee, deleteEmployee } from './employees.js'
+import { listEatGoMapFavorites, createEatGoMapFavorite, deleteEatGoMapFavorite } from './eatgomap-favorites.js'
 import { errorResponse, HttpError, json } from './response.js'
 
 const routes = new Map([
@@ -7,6 +8,7 @@ const routes = new Map([
   ['/api/employees/create', { POST: createEmployee }],
   ['/api/employees/update', { POST: updateEmployee }],
   ['/api/employees/delete', { POST: deleteEmployee }],
+  ['/api/eatgomap/favorites', { GET: listEatGoMapFavorites, POST: createEatGoMapFavorite, DELETE: deleteEatGoMapFavorite }],
   ['/api/health', { GET: healthResponse }],
   ['/api/login', { POST: login }],
   ['/api/logout', { POST: logout }],
@@ -21,6 +23,9 @@ export default {
     if (url.pathname !== '/api' && !url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request)
     const traceId = crypto.randomUUID()
     try {
+      if (url.pathname.startsWith('/api/eatgomap/') && env.PROJECT_ID !== 'eatGoMap') {
+        throw new HttpError(404, 'NOT_FOUND', '找不到 API')
+      }
       const methods = routes.get(url.pathname.replace(/\/+$/, ''))
       if (!methods) throw new HttpError(404, 'NOT_FOUND', '找不到 API')
       const handler = Object.hasOwn(methods, request.method) ? methods[request.method] : undefined

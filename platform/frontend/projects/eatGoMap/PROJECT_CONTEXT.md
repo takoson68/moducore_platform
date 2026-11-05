@@ -45,13 +45,13 @@
 ## 7. 已知限制
 
 - 人力限制：目前由一名前端開發者與一名後端開發者合作，產品使用者也是這兩位成員。
-- 技術限制：前端與後端分開部署；跨來源請求需要 HTTPS、CORS 與環境設定配合。
+- 技術限制：前端與後端分開部署；跨來源請求需要 HTTPS、CORS 與環境設定配合。Google Places 搜尋要求 Google Cloud 專案啟用 Places API (New)，且瀏覽器 API Key 的 API 限制需允許 Maps JavaScript API 與 Places API (New)。
 - 時程限制：尚未定義正式里程碑與交付日期。
 
 ## 8. 外部依賴
 
 - 外部系統：合作方維護的後端與資料庫。
-- 外部 API：合作方提供的 Project API；Google Maps JavaScript API 已用於底圖，地點搜尋／資料服務仍待定義。
+- 外部 API：合作方提供的 Project API；Google Maps JavaScript API 用於底圖，Google Places API (New) 用於店家／地標與地址搜尋。合作方 API 仍待定義。
 - 第三方服務：Google Maps 已選用；照片物件儲存或共用雲端空間仍待選定。
 
 ## 9. 假設
