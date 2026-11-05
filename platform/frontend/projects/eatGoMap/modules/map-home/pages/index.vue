@@ -180,12 +180,13 @@ async function fetchPlaceDetails(placeId) {
 
 async function refreshFavoriteDetails(favorite, { quiet = false } = {}) {
   const placeId = favoritePlaceId(favorite)
-  if (!placeId || !Place || loadingFavoriteIds.value.has(placeId)) return
+  if (!placeId || !Place || loadingFavoriteIds.value.has(placeId)) return false
   const next = new Set(loadingFavoriteIds.value)
   next.add(placeId)
   loadingFavoriteIds.value = next
   try {
-    await favoriteStore.refreshPlaceDetails({ placeId, fetchDetails: fetchPlaceDetails })
+    const updated = await favoriteStore.refreshPlaceDetails({ placeId, fetchDetails: fetchPlaceDetails })
+    return Boolean(updated?.detailsFetchedAt)
   } catch {
     if (!quiet) {
       const latest = favoriteStore.state.items.find(item => favoritePlaceId(item) === placeId)
@@ -193,6 +194,7 @@ async function refreshFavoriteDetails(favorite, { quiet = false } = {}) {
         ? '這個地點已連續查詢失敗 2 次，已停止再次呼叫。'
         : '地點資訊查詢失敗；同一地點最多再嘗試一次。')
     }
+    return false
   } finally {
     const updated = new Set(loadingFavoriteIds.value)
     updated.delete(placeId)
@@ -310,8 +312,15 @@ async function handlePlacePrimaryAction() {
     isSavingFavorite.value = true
     try {
       const favorite = await favoriteStore.addFavorite({ placeId: selectedPoi.id, kind: 'poi' })
-      await refreshFavoriteDetails(favorite, { quiet: true })
-      showLocationMessage('已加入收藏，地點資訊已保存至此瀏覽器。')
+      const detailsSaved = await refreshFavoriteDetails(favorite, { quiet: true })
+      if (detailsSaved) {
+        showLocationMessage('已加入收藏，地點資訊已保存至此瀏覽器。')
+      } else {
+        const latest = favoriteStore.state.items.find(item => item.id === selectedPoi.id)
+        showLocationMessage(latest?.detailsRefreshFailures >= 2
+          ? '已加入收藏，但地點資料查詢連續失敗 2 次，已停止再次呼叫。'
+          : '已加入收藏，但地點資料尚未保存；可到收藏頁再查詢一次。')
+      }
     } catch {
       showLocationMessage('無法連接收藏 API，尚未加入收藏。')
     } finally {
