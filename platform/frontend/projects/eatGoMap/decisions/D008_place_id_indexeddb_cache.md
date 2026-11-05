@@ -6,14 +6,14 @@
 - 前端以 `world.services.storage()` 將每個地點存於 IndexedDB，key 為 `eatGoMap:place:{place_id}`。內容包含 Place ID、地點名稱、地址、座標、電話、快取取得時間，以及使用者自訂名稱、地址和個人日記。
 - 新增收藏前先由 API 建立 Place ID；API 成功後寫入本機地點記錄。移除收藏須先由 API 成功，再移除該 ID 的本機資料。
 - 搜尋結果已取得的欄位直接落入該 ID 的本機記錄；底圖 POI 則在使用者確認收藏後，以 Place ID 查詢必要詳情並寫入本機。
-- 每次載入 API 收藏清單時，以 Place ID 對應 IndexedDB 記錄。缺少記錄或詳情取得時間已滿 30 天時，呼叫 Places Details 取得 `displayName`、`formattedAddress`、`location`、`nationalPhoneNumber`，更新地點欄位與取得時間；使用者自訂欄位及日記保持不變。相同 ID 的並行更新合併為單一請求。
+- 每次載入 API 收藏清單時，以 Place ID 對應 IndexedDB 記錄。缺少記錄或詳情取得時間已滿 30 天時，呼叫 Places Details 取得 `displayName`、`formattedAddress`、`location`、`nationalPhoneNumber`，更新地點欄位與取得時間；使用者自訂欄位及日記保持不變。相同 ID 的並行更新合併為單一請求。每個 Place ID 的 Places Details 查詢最多允許連續失敗兩次；失敗數以獨立 IndexedDB key 持久保存，達上限後不再呼叫（包括重新載入頁面），成功時清除失敗數。移除收藏不會清除失敗數，以免同一 ID 重新加入後重複呼叫。
 - 地圖收藏 Marker 使用本機記錄中仍在 30 日快取期間內的座標。API 清單未包含的 ID 不作為收藏顯示，且其本機記錄會清理。
 
 ## 現況
 
 - Worker API 僅提供收藏清單 GET、Place ID POST、Place ID DELETE。
 - Migration `0005_place_id_only.sql` 將既有 D1 收藏資料收斂為單欄 `place_id`，保留 ID 並移除收藏來源、時間與手動欄位。
-- 此次只修改本機程式與 Migration；尚未套用遠端 Migration、部署或進行瀏覽器驗收。
+- Staging 遠端已部署的版本會隨每次修正更新；實際發布版本與驗收狀態以 `_workspace/CURRENT_WORK.md` 為準。
 
 ## Google 資料政策註記
 
@@ -21,7 +21,7 @@
 
 ## 狀態
 
-- accepted; locally implemented, remote migration and deployment pending.
+- accepted; base Place ID／IndexedDB flow and Migration 0005 are deployed to Staging. The per-Place ID two-failure request cap is being prepared for the next Staging patch.
 
 ## 來源
 

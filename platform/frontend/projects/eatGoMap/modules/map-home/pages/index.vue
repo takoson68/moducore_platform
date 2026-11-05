@@ -178,22 +178,24 @@ async function fetchPlaceDetails(placeId) {
   }
 }
 
-async function refreshFavoriteDetails(favorite, { force = false, quiet = false } = {}) {
-  if (!Place || loadingFavoriteIds.value.has(favorite.id)) return
+async function refreshFavoriteDetails(favorite, { quiet = false } = {}) {
+  const placeId = favoritePlaceId(favorite)
+  if (!placeId || !Place || loadingFavoriteIds.value.has(placeId)) return
   const next = new Set(loadingFavoriteIds.value)
-  next.add(favorite.id)
+  next.add(placeId)
   loadingFavoriteIds.value = next
   try {
-    if (force) {
-      await favoriteStore.updatePlaceDetails({ placeId: favorite.id, details: await fetchPlaceDetails(favorite.id) })
-    } else {
-      await favoriteStore.refreshPlaceDetails({ placeId: favorite.id, fetchDetails: fetchPlaceDetails })
-    }
+    await favoriteStore.refreshPlaceDetails({ placeId, fetchDetails: fetchPlaceDetails })
   } catch {
-    if (!quiet) showLocationMessage('無法更新這個地點的名稱、地址與座標，請稍後再試。')
+    if (!quiet) {
+      const latest = favoriteStore.state.items.find(item => favoritePlaceId(item) === placeId)
+      showLocationMessage(latest?.detailsRefreshFailures >= 2
+        ? '這個地點已連續查詢失敗 2 次，已停止再次呼叫。'
+        : '地點資訊查詢失敗；同一地點最多再嘗試一次。')
+    }
   } finally {
     const updated = new Set(loadingFavoriteIds.value)
-    updated.delete(favorite.id)
+    updated.delete(placeId)
     loadingFavoriteIds.value = updated
   }
 }
@@ -308,7 +310,7 @@ async function handlePlacePrimaryAction() {
     isSavingFavorite.value = true
     try {
       const favorite = await favoriteStore.addFavorite({ placeId: selectedPoi.id, kind: 'poi' })
-      await refreshFavoriteDetails(favorite, { force: true, quiet: true })
+      await refreshFavoriteDetails(favorite, { quiet: true })
       showLocationMessage('已加入收藏，地點資訊已保存至此瀏覽器。')
     } catch {
       showLocationMessage('無法連接收藏 API，尚未加入收藏。')
@@ -881,8 +883,8 @@ main.map-home
               p(v-else) Place ID：{{ place.id }}
               p(v-if="place.phone") 電話：{{ place.phone }}
               p(v-if="place.personalNote") {{ place.personalNote }}
-              button.favorite-details-button(type="button" :disabled="!Place || loadingFavoriteIds.has(place.id)" @click="refreshFavoriteDetails(place, { force: true })")
-                | {{ loadingFavoriteIds.has(place.id) ? '更新中…' : '重新查詢地點資料' }}
+              button.favorite-details-button(type="button" :disabled="!Place || loadingFavoriteIds.has(place.id) || place.detailsRefreshFailures >= 2" @click="refreshFavoriteDetails(place)")
+                | {{ loadingFavoriteIds.has(place.id) ? '更新中…' : place.detailsRefreshFailures >= 2 ? '已停止查詢（失敗 2 次）' : '重新查詢地點資料' }}
           button.remove-favorite(type="button" :aria-label="`移除 ${place.displayName} 收藏`" @click="removeSavedPlace(place.id)") 移除
       .favorites-empty(v-else)
         span.favorites-empty-icon(aria-hidden="true") ♢

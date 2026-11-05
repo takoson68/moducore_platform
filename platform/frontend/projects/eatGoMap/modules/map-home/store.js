@@ -26,6 +26,7 @@ function normalizePlaceRecord(id, record = {}) {
     coordinates: detailsAreFresh && validCoordinates ? { lat, lng } : null,
     phone: detailsAreFresh && typeof record.phone === 'string' ? record.phone : '',
     detailsFetchedAt: detailsAreFresh ? fetchedAt : 0,
+    detailsRefreshFailures: Math.max(0, Math.min(2, Number(record.detailsRefreshFailures) || 0)),
     customName: typeof record.customName === 'string' ? record.customName : '',
     customAddress: typeof record.customAddress === 'string' ? record.customAddress : '',
     personalNote: typeof record.personalNote === 'string' ? record.personalNote : ''
@@ -34,6 +35,10 @@ function normalizePlaceRecord(id, record = {}) {
 
 function storageKey(id) {
   return `${PLACE_STORAGE_PREFIX}:${encodeURIComponent(id)}`
+}
+
+function refreshFailureKey(id) {
+  return `eatGoMap:place-refresh-failures:${encodeURIComponent(id)}`
 }
 
 export function createEatGoMapFavoriteStore() {
@@ -58,7 +63,12 @@ export function createEatGoMapFavoriteStore() {
               if (!id) return null
               const cached = await storage.get(storageKey(id))
               const previous = cached || legacyById.get(id) || {}
-              const item = normalizePlaceRecord(id, { ...previous, kind: previous.kind || remote.source })
+              const failures = Number(await storage.get(refreshFailureKey(id))) || 0
+              const item = normalizePlaceRecord(id, {
+                ...previous,
+                detailsRefreshFailures: failures,
+                kind: previous.kind || remote.source
+              })
               await storage.set(storageKey(id), item)
               return item
             }))
@@ -88,11 +98,13 @@ export function createEatGoMapFavoriteStore() {
         const id = favorite.placeId || favorite.id
         await createFavorite({ placeId: id })
         const existing = store.get().items.find(item => item.id === id)
+        const failures = Number(await world.services.storage().get(refreshFailureKey(id))) || 0
         const item = normalizePlaceRecord(id, {
           ...existing,
           ...favorite,
           id,
           kind: favorite.kind,
+          detailsRefreshFailures: failures,
           detailsFetchedAt: favorite.detailsFetchedAt || existing?.detailsFetchedAt
         })
         await world.services.storage().set(storageKey(id), item)
@@ -131,10 +143,35 @@ export function createEatGoMapFavoriteStore() {
         if (!existing) return null
         const fresh = existing.detailsFetchedAt > 0 && Date.now() - existing.detailsFetchedAt < PLACE_CACHE_TTL_MS
         if (fresh) return existing
+        if (existing.detailsRefreshFailures >= 2) return existing
         if (detailsRefreshes.has(placeId)) return detailsRefreshes.get(placeId)
         const refresh = (async () => {
-          const details = await fetchDetails(placeId)
-          return store.updatePlaceDetails({ placeId, details })
+          let details
+          try {
+            details = await fetchDetails(placeId)
+          } catch (error) {
+            const storage = world.services.storage()
+            const failures = Math.min(2, (Number(await storage.get(refreshFailureKey(placeId))) || 0) + 1)
+            await storage.set(refreshFailureKey(placeId), failures)
+            const current = store.get().items.find(item => item.id === placeId)
+            if (current) {
+              await store.persistPlace(store, {
+                ...current,
+                detailsRefreshFailures: failures
+              })
+            }
+            throw error
+          }
+          await world.services.storage().remove(refreshFailureKey(placeId))
+          return store.persistPlace(store, {
+            ...existing,
+            name: details.name || '',
+            address: details.address || '',
+            coordinates: details.coordinates || null,
+            phone: details.phone || '',
+            detailsFetchedAt: Date.now(),
+            detailsRefreshFailures: 0
+          })
         })().finally(() => detailsRefreshes.delete(placeId))
         detailsRefreshes.set(placeId, refresh)
         return refresh
