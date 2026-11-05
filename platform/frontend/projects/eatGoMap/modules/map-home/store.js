@@ -1,7 +1,7 @@
 import world from '@/world.js'
 import { createFavorite, deleteFavorite, listFavorites } from './api/favoritesApi.js'
 
-const PLACE_STORAGE_PREFIX = 'eatGoMap:place:'
+const PLACE_STORAGE_PREFIX = 'eatGoMap:place'
 const LEGACY_STORAGE_KEY = 'eatGoMap:favorites'
 const PLACE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
@@ -33,7 +33,7 @@ function normalizePlaceRecord(id, record = {}) {
 }
 
 function storageKey(id) {
-  return `${PLACE_STORAGE_PREFIX}${encodeURIComponent(id)}`
+  return `${PLACE_STORAGE_PREFIX}:${encodeURIComponent(id)}`
 }
 
 export function createEatGoMapFavoriteStore() {
@@ -65,7 +65,7 @@ export function createEatGoMapFavoriteStore() {
             const normalized = items.filter(Boolean)
             const activeKeys = new Set(normalized.map(item => storageKey(item.id)))
             const staleKeys = await storage.list(PLACE_STORAGE_PREFIX)
-            await Promise.all(staleKeys.filter(entry => !activeKeys.has(entry.key))
+            await Promise.all(staleKeys.filter(entry => entry.key.startsWith(`${PLACE_STORAGE_PREFIX}:`) && !activeKeys.has(entry.key))
               .map(entry => storage.remove(entry.key)))
             await storage.remove(LEGACY_STORAGE_KEY)
             store.set({ ...store.get(), items: normalized, hydrated: true, syncState: 'ready' })
