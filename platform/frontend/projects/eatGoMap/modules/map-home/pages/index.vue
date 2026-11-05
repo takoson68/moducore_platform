@@ -20,6 +20,12 @@ const isSearching = ref(false)
 const searchMessage = ref('')
 const searchedPlace = ref(null)
 const selectedFavoriteId = ref(null)
+const favoriteDetailTab = ref('comments')
+const isCreatingMockCheckin = ref(false)
+const mockCommentDraft = ref('')
+const mockCheckinDraft = ref({ rating: 0, note: '' })
+const mockCommentsByPlace = ref({})
+const mockCheckinsByPlace = ref({})
 const isSavingFavorite = ref(false)
 const loadingFavoriteIds = ref(new Set())
 const editingFavoriteId = ref(null)
@@ -140,6 +146,8 @@ const selectedPlace = computed(() => {
   return places.find(place => place.id === selectedPlaceId.value) || null
 })
 const selectedFavorite = computed(() => savedPlaces.value.find(place => place.id === selectedFavoriteId.value) || null)
+const selectedMockComments = computed(() => mockCommentsByPlace.value[selectedFavoriteId.value] || [])
+const selectedMockCheckins = computed(() => mockCheckinsByPlace.value[selectedFavoriteId.value] || [])
 const hasSelectedPlace = computed(() => Boolean(selectedFavorite.value || selectedMapPoi.value || searchedPlace.value || selectedPlace.value))
 const activePlace = computed(() => {
   if (selectedFavorite.value) {
@@ -294,7 +302,58 @@ function selectFavoritePlace(place) {
   selectedMapPoi.value = null
   searchedPlace.value = null
   selectedFavoriteId.value = place.id
+  favoriteDetailTab.value = 'comments'
+  isCreatingMockCheckin.value = false
+  ensureMockFavoriteRecords(place.id)
   googleMap?.panTo(place.coordinates)
+}
+
+function ensureMockFavoriteRecords(placeId) {
+  if (!mockCommentsByPlace.value[placeId]) {
+    mockCommentsByPlace.value[placeId] = [
+      { id: `${placeId}-comment-1`, author: '小林', avatar: '👩🏻', text: '這間看起來很不錯，找一天一起來吃！', time: '01/16 20:14', mine: false },
+      { id: `${placeId}-comment-2`, author: '阿宇', avatar: '👨🏻', text: '好啊，我把它排進下次行程 😊', time: '01/16 20:36', mine: true }
+    ]
+  }
+  if (!mockCheckinsByPlace.value[placeId]) {
+    mockCheckinsByPlace.value[placeId] = [
+      { id: `${placeId}-checkin-1`, author: '小林', avatar: '👩🏻', time: '2027/01/16 19:20', rating: 5, note: '湯頭很香，份量也剛好。下次想試試看店裡的限定口味！', photoCount: 2 },
+      { id: `${placeId}-checkin-2`, author: '阿宇', avatar: '👨🏻', time: '2027/01/18 12:30', rating: 4, note: '環境舒服，排隊速度比想像中快。', photoCount: 1 }
+    ]
+  }
+}
+
+function submitMockComment() {
+  const text = mockCommentDraft.value.trim()
+  if (!selectedFavoriteId.value || !text) return
+  ensureMockFavoriteRecords(selectedFavoriteId.value)
+  const now = new Date()
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  mockCommentsByPlace.value[selectedFavoriteId.value].push({
+    id: `${selectedFavoriteId.value}-comment-${Date.now()}`,
+    author: '阿宇', avatar: '👨🏻', text, time, mine: true
+  })
+  mockCommentDraft.value = ''
+}
+
+function beginMockCheckin() {
+  favoriteDetailTab.value = 'checkins'
+  isCreatingMockCheckin.value = true
+  mockCheckinDraft.value = { rating: 0, note: '' }
+}
+
+function saveMockCheckin() {
+  if (!selectedFavoriteId.value) return
+  ensureMockFavoriteRecords(selectedFavoriteId.value)
+  const now = new Date()
+  const time = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  mockCheckinsByPlace.value[selectedFavoriteId.value].unshift({
+    id: `${selectedFavoriteId.value}-checkin-${Date.now()}`,
+    author: '阿宇', avatar: '👨🏻', time, rating: mockCheckinDraft.value.rating,
+    note: mockCheckinDraft.value.note.trim() || '這次到訪還沒有留下文字心得。', photoCount: 0
+  })
+  isCreatingMockCheckin.value = false
+  showLocationMessage('已新增示意打卡（僅保存在目前頁面）。')
 }
 
 // 關閉地點卡片並清除目前搜尋、選取與暫存標記。
@@ -887,7 +946,82 @@ main.map-home
           circle.location-ring(cx="12" cy="12" r="7.5")
           circle.location-center(cx="12" cy="12" r="2")
 
-      article.place-card(v-if="hasSelectedPlace" :class="{ 'poi-action-card': selectedMapPoi, 'favorite-place-card': selectedFavorite }")
+      article.favorite-detail-sheet(v-if="selectedFavorite" aria-label="收藏地點詳情")
+        header.favorite-detail-header
+          .favorite-detail-thumb(aria-hidden="true") ▴
+          .favorite-detail-title
+            span.favorite-detail-kicker ★ 共同收藏
+            h2 {{ selectedFavorite.displayName }}
+            p {{ selectedFavorite.displayAddress || '地址尚未取得' }}
+          button.favorite-checkin-button(type="button" @click="beginMockCheckin")
+            span aria-hidden="true" ◉
+            | 新增打卡
+          button.close-card(type="button" aria-label="關閉地點卡片" @click="closePlaceCard") ×
+
+        nav.favorite-detail-tabs(role="tablist" aria-label="地點內容")
+          button(type="button" role="tab" :aria-selected="favoriteDetailTab === 'info'" :class="{ active: favoriteDetailTab === 'info' }" @click="favoriteDetailTab = 'info'") 資訊
+          button(type="button" role="tab" :aria-selected="favoriteDetailTab === 'checkins'" :class="{ active: favoriteDetailTab === 'checkins' }" @click="favoriteDetailTab = 'checkins'") 打卡
+          button(type="button" role="tab" :aria-selected="favoriteDetailTab === 'comments'" :class="{ active: favoriteDetailTab === 'comments' }" @click="favoriteDetailTab = 'comments'") 留言
+
+        .favorite-detail-panel(v-if="favoriteDetailTab === 'info'")
+          .favorite-info-row
+            span.detail-icon ◉
+            div
+              strong 地點資訊
+              p {{ selectedFavorite.displayAddress || '尚無地址資料' }}
+          .favorite-info-row(v-if="selectedFavorite.phone")
+            span.detail-icon ☎
+            div
+              strong 電話
+              p {{ selectedFavorite.phone }}
+          .favorite-info-row
+            span.detail-icon ▣
+            div
+              strong 收藏備註
+              p {{ selectedFavorite.personalNote || '還沒有留言，之後可以在收藏清單新增自己的備註。' }}
+          .favorite-info-summary
+            span {{ selectedMockCheckins.length }} 次打卡
+            span {{ selectedMockCheckins.length ? `${(selectedMockCheckins.reduce((sum, item) => sum + item.rating, 0) / selectedMockCheckins.length).toFixed(1)} ★` : '尚無評分' }}
+
+        .favorite-detail-panel.checkin-panel(v-else-if="favoriteDetailTab === 'checkins'")
+          form.mock-checkin-form(v-if="isCreatingMockCheckin" @submit.prevent="saveMockCheckin")
+            .mock-form-heading
+              strong 新增打卡
+              button(type="button" aria-label="取消新增打卡" @click="isCreatingMockCheckin = false") ×
+            p.mock-field-label 這次評幾分？
+            .rating-picker(role="group" aria-label="選擇評分")
+              button(v-for="rating in 5" :key="rating" type="button" :aria-label="`${rating} 分`" :class="{ selected: mockCheckinDraft.rating >= rating }" @click="mockCheckinDraft.rating = rating") ★
+            label.mock-field-label(for="mock-checkin-note") 留下這次的心得
+            textarea#mock-checkin-note(v-model="mockCheckinDraft.note" rows="3" maxlength="300" placeholder="例如：餐點、氣氛或下次想試的菜色…")
+            .mock-photo-row
+              span 照片（示意）
+              span.mock-photo-placeholder ＋ 新增照片
+            button.mock-save-button(type="submit") 儲存打卡
+          template(v-else)
+            .checkin-record(v-for="checkin in selectedMockCheckins" :key="checkin.id")
+              .checkin-avatar(aria-hidden="true") {{ checkin.avatar }}
+              .checkin-copy
+                .checkin-meta
+                  strong {{ checkin.author }}
+                  time {{ checkin.time }}
+                .checkin-rating(aria-label="評分") {{ '★'.repeat(checkin.rating) }}{{ '☆'.repeat(5 - checkin.rating) }}
+                p {{ checkin.note }}
+                .checkin-photo-placeholder(v-if="checkin.photoCount") ▧ {{ checkin.photoCount }} 張照片
+
+        .favorite-detail-panel.comments-panel(v-else)
+          .comment-list(aria-live="polite")
+            .comment-row(v-for="comment in selectedMockComments" :key="comment.id" :class="{ mine: comment.mine }")
+              .comment-avatar(v-if="!comment.mine" aria-hidden="true") {{ comment.avatar }}
+              .comment-content
+                strong(v-if="!comment.mine") {{ comment.author }}
+                p {{ comment.text }}
+                time {{ comment.time }}
+              .comment-avatar(v-if="comment.mine" aria-hidden="true") {{ comment.avatar }}
+          form.comment-composer(@submit.prevent="submitMockComment")
+            input(v-model="mockCommentDraft" type="text" maxlength="300" placeholder="留言討論這個地點…" aria-label="輸入地點留言")
+            button(type="submit" :disabled="!mockCommentDraft.trim()" aria-label="送出留言") ➤
+
+      article.place-card(v-else-if="hasSelectedPlace" :class="{ 'poi-action-card': selectedMapPoi }")
         button.close-card(type="button" aria-label="關閉地點卡片" @click="closePlaceCard") ×
         .place-thumb(v-if="!selectedMapPoi" :class="activePlace.tone" aria-hidden="true")
           span {{ selectedFavorite ? '★' : searchedPlace ? '地' : activePlace.kind === 'food' ? '麵' : '旅' }}
@@ -904,14 +1038,6 @@ main.map-home
               @click="toggleSearchedPlaceSaved"
             ) {{ selectedPlaceIsSaved ? '◆' : '◇' }}
           p {{ selectedPlaceDetail }}
-          .favorite-place-details(v-if="selectedFavorite")
-            p(v-if="selectedFavorite.phone") 電話：{{ selectedFavorite.phone }}
-            p.favorite-personal-note(v-if="selectedFavorite.personalNote") {{ selectedFavorite.personalNote }}
-            p.favorite-empty-record(v-else) 尚未輸入個人留言或心得。
-            .favorite-record-summary
-              span 尚未打卡
-              span 尚未評分
-              span 尚未加入照片
           .place-actions(:class="{ 'single-action': selectedMapPoi || selectedFavorite }")
             button.secondary-action(v-if="!selectedMapPoi && !selectedFavorite" type="button") 查看詳情
             button.primary-action(
@@ -1206,6 +1332,352 @@ main.map-home
   position: relative
   overflow: hidden
   background: #e8e2d5
+
+.favorite-detail-sheet
+  position: absolute
+  z-index: 11
+  left: 12px
+  right: 12px
+  bottom: 12px
+  display: grid
+  grid-template-rows: auto auto minmax(150px, 1fr)
+  max-height: min(61vh, 510px)
+  min-height: 320px
+  overflow: hidden
+  border: 1px solid rgba(255,255,255,.9)
+  border-radius: 20px
+  background: rgba(255,253,249,.98)
+  box-shadow: 0 15px 38px rgba(31,46,42,.25)
+  backdrop-filter: blur(14px)
+
+.favorite-detail-header
+  position: relative
+  display: grid
+  grid-template-columns: 54px minmax(0, 1fr) auto
+  align-items: center
+  gap: 10px
+  padding: 13px 38px 12px 13px
+  border-bottom: 1px solid #ecebe6
+
+.favorite-detail-thumb
+  width: 54px
+  height: 54px
+  display: grid
+  place-items: center
+  border-radius: 12px
+  background: linear-gradient(145deg, #d9e2df, #aebdb9)
+  color: white
+  font-size: 24px
+
+.favorite-detail-title
+  min-width: 0
+
+.favorite-detail-kicker
+  color: #7d55c7
+  font-size: 10px
+  font-weight: 800
+
+.favorite-detail-title h2
+  overflow: hidden
+  margin: 2px 0
+  font-size: 16px
+  line-height: 1.25
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.favorite-detail-title p
+  overflow: hidden
+  margin: 0
+  color: #707b77
+  font-size: 10px
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.favorite-checkin-button
+  display: flex
+  align-items: center
+  gap: 5px
+  padding: 8px 9px
+  border: 1px solid #10a69b
+  border-radius: 10px
+  background: white
+  color: #078d84
+  font-size: 11px
+  font-weight: 800
+  white-space: nowrap
+  cursor: pointer
+
+.favorite-detail-header .close-card
+  top: 5px
+  right: 7px
+
+.favorite-detail-tabs
+  display: grid
+  grid-template-columns: repeat(3, 1fr)
+  padding: 0 12px
+  border-bottom: 1px solid #e7e8e4
+
+.favorite-detail-tabs button
+  min-height: 40px
+  border: 0
+  border-bottom: 3px solid transparent
+  background: transparent
+  color: #58635f
+  font-size: 12px
+  font-weight: 800
+  cursor: pointer
+
+.favorite-detail-tabs button.active
+  border-bottom-color: #00a99d
+  color: #008e84
+
+.favorite-detail-panel
+  min-height: 0
+  overflow-y: auto
+  overscroll-behavior: contain
+  padding: 12px
+
+.favorite-info-row
+  display: grid
+  grid-template-columns: 30px minmax(0, 1fr)
+  gap: 9px
+  padding: 8px 0
+
+.detail-icon
+  width: 28px
+  height: 28px
+  display: grid
+  place-items: center
+  border-radius: 9px
+  background: #e5f4f0
+  color: #078d84
+
+.favorite-info-row strong
+  font-size: 12px
+
+.favorite-info-row p
+  margin: 3px 0 0
+  color: #68736f
+  font-size: 11px
+  line-height: 1.5
+
+.favorite-info-summary
+  display: flex
+  gap: 7px
+  margin-top: 8px
+
+.favorite-info-summary span,
+.checkin-photo-placeholder
+  padding: 5px 8px
+  border-radius: 999px
+  background: #f0eee8
+  color: #5f6965
+  font-size: 10px
+  font-weight: 700
+
+.comments-panel
+  display: grid
+  grid-template-rows: minmax(0, 1fr) auto
+  gap: 10px
+
+.comment-list
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.comment-row
+  display: flex
+  align-items: flex-end
+  gap: 8px
+
+.comment-row.mine
+  justify-content: flex-end
+
+.comment-avatar,
+.checkin-avatar
+  width: 31px
+  height: 31px
+  flex: 0 0 31px
+  display: grid
+  place-items: center
+  border-radius: 50%
+  background: #f4dfcc
+  font-size: 17px
+
+.comment-content
+  max-width: 78%
+
+.comment-content strong
+  display: block
+  margin: 0 0 3px 7px
+  color: #34413d
+  font-size: 10px
+
+.comment-content p
+  margin: 0
+  padding: 8px 11px
+  border-radius: 14px 14px 14px 4px
+  background: #edf0ef
+  color: #2f3936
+  font-size: 12px
+  line-height: 1.45
+  overflow-wrap: anywhere
+
+.comment-row.mine .comment-content p
+  border-radius: 14px 14px 4px 14px
+  background: #d8f3ef
+
+.comment-content time
+  display: block
+  margin: 3px 6px 0
+  color: #8b918e
+  font-size: 9px
+
+.comment-row.mine .comment-content time
+  text-align: right
+
+.comment-composer
+  display: grid
+  grid-template-columns: minmax(0, 1fr) 34px
+  gap: 7px
+  padding-top: 8px
+  border-top: 1px solid #ecebe6
+
+.comment-composer input
+  min-width: 0
+  height: 36px
+  padding: 0 11px
+  border: 1px solid #ccd2ce
+  border-radius: 11px
+  background: white
+  font: inherit
+  font-size: 11px
+
+.comment-composer button
+  border: 0
+  border-radius: 10px
+  background: #08a99d
+  color: white
+  font-size: 16px
+  cursor: pointer
+
+.comment-composer button:disabled
+  opacity: .45
+  cursor: default
+
+.checkin-panel
+  display: grid
+  align-content: start
+  gap: 11px
+
+.checkin-record
+  display: grid
+  grid-template-columns: 31px minmax(0, 1fr)
+  gap: 9px
+  padding-bottom: 11px
+  border-bottom: 1px solid #ecebe6
+
+.checkin-meta
+  display: flex
+  align-items: center
+  gap: 8px
+
+.checkin-meta strong
+  font-size: 11px
+
+.checkin-meta time
+  color: #89918e
+  font-size: 9px
+
+.checkin-rating
+  margin-top: 4px
+  color: #f3a542
+  font-size: 12px
+  letter-spacing: 1px
+
+.checkin-copy > p
+  margin: 4px 0 7px
+  color: #4d5955
+  font-size: 11px
+  line-height: 1.5
+
+.mock-checkin-form
+  display: grid
+  gap: 9px
+  padding: 11px
+  border-radius: 13px
+  background: #f6f5f0
+
+.mock-form-heading
+  display: flex
+  justify-content: space-between
+  align-items: center
+
+.mock-form-heading strong
+  font-size: 13px
+
+.mock-form-heading button
+  border: 0
+  background: transparent
+  color: #7b8582
+  font-size: 20px
+  cursor: pointer
+
+.mock-field-label
+  color: #46534f
+  font-size: 10px
+  font-weight: 800
+
+.mock-checkin-form > p
+  margin: 0
+
+.rating-picker
+  display: flex
+  gap: 3px
+
+.rating-picker button
+  padding: 0 3px
+  border: 0
+  background: transparent
+  color: #c7c9c3
+  font-size: 23px
+  cursor: pointer
+
+.rating-picker button.selected
+  color: #f3a542
+
+.mock-checkin-form textarea
+  resize: vertical
+  padding: 9px
+  border: 1px solid #d6dad6
+  border-radius: 10px
+  background: white
+  font: inherit
+  font-size: 11px
+
+.mock-photo-row
+  display: flex
+  justify-content: space-between
+  align-items: center
+  color: #59645f
+  font-size: 10px
+
+.mock-photo-placeholder
+  padding: 8px 10px
+  border: 1px dashed #aeb9b4
+  border-radius: 9px
+  background: white
+  color: #73807b
+
+.mock-save-button
+  min-height: 36px
+  border: 0
+  border-radius: 10px
+  background: #08a99d
+  color: white
+  font-size: 12px
+  font-weight: 800
+  cursor: pointer
 
 .favorites-page
   min-height: 0
@@ -1958,6 +2430,32 @@ main.map-home
     padding-top: max(14px, env(safe-area-inset-top))
     padding-left: 16px
     padding-right: 16px
+
+  .favorite-detail-sheet
+    left: 9px
+    right: 9px
+    bottom: 9px
+    max-height: min(59vh, 470px)
+    min-height: 300px
+
+  .favorite-detail-header
+    grid-template-columns: 46px minmax(0, 1fr) auto
+    gap: 8px
+    padding: 11px 33px 10px 10px
+
+  .favorite-detail-thumb
+    width: 46px
+    height: 46px
+
+  .favorite-checkin-button
+    padding: 7px
+    font-size: 10px
+
+  .favorite-detail-title h2
+    font-size: 14px
+
+  .favorite-detail-title p
+    font-size: 9px
 
 @media (max-height: 730px) and (min-width: 561px)
   .app-frame
