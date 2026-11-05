@@ -64,6 +64,7 @@ let favoriteMarkers = []
 let mapPoiClickListener
 
 const mapCenter = { lat: 25.0641, lng: 121.5336 }
+const PLACE_DETAILS_TIMEOUT_MS = 15_000
 
 const places = [
   {
@@ -168,14 +169,28 @@ const savedPlaceCount = computed(() => savedPlaces.value.length)
 async function fetchPlaceDetails(placeId) {
   if (!Place) throw new Error('Places library 尚未載入')
   const place = new Place({ id: placeId })
-  await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'nationalPhoneNumber'] })
+  let timeoutId
+  try {
+    await Promise.race([
+      place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'nationalPhoneNumber'] }),
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error('Places Details 查詢逾時')), PLACE_DETAILS_TIMEOUT_MS)
+      })
+    ])
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
   const coordinates = place.location?.toJSON?.()
-  return {
+  const details = {
     name: place.displayName?.toString() || '',
     address: place.formattedAddress || '',
     coordinates: coordinates || null,
     phone: place.nationalPhoneNumber || ''
   }
+  if (!details.name || !details.address || !Number.isFinite(coordinates?.lat) || !Number.isFinite(coordinates?.lng)) {
+    throw new Error('Places Details 未回傳名稱、地址或座標')
+  }
+  return details
 }
 
 async function refreshFavoriteDetails(favorite, { quiet = false } = {}) {
