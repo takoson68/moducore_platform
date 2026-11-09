@@ -72,6 +72,26 @@ function refreshFailureMessage(error) {
   return String(message).replace(/AIza[0-9A-Za-z_-]{20,}/g, '[已隱藏 API 金鑰]').slice(0, 240)
 }
 
+export const eatGoMapMembers = [
+  { id: 'male', label: '男生' },
+  { id: 'female', label: '女生' }
+]
+
+export function createEatGoMapMemberStore() {
+  return world.createStore({
+    name: 'eatGoMapMemberStore',
+    storageKey: 'eatGoMap:member',
+    defaultValue: { memberId: null },
+    actions: {
+      selectMember(store, memberId) {
+        if (!eatGoMapMembers.some(member => member.id === memberId)) return
+        store.set({ memberId })
+        store.flushPersist()
+      }
+    }
+  })
+}
+
 export function createEatGoMapFavoriteStore() {
   let hydrationPromise = null
   const detailsRefreshes = new Map()

@@ -2,8 +2,24 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import world from '@/world.js'
 import { loadGoogleMaps } from '../googleMaps.js'
+import MemberAvatar from '../components/MemberAvatar.vue'
+import { eatGoMapMembers } from '../store.js'
 
 const favoriteStore = world.store('eatGoMapFavoriteStore')
+const memberStore = world.store('eatGoMapMemberStore')
+const memberDialog = ref(null)
+const activeMember = computed(() => eatGoMapMembers.find(member => member.id === memberStore.state.memberId))
+
+function openMemberPicker() {
+  memberDialog.value.showModal()
+}
+
+function selectMember(memberId) {
+  const firstSelection = !activeMember.value
+  memberStore.selectMember(memberId)
+  memberDialog.value.close()
+  if (firstSelection) void initializeMap()
+}
 const activeMode = ref('food')
 const activeTab = ref('map')
 const distance = ref('附近 1 公里')
@@ -744,7 +760,12 @@ watch([visiblePlaces, selectedPlaceId], () => {
   if (place) googleMap.panTo(place.coordinates)
 })
 
-onMounted(async () => {
+onMounted(() => {
+  if (activeMember.value) void initializeMap()
+  else openMemberPicker()
+})
+
+async function initializeMap() {
   const favoriteHydration = favoriteStore.hydrate()
   viewportMeta = document.querySelector('meta[name="viewport"]')
   originalViewportContent = viewportMeta?.content
@@ -798,7 +819,7 @@ onMounted(async () => {
     mapState.value = 'error'
     mapMessage.value = error instanceof Error ? error.message : 'Google 地圖載入失敗。'
   }
-})
+}
 
 onUnmounted(() => {
   if (viewportMeta && originalViewportContent) viewportMeta.content = originalViewportContent
@@ -823,6 +844,23 @@ onUnmounted(() => {
 
 <template lang="pug">
 main.map-home
+  dialog.member-picker(ref="memberDialog" aria-labelledby="member-picker-title" @cancel="!activeMember && $event.preventDefault()")
+    .member-picker-content
+      span.member-picker-brand EatGoMap
+      h1#member-picker-title 選擇使用者
+      p 選擇你的頭像，開始探索美食與旅程。
+      .member-options
+        button.member-option(
+          v-for="member in eatGoMapMembers"
+          :key="member.id"
+          type="button"
+          :class="{ 'member-option-current': activeMember?.id === member.id }"
+          @click="selectMember(member.id)"
+        )
+          MemberAvatar(:member-id="member.id")
+          span {{ member.label }}
+      button.member-picker-cancel(v-if="activeMember" type="button" @click="memberDialog.close()") 取消
+
   section.app-frame(aria-label="食旅地圖首頁視覺原型")
     header.map-header(:class="{ 'map-header-page': activeTab !== 'map' }")
       template(v-if="activeTab === 'map'")
@@ -879,17 +917,14 @@ main.map-home
                 span {{ item.text }}
               p.search-feedback(v-if="isSearching" role="status") 搜尋中…
               p.search-feedback(v-else-if="searchMessage" role="status") {{ searchMessage }}
-          svg.search-avatar(viewBox="0 0 48 48" aria-hidden="true")
-            circle(cx="24" cy="24" r="24" fill="#c9e8df")
-            path(d="M7 46c1-9 7-13 17-13s16 4 17 13Z" fill="#527e6f")
-            path(d="M12 35c-4-4 1-8 1-14 0-8 5-12 11-12s12 5 12 12c0 6 5 10 1 14-3 3-7 1-13 1s-9 2-12-1Z" fill="#3d2b25")
-            path(d="M20 31h8v8l-4 6-4-6Z" fill="#f6c3a2")
-            path(d="M16 21c4 0 7-3 8-6 2 3 5 5 8 6v4c0 6-4 10-8 10s-8-4-8-10Z" fill="#ffdbc0")
-            path(d="M7 17c1-3 4-4 7-5l2-6c4-3 12-3 16 0l2 6c4 1 7 3 7 5-1 3-5 3-7 2-4-7-16-7-20 0-2 1-6 1-7-2Z" fill="#e6c58b")
-            path(d="M15 11c6-2 12-2 18 0" fill="none" stroke="#8d6347" stroke-width="2")
-            circle(cx="21" cy="25" r="1" fill="#3d2b25")
-            circle(cx="27" cy="25" r="1" fill="#3d2b25")
-            path(d="M22 29q2 2 4 0" fill="none" stroke="#c87168" stroke-linecap="round")
+          button.search-avatar(
+            v-if="activeMember"
+            type="button"
+            :aria-label="`目前會員：${activeMember.label}，切換會員`"
+            aria-haspopup="dialog"
+            @click="openMemberPicker"
+          )
+            MemberAvatar(:member-id="activeMember.id")
 
       .page-header(v-else)
         h1 {{ activeTab === 'favorites' ? '我的最愛' : '旅遊日誌' }}
@@ -1222,7 +1257,88 @@ main.map-home
   flex: 0 0 40px
   width: 40px
   height: 40px
+  display: block
+  padding: 0
+  border: 0
   border-radius: 50%
+  overflow: hidden
+  background: transparent
+  cursor: pointer
+
+.search-avatar svg
+  display: block
+  width: 100%
+  height: 100%
+
+.member-picker
+  position: fixed
+  inset: 0
+  width: 100%
+  height: 100%
+  max-width: none
+  max-height: none
+  margin: 0
+  padding: 0
+  border: 0
+  background: radial-gradient(ellipse at top, #e2f2ec, #fbfaf8 70%)
+  color: var(--egm-ink)
+
+.member-picker[open]
+  display: grid
+  place-items: center
+
+.member-picker-content
+  width: min(100%, 400px)
+  padding: 32px 20px
+  text-align: center
+
+.member-picker-brand
+  color: var(--egm-green-800)
+  font-size: 26px
+  font-weight: 900
+
+.member-picker-content h1
+  margin: 12px 0 6px
+  font-size: 27px
+
+.member-picker-content p
+  margin: 0 0 24px
+  color: var(--egm-muted)
+  font-size: 14px
+
+.member-options
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 12px
+
+.member-option
+  display: grid
+  justify-items: center
+  gap: 12px
+  padding: 16px 10px
+  border: 1px solid #cbded7
+  border-radius: 20px
+  background: #fff
+  color: var(--egm-green-900)
+  font-weight: 800
+  cursor: pointer
+
+.member-option:hover,
+.member-option-current
+  background: #e6f5ef
+  border-color: var(--egm-green-700)
+
+.member-option svg
+  width: 64px
+  height: 64px
+
+.member-picker-cancel
+  margin-top: 18px
+  padding: 8px 16px
+  border: 0
+  background: transparent
+  color: var(--egm-green-900)
+  cursor: pointer
 
 .search-box
   height: 40px
@@ -2102,6 +2218,9 @@ main.map-home
   bottom: calc(var(--egm-nav-clearance) + 12px)
   width: 44px
   height: 44px
+  display: grid
+  place-items: center
+  padding: 0
   border: 0
   border-radius: 14px
   background: #fffdf9
