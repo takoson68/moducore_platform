@@ -825,64 +825,75 @@ onUnmounted(() => {
 main.map-home
   section.app-frame(aria-label="食旅地圖首頁視覺原型")
     header.map-header(:class="{ 'map-header-page': activeTab !== 'map' }")
-      .brand-row(v-if="activeTab === 'map'")
-        button.brand-home-button(type="button" aria-label="重新整理食旅地圖" title="重新整理網站" @click="refreshSite")
-          .brand-mark(aria-hidden="true") 路
-        .search-area
-          label.search-box
-            span.search-icon(aria-hidden="true") ⌕
-            input(
-              v-model="searchQuery"
-              type="search"
-              placeholder="搜尋店家或地址"
-              aria-label="搜尋店家或地址"
-              role="combobox"
-              aria-autocomplete="list"
-              :aria-expanded="searchSuggestions.length > 0 || isSearching || Boolean(searchMessage)"
-              aria-controls="place-search-results"
-              @input="updateSearchSuggestions"
-              @keydown.esc="closeSearchSuggestions"
-            )
-          .search-suggestions(
-            v-if="searchSuggestions.length || isSearching || searchMessage"
-            id="place-search-results"
-            role="listbox"
-          )
-            button.search-suggestion(
-              v-for="(item, index) in searchSuggestions"
-              :key="`${item.text}-${index}`"
+      template(v-if="activeTab === 'map'")
+        .brand-row
+          button.brand-home-button(type="button" aria-label="重新整理食旅地圖" title="重新整理網站" @click="refreshSite")
+            span(aria-hidden="true") EatGoMap
+          .filter-row(aria-label="地圖篩選")
+            button.filter-chip(
               type="button"
-              role="option"
-              @click="selectSearchSuggestion(item)"
+              :class="{ active: activeMode === 'food' }"
+              @click="selectMode('food')"
             )
-              span.suggestion-icon(aria-hidden="true") ⌖
-              span {{ item.text }}
-            p.search-feedback(v-if="isSearching" role="status") 搜尋中…
-            p.search-feedback(v-else-if="searchMessage" role="status") {{ searchMessage }}
+              | 美食
+            button.filter-chip(
+              type="button"
+              :class="{ active: activeMode === 'travel' }"
+              @click="selectMode('travel')"
+            )
+              | 旅遊
+            button.filter-chip.distance-chip(type="button" @click="cycleDistance")
+              | {{ distance }}
+              span.chevron(aria-hidden="true")
+        .search-row
+          .search-area
+            label.search-box
+              svg.search-icon(viewBox="0 0 24 24" aria-hidden="true")
+                circle(cx="10.5" cy="10.5" r="6.5")
+                path(d="m16 16 5 5")
+              input(
+                v-model="searchQuery"
+                type="search"
+                placeholder="搜尋店家或地址"
+                aria-label="搜尋店家或地址"
+                role="combobox"
+                aria-autocomplete="list"
+                :aria-expanded="searchSuggestions.length > 0 || isSearching || Boolean(searchMessage)"
+                aria-controls="place-search-results"
+                @input="updateSearchSuggestions"
+                @keydown.esc="closeSearchSuggestions"
+              )
+            .search-suggestions(
+              v-if="searchSuggestions.length || isSearching || searchMessage"
+              id="place-search-results"
+              role="listbox"
+            )
+              button.search-suggestion(
+                v-for="(item, index) in searchSuggestions"
+                :key="`${item.text}-${index}`"
+                type="button"
+                role="option"
+                @click="selectSearchSuggestion(item)"
+              )
+                span.suggestion-icon(aria-hidden="true") ⌖
+                span {{ item.text }}
+              p.search-feedback(v-if="isSearching" role="status") 搜尋中…
+              p.search-feedback(v-else-if="searchMessage" role="status") {{ searchMessage }}
+          svg.search-avatar(viewBox="0 0 48 48" aria-hidden="true")
+            circle(cx="24" cy="24" r="24" fill="#c9e8df")
+            path(d="M7 46c1-9 7-13 17-13s16 4 17 13Z" fill="#527e6f")
+            path(d="M12 35c-4-4 1-8 1-14 0-8 5-12 11-12s12 5 12 12c0 6 5 10 1 14-3 3-7 1-13 1s-9 2-12-1Z" fill="#3d2b25")
+            path(d="M20 31h8v8l-4 6-4-6Z" fill="#f6c3a2")
+            path(d="M16 21c4 0 7-3 8-6 2 3 5 5 8 6v4c0 6-4 10-8 10s-8-4-8-10Z" fill="#ffdbc0")
+            path(d="M7 17c1-3 4-4 7-5l2-6c4-3 12-3 16 0l2 6c4 1 7 3 7 5-1 3-5 3-7 2-4-7-16-7-20 0-2 1-6 1-7-2Z" fill="#e6c58b")
+            path(d="M15 11c6-2 12-2 18 0" fill="none" stroke="#8d6347" stroke-width="2")
+            circle(cx="21" cy="25" r="1" fill="#3d2b25")
+            circle(cx="27" cy="25" r="1" fill="#3d2b25")
+            path(d="M22 29q2 2 4 0" fill="none" stroke="#c87168" stroke-linecap="round")
 
       .page-header(v-else)
         h1 {{ activeTab === 'favorites' ? '我的最愛' : '旅遊日誌' }}
         span(v-if="activeTab === 'favorites'") {{ savedPlaceCount }} 個收藏地點
-
-      .filter-row(v-if="activeTab === 'map'" aria-label="地圖篩選")
-        button.filter-chip(
-          type="button"
-          :class="{ active: activeMode === 'food' }"
-          @click="selectMode('food')"
-        )
-          span.chip-icon(aria-hidden="true") ◖
-          | 美食
-        button.filter-chip(
-          type="button"
-          :class="{ active: activeMode === 'travel' }"
-          @click="selectMode('travel')"
-        )
-          span.chip-icon(aria-hidden="true") ◉
-          | 旅遊
-        button.filter-chip.distance-chip(type="button" @click="cycleDistance")
-          span.chip-icon(aria-hidden="true") ⌖
-          | {{ distance }}
-          span.chevron(aria-hidden="true") ⌄
 
     section.map-canvas(v-show="activeTab === 'map'" aria-label="大阪難波地圖")
       .google-map(ref="mapElement" aria-label="Google 地圖")
@@ -905,7 +916,6 @@ main.map-home
           | 南海難波站
 
       .legend-card
-        strong 共享收藏地點
         span
           i.legend-pin.coral
           | 已收藏（尚未打卡）
@@ -1089,15 +1099,20 @@ main.map-home
         button.return-map-button(type="button" @click="openTab('map')") 回到地圖
 
     nav.bottom-nav(aria-label="主要導覽")
-      button.nav-item(type="button" :class="{ active: activeTab === 'map' }" @click="openTab('map')")
-        span.nav-icon(aria-hidden="true") ●
+      button.nav-item(type="button" :class="{ active: activeTab === 'map' }" :aria-current="activeTab === 'map' ? 'page' : null" @click="openTab('map')")
+        svg.nav-icon(viewBox="0 0 24 24" aria-hidden="true")
+          path(d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z")
+          circle(cx="12" cy="10" r="2.5")
         span 地圖
-      button.nav-item(type="button" :class="{ active: activeTab === 'favorites' }" @click="openTab('favorites')")
-        span.nav-icon(aria-hidden="true") ♢
+      button.nav-item(type="button" :class="{ active: activeTab === 'favorites' }" :aria-current="activeTab === 'favorites' ? 'page' : null" @click="openTab('favorites')")
+        svg.nav-icon(viewBox="0 0 24 24" aria-hidden="true")
+          path(d="M6 4h12v17l-6-4-6 4Z")
         span 收藏
         span.nav-count(v-if="savedPlaceCount") {{ savedPlaceCount }}
-      button.nav-item(type="button" :class="{ active: activeTab === 'journal' }" @click="openTab('journal')")
-        span.nav-icon(aria-hidden="true") ▤
+      button.nav-item(type="button" :class="{ active: activeTab === 'journal' }" :aria-current="activeTab === 'journal' ? 'page' : null" @click="openTab('journal')")
+        svg.nav-icon(viewBox="0 0 24 24" aria-hidden="true")
+          rect(x="5" y="3" width="14" height="18" rx="2")
+          path(d="M9 8h6m-6 4h6m-6 4h3")
         span 日誌
 
   aside.prototype-note
@@ -1141,7 +1156,10 @@ main.map-home
   height: min(900px, calc(100dvh - 48px))
   min-height: 680px
   display: grid
-  grid-template-rows: auto minmax(0, 1fr) 56px
+  --egm-nav-height: 52px
+  --egm-nav-bottom: max(24px, calc(env(safe-area-inset-bottom) + 8px))
+  --egm-nav-clearance: calc(var(--egm-nav-height) + var(--egm-nav-bottom) + 10px)
+  grid-template-rows: auto minmax(0, 1fr)
   position: relative
   overflow: hidden
   border: 10px solid #17201f
@@ -1152,9 +1170,10 @@ main.map-home
 .map-header
   position: relative
   z-index: 20
-  padding: 10px 16px 9px
-  background: var(--eatgomap-header-background)
-  color: white
+  padding: 10px 14px 14px
+  background: #fbfaf8
+  color: var(--egm-ink)
+  border-bottom: 1px solid #dededb
 
 .map-header-page
   padding-top: 12px
@@ -1172,38 +1191,38 @@ main.map-home
   font-weight: 900
 
 .page-header span
-  color: rgba(255,255,255,.78)
+  color: var(--egm-muted)
   font-size: 12px
 
-.brand-row
+
+.brand-row,
+.search-row
   display: flex
   align-items: center
-  gap: 10px
-  margin-bottom: 0
+  gap: 9px
+
+.brand-row
+  justify-content: space-between
 
 .brand-home-button
-  display: flex
-  align-items: center
-  justify-content: center
-  flex: 0 0 36px
   padding: 0
   border: 0
   background: transparent
-  color: inherit
-  text-align: left
+  color: var(--egm-green-800)
+  font-size: clamp(19px, 5.6vw, 25px)
+  font-weight: 900
+  letter-spacing: -.025em
+  white-space: nowrap
   cursor: pointer
 
-.brand-mark
-  width: 36px
-  height: 36px
-  display: grid
-  place-items: center
-  margin-right: 0
-  border: 1px solid rgba(255,255,255,.32)
-  border-radius: 12px
-  background: rgba(255,255,255,.13)
-  font-weight: 900
-  font-size: 16px
+.search-row
+  margin-top: 10px
+
+.search-avatar
+  flex: 0 0 40px
+  width: 40px
+  height: 40px
+  border-radius: 50%
 
 .search-box
   height: 40px
@@ -1213,9 +1232,8 @@ main.map-home
   align-items: center
   gap: 8px
   padding: 0 14px
-  border-radius: 15px
-  background: #fffdf9
-  box-shadow: 0 8px 18px rgba(4, 48, 44, .16)
+  border-radius: 17px
+  background: #e9ebeb
 
 .search-area
   position: relative
@@ -1226,9 +1244,13 @@ main.map-home
   width: 100%
 
 .search-icon
-  color: #64716f
-  font-size: 24px
-  line-height: 1
+  width: 18px
+  height: 18px
+  flex: 0 0 18px
+  fill: none
+  stroke: #606665
+  stroke-width: 2.5
+  stroke-linecap: round
 
 .search-box input
   flex: 1
@@ -1291,21 +1313,21 @@ main.map-home
 
 .filter-row
   display: grid
-  grid-template-columns: auto auto 1fr
-  gap: 8px
-  margin-top: 9px
+  grid-template-columns: repeat(3, max-content)
+  gap: clamp(4px, 1.4vw, 8px)
 
 .filter-chip
-  min-height: 34px
+  min-height: 32px
   display: flex
   align-items: center
   justify-content: center
   gap: 6px
-  padding: 0 11px
-  border: 1px solid rgba(255,255,255,.2)
+  padding: 0 clamp(7px, 2vw, 13px)
+  white-space: nowrap
+  border: 1px solid #bfc4c3
   border-radius: 999px
-  background: rgba(255,255,255,.92)
-  color: #31433f
+  background: transparent
+  color: #343a39
   font-weight: 800
   font-size: 12px
   cursor: pointer
@@ -1315,18 +1337,17 @@ main.map-home
   transform: translateY(-1px)
 
 .filter-chip.active
-  background: #f2d8c6
-  color: #8a3f2f
-
-.chip-icon
-  color: var(--egm-green-700)
-  font-size: 14px
-
-.distance-chip
-  justify-self: stretch
+  border-color: transparent
+  background: #d4eee7
+  color: var(--egm-green-900)
 
 .chevron
-  margin-left: auto
+  width: 7px
+  height: 7px
+  margin: -3px 2px 0 3px
+  border-right: 2px solid currentColor
+  border-bottom: 2px solid currentColor
+  transform: rotate(45deg)
 
 .map-canvas
   position: relative
@@ -1338,7 +1359,7 @@ main.map-home
   z-index: 11
   left: 12px
   right: 12px
-  bottom: 12px
+  bottom: var(--egm-nav-clearance)
   display: grid
   grid-template-rows: auto auto minmax(150px, 1fr)
   max-height: min(61vh, 510px)
@@ -1682,7 +1703,7 @@ main.map-home
 .favorites-page
   min-height: 0
   overflow-y: auto
-  padding: 14px 14px 24px
+  padding: 14px 14px var(--egm-nav-clearance)
   background: #f7f4ed
 
 .favorites-notice
@@ -1983,16 +2004,15 @@ main.map-home
   z-index: 7
   left: 14px
   top: 14px
-  display: grid
-  gap: 7px
-  padding: 12px 14px
-  border-radius: 15px
+  display: flex
+  flex-wrap: wrap
+  max-width: calc(100% - 28px)
+  gap: 5px 12px
+  padding: 8px 11px
+  border-radius: 999px
   background: rgba(255,253,249,.92)
   box-shadow: 0 10px 25px rgba(41, 54, 50, .16)
   backdrop-filter: blur(8px)
-
-.legend-card strong
-  font-size: 12px
 
 .legend-card span
   display: flex
@@ -2005,8 +2025,7 @@ main.map-home
 .legend-pin
   width: 9px
   height: 9px
-  border-radius: 50% 50% 50% 0
-  transform: rotate(-45deg)
+  border-radius: 50%
 
 .legend-pin.coral
   background: var(--egm-coral)
@@ -2080,7 +2099,7 @@ main.map-home
   position: absolute
   z-index: 8
   right: 15px
-  bottom: 181px
+  bottom: calc(var(--egm-nav-clearance) + 12px)
   width: 44px
   height: 44px
   border: 0
@@ -2152,7 +2171,7 @@ main.map-home
   z-index: 10
   left: 13px
   right: 13px
-  bottom: 13px
+  bottom: var(--egm-nav-clearance)
   display: grid
   grid-template-columns: 92px minmax(0, 1fr)
   gap: 14px
@@ -2316,13 +2335,18 @@ main.map-home
   color: white
 
 .bottom-nav
-  position: relative
+  position: absolute
   z-index: 20
+  inset-inline: 6%
+  bottom: var(--egm-nav-bottom)
+  height: var(--egm-nav-height)
   display: grid
-  grid-template-columns: repeat(3, 1fr)
-  padding: 2px 18px
-  border-top: 1px solid #e8e1d7
-  background: rgba(255,253,249,.98)
+  grid-template-columns: repeat(3, minmax(0, 1fr))
+  justify-items: center
+  padding: 5px 10px
+  border-radius: 999px
+  background: linear-gradient(105deg, var(--egm-green-800), var(--egm-green-900) 65%)
+  box-shadow: 0 6px 18px rgba(4, 48, 44, .28)
 
 .nav-item
   position: relative
@@ -2330,18 +2354,27 @@ main.map-home
   justify-items: center
   align-content: center
   gap: 1px
+  width: min(100%, 94px)
   border: 0
+  border-radius: 999px
   background: transparent
-  color: #68726f
+  color: #fff
   font-size: 11px
   font-weight: 800
   cursor: pointer
 
 .nav-item.active
-  color: var(--egm-green-700)
+  background: #d2f5ea
+  color: var(--egm-green-900)
 
 .nav-icon
-  font-size: 15px
+  width: 19px
+  height: 19px
+  fill: none
+  stroke: currentColor
+  stroke-width: 2
+  stroke-linecap: round
+  stroke-linejoin: round
 
 .nav-count
   position: absolute
@@ -2421,22 +2454,22 @@ main.map-home
   .app-frame
     width: 100%
     height: 100dvh
-    min-height: 620px
+    min-height: 0
     border: 0
     border-radius: 0
     box-shadow: none
 
   .map-header
-    padding-top: max(14px, env(safe-area-inset-top))
+    padding-top: max(10px, env(safe-area-inset-top))
     padding-left: 16px
     padding-right: 16px
 
   .favorite-detail-sheet
     left: 9px
     right: 9px
-    bottom: 9px
-    max-height: min(59vh, 470px)
-    min-height: 300px
+    max-height: min(59dvh, 470px, calc(100% - var(--egm-nav-clearance) - 8px))
+    min-height: 0
+    grid-template-rows: auto auto minmax(0, 1fr)
 
   .favorite-detail-header
     grid-template-columns: 46px minmax(0, 1fr) auto
