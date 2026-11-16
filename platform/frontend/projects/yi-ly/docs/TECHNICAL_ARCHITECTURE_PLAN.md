@@ -81,6 +81,7 @@ implemented: false
 
 - `Hexagram`：文王卦序、名稱、`patternBottomUp[6]`、上下卦及 passage 關聯。
 - `Passage`：類型、底本文字、顯示文字、直譯、本站導讀、異文、來源及審校狀態。
+- `AttributionRecord`：來源顯示名稱、貢獻者標示、固定版本 URL、授權、修改聲明與短版／完整版文字。
 
 ### 5.3 DivinationMethod／ConsultationSession
 
@@ -172,6 +173,7 @@ implemented: false
 - 前端決定性產生純文字／JSON Context。
 - 使用者自行複製或分享，第一版不呼叫模型 API。
 - Context 只含使用者選擇分享的主問題、步驟、各自結果、解讀設定、經文及來源。
+- 分享內容固定附帶精簡 attribution；頁面與離線資料顯示完整版。
 - 外部 AI 回應不寫回正式 corpus，也不自動匯入本機歷史。
 - 每種框架可提供不同的問題模板，但不得增添未提供的占術資料。
 
@@ -234,6 +236,7 @@ implemented: false
 - Store／IndexedDB 是否只保存投影或版本化快照。
 - API Query／Command 是否沒有混用。
 - 離線、歷史與分享是否由使用者控制。
+- 結果頁、離線內容、分享與匯出是否都有正確署名、固定來源、版本、授權及修改聲明。
 - 卜問結構、閱讀視角與解讀資料是否未改變原始結果或偽裝成古法。
 - 新卜法是否具有獨立規則、結果 schema、語料與測試。
 - 是否新增未核准的占術、AI 或共享平台能力。

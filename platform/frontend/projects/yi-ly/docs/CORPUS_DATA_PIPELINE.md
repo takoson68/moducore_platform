@@ -58,6 +58,7 @@ implemented: false
 - 是否要求相同方式分享衍生內容。
 - 可否重製、修改、商用與離線散布。
 - 內部核准人、核准時間與證據快照 checksum。
+- 使用者介面所需的短版與完整 attribution 文字。
 
 古籍原文本身進入公眾領域，不代表現代標點、校勘、翻譯、版面或資料庫轉錄必然可以自由複製。來源授權不明時狀態必須是 `comparison_only`，不能進入 release。
 
@@ -201,6 +202,7 @@ yijing_review_event → source / passage / interpretation / release
 - API：只讀取 `published` release，回傳來源與版本，不在 Query 時臨時改寫內容。
 - Offline package：由同一 canonical build 產生完整 JSON／壓縮檔，供使用者同意後下載。
 - Manifest：公布 `corpusVersion`、`schemaVersion`、大小、checksum、來源摘要、授權及下載 URL。
+- Attribution：由 source registry、實際使用 passages 與 InterpretationProfile 自動組裝；頁面、離線包、分享及匯出使用同一產生器。
 
 不需要為離線版另維護第二套文字；D1 seed 與 package 必須由同一份 build output 產生。
 
@@ -228,9 +230,11 @@ MVP release 至少驗證：
 - 每卦恰有六個爻位，總計 384 則爻辭。
 - 乾用九、坤用六各一，位置及卦別正確。
 - 每個正式 passage 都有 base witness、source locator、rights status 及 checksum。
+- 每個可發布來源都有固定版本連結、授權連結、短版／完整署名及修改聲明。
 - 每個 InterpretationProfile 宣告預期涵蓋數、實際涵蓋數與缺漏清單。
 - 所有外鍵、stable ID、bottom-up 順序與 Unicode encoding 合法。
 - D1 seed、API fixture 與 offline package 的 corpus checksum 一致。
+- 線上、離線與分享輸出的 attribution snapshot 一致。
 - 同一 `corpusVersion` 的產物不可在發布後被替換。
 
 若加入《彖傳》《象傳》等內容，應以各自 passage kind 與預期數量驗證，不把它們混入 64 卦辭或 384 爻辭計數。

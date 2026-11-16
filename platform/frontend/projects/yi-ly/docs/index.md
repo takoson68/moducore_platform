@@ -25,3 +25,4 @@
 - `decisions/D002_reading-frameworks.md` 保留為同一結果的不同閱讀視角與具來源解讀，屬未來範圍。
 - `decisions/D003_methods-and-consultation-layouts.md` 定義卜法與多步驟卜問；兩者和 D002 並存，均未全部升為 MVP Must。
 - `decisions/D004_corpus-authoring-and-release.md` 已接受為資料整理及發布的規劃方向。
+- `decisions/D005_visible-source-attribution.md` 要求結果頁、離線與分享內容顯示正確署名及授權公告。

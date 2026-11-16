@@ -55,6 +55,7 @@
 ## 6. 專案限制
 
 - 經文必須可追溯至明確底本、固定版本與授權紀錄。
+- 結果頁底部必須顯示資料來源、署名、固定版本、授權與本站修改聲明。
 - 古籍原文、本站簡明導讀及外部 AI 解讀必須分層。
 - 使用者未同意前，不主動下載完整離線經文資料包。
 - 不需要會員；卜卦歷史只由使用者選擇是否保存於本機。
@@ -73,6 +74,7 @@
 - `decisions/D002_reading-frameworks.md`
 - `decisions/D003_methods-and-consultation-layouts.md`
 - `decisions/D004_corpus-authoring-and-release.md`
+- `decisions/D005_visible-source-attribution.md`
 - `layout/index.js`
 - `layout/LayoutRoot.vue`
 - `modules/index.js`
