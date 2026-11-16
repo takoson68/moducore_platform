@@ -22,10 +22,11 @@
 4. `docs/index.md`
 5. `docs/PROJECT_REQUIREMENT_SPEC.md`
 6. `docs/DIVINATION_METHOD_TAXONOMY.md`
-7. `docs/TECHNICAL_ARCHITECTURE_PLAN.md`
-8. `decisions/`
-9. `layout/`
-10. `modules/`
+7. `docs/CORPUS_DATA_PIPELINE.md`
+8. `docs/TECHNICAL_ARCHITECTURE_PLAN.md`
+9. `decisions/`
+10. `layout/`
+11. `modules/`
 
 ## 3. 專案結構
 
@@ -66,10 +67,12 @@
 - `docs/index.md`
 - `docs/PROJECT_REQUIREMENT_SPEC.md`
 - `docs/DIVINATION_METHOD_TAXONOMY.md`
+- `docs/CORPUS_DATA_PIPELINE.md`
 - `docs/TECHNICAL_ARCHITECTURE_PLAN.md`
 - `decisions/D001_traceable-corpus-and-ai-boundary.md`
 - `decisions/D002_reading-frameworks.md`
 - `decisions/D003_methods-and-consultation-layouts.md`
+- `decisions/D004_corpus-authoring-and-release.md`
 - `layout/index.js`
 - `layout/LayoutRoot.vue`
 - `modules/index.js`

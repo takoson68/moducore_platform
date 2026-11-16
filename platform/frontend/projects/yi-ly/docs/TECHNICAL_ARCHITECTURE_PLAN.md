@@ -33,6 +33,7 @@ implemented: false
 ```
 
 - 後端 corpus 是經文與正式導讀的 Source of Truth。
+- 受版控 canonical 內容與 build pipeline 是可重建的 authoring source；D1 是經過審校及發布後的後端權威投影。
 - immutable package 是某個已發布版本的完整快照。
 - IndexedDB 只保存版本化投影與選配本機歷史，不能回寫權威 corpus。
 - 當次起卦狀態由 Module Store 持有。
@@ -201,6 +202,7 @@ implemented: false
 
 - 選定底本、比對來源與授權策略。
 - 建立 schema 與完整性驗證。
+- 依 `CORPUS_DATA_PIPELINE.md` 先完成乾、坤兩卦的端到端樣本，再擴充至全量。
 
 ### Phase 2：離線資料管線
 
