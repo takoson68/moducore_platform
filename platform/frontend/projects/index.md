@@ -2,7 +2,7 @@
 
 ## 範圍
 
-本目錄保存 Vite 可選取的前端 Project 實例。每次建置由 `VITE_PROJECT` 選擇一個 Project；設定入口是 `project.config.js`，實際功能須再沿該 Project 的 `modules/`、`layout/` 與相關程式碼驗證。
+本目錄保存 Vite 可選取的前端 Project 實例。本機開發由前端 `.env` 的 `VITE_PROJECT` 選擇一個 Project，發布建置可由 CI 指定；設定入口是 `project.config.js`，實際功能須再沿該 Project 的 `modules/`、`layout/` 與相關程式碼驗證。
 
 本索引是執行程式目錄導讀，不取代 `_VibeCore/projects/index.md` 的 Project 世界定義，也不要求歷史 Project 全面補齊專案 Markdown 文件。
 
@@ -10,7 +10,7 @@
 
 | 目錄 | 設定名稱／用途線索 | 入口 |
 |---|---|---|
-| `project-a/` | Project A；Vite 未設定 `VITE_PROJECT` 時的預設 fallback | `project.config.js` |
+| `project-a/` | Project A；一般建置未設定 `VITE_PROJECT` 時的預設 fallback | `project.config.js` |
 | `project-b/` | Project B，含 employee、task、vote 等設定模組 | `project.config.js` |
 | `dineCore/` | 餐廳點餐與營運工作流程 | `project.config.js` |
 | `eatGoMap/` | 食旅共享地圖與日誌；目前提供合成資料的地圖首頁視覺原型，Staging 目標為 `eatgomap-staging` | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` → `modules/index.md` |
@@ -19,6 +19,7 @@
 | `game-demo/` | Game 能力的最小遊戲試玩 Project | `project.config.js`；遊戲能力從 `../../src/app/game/index.md` 導讀 |
 | `magic-siege/` | 「攻破魔法城」格子塔防幾何原型；學習階段參考 Infinitode 2 核心體驗 | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` |
 | `modudesk/` | ModuDesk，包含 sticky-board、calendar、tasks 設定 | `project.config.js` |
+| `yi-ly/` | 易經解卦；可追溯《周易》經文、選配離線資料與外部 AI 交接，目前為企劃與空骨架階段 | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` |
 | `_proTemp/` | Project Template 骨架 | `project.config.js` |
 
 表格只提供尋路線索；模組清單與專案現況以設定及程式碼為準，不由名稱推定成熟度、線上部署狀態或工作優先級。
