@@ -2,7 +2,7 @@ export default {
   name: 'chatCore',
   title: 'chatCore 私人聊天室實驗',
   tenant_id: 'chatCore',
-  modules: ['entry', 'private-chat-lab'],
+  modules: ['entry', 'private-chat-lab', 'chat-backup'],
   description: '提供私人聊天室技術實驗的獨立入口與控制台。',
   scenario: '已列入實驗名單的 dineCore 會員登入後，建立或加入最多 20 個在線裝置的合成文字聊天室。',
   skills: [],

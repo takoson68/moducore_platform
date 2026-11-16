@@ -29,6 +29,7 @@ async function createRuntime(memberNames = 'member1,member2,member3') {
     durableObjects: {
       PRIVATE_CHAT_LAB: { className: 'PrivateChatLabRoom', useSQLite: true },
       CHATCORE_AUTH: { className: 'ChatCoreAuth', useSQLite: true },
+      CHATCORE_BACKUP: { className: 'ChatCoreBackup', useSQLite: true },
     },
     port: 0,
   }))
@@ -161,4 +162,55 @@ test('房間拒絕第 21 個在線裝置；同帳號多裝置使用不同 Peer �
     assert.equal(new Set(ids).size, 20)
     for (const peer of peers) peer.socket.close()
   } finally { await mf.dispose() }
+})
+
+test('備份上傳驗證 ChatCore Session、格式和大小，並寫入 SQLite', async () => {
+  const runtime = await createRuntime()
+  try {
+    const base = (await runtime.ready).origin
+    const { token } = await login(base)
+    const backup = JSON.stringify({ version: 1, messages: [{ text: '合成測試' }], outbox: [] })
+    const upload = (body, bearer) => fetch(new URL('/api/private-chat/backup', base), {
+      method: 'POST',
+      headers: {
+        'X-Project': 'chatCore',
+        'Content-Type': 'application/json',
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {})
+      },
+      body
+    })
+    assert.equal((await upload(backup)).status, 401)
+    const invalid = await upload(JSON.stringify({ version: 1, messages: [] }), token)
+    assert.equal(invalid.status, 400, await invalid.text())
+    assert.equal((await upload(new Uint8Array(1024 * 1024 + 1), token)).status, 413)
+    const response = await upload(backup, token)
+    assert.equal(response.status, 200)
+    const result = await response.json()
+    assert.equal(result.success, true)
+    assert.ok(Number.isFinite(Date.parse(result.savedAt)))
+    const secondBackup = { version: 1, messages: [], outbox: [] }
+    const second = await api(base, '/api/backups', { method: 'POST', token, body: secondBackup })
+    assert.equal(second.status, 200)
+    const { id: secondId } = await second.json()
+    assert.notEqual(secondId, result.id)
+    const list = await api(base, '/api/backups', { token })
+    const { backups } = await list.json()
+    assert.deepEqual(new Set(backups.map(entry => entry.id)), new Set([result.id, secondId]))
+    assert.equal(backups.some(entry => 'bytes' in entry), false)
+    const downloaded = await api(base, `/api/backups?id=${result.id}`, { token })
+    assert.equal(await downloaded.text(), backup)
+    assert.deepEqual(await (await api(base, `/api/backups?id=${secondId}`, { token })).json(), secondBackup)
+    const other = await login(base, 'member2')
+    const sharedList = await (await api(base, '/api/backups', { token: other.token })).json()
+    assert.deepEqual(sharedList.backups, backups)
+    assert.ok(sharedList.backups.every(entry => entry.uploader === 'member1'))
+    const sharedDownload = await api(base, `/api/backups?id=${result.id}`, { token: other.token })
+    assert.equal(await sharedDownload.text(), backup)
+    assert.equal((await api(base, '/api/backups', { token, project: 'eatGoMap' })).status, 403)
+    await api(base, '/api/logout', { method: 'POST', token })
+    assert.equal((await upload(backup, token)).status, 401)
+    assert.equal((await api(base, '/api/backups', { token })).status, 401)
+  } finally {
+    await runtime.dispose()
+  }
 })

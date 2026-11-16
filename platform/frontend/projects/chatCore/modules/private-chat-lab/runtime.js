@@ -1,3 +1,5 @@
+import { randomId } from './randomId.js'
+
 const DEFAULT_ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
 const ICE_SERVERS_ENV = import.meta.env.VITE_CHATCORE_ICE_SERVERS || ''
 
@@ -324,9 +326,9 @@ export function createPrivateChatLabSession({ onState, onMessage, onAcknowledgem
     }
     if (typeof RTCPeerConnection !== 'function') throw new Error('此瀏覽器不支援 WebRTC。')
 
-    selfPeerId = crypto.randomUUID()
+    selfPeerId = randomId()
     const resolvedSignalingUrl = signalingUrl || (import.meta.env.DEV
-      ? 'ws://127.0.0.1:8787/ws/private-chat-lab'
+      ? `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.hostname}:8787/ws/private-chat-lab`
       : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/private-chat-lab`)
     const url = new URL(resolvedSignalingUrl)
     if (!ticket) throw new Error('缺少一次性房間 Ticket，請重新登入後加入。')
@@ -360,7 +362,7 @@ export function createPrivateChatLabSession({ onState, onMessage, onAcknowledgem
   function sendText(text, messageId = null) {
     let sentCount = 0
     const recipientPeerIds = []
-    const message = { id: messageId || crypto.randomUUID(), text, at: Date.now(), senderPeerId: selfPeerId }
+    const message = { id: messageId || randomId(), text, at: Date.now(), senderPeerId: selfPeerId }
     for (const peer of peers.values()) {
       if (peer.channel?.readyState !== 'open') continue
       if (!sendPeerEvent(peer.peerId, { type: 'message', message })) continue

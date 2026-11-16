@@ -78,6 +78,39 @@ export function createPrivateChatMessageRepository(indexedDBFactory = globalThis
   }
 
   return {
+    exportSnapshot() {
+      return transact([MESSAGE_STORE, OUTBOX_STORE], 'readonly', transaction => {
+        const snapshot = { version: DATABASE_VERSION, messages: [], outbox: [] }
+        for (const name of [MESSAGE_STORE, OUTBOX_STORE]) {
+          const request = transaction.objectStore(name).getAll()
+          request.onsuccess = () => { snapshot[name] = request.result }
+        }
+        return snapshot
+      })
+    },
+
+    async restoreSnapshot(snapshot) {
+      const storeNames = [MESSAGE_STORE, OUTBOX_STORE]
+      if (snapshot?.version !== DATABASE_VERSION) throw new Error('不支援此聊天備份版本。')
+      for (const name of storeNames) {
+        const records = snapshot[name]
+        if (!Array.isArray(records) || records.some(record =>
+          typeof record?.id !== 'string' || !record.id ||
+          typeof record.roomId !== 'string' || !record.roomId ||
+          typeof record.text !== 'string' || !Number.isFinite(record.at)
+        ) || new Set(records.map(record => record.id)).size !== records.length) {
+          throw new Error('聊天備份內容無效。')
+        }
+      }
+      await transact(storeNames, 'readwrite', transaction => {
+        for (const name of storeNames) {
+          const store = transaction.objectStore(name)
+          store.clear()
+          for (const record of snapshot[name]) store.put(record)
+        }
+      })
+    },
+
     async loadRoom(roomId) {
       const [messages, outbox] = await Promise.all([
         listByRoom(MESSAGE_STORE, roomId),

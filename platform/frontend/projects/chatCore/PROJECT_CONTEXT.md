@@ -38,7 +38,7 @@
 - 不改寫既有公開聊天室。
 - 不建立獨立帳號庫或跨 Project SSO。
 - 不傳送媒體／檔案，不做跨裝置歷史同步。
-- M9 前只提醒備份，不實作備份上傳。
+- 本次實驗先提供手動備份與完整覆蓋還原。完整備份流程見 `docs/index.md`。
 
 ## 7. 已知限制
 
@@ -50,7 +50,7 @@
 ## 8. 外部依賴
 
 - 頁面執行依賴 ModuCore 前端 Project 載入及模組註冊機制。
-- 私人 Signaling、WebRTC DataChannel、本機 IndexedDB 與 M4 實驗身分 Ticket 流程已接入；TURN 成功率／成本、服務端離線 queue 與備份上傳尚未完成。
+- 私人 Signaling、WebRTC DataChannel、本機 IndexedDB、M4 實驗身分 Ticket 與手動聊天備份已接入。TURN 成功率／成本與服務端離線 queue 尚待驗證或實作。
 
 ## 9. 假設
 

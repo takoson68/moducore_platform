@@ -8,7 +8,7 @@
     "CHATCORE_MEMBER_USERNAMES": "admin1,admin2,admin3"
   },
   "services": [
-    { "binding": "AUTH_SERVICE", "service": "dinecore-staging" }
+    { "binding": "AUTH_SERVICE", "service": "dinecore-staging", "remote": true }
   ],
   "preview_urls": false,
   "assets": {
@@ -20,11 +20,13 @@
   "durable_objects": {
     "bindings": [
       { "name": "PRIVATE_CHAT_LAB", "class_name": "PrivateChatLabRoom" },
-      { "name": "CHATCORE_AUTH", "class_name": "ChatCoreAuth" }
+      { "name": "CHATCORE_AUTH", "class_name": "ChatCoreAuth" },
+      { "name": "CHATCORE_BACKUP", "class_name": "ChatCoreBackup" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["PrivateChatLabRoom"] },
-    { "tag": "v2", "new_sqlite_classes": ["ChatCoreAuth"] }
+    { "tag": "v2", "new_sqlite_classes": ["ChatCoreAuth"] },
+    { "tag": "v3", "new_sqlite_classes": ["ChatCoreBackup"] }
   ]
 }

@@ -54,6 +54,13 @@ implemented: true
 - M2 尚無收件端持久化 ACK；DataChannel send 成功不是送達或持久化證明。
 - 未確認 outbox 手動重試在 M3 messageId 去重完成前可能造成重複訊息。
 - IndexedDB 尚未按會員／deviceId 分區；目前 chatCore 尚無登入，資料只以 roomId 分類。
+
+## 2026-11-05 架構一致性修正
+
+- `private-chat-lab` 已註冊模組 Store，執行中的 messages、outbox、room list 與 deviceId 由 Store 持有；房間清單與裝置識別值透過 `world.services.storage()` 載入／保存。
+- `messageRepository` 仍直接呼叫 IndexedDB。這違反 `platform/frontend/src/app/container/services/storage.md` 所定義的唯一 I/O 入口；M2 原先以持久化保證為由的例外不能凌駕平台 Contract。
+- 因 Storage capability 目前沒有可提供 Repository 所需原子交易及「IDB 失敗即拒絕、不降級 memory」語意的正式 API，這部分標記為未解架構缺口。chatCore 目前不可宣稱完整符合 Constitution；後續須先演進共用 capability，再移除 Repository 的直接 IndexedDB 呼叫。
+- 房間清單與 deviceId 已經改由 Store 與 `world.services.storage()` 管理；頁面不再直接用 `localStorage`。
 - 未做跨裝置歷史同步、伺服器 queue、備份上傳、READ 或 E2E 加密。
 - M1b 的跨網路與 TURN relay 驗證仍待實驗，不因本次 M2 通過而視為完成。
 

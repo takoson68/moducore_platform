@@ -1,34 +1,44 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { createPrivateChatLabSession } from '../runtime.js'
 import { createPrivateChatMessageRepository } from '../messageRepository.js'
 import { canMarkMessageRead } from '../readEligibility.js'
 import world from '@/world.js'
+import iDB_box from '@/components/iDB_box.vue'
+import { randomId } from '../randomId.js'
 
 const route = useRoute()
 const router = useRouter()
-const ROOM_LIST_STORAGE_KEY = 'chatCore.privateChatLab.recentRooms.v1'
+const backup = world.hasStore('chatCoreBackup') ? world.store('chatCoreBackup') : null
+const chatStore = world.store('chatCorePrivateChatLabStore')
 const messageRepository = createPrivateChatMessageRepository()
 const roomId = ref(String(route.query.roomId || ''))
 const authStore = world.store('auth')
 const tokenStore = world.store('token')
 const authUser = computed(() => authStore.state.user)
 const isLoggedIn = computed(() => authStore.isLoggedIn())
-const loginUsername = ref('')
-const loginPassword = ref('')
+// 僅供開發測試：使用已建立的合成會員，完成測試後移除預填密碼。
+const loginUsername = ref('admin1')
+const loginPassword = ref(import.meta.env.DEV ? 'chatcore-test-1-2026' : '')
 const authBusy = ref(false)
 const authError = ref('')
-const roomList = ref(loadRoomList())
-const pendingOutbox = ref([])
+const roomList = computed(() => chatStore.state.roomList)
+const pendingOutbox = computed({
+  get: () => chatStore.state.pendingOutbox,
+  set: pendingOutbox => chatStore.set({ ...chatStore.get(), pendingOutbox })
+})
 const storageError = ref('')
 const isConnecting = ref(false)
 const isSending = ref(false)
 const draft = ref('')
-const viewMode = ref('integrated')
+const viewMode = ref(route.path === '/console' ? 'integrated' : 'focused')
 const releaseVersion = import.meta.env.VITE_RELEASE_VERSION || 'dev'
 const status = ref({ state: 'disconnected', detail: '尚未連線' })
-const messages = ref([])
+const messages = computed({
+  get: () => chatStore.state.messages,
+  set: messages => chatStore.set({ ...chatStore.get(), messages })
+})
 const metricsByPeer = ref({})
 const participants = ref({ count: 0, connectedCount: 0, remoteCount: 0, peers: [] })
 const session = ref(null)
@@ -49,6 +59,11 @@ const readInFlight = new Set()
 const retriesInFlight = new Set()
 const retryTimers = new Map()
 const chatPaneRef = ref(null)
+const messageListRef = ref(null)
+
+watch([messageListRef, () => messages.value.at(-1)?.id], ([messageList]) => {
+  if (messageList) messageList.scrollTop = messageList.scrollHeight
+}, { flush: 'post' })
 
 function isChatReadable() {
   if (document.visibilityState !== 'visible' || !chatPaneRef.value) return false
@@ -137,20 +152,18 @@ function startRetryTimer(messageId, delay = 10_000) {
   }, delay))
 }
 
-function loadRoomList() {
-  try {
-    const rooms = JSON.parse(localStorage.getItem(ROOM_LIST_STORAGE_KEY) || '[]')
-    return Array.isArray(rooms)
-      ? rooms.filter(room => room && typeof room.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(room.id)).slice(0, 30)
-      : []
-  } catch {
-    return []
-  }
+function rememberRoom(id) {
+  void chatStore.rememberRoom(id).catch(error => {
+    storageError.value = `無法保存本機聊天室清單：${error.message}`
+  })
 }
 
-function rememberRoom(id) {
-  roomList.value = [{ id, lastUsedAt: Date.now() }, ...roomList.value.filter(room => room.id !== id)].slice(0, 30)
-  try { localStorage.setItem(ROOM_LIST_STORAGE_KEY, JSON.stringify(roomList.value)) } catch { /* 本機儲存不可用時，仍保留當前頁面清單。 */ }
+async function publishSavedRooms() {
+  if (!isLoggedIn.value) return
+  for (const room of roomList.value) {
+    try { await chatApi('/api/private-chat/rooms', { method: 'POST', body: { roomId: room.id } }) }
+    catch { /* 本機清單仍可使用；下一次載入再同步。 */ }
+  }
 }
 
 function openRoom(id) {
@@ -183,7 +196,7 @@ async function restoreRoom(room) {
 
 async function persistIncoming(value, targetRoomId) {
   const message = {
-    id: value.messageId || crypto.randomUUID(),
+    id: value.messageId || randomId(),
     roomId: targetRoomId,
     sender: value.sender,
     senderPeerId: value.senderPeerId,
@@ -278,7 +291,7 @@ const totalTraffic = computed(() => Object.values(metricsByPeer.value)
   .reduce((total, metric) => total + (metric.candidatePair?.bytesSent || 0) + (metric.candidatePair?.bytesReceived || 0), 0))
 
 async function connect() {
-  if (session.value || isConnecting.value) return
+  if (session.value || isConnecting.value || backup?.state.busy) return
   if (!isLoggedIn.value) { errorMessage.value = '請先使用 dineCore 會員登入 chatCore 實驗。'; return }
   errorMessage.value = ''
   roomNotice.value = ''
@@ -290,7 +303,7 @@ async function connect() {
   isConnecting.value = true
   try {
     await restoreRoom(targetRoomId)
-    const ticketResult = await chatApi('/api/private-chat/ticket', { method: 'POST', body: { roomId: targetRoomId, deviceId: getDeviceId() } })
+    const ticketResult = await chatApi('/api/private-chat/ticket', { method: 'POST', body: { roomId: targetRoomId, deviceId: await getDeviceId() } })
     if (!ticketResult.ok || !ticketResult.data?.ticket) throw new Error(ticketResult.data?.error?.message || `無法取得房間 Ticket（${ticketResult.status}）`)
     const next = createPrivateChatLabSession({
       onState: value => {
@@ -333,11 +346,8 @@ async function connect() {
   }
 }
 
-function getDeviceId() {
-  const key = 'chatCore.privateChatLab.deviceId.v1'
-  let id = localStorage.getItem(key)
-  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) { id = crypto.randomUUID(); localStorage.setItem(key, id) }
-  return id
+async function getDeviceId() {
+  return chatStore.getDeviceId()
 }
 
 async function login() {
@@ -347,12 +357,13 @@ async function login() {
   try {
     const result = await chatApi('/api/login', { method: 'POST', body: { username: loginUsername.value, password: loginPassword.value }, omitAuth: true })
     if (!result.ok || !result.data?.authenticated || !result.data?.token) authError.value = result.data?.error?.message || '登入失敗；確認帳號已加入 chatCore 實驗名單。'
-    else { authStore.login(result.data.user); tokenStore.setToken(result.data.token); loginPassword.value = ''; errorMessage.value = '' }
+    else { authStore.login(result.data.user); tokenStore.setToken(result.data.token); errorMessage.value = ''; void publishSavedRooms() }
   } catch (error) { authError.value = `登入服務暫時無法連線：${error.message}` }
   finally { authBusy.value = false }
 }
 
 async function logout() {
+  backup?.closeList()
   if (session.value) disconnect()
   const token = tokenStore.getToken()
   try { await chatApi('/api/logout', { method: 'POST', token }) }
@@ -360,7 +371,7 @@ async function logout() {
 }
 
 async function chatApi(path, { method = 'GET', body, token = tokenStore.getToken(), omitAuth = false } = {}) {
-  const base = import.meta.env.DEV ? 'http://127.0.0.1:8787' : window.location.origin
+  const base = import.meta.env.DEV ? window.location.protocol + '//' + window.location.hostname + ':8787' : window.location.origin
   const headers = { 'X-Project': 'chatCore' }
   if (!omitAuth && token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -377,8 +388,16 @@ function disconnect() {
   status.value = { state: 'disconnected', detail: '已中斷連線' }
 }
 
+function restoreBackup(entry) {
+  if (session.value || isConnecting.value || isSending.value || outboxFlushPromise || retriesInFlight.size) return
+  void backup?.requestRestore(entry, () => {
+    for (const timer of retryTimers.values()) clearTimeout(timer)
+    retryTimers.clear()
+  })
+}
+
 function createRoom() {
-  roomId.value = `room-${crypto.randomUUID().slice(0, 12)}`
+  roomId.value = `room-${randomId().slice(0, 12)}`
   connect()
 }
 
@@ -399,7 +418,7 @@ async function sendText() {
   if (!text || !session.value) return
   isSending.value = true
   const message = {
-    id: crypto.randomUUID(),
+    id: randomId(),
     roomId: roomId.value,
     sender: '我',
     text,
@@ -434,11 +453,16 @@ async function sendText() {
 }
 
 onMounted(async () => {
+  try {
+    await chatStore.hydrate()
+  } catch (error) {
+    storageError.value = `無法載入本機聊天室偏好：${error.message}`
+  }
   const token = tokenStore.getToken()
   if (token) {
     try {
       const result = await chatApi('/api/session', { token })
-      if (result.data?.authenticated && result.data.user) authStore.login(result.data.user)
+      if (result.data?.authenticated && result.data.user) { authStore.login(result.data.user); void publishSavedRooms() }
       else { authStore.logout(); tokenStore.setToken(null) }
     } catch { authStore.logout(); tokenStore.setToken(null); authError.value = '無法確認登入狀態，請重新登入。' }
   }
@@ -478,6 +502,8 @@ main.chat-shell(:class="`mode-${viewMode}`")
     .brand-group
       span.brand-mark ◉
       RouterLink.brand-name(to="/") chatCore
+      RouterLink.focused-page-link(v-if="route.path === '/console'" to="/ip-test") 專注聊天 / IP 測試
+      RouterLink.focused-page-link(v-else to="/console") 返回控制台
       span.experiment-badge M4 實驗環境
       span.version-badge v{{ releaseVersion }}
     .topbar-status
@@ -499,7 +525,17 @@ main.chat-shell(:class="`mode-${viewMode}`")
         button(type="submit" :disabled="authBusy") {{ authBusy ? '登入中' : '會員登入' }}
       .auth-control.auth-user(v-else)
         span {{ authUser?.name || authUser?.username }}
-        button(type="button" @click="logout") 登出
+        iDB_box(
+          v-if="backup"
+          :state="backup.state"
+          :restore-disabled="Boolean(session) || isConnecting || isSending"
+          restore-disabled-reason="請先離開聊天室再還原。"
+          @upload="backup.requestUpload()"
+          @list="backup.requestList()"
+          @restore="restoreBackup"
+          @close="backup.closeList()"
+        )
+        button(type="button" :disabled="backup?.state.busy" @click="logout") 登出
       span.auth-error(v-if="authError" role="alert") {{ authError }}
       span.avatar(v-if="!isLoggedIn") 訪客
 
@@ -648,6 +684,12 @@ main.chat-shell(:class="`mode-${viewMode}`")
       .chat-warning 知道房間連結的測試者都可以加入；請只傳送合成測試文字。
       .storage-warning(v-if="storageError") {{ storageError }}
       .room-entry(v-if="viewMode === 'focused' && !session")
+        .focused-room-list
+          h2 本機聊天室
+          p 此清單只屬於目前網址與瀏覽器。
+          p(v-if="roomList.length === 0") 建立或加入聊天室後，房間會出現在清單。
+          button.room-list-item(v-for="room in roomList" :key="room.id" type="button" @click="openRoom(room.id)") {{ room.id }}
+
         label.room-entry-field
           span 房間代碼
           input(v-model="roomId" maxlength="64" autocomplete="off" placeholder="輸入朋友提供的房間代碼")
@@ -655,7 +697,7 @@ main.chat-shell(:class="`mode-${viewMode}`")
           button(type="button" :class="roomId.trim() ? 'secondary-button' : 'primary-button'" @click="createRoom") 建立新聊天室
           button(type="button" :class="roomId.trim() ? 'primary-button' : 'secondary-button'" :disabled="!roomId.trim()" @click="connect") 加入聊天室
       p.error-message(v-if="errorMessage && viewMode === 'focused'") {{ errorMessage }}
-      .message-list(aria-live="polite" aria-relevant="additions")
+      .message-list(ref="messageListRef" aria-live="polite" aria-relevant="additions")
         .connection-pill(v-if="session") ▣ 對點傳輸通道 {{ isActive ? '已就緒' : status.detail }}
         p.empty-state(v-if="messages.length === 0") {{ session ? '連線後從任一 Peer 傳送合成測試文字。' : '先建立新聊天室，或輸入房間代碼加入朋友的聊天室。' }}
         article.message-row(v-for="(message, index) in messages" :key="message.id || `${message.at}-${index}`" v-read-eligible="message" :class="{ 'is-mine': message.sender === '我' }")
@@ -1404,6 +1446,36 @@ html, body, #app
 
 .chat-notice
   margin: 8px 16px 0
+
+.focused-page-link
+  color: #a8bddb
+  font-size: 12px
+  text-decoration: none
+  white-space: nowrap
+
+.focused-page-link:hover
+  color: #ffffff
+
+.focused-room-list
+  display: flex
+  align-items: center
+  gap: 10px
+  flex-wrap: wrap
+  width: 100%
+  padding: 12px 16px
+  color: #a8bddb
+
+.focused-room-list h2
+  width: 100%
+  margin: 0
+  font-size: 14px
+
+.focused-room-list p
+  margin: 0
+  font-size: 12px
+
+.focused-room-list .room-list-item
+  width: auto
 
 .room-entry
   display: grid

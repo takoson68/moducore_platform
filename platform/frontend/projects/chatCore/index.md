@@ -28,7 +28,8 @@
 - `project.config.js`：Project 身分及模組清單。
 - `layout/`：Project 頁面承載殼層。
 - `modules/entry/`：實驗入口頁。
-- `modules/private-chat-lab/`：M1b 建立 Full Mesh DataChannel 實驗，M4 提升至最多 20 個會員及在線裝置，並提供房間邀請與專注聊天介面。
+- `modules/private-chat-lab/`：M1b 建立 Full Mesh DataChannel 實驗，M4 提升至最多 20 個會員及在線裝置，並提供房間邀請與專注聊天介面；模組 Store 管理執行中狀態，平台 Storage capability 管理房間清單與裝置識別值，`messageRepository` 僅封裝訊息/outbox 的 IndexedDB 原子交易。
+- `modules/chat-backup/`：使用者手動上傳此瀏覽器的聊天快照。
 - `styles/sass/main.sass`：Project 基礎樣式。
 - `docs/`：實驗里程碑及執行結果。
 - `decisions/`：Project 邊界與架構決策。
@@ -37,14 +38,17 @@
 
 - 啟動選擇：`VITE_PROJECT=chatCore`。
 - 進入頁：`/`，由 `entry` 模組註冊。
+- 專用多人聊天與不同網址 IndexedDB 測試：`/ip-test`，獨立提供房間號碼加入、本機聊天室清單、聊天及 IndexedDB 備份入口。開發環境的 `/console` 預填 `admin1`、`/ip-test` 預填 `admin2` 及各自有效的合成測試密碼，供兩個瀏覽器測試。
 - 聊天實驗：`/console`，由 `private-chat-lab` 模組註冊，提供整合視圖與專注聊天兩種模式；兩種模式都開放切換；加入聊天室需通過 dineCore 來源身分驗證及 chatCore 實驗會員名單，並不代表管理權限。
+- 聊天備份：由 `chat-backup` 模組註冊，登入後從聊天頁按「上傳聊天備份」開啟確認視窗。
 - 啟動設定：`project.config.js`；模組收集入口：`modules/index.js`。
 
 ## 5. 模組與頁面範圍
 
 - `entry`：實驗介紹及控制台連結。
 - `/console` 提供整合視圖與專注聊天兩種版面，任何實驗參與者皆可切換；會員身分透過 dineCore Auth Service 驗證並受 chatCore 實驗 allowlist 限制；整合視圖僅為實驗資訊導覽，不授予管理權限。
-- `/console` 與 `/lab` 使用 chatCore 專屬 Signaling Worker；須為登入且帳號列入 `CHATCORE_MEMBER_USERNAMES` 的 dineCore 會員，最多 20 個會員及 20 個在線裝置（實驗上限）。M2 起每個瀏覽器以 IndexedDB 保存本機 history/outbox；M3 增加逐 Peer received／persisted ACK、messageId 去重與嚴格 READ 條件。不跨裝置同步，且尚無逐房成員管理或伺服器離線 queue。
+- `/console` 與 `/lab` 使用 chatCore 專屬 Signaling Worker；須為登入且帳號列入 `CHATCORE_MEMBER_USERNAMES` 的 dineCore 會員，最多 20 個會員及 20 個在線裝置（實驗上限）。M2 起每個瀏覽器以 IndexedDB 保存本機 history/outbox；模組 Store 持有執行中的訊息與 outbox 投影，專用 `messageRepository` 封裝原子持久化交易。不跨裝置同步，且尚無逐房成員管理或伺服器離線 queue。
+- `/ip-test` 是另一個獨立聊天頁，提供房間清單、房號加入／建立、訊息與備份按鈕；開發環境預填 M4 測試會員 `admin2` 與有效測試密碼，與 `/console` 的 `admin1` 不同。此頁沿用 P2P runtime 和 `messageRepository`；以 localhost 與區網 IP 開啟時，瀏覽器 Origin 各自隔離 IndexedDB。此頁不替代或改寫 `/console`。
 
 ## 6. 專案限制
 
@@ -68,6 +72,7 @@
 - `docs/P2P_CHAT_MILESTONES.md`
 - `layout/`
 - `modules/`
+- `modules/private-chat-lab/store.js`：聊天室模組執行中狀態及平台 Storage capability 入口。
 - `styles/`
 - `decisions/D001_project_identity.md`
 - `decisions/D002_remote_experiment.md`

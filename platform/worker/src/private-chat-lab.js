@@ -1,5 +1,6 @@
 const ROOM_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
 const DEVICE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const MAX_BACKUP_BYTES = 1024 * 1024
 const MAX_SIGNAL_BYTES = 48 * 1024
 const MAX_MEMBERS = 20
 const MAX_DEVICES = 20
@@ -68,6 +69,16 @@ export class ChatCoreAuth {
   async fetch(request) {
     if (request.headers.get('X-ChatCore-Internal') !== '1') return new Response('Not found', { status: 404 })
     const url = new URL(request.url)
+    if (url.pathname === '/rooms' && request.method === 'GET') {
+      const rooms = await this.state.storage.list({ prefix: 'room:' })
+      return json({ success: true, rooms: [...rooms.values()].sort((a, b) => b.lastUsedAt - a.lastUsedAt).slice(0, 100) })
+    }
+    if (url.pathname === '/rooms' && request.method === 'POST') {
+      const body = await request.json().catch(() => null)
+      if (!ROOM_ID_PATTERN.test(body?.roomId || '')) return err('INVALID_ROOM', '房間代碼無效')
+      await this.state.storage.put(`room:${body.roomId}`, { id: body.roomId, lastUsedAt: Date.now() })
+      return json({ success: true })
+    }
     if (url.pathname === '/session' && request.method === 'POST') {
       const body = await request.json().catch(() => null)
       if (!body?.token || !body?.identity) return err('INVALID_SESSION', 'Session 無效')
@@ -226,6 +237,106 @@ export class PrivateChatLabRoom {
   }
 }
 
+export class ChatCoreBackup {
+  constructor(state) { this.state = state }
+
+  async fetch(request) {
+    if (request.headers.get('X-ChatCore-Internal') !== '1') {
+      return err('NOT_FOUND', '找不到 API', 404)
+    }
+
+    const storage = this.state.storage
+    const url = new URL(request.url)
+    const uploader = request.headers.get('X-ChatCore-Uploader')
+    if (url.pathname === '/import' && request.method === 'POST') {
+      const userId = request.headers.get('X-ChatCore-User-Id')
+      const id = url.searchParams.get('id')
+      const savedAt = url.searchParams.get('savedAt')
+      const targetId = id === 'latest' ? `legacy-${userId}-latest` : id
+      if (await storage.get(`entry:${targetId}`)) return json({ success: true })
+      const bytes = new Uint8Array(await request.arrayBuffer())
+      await storage.put({
+        [`backup:${targetId}`]: { bytes },
+        [`entry:${targetId}`]: { id: targetId, savedAt, size: bytes.byteLength, uploader }
+      })
+      return json({ success: true })
+    }
+    if (request.method === 'GET') {
+      const id = url.searchParams.get('id')
+      if (id !== null) {
+        if (!/^(latest|legacy-\d+-latest|\d{13}-[a-f0-9-]{36})$/.test(id)) return err('INVALID_BACKUP', '備份識別無效。')
+        const backup = await storage.get(id === 'latest' ? id : `backup:${id}`)
+        if (!backup) return err('NOT_FOUND', '找不到備份。', 404)
+        return new Response(backup.bytes, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
+      }
+      const entries = await storage.list({ prefix: 'entry:', reverse: true })
+      const backups = [...entries.values()]
+      const legacy = await storage.get('latest')
+      if (legacy) backups.push({ id: 'latest', savedAt: legacy.savedAt, size: legacy.bytes.byteLength })
+      backups.sort((left, right) => Date.parse(right.savedAt) - Date.parse(left.savedAt))
+      return json({ success: true, backups })
+    }
+    if (request.method !== 'POST') return err('NOT_FOUND', '找不到 API', 404)
+
+    const reader = request.body?.getReader()
+    if (!reader) return err('INVALID_BACKUP', '缺少聊天備份。')
+    const buffer = new Uint8Array(MAX_BACKUP_BYTES)
+    let size = 0
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (size + value.byteLength > buffer.byteLength) {
+        await reader.cancel()
+        return err('BACKUP_TOO_LARGE', '單份備份上限為 1 MiB。', 413)
+      }
+      buffer.set(value, size)
+      size += value.byteLength
+    }
+    const bytes = buffer.slice(0, size)
+    let snapshot
+    try {
+      snapshot = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+    } catch {
+      return err('INVALID_BACKUP', '聊天備份必須是有效的 JSON。')
+    }
+    if (snapshot?.version !== 1 || !Array.isArray(snapshot.messages) || !Array.isArray(snapshot.outbox)) {
+      return err('INVALID_BACKUP', '聊天備份格式無效。')
+    }
+
+    const savedAt = new Date().toISOString()
+    const id = `${Date.parse(savedAt)}-${crypto.randomUUID()}`
+    try {
+      await storage.put({
+        [`backup:${id}`]: { bytes },
+        [`entry:${id}`]: { id, savedAt, size, uploader }
+      })
+    } catch {
+      return err('BACKUP_WRITE_FAILED', '備份儲存失敗，請稍後重試。', 503)
+    }
+    return json({ success: true, id, savedAt })
+  }
+}
+
+async function importMemberBackups(namespace, shared, identity, headers) {
+  const member = namespace.get(namespace.idFromName(`chatcore-backup:${identity.userId}`))
+  const list = await member.fetch(new Request('https://chatcore-backup/', { headers }))
+  if (!list.ok) throw new Error('讀取舊備份清單失敗')
+  const { backups } = await list.json()
+  if (!backups.length) return
+  const sharedList = await shared.fetch(new Request('https://chatcore-backup/', { headers }))
+  if (!sharedList.ok) throw new Error('讀取共用備份清單失敗')
+  const importedIds = new Set((await sharedList.json()).backups.map(entry => entry.id))
+  for (const { id, savedAt } of backups) {
+    if (importedIds.has(id === 'latest' ? `legacy-${identity.userId}-latest` : id)) continue
+    const backup = await member.fetch(new Request(`https://chatcore-backup/?${new URLSearchParams({ id })}`, { headers }))
+    if (!backup.ok) throw new Error('讀取舊備份失敗')
+    const imported = await shared.fetch(new Request(`https://chatcore-backup/import?${new URLSearchParams({ id, savedAt })}`, {
+      method: 'POST', headers, body: backup.body, duplex: 'half'
+    }))
+    if (!imported.ok) throw new Error('匯入舊備份失敗')
+  }
+}
+
 async function routeApi(request, env) {
   const url = new URL(request.url)
   if (!projectIsChatCore(request)) return err('PROJECT_MISMATCH', 'X-Project 必須是 chatCore', 403)
@@ -268,6 +379,47 @@ async function routeApi(request, env) {
     if (bearer) await authCall(env, '/session/revoke', 'POST', undefined, bearer)
     return json({ success: true })
   }
+  if (url.pathname === '/api/private-chat/rooms' && request.method === 'GET') {
+    if (!await authorize(request, env)) return err('UNAUTHORIZED', '請重新登入 chatCore 實驗', 401)
+    const response = await authCall(env, '/rooms', 'GET')
+    return new Response(response.body, response)
+  }
+  if (url.pathname === '/api/private-chat/rooms' && request.method === 'POST') {
+    if (!await authorize(request, env)) return err('UNAUTHORIZED', '請重新登入 chatCore 實驗', 401)
+    const body = await request.json().catch(() => null)
+    if (!ROOM_ID_PATTERN.test(body?.roomId || '')) return err('INVALID_ROOM', '房間代碼無效', 400)
+    const response = await authCall(env, '/rooms', 'POST', body)
+    return new Response(response.body, response)
+  }
+  if ((url.pathname === '/api/backups' && ['GET', 'POST'].includes(request.method)) ||
+      (url.pathname === '/api/private-chat/backup' && request.method === 'POST')) {
+    const identity = await authorize(request, env)
+    if (!identity) return err('UNAUTHORIZED', '請返回聊天頁重新登入。', 401)
+    if (!env.CHATCORE_BACKUP) return err('BACKUP_NOT_CONFIGURED', '備份儲存尚未啟用。', 503)
+    if (request.method === 'POST' && request.headers.get('Content-Type') !== 'application/json') return err('INVALID_BACKUP', '請上傳 JSON 備份。', 415)
+    if (Number(request.headers.get('Content-Length')) > MAX_BACKUP_BYTES) return err('BACKUP_TOO_LARGE', '單份備份上限為 1 MiB。', 413)
+    const namespace = env.CHATCORE_BACKUP
+    const backup = namespace.get(namespace.idFromName('chatcore-backup:shared'))
+    const headers = {
+      'X-ChatCore-Internal': '1',
+      'X-ChatCore-Uploader': identity.username,
+      'X-ChatCore-User-Id': identity.userId
+    }
+    if (request.method === 'GET' && !url.searchParams.has('id')) {
+      try {
+        await importMemberBackups(namespace, backup, identity, headers)
+      } catch {
+        return err('BACKUP_IMPORT_FAILED', '舊備份匯入失敗，請稍後重試。', 503)
+      }
+    }
+    const response = await backup.fetch(new Request(`https://chatcore-backup/${url.search}`, {
+      method: request.method,
+      headers,
+      body: request.body,
+      duplex: 'half'
+    }))
+    return new Response(response.body, response)
+  }
   if (url.pathname === '/api/private-chat/ticket' && request.method === 'POST') {
     const identity = await authorize(request, env)
     if (!identity) return err('UNAUTHORIZED', '請重新登入 chatCore 實驗', 401)
@@ -275,6 +427,7 @@ async function routeApi(request, env) {
     if (!ROOM_ID_PATTERN.test(body?.roomId || '') || !DEVICE_ID_PATTERN.test(body?.deviceId || '')) return err('INVALID_TICKET_REQUEST', '房間或裝置識別無效', 400)
     const room = env.PRIVATE_CHAT_LAB.get(env.PRIVATE_CHAT_LAB.idFromName(`m1:${body.roomId}`))
     const response = await room.fetch(new Request('https://private-chat/__ticket', { method: 'POST', headers: { 'X-ChatCore-Internal': '1', 'content-type': 'application/json' }, body: JSON.stringify({ identity, deviceId: body.deviceId }) }))
+    if (response.ok) await authCall(env, '/rooms', 'POST', { roomId: body.roomId })
     return new Response(await response.text(), { status: response.status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } })
   }
   return err('NOT_FOUND', '找不到 API', 404)

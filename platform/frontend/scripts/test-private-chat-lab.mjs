@@ -28,6 +28,14 @@ function createIndexedDBMock() {
                   if (!storeNames.includes(storeName)) throw new Error(`Store outside transaction: ${storeName}`)
                   const store = stores.get(storeName)
                   return {
+                    getAll() {
+                      const request = {}
+                      queueMicrotask(() => {
+                        request.result = [...store.records.values()].map(record => structuredClone(record))
+                        request.onsuccess?.()
+                      })
+                      return request
+                    },
                     get(key) {
                       const result = { result: undefined, onsuccess: null }
                       queueMicrotask(() => {
@@ -38,6 +46,9 @@ function createIndexedDBMock() {
                     },
                     put(record) {
                       store.records.set(record[store.keyPath], structuredClone(record))
+                    },
+                    clear() {
+                      store.records.clear()
                     },
                     delete(key) {
                       store.records.delete(key)
@@ -74,6 +85,20 @@ function createIndexedDBMock() {
     },
   }
 }
+
+test('還原完整替換所有房間的訊息與 outbox；無效備份保留既有資料', async () => {
+  const repository = createPrivateChatMessageRepository(createIndexedDBMock())
+  const original = { id: 'old', roomId: 'old-room', text: '原始訊息', at: 1 }
+  await repository.saveOutgoing(original)
+  const before = await repository.exportSnapshot()
+  await assert.rejects(repository.restoreSnapshot({ version: 1, messages: [], outbox: [{}] }), /備份內容無效/)
+  assert.deepEqual(await repository.exportSnapshot(), before)
+  const message = { id: 'new', roomId: 'new-room', text: '還原訊息', at: 2 }
+  const snapshot = { version: 1, messages: [message], outbox: [] }
+  await repository.restoreSnapshot(snapshot)
+  assert.deepEqual(await repository.exportSnapshot(), snapshot)
+  assert.deepEqual(await repository.loadRoom('old-room'), { messages: [], outbox: [] })
+})
 
 test('messageId 去重；received／persisted 分開記錄，所有 Peer persisted 後移除 outbox', async () => {
   const repository = createPrivateChatMessageRepository(createIndexedDBMock())
@@ -136,4 +161,14 @@ test('READ 必須同時符合頁面前景、聊天室可見、訊息進入可視
   assert.equal(canMarkMessageRead({ ...eligible, messageVisible: false }), false)
   assert.equal(canMarkMessageRead({ ...eligible, persisted: false }), false)
   assert.equal(canMarkMessageRead({ ...eligible, alreadyRead: true }), false)
+})
+
+test('備份快照包含所有房間的歷史和待送訊息', async () => {
+  const repository = createPrivateChatMessageRepository(createIndexedDBMock())
+  await repository.saveOutgoing({ id: 'outgoing', roomId: 'a', text: '待送', at: 10 })
+  await repository.saveIncomingIfAbsent({ id: 'incoming', roomId: 'b', text: '已收到', at: 20 })
+  const snapshot = await repository.exportSnapshot()
+  assert.equal(snapshot.version, 1)
+  assert.deepEqual(snapshot.messages.map(message => message.roomId).sort(), ['a', 'b'])
+  assert.deepEqual(snapshot.outbox.map(message => message.id), ['outgoing'])
 })

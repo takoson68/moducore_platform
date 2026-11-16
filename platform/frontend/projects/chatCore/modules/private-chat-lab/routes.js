@@ -10,6 +10,16 @@ export const routes = [
     }
   },
   {
+    path: '/ip-test',
+    name: 'chatcore-ip-test',
+    component: () => import('./pages/ip-test.vue'),
+    meta: {
+      title: 'chatCore IP 與 IndexedDB 測試',
+      access: { public: true, auth: true },
+      nav: []
+    }
+  },
+  {
     path: '/lab',
     name: 'chatcore-private-chat-lab',
     component: () => import('./pages/index.vue'),
