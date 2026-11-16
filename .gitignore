@@ -4,6 +4,7 @@ node_modules
 /ai
 /ai_new
 /platform/release-console/data/
+/platform/frontend/.certs/
 
 # MemPalace per-project files (issue #185)
 mempalace.yaml

@@ -11,6 +11,7 @@
     "benchmark:chat-load": "node scripts/chat-load-benchmark.mjs",
     "test:employee": "node --experimental-vm-modules --test scripts/test-employee-service.mjs",
     "dev": "vite",
+    "dev:https": "VITE_DEV_HTTPS=true vite --host 0.0.0.0 --port 5174",
     "build": "vite build",
     "build:cloudflare": "node scripts/build-cloudflare.mjs",
     "test:api": "node --experimental-vm-modules scripts/test-api.mjs",

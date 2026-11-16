@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:eatgomap": "wrangler dev --config wrangler.eatgomap-local.jsonc --port 8790 --ip 127.0.0.1",
     "test": "node --test",
     "admin:project-b": "node scripts/provision-project-b-admin.mjs",
     "check": "wrangler deploy --dry-run --outdir .wrangler-dist",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:eatgomap:local": "wrangler d1 migrations apply DB --local --config wrangler.eatgomap-local.jsonc",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "deploy": "wrangler deploy"
   },
