@@ -76,7 +76,7 @@ MVP 不先進行完整掃描本自行轉錄；Kanripo 與 CText 只在發現結�
 
 ## 4. Authoring 檔案結構
 
-正式實作時建議在 `yi-ly` Project 內建立獨立 corpus 工作區；實際位置需在工程階段依 Project Scaffold 與 Module Contract 再確認。
+資料工作區固定位於 `platform/frontend/projects/yi-ly/corpus/`，由 `corpus/index.md` 導讀。其下每個具語意的子目錄各有自己的 `index.md`；原始快照與產物以資料檔形式放在對應目錄，不以文件替代內容本身。
 
 ```text
 corpus/
@@ -253,13 +253,14 @@ corpus:release   只發布已核准且 checksum 固定的版本
 
 ## 11. 第一批實作順序
 
-1. 以維基文庫《周易》入口 `oldid=7907208` 建立 source registry。
-2. 透過 MediaWiki API 列出 64 卦與相關子頁的固定 revision，建立 snapshot manifest。
-3. 先完成乾、坤兩卦的端到端樣本。
-4. 驗證 stable ID、來源定位、簡明導讀、D1 seed、API 與離線 package。
-5. 樣本審校通過後再批次擴到 64 卦，避免先大量匯入後返工。
-6. 發現文字疑點時以 Kanripo／CText 人工比對並留下 review note，不直接替換主來源文字。
-7. 64 卦原文發布完成後，再逐一加入不同 InterpretationProfile。
+1. 已以維基文庫《周易》入口 `oldid=7907208` 建立完整來源快照。
+2. 已透過 MediaWiki API 保存 64 卦與 9 個傳文頁 revision，建立 snapshot manifest。
+3. 已完成 64 卦 staging 批次，抽取 1005 個候選段落並保留逐段原始 wikitext、頁面 revision/checksum 與暫定來源定位；結構初審見 `corpus/reviews/2026-11-16-hexagram-staging-batch.md`。
+4. 專案方確認小象爻位順序映射、乾坤文言分段及顯示模板處理，再決定穩定 passage ID 與 canonical 建置規則。
+5. 將 9 個獨立傳文頁解析為 staging，並核對《彖》《象》《文言》《繫辭》等頁與各卦內篇章的關係，避免重複或漏掛。
+6. 逐字校閱原文、模板異文與標點，疑點以 Kanripo／CText 人工比對並留下 review note，不直接替換主來源文字。
+7. 建立穩定 passage ID、本站簡明導讀、D1 seed、API 與離線 package。
+8. 64 卦原文發布完成後，再逐一加入不同 InterpretationProfile。
 
 ## 12. 來源與法律參考
 

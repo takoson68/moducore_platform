@@ -25,8 +25,9 @@
 7. `docs/CORPUS_DATA_PIPELINE.md`
 8. `docs/TECHNICAL_ARCHITECTURE_PLAN.md`
 9. `decisions/`
-10. `layout/`
-11. `modules/`
+10. `corpus/index.md`
+11. `layout/`
+12. `modules/`
 
 ## 3. 專案結構
 
@@ -43,7 +44,7 @@
 - 啟動入口：平台共用 `src/main.js` 與 `world.start()`。
 - 專案選擇方式：`VITE_PROJECT=yi-ly`。
 - 主要設定來源：`project.config.js`。
-- 目前狀態：企劃與空骨架階段，尚未進入功能實作。
+- 目前狀態：企劃與空骨架階段；已取得維基文庫 64 卦與 9 個傳文頁的原始 revision 快照，64 卦 staging 已完成結構解析、仍待人工校勘；傳文頁尚未解析，功能尚未實作。
 
 ## 5. 模組與頁面範圍
 
@@ -69,6 +70,7 @@
 - `docs/PROJECT_REQUIREMENT_SPEC.md`
 - `docs/DIVINATION_METHOD_TAXONOMY.md`
 - `docs/CORPUS_DATA_PIPELINE.md`
+- `corpus/`：原始來源快照、整理中資料、正式內容與版本產物；入口為 `corpus/index.md`。
 - `docs/TECHNICAL_ARCHITECTURE_PLAN.md`
 - `decisions/D001_traceable-corpus-and-ai-boundary.md`
 - `decisions/D002_reading-frameworks.md`

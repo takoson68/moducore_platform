@@ -6,6 +6,10 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-16 yi-ly Corpus 原始快照與 64 卦 staging
+
+已在 `platform/frontend/projects/yi-ly/corpus/` 建立資料工作區。`tools/fetch-wikisource.mjs` 依固定目錄 revision `7907208` 取得 73 個子頁，包括 64 卦與 9 個傳文篇目；逐頁保存原始 MediaWiki wikitext、page/revision ID、固定 URL 與 SHA-256，73 筆 checksum 均核對通過。`tools/stage-hexagrams.mjs` 已產生 64 卦、1005 筆候選段落；卦序 1–64 唯一完整，各卦都有卦辭、六爻、彖傳與大象候選，未分類段落為零。所有內容仍待人工校勘；小象未明列爻位時依來源順序暫定映射，乾文言來源群組已保留。初審見 `corpus/reviews/2026-11-16-qian-kun-staging-review.md` 與 `corpus/reviews/2026-11-16-hexagram-staging-batch.md`。下一步解析 9 個獨立傳文頁並核對其與各卦內傳文的關係。
+
 ## 2026-11-16 yi-ly 易經解卦企劃與空骨架
 
 建立 `yi-ly` 新 Project 的標準空骨架、需求規格、技術架構計畫與兩份決策紀錄。專案已確認免會員、手機優先、第一版只複製給外部 AI；離線經文需使用者同意後下載，卜卦歷史預設不保存，選擇保存時預設名稱為 `TAKO`。多種推算需求收斂為同一卦象的閱讀框架：形勢／變動／趨勢為預設，時序、內外及行動框架仍待決定是否納入 MVP。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過，尚未建立業務模組或後端實作。
