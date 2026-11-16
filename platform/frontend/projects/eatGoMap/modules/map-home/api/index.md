@@ -2,7 +2,7 @@
 
 ## 範圍
 
-本目錄處理 `map-home` 對 eatGoMap Worker 收藏 API 的傳輸呼叫。API/D1 只同步 Place ID 收藏清單；地點詳情與使用者自訂欄位由 `store.js` 經平台 Storage capability 保存於瀏覽器。
+本目錄處理 `map-home` 對 eatGoMap Worker 收藏 API 的傳輸呼叫。API/D1 只同步 Place ID 收藏清單；地點詳情與使用者自訂欄位由 `store.js` 經 `world.iDB` 保存於瀏覽器。
 
 ## 閱讀順序
 

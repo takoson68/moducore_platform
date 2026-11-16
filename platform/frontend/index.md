@@ -7,14 +7,17 @@
 ## 閱讀順序與路由
 
 1. 先讀根目錄 [`projects/index.md`](./projects/index.md) 確認 `VITE_PROJECT` 與 Project 配置。
-2. 啟動、Container、Module、Router、Store 任務讀 `src/main.js`、`src/world.js`、`src/app/boot/` 及 AI Project Entry 的相應段落。
+2. 啟動、Container、Module、Router、Store 任務先讀 [World 使用手冊](./src/world使用手冊.md)，再查 `src/main.js`、`src/world.js`、`src/app/boot/` 及 AI Project Entry 的相應段落。
 3. 遊戲 Runtime 任務先讀 `src/app/game/index.md`，引擎任務再讀 `src/app/game/engines/index.md`。
 4. API／Auth 任務依 `platform/worker/index.md` 與 `_VibeCore/api/index.md` 追蹤前後端契約。
 5. 執行指令以 `package.json` 為準；Build／測試只跑與本次 Project 和功能相關的腳本。
 
+共用登入、備份、主題與插槽元件見 [前端共用元件索引](./src/components/index.md)。
+
 ## 重要現況
 
-- `VITE_PROJECT` 選擇單一前端 Project；Vite 未設定時預設 `project-a`。以 `vite.config.js` 和建置輸出再次核對。
+- 本機 `npm run dev` 與 `npm run dev:https` 以本目錄 `.env` 的 `VITE_PROJECT` 為唯一選擇來源，`VITE_DEV_HOST` 可開放區域網路 IP 測試。切換後重啟並開啟終端機顯示的網址。eatGoMap HTTP 固定使用 5180；其他 Project 的 HTTP 開發服務從 5181 開始，埠被占用時 Vite 會選下一個可用埠。發布建置仍可由 CI 指定 Project。
+- eatGoMap 的本機 HTTP 固定使用 `http://localhost:5180/`。Google Maps JavaScript API 的金鑰依網站來源授權，因此埠被占用時會直接報錯，避免 Vite 自動換埠後使用未授權的來源。
 - 本機一般 Build 會輸出至 `projects/<project>/dist`，並透過 Vite plugin 複製成品至 `platform/backend/public`；Cloudflare Build 使用根 `dist` 並略過該複製流程。部署目標須再核對 Worker 設定與 Workflow。
 - `projects/` 的既有 Project 導讀見 [`projects/index.md`](./projects/index.md)；不是每個歷史 Project 都必須已有 Markdown 專屬 index。
 - Project 內專題文件若存在 `docs/index.md`，先按該索引辨別正式背景、規劃與歷史材料；不要把規劃文件當已實作功能。

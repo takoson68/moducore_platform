@@ -18,13 +18,18 @@
 
 import { resolveNavProjection } from './resolveNavProjection.js'
 import { createEventBus } from './eventBus.js'
+import { createIndexedDbService } from './indexedDbService.js'
+import { createIndexedDbBackup } from './indexedDbBackup.js'
 import { createStorageService } from './storageService.js'
 
 const eventBus = createEventBus()
 const storageService = createStorageService()
+const indexedDbBackup = createIndexedDbBackup()
 
 export const services = {
   resolveNavProjection,
   eventBus,
-  storage: () => storageService
+  storage: () => storageService,
+  indexedDbBackup: () => indexedDbBackup,
+  indexedDb: createIndexedDbService(indexedDbBackup)
 }

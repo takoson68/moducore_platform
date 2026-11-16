@@ -48,6 +48,22 @@ class World {
     })
   }
 
+  // 語法糖從目前 Project 取得租戶，實際操作仍經 Container Service。
+  get iDB() {
+    const scoped = module => this.services.indexedDb({
+      tenantId: this.projectConfig()?.tenant_id,
+      module
+    })
+
+    return {
+      save: ({ module, category, id, data }) => scoped(module).set(category, id, data),
+      get: ({ module, category, id }) => scoped(module).get(category, id),
+      list: ({ module, category }) => scoped(module).list(category),
+      remove: ({ module, category, id }) => scoped(module).remove(category, id),
+      upload: ({ module, categories, upload }) => scoped(module).requestUpload({ categories, upload })
+    }
+  }
+
   async start() {
     if (this.started) return
     if (this._startPromise) return this._startPromise

@@ -70,7 +70,7 @@ Tag Workflow 無法使用時：
 ## 6. 專案差異
 
 - `game-demo`：測試、建置、封裝、Static Assets dry-run、部署及 SPA Smoke；不執行 D1 Migration 或 Auth Smoke。
-- `eatGoMap`：建置合成資料的地圖首頁原型、封裝、Static Assets dry-run、部署及 SPA Smoke；不執行 D1 Migration 或 Auth Smoke。
+- `eatGoMap`：建置地圖首頁、封裝、Worker + Static Assets + 專用 D1 Migration dry-run／部署、健康檢查與收藏 API CRUD Smoke；不執行 Auth Smoke。
 - `chatCore`：建置獨立 chatCore Project，部署 Static Assets 與 Private Chat Lab Signaling Durable Object；執行 SPA 與 Signaling Smoke，不執行 D1 Migration 或 Auth Smoke。
 - `dineCore`：執行 D1 Migration、公開端點及 Auth 隔離驗證。
 - `project-b`：除 D1 與 Auth 外，另執行 Employee Smoke。

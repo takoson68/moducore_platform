@@ -1,7 +1,7 @@
 import world from '@/world.js'
 import { createFavorite, deleteFavorite, listFavorites } from './api/favoritesApi.js'
 
-const PLACE_STORAGE_PREFIX = 'eatGoMap:place'
+const LEGACY_PLACE_PREFIX = 'eatGoMap:place'
 const LEGACY_STORAGE_KEY = 'eatGoMap:favorites'
 const PLACE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
@@ -59,12 +59,39 @@ function hasCompleteDetails(details) {
     Number.isFinite(details.coordinates.lng) && details.coordinates.lng >= -180 && details.coordinates.lng <= 180)
 }
 
-function storageKey(id) {
-  return `${PLACE_STORAGE_PREFIX}:${encodeURIComponent(id)}`
+function placeRecord(id) {
+  return { module: 'map-home', category: 'places', id }
 }
 
-function refreshFailureKey(id) {
+function refreshFailureRecord(id) {
+  return { module: 'map-home', category: 'place-refresh-failures', id }
+}
+
+function legacyPlaceKey(id) {
+  return `${LEGACY_PLACE_PREFIX}:${encodeURIComponent(id)}`
+}
+
+function legacyRefreshFailureKey(id) {
   return `eatGoMap:place-refresh-failures:${encodeURIComponent(id)}`
+}
+
+async function readRefreshFailures(id) {
+  const record = refreshFailureRecord(id)
+  const count = await world.iDB.get(record)
+  if (count !== undefined) return count
+
+  const legacyStorage = world.services.storage()
+  const legacyCount = Number(await legacyStorage.get(legacyRefreshFailureKey(id))) || 0
+  if (legacyCount > 0) {
+    await world.iDB.save({ ...record, data: legacyCount })
+    await legacyStorage.remove(legacyRefreshFailureKey(id))
+  }
+  return legacyCount
+}
+
+async function clearRefreshFailures(id) {
+  await world.services.storage().remove(legacyRefreshFailureKey(id))
+  await world.iDB.remove(refreshFailureRecord(id))
 }
 
 function refreshFailureMessage(error) {
@@ -103,32 +130,37 @@ export function createEatGoMapFavoriteStore() {
         if (store.get().hydrated) return
         if (hydrationPromise) return hydrationPromise
         hydrationPromise = (async () => {
-          const storage = world.services.storage()
-          const legacy = await storage.get(LEGACY_STORAGE_KEY)
-          const legacyById = new Map((Array.isArray(legacy) ? legacy : [])
-            .map(item => [favoriteId(item), item]).filter(([id]) => id))
           try {
             const remoteFavorites = await listFavorites()
+            const legacyStorage = world.services.storage()
+            const legacy = await legacyStorage.get(LEGACY_STORAGE_KEY)
+            const legacyById = new Map((Array.isArray(legacy) ? legacy : [])
+              .map(item => [favoriteId(item), item]).filter(([id]) => id))
             const items = await Promise.all(remoteFavorites.map(async remote => {
               const id = favoriteId(remote)
               if (!id) return null
-              const cached = await storage.get(storageKey(id))
-              const previous = cached || legacyById.get(id) || {}
-              const failures = Number(await storage.get(refreshFailureKey(id))) || 0
+              const record = placeRecord(id)
+              const cached = await world.iDB.get(record)
+              const previous = cached ?? await legacyStorage.get(legacyPlaceKey(id)) ?? legacyById.get(id) ?? {}
               const item = normalizePlaceRecord(id, {
                 ...previous,
-                detailsRefreshFailures: failures,
+                detailsRefreshFailures: await readRefreshFailures(id),
                 kind: previous.kind || remote.source
               })
-              await storage.set(storageKey(id), item)
+              if (cached === undefined) await world.iDB.save({ ...record, data: item })
               return item
             }))
             const normalized = items.filter(Boolean)
-            const activeKeys = new Set(normalized.map(item => storageKey(item.id)))
-            const staleKeys = await storage.list(PLACE_STORAGE_PREFIX)
-            await Promise.all(staleKeys.filter(entry => entry.key.startsWith(`${PLACE_STORAGE_PREFIX}:`) && !activeKeys.has(entry.key))
-              .map(entry => storage.remove(entry.key)))
-            await storage.remove(LEGACY_STORAGE_KEY)
+            const activeIds = new Set(normalized.map(item => item.id))
+            const cachedPlaces = await world.iDB.list({ module: 'map-home', category: 'places' })
+            await Promise.all(cachedPlaces.filter(entry => !activeIds.has(entry.id))
+              .map(entry => world.iDB.remove(placeRecord(entry.id))))
+
+            // 所有有效收藏寫入成功後，才清理舊版快取。
+            const legacyPlaces = await legacyStorage.list(LEGACY_PLACE_PREFIX)
+            await Promise.all(legacyPlaces.filter(entry => entry.key.startsWith(`${LEGACY_PLACE_PREFIX}:`))
+              .map(entry => legacyStorage.remove(entry.key)))
+            await legacyStorage.remove(LEGACY_STORAGE_KEY)
             store.set({ ...store.get(), items: normalized, hydrated: true, syncState: 'ready' })
           } catch {
             store.set({ ...store.get(), hydrated: true, syncState: 'error' })
@@ -141,10 +173,9 @@ export function createEatGoMapFavoriteStore() {
           throw new Error('拒絕保存沒有有效 Place ID 的地點資料')
         }
         const item = normalizePlaceRecord(place.id, place)
-        const storage = world.services.storage()
-        const key = storageKey(item.id)
-        await storage.set(key, item)
-        const storedValue = await storage.get(key)
+        const record = placeRecord(item.id)
+        await world.iDB.save({ ...record, data: item })
+        const storedValue = await world.iDB.get(record)
         const persisted = normalizePlaceRecord(item.id, storedValue || {})
         if (persisted.id !== item.id || persisted.detailsFetchedAt !== item.detailsFetchedAt ||
           (item.detailsFetchedAt > 0 && (
@@ -166,8 +197,7 @@ export function createEatGoMapFavoriteStore() {
 
         const { fetchDetails, ...favoriteRecord } = favorite
         const existing = store.get().items.find(item => item.id === id)
-        const storage = world.services.storage()
-        const failures = Number(await storage.get(refreshFailureKey(id))) || 0
+        const failures = await readRefreshFailures(id)
         let details = normalizeDetailsPayload(favoriteRecord)
         let detailsFetchedAt = Number(favoriteRecord.detailsFetchedAt || existing?.detailsFetchedAt || 0)
 
@@ -181,13 +211,13 @@ export function createEatGoMapFavoriteStore() {
             if (!hasCompleteDetails(details)) throw new Error('Place Details 未回傳完整名稱、地址與座標')
             detailsFetchedAt = Date.now()
           } catch (error) {
-            await storage.set(refreshFailureKey(id), Math.min(2, failures + 1))
+            await world.iDB.save({ ...refreshFailureRecord(id), data: Math.min(2, failures + 1) })
             throw error
           }
         }
 
         await createFavorite({ placeId: id })
-        await storage.remove(refreshFailureKey(id))
+        await clearRefreshFailures(id)
         const item = await store.persistPlace({
           ...existing,
           ...favoriteRecord,
@@ -224,7 +254,8 @@ export function createEatGoMapFavoriteStore() {
       },
       async removeFavorite(store, placeId) {
         await deleteFavorite(placeId)
-        await world.services.storage().remove(storageKey(placeId))
+        await world.services.storage().remove(legacyPlaceKey(placeId))
+        await world.iDB.remove(placeRecord(placeId))
         store.set({ ...store.get(), items: store.get().items.filter(item => item.id !== placeId), syncState: 'ready' })
       },
       async refreshPlaceDetails(store, { placeId, fetchDetails }) {
@@ -240,9 +271,8 @@ export function createEatGoMapFavoriteStore() {
           try {
             details = await fetchDetails(placeId)
           } catch (error) {
-            const storage = world.services.storage()
-            const failures = Math.min(2, (Number(await storage.get(refreshFailureKey(placeId))) || 0) + 1)
-            await storage.set(refreshFailureKey(placeId), failures)
+            const failures = Math.min(2, await readRefreshFailures(placeId) + 1)
+            await world.iDB.save({ ...refreshFailureRecord(placeId), data: failures })
             const current = store.get().items.find(item => item.id === placeId)
             if (current) {
               await store.persistPlace({
@@ -256,9 +286,8 @@ export function createEatGoMapFavoriteStore() {
           details = normalizeDetailsPayload(details)
           if (!hasCompleteDetails(details)) {
             const error = new Error('地點資料格式不完整：需要名稱、地址與有效座標')
-            const storage = world.services.storage()
-            const failures = Math.min(2, (Number(await storage.get(refreshFailureKey(placeId))) || 0) + 1)
-            await storage.set(refreshFailureKey(placeId), failures)
+            const failures = Math.min(2, await readRefreshFailures(placeId) + 1)
+            await world.iDB.save({ ...refreshFailureRecord(placeId), data: failures })
             const current = store.get().items.find(item => item.id === placeId)
             if (current) await store.persistPlace({
               ...current,
@@ -267,7 +296,7 @@ export function createEatGoMapFavoriteStore() {
             })
             throw error
           }
-          await world.services.storage().remove(refreshFailureKey(placeId))
+          await clearRefreshFailures(placeId)
           return store.persistPlace({
             ...existing,
             ...details,

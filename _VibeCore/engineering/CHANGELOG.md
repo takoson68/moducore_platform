@@ -1,3 +1,13 @@
+## 2026-11-09
+
+- 新增 `world.iDB.save/get/list/remove/upload` 與對應 Container Service，統一新模組的 IndexedDB 讀寫、刪除及分類備份，平台自動產生寫入版本。
+- 新增 `world.services.indexedDbBackup()` 共用能力，以呼叫端明確宣告的分類讀取快照、確認上傳並選擇清除。各 Project 自行提供資料歸屬與上傳 API。
+
+## 2026-11-05
+
+- 將 eatGoMap Staging 部署目標設定為同源 Worker + Static Assets + 專用 D1；以獨立 Migration 路徑和最低 Schema Gate 管理收藏 API。
+- D1 永久保存 Places Place ID 及使用者自訂名稱／地址；Places 回傳座標在 30 天期限前由每小時 Cron 與讀取路徑清除，Places 回傳名稱與地址不落地。
+
 ## 2026-11-04
 
 - 新增 `eatGoMap` Staging 靜態 Worker 目標 `eatgomap-staging`，可由 `dep_eatgomap_vX.Y.Z` Tag 發布目前的前端原型；不綁定 D1 或合作方 API。

@@ -7,7 +7,7 @@
 ## 閱讀順序
 
 1. 先讀 `_VibeCore/core/index.md` 與 `_VibeCore/engineering/index.md` 對應能力邊界。
-2. 再讀本目錄 `storage.md` 等能力文件，最後確認實際 service factory、Container 註冊與測試。
+2. 再讀本目錄 [Storage](./storage.md) 或 [IndexedDB 備份](./indexed-db-backup.md) 等能力文件，最後確認實際 service factory、Container 註冊與測試。
 3. 只可透過正式公開註冊入口使用能力；不可因文件範例而直接跨層匯入內部實作。
 
 ## 權限

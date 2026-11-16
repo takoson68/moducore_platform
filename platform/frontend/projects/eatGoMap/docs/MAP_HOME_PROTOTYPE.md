@@ -32,7 +32,7 @@
 - 本機 `.env.local` 已設定 Google Maps API Key，實際底圖已載入；最終網域限制尚未設定。
 - 目前定位只在地圖初次載入時或使用者點擊重試時取得單次位置；不持續追蹤、不分享位置，亦不寫入後端。
 - 尚未呼叫合作方後端 API；目前收藏呼叫 eatGoMap 專用 Worker API。
-- 收藏由 Worker API／D1 僅保存 Place ID；Store 透過 `world.services.storage()` 逐 ID 保存地點詳情與使用者自訂欄位至 IndexedDB。缺漏或超過 30 日時，使用 Place ID 重新查詢並更新。
+- 收藏由 Worker API／D1 僅保存 Place ID；Store 透過 `world.iDB` 逐 ID 保存地點詳情與使用者自訂欄位至 IndexedDB。缺漏或超過 30 日時，使用 Place ID 重新查詢並更新。
 - 打卡、日誌與身分尚未建立持久狀態；收藏由 eatGoMap Staging D1 保存，尚未接合作方 API。
 - 收藏頁讀取 API 回傳的 Place ID 並以 ID 取出本機地點詳情，可移除收藏；地點名稱可點擊編輯，自訂資料保存至 IndexedDB。日誌頁尚未提供功能。
 
@@ -40,10 +40,12 @@
 
 1. 複製 `platform/frontend/.env.local.example` 為 `platform/frontend/.env.local`。
 2. 將 `VITE_GOOGLE_MAPS_API_KEY` 設為已啟用 Maps JavaScript API 的瀏覽器 Key。
-3. 在 Google Cloud Console 啟用 Maps JavaScript API 與 Places API (New)，並將 Key 的 API 限制同時允許這兩項 API；再將網站來源限制在實際開發／部署網域（本機 Vite 可用 `http://localhost:5173/*` 與 `http://192.168.50.113:5173/*`）。
+3. 在 Google Cloud Console 啟用 Maps JavaScript API 與 Places API (New)，並將 Key 的 API 限制同時允許這兩項 API；再將網站來源限制在實際開發／部署網域（eatGoMap 本機 HTTP 使用 `http://localhost:5180/*`，手機 HTTPS 使用實際區網來源，例如 `https://192.168.50.113:5174/*`）。
 4. 重新啟動 Vite。若使用其他區網 IP 或連接埠，需將對應來源加入 Key 的網站限制。
 
-在開發電腦上可使用 `http://localhost:5173/` 測試瀏覽器定位。要在同一 Wi-Fi 的 iPhone 上測試本機修改，需使用受信任的 HTTPS 本機憑證：執行 `npm run dev:https`，再開啟 `https://192.168.50.113:5174/`；iPhone 必須安裝 `eatgomap-dev-ca.cer` 並在「設定 → 一般 → 關於本機 → 憑證信任設定」啟用完整信任。僅供本機開發，CA 私鑰與伺服器憑證不可提交至 Git。
+本機測試收藏時，先在 `platform/worker` 執行 `npm run db:migrate:eatgomap:local` 和 `npm run dev:eatgomap`。前端將收藏請求轉送至本機 Worker 的 8790，Worker 啟動後可從 `http://localhost:5180/api/health` 確認連線。
+
+在 `platform/frontend` 執行 `VITE_PROJECT=eatGoMap npm run dev` 後，可使用 `http://localhost:5180/` 測試瀏覽器定位。HTTP 連接埠固定為 5180，若已被占用，啟動會報錯。瀏覽器依網站來源區隔 IndexedDB，舊連接埠的本機自訂欄位及日記不會自動搬移。要在同一 Wi-Fi 的 iPhone 上測試本機修改，需使用受信任的 HTTPS 本機憑證：執行 `npm run dev:https`，再開啟 `https://192.168.50.113:5174/`；iPhone 必須安裝 `eatgomap-dev-ca.cer` 並在「設定 → 一般 → 關於本機 → 憑證信任設定」啟用完整信任。僅供本機開發，CA 私鑰與伺服器憑證不可提交至 Git。
 
 Vite 的 `VITE_` 變數會進入瀏覽器，因此此 Key 不是伺服器密鑰；必須用 API 與網站來源限制保護，且不可提交 `.env.local`。
 
