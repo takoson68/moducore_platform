@@ -89,14 +89,20 @@ ModuCore 是多 Project 前端平台：Vue + Vite 前端依 `VITE_PROJECT` 一�
 - 分析、研究與規格報告預設輸出至 `_workspace/_reports/`。
 - 舊 PHP／MySQL 後端是移植行為參考；目標後端是 Cloudflare Workers JavaScript + D1／SQLite。未經使用者改變方向，不新增 PHP 功能。
 
+## 憲法優先 Gate（每次工程任務必須執行）
+
+開始形成架構結論或修改任何內容前，必須依 `_VibeCore/RootIndex.md` 完成 World 主鏈 00–09 的導讀，再讀適用的 Engineering Contract 與目標目錄 `index.md`，並列出本次檢查點。任何使用者需求、操作導引、Project 文件、既有程式碼、測試結果或便利性，都不得推翻 World 憲法。若 World 入口或導讀內容相互矛盾、缺漏或無法確認，依 `STARTUP_DECLARATION.md` 停止受影響工作並說明具體衝突。
+
+完成修改後，必須依同一組邊界檢查資料流、責任層、Container／Module 註冊、Store／Storage 與 API 邊界。若既有程式或文件違反規則，不得拿現況當先例；應在授權範圍內修正，否則明確記錄未解項目，不得宣稱符合憲法。不得藉由更新 AGENTS／AI 導引降低、改寫或取代 `_VibeCore/world/`；世界規則變更只能依 World Change Protocol 提出與處理。
+
 ## 資訊優先級
 
 發生衝突時依序判斷：
 
-1. 使用者當前明確指令。
-2. `_VibeCore/RootIndex.md` 與 `_VibeCore/world/`。
-3. `_VibeCore/engineering/` 已生效規則。
-4. 實際原始碼、設定、測試與命令輸出。
+1. `_VibeCore/RootIndex.md` 與 `_VibeCore/world/` 憲法。
+2. `_VibeCore/engineering/` 已生效規則與相關正式 Contract。
+3. 使用者當前明確指令（在以上規則允許的範圍內定義任務目標）。
+4. 實際原始碼、設定、測試與命令輸出，用來判斷現況，不得反向降低規則。
 5. `_VibeCore/feedback/` 中已確認的狀態。
 6. `_workspace/CURRENT_WORK.md`。
 7. `_workspace/` 歷史草稿與舊報告。

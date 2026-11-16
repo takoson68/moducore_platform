@@ -18,54 +18,9 @@ moducore_platform/   platform/frontend/projects/dineCore/docs/
 
 engineering/   performance/ 
 
-效能評分模式選擇器.md
-單一專案效能評分.md
-平台核心效能評分.md
 
+//----------------------------------------------
 
+agy --dangerously-skip-permissions
 
-
-方案 A：降低詢問，但維持相對安全
-codex exec --full-auto "執行你的工程執行書內容"
-
-
-
-方案 B：真的盡量不問，直接做完
-codex exec --sandbox danger-full-access --config approval_policy=\"never\" "執行你的工程執行書內容"
-
-
-
-方案 C：把設定寫死，之後每次都不用重打
-你可以做一個專門給「執行工程執行書」的設定：
-approval_policy = "never"
-sandbox_mode = "danger-full-access"
-
-如果你只想在特定專案生效，就放在專案的 .codex/config.toml。
-
-
-
-
-
-
-
-
-
-
-## 切換指令（唯一合法語句）
-
-### 進入世界
-指令：ENTER_WORLD
-效果：狀態切換為 IN_WORLD
-
-### 登出世界
-指令：EXIT_WORLD
-效果：狀態切換為 OUT_OF_WORLD
-
-### 進入維護模式
-指令：ENTER_MAINTENANCE
-前置：必須先 EXIT_WORLD
-效果：狀態切換為 MAINTENANCE
-
-### 結束維護並回到世界
-指令：EXIT_MAINTENANCE
-效果：狀態切換為 IN_WORLD
+codex full-auto

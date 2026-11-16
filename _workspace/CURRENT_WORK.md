@@ -1,10 +1,238 @@
 ---
 status: active
-updated: 2026-11-04
+updated: 2026-11-09
 authority: work-state
 ---
 
 # 當前工作
+
+## 2026-11-16 yi-ly 易經解卦企劃與空骨架
+
+建立 `yi-ly` 新 Project 的標準空骨架、需求規格、技術架構計畫與兩份決策紀錄。專案已確認免會員、手機優先、第一版只複製給外部 AI；離線經文需使用者同意後下載，卜卦歷史預設不保存，選擇保存時預設名稱為 `TAKO`。多種推算需求收斂為同一卦象的閱讀框架：形勢／變動／趨勢為預設，時序、內外及行動框架仍待決定是否納入 MVP。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過，尚未建立業務模組或後端實作。
+
+## 2026-11-11 iDB_box 共用備份元件
+
+`/console` 與 `/ip-test` 改用共用 `iDB_box.vue`，將上傳、下載與備份清單收進單一對話框。頁面將事件接回 chatCore 備份 Store。前端建置與私人聊天測試 5 項通過。
+
+## 2026-11-11 chatCore 專案共用備份
+
+新備份寫入 chatCore 共用空間。所有已登入實驗會員共用清單與下載權限，清單標註上傳者。舊的會員備份於原上傳者開啟清單時匯入。前端建置、私人聊天測試與 Worker handler 模擬儲存測試通過。Miniflare 仍受本機監聽權限限制。
+
+## 2026-11-11 chatCore 多版本備份與還原
+
+`/console` 與 `/ip-test` 提供上傳、備份清單與選取還原。Worker 以固定 `/api/backups` 保留登入帳號的多份原始快照並可讀取舊版單份備份。前端驗證完整快照後，以單筆交易覆蓋聊天 IndexedDB 的 `messages`、`outbox`。前端建置、私人聊天測試及 Worker handler 模擬儲存驗證通過。Miniflare 整合測試受限於本機監聽權限，尚未完成瀏覽器端到端驗收。
+
+## 2026-11-11 chatCore 新訊息自動捲動
+
+`/console` 與 `/ip-test` 在對話清單掛載或尾端訊息變更時，於 Vue 更新畫面後捲至清單底部。chatCore 前端建置與私人聊天測試 4 項通過，另以 Vue 排程測試兩頁的清單掛載、批次新增訊息及僅更新訊息狀態的行為。尚未進行雙瀏覽器實際捲動驗收。
+
+## 2026-11-11 chatCore IP 多人聊天與 IndexedDB 測試
+
+依使用者修正要求，UUID 產生方式保留原本的 `crypto.randomUUID()` 路徑；只有該函式不存在時才使用 `crypto.getRandomValues()` 備援，兩種方式並行。新備援仍需後續多人聊天與備份流程驗收。
+
+使用者提供 `/ip-test` 房間連線失敗截圖；區網 HTTP origin 不提供 `crypto.randomUUID()`，在產生裝置 ID 時先拋錯。備援 UUID 涵蓋裝置、房號、Peer 與訊息 ID。已在 `http://192.168.50.44:5181/ip-test` 實際以 `admin2` 登入並加入 `room-00126450-bb6`，畫面顯示「房間已加入，等待其他參與者」。Cloudflare 前端建置通過。
+
+已修正 `/ip-test` 入房 WebSocket 開發網址，改用頁面 hostname 的 8787 埠；區網 IP 實際 WebSocket 加入房間成功。Worker 新增已建立／加入房號的共用清單；取得 Ticket 後登錄房號，`/ip-test` 登入後讀取，`/console` 重載時同步舊本機房號。兩個 Origin 的 IndexedDB 仍各自隔離。區網 API 登入、Ticket、清單查詢均 HTTP 200，前端 Cloudflare build 通過。清單為曾建立／加入的房號，不代表在線狀態；本機測試清單含驗證用房號 `room-ip-list-check`。
+
+已在 DineCore Staging 將兩個既有合成 `member` 帳號設為可用測試密碼；開發環境 `/console` 預填 `admin1`、`/ip-test` 預填 `admin2` 及各自密碼。兩個帳號經本機 ChatCore Worker 登入均回 HTTP 200；區網 IP 的 `admin2` 登入及 CORS 亦回 HTTP 200。測試完成後移除前端預填密碼。本機 8787 Worker 目前連至 DineCore Staging Auth Service，需保持服務運作。未在此紀錄保存密碼或 Token。
+
+獨立 `/ip-test` 頁面以 localhost 或區網 IP 開啟，支援房間清單、房號加入／建立、P2P 聊天及 IndexedDB 備份。不同 Origin（例如 `http://localhost:5181/ip-test` 與 `http://<本機IP>:5181/ip-test`）使用不同 IndexedDB。兩頁預填不同合成會員帳密，方便雙方聊天測試。樣式維持 scoped，避免通用 `input`、`.primary` 選擇器影響其他頁面。
+
+`/ip-test` 登入介面已恢復；頁面遇到網路錯誤時會提示 Worker 網址。使用 `wrangler.chatcore-staging.jsonc` 本機啟動 Worker 需配置本機 `CHATCORE_SESSION_SECRET`，`AUTH_SERVICE` service binding 已設為連至 DineCore Staging。
+
+## 2026-11-10 本機 Project 開發埠配置
+
+HTTP 開發埠以 5180 固定留給 eatGoMap（Google Maps 來源白名單），其他 Project 從 5181 開始，埠衝突時由 Vite 選下一個可用埠。HTTPS 開發維持 5174。
+
+## 2026-11-10 chatCore 本機 IP 測試網址
+
+在 `.env` 增加 `VITE_DEV_HOST=0.0.0.0`，Vite 會提供區域網路網址。聊天與備份 Worker API 開發基址跟隨頁面 hostname 的 8787 埠。新增 `/ip-test` 專注聊天路由、房間代碼加入與本機聊天室清單。Build 通過；localhost 與目前 LAN IP 的 `/ip-test` 均回 HTTP 200。Worker 尚需獨立啟動，登入與上傳才可端到端驗收。
+
+## 2026-11-10 eatGoMap 固定本機測試來源
+
+確認保留 eatGoMap 的 HTTP 開發埠 5180 與 strictPort。Google Maps JavaScript API 金鑰按網站來源授權，本機測試須使用固定的 host 與 port。原因已補入 Vite 設定旁的註解與前端索引。
+
+## 2026-11-10 本機 Vite Project 統一由 .env 選取
+
+本機 HTTP 與 HTTPS 開發服務由前端 `.env` 的 `VITE_PROJECT` 選擇 Project，同步套用至前端設定入口與 API Project 標頭。移除 `.env.local` 的專案覆寫及 HTTPS 指令固定的 eatGoMap；發布建置保留 CI 指定目標。已確認本機載入 chatCore，並驗證開發與發布的選擇規則。
+
+## 2026-11-09 eatGoMap 本機收藏寫入排查
+
+前端 5180 的收藏 API 原回應 HTTP 500，原因為本機 Worker 8790 未啟動。已套用本機尚未執行的 D1 migration 0004、0005 並啟動 Worker，健康與收藏清單回應正常。使用隔離瀏覽器連實際本機 API，驗證自訂名稱和日記寫入新 IndexedDB 並於重整後讀回；驗證攔截了 Google Maps 請求。使用者另指出地圖金鑰需允許目前測試網址，Google Cloud 設定未調整。
+
+## 2026-11-09 eatGoMap 收藏接入 world.iDB
+
+收藏詳情、自訂欄位與查詢失敗次數接入 map-home 專屬 IndexedDB。舊 Storage 只用於遷移與清理；成功載入 API 收藏清單並寫入有效收藏後才清理舊快取。會員選擇仍由平台 Store 使用 localStorage。前端建置通過，使用測試瀏覽器的真實 IndexedDB 與模擬收藏 API 驗證舊逐筆／清單遷移、API 失敗保留、編輯、重整、移除與失敗次數保留。依賴目前工作樹內的 world.iDB 平台實作，尚未部署。
+
+## 2026-11-09 平台 IndexedDB 備份觸發元件
+
+新增 `IndexedDbBackupButton.vue`，支援預設按鈕與自訂 DOM 觸發，沿用 World 的分類確認、上傳及清除流程。World 使用手冊已補上按鈕與連結範例。
+
+## 2026-11-09 World 使用手冊
+
+新增前端 `src/world使用手冊.md`，記錄既有 World 公開入口與 IndexedDB 讀寫、分類備份和選擇性清除範例，並從前端索引導讀。
+
+## 2026-11-09 平台 IndexedDB 統一入口
+
+新增 `world.iDB.save/get/list/remove/upload`，由目前 Project 取得租戶並透過 Container Service 以租戶及模組隔離資料庫，同一入口提供分類讀寫、刪除、上傳與成功後的版本比對清除。保留既有儲存與備份轉接入口。
+
+## 2026-11-09 平台 IndexedDB 分類備份
+
+新增 `world.services.indexedDbBackup()`，由 Project 提供分類與已授權的上傳方法。確認視窗支援選擇分類與選擇性清除，清除僅處理成功上傳且版本未變動的紀錄。新資料採模組命名空間，既有 Project、資料與 Worker 皆未接線。Project A、eatGoMap 建置通過，Chrome 以實際 IndexedDB 驗證取消、失敗保留、成功清除與保留其他分類及並行寫入。
+
+## 2026-11-09 chatCore 手動聊天備份
+
+獨立備份模組提供 `world.store('chatCoreBackup').requestUpload()`，聊天頁按鈕開啟確認視窗。確認後經已註冊的聊天 Store 匯出 IndexedDB 訊息與待送訊息，以明文 JSON 經 chatCore Worker 上傳。SQLite Durable Object 按帳號保存最新一份，單份上限 1 MiB。前端建置、快照與 Worker 上傳測試通過。尚未部署，下載與還原待後續處理。
+
+## 2026-11-09 eatGoMap 會員選擇與定位圖示置中 Staging v0.1.15
+
+已發布 `dep_eatgomap_v0.1.15`，Commit `3528cf6632ceb0234dd68004a70cf36effa0ef28`，GitHub Actions `42561388541` 成功。發布包含會員 Store、頭像與選擇畫面、定位圖示置中及身分決策說明。前端建置、API 測試 3/3、Worker 測試 81/81、Wrangler dry-run、Staging 健康與收藏 API Smoke 通過。Release ZIP、manifest、checksum 與部署紀錄已確認。線上 390×844 瀏覽器驗證首次選擇、切換頭像、重整保留與準星置中，該次驗證攔截 Google Maps 請求。
+
+## 2026-11-09 eatGoMap 定位按鈕圖示置中
+
+右下角定位按鈕以格線將準星水平與垂直置中。前端建置通過，390×844 瀏覽器驗證圖示與按鈕中心重合。尚未部署。
+
+## 2026-11-09 eatGoMap 初次進入會員選擇
+
+首次進入時顯示全頁男生／女生選擇，選擇後才載入地圖及收藏。會員 Store 經模組註冊，由平台 Store 持久化保存本機選擇；搜尋欄頭像隨選擇更新並可切換。收藏、API 與權限維持既有流程。前端建置通過，已用 320×568、390×844、1280×900 驗證首次選擇、雙頭像、重整保留、切換與取消。驗證使用備用地圖及模擬收藏 API，尚未部署。
+
+## 2026-11-09 eatGoMap 雙列頁首與浮動導覽 Staging v0.1.14
+
+已發布 `dep_eatgomap_v0.1.14`，Commit `5ff5b4431b19ab567faab4fa19e84f1079f20c0d`，GitHub Actions `42556840259` 成功。發布僅包含 map-home 頁面，其他工作樹修改保留。隔離建置、前端 API 測試 3/3、Worker 測試 81/81、Wrangler dry-run、線上 D1 相容性與收藏 API Smoke 均通過。Release 包含 ZIP、manifest 與 checksum，部署紀錄已寫入。線上健康端點確認資料庫正常，首頁載入的 JS/CSS 含雙列頁首、裝飾頭像及浮動導覽。手機實機與真實底圖互動未另驗收。
+
+## 2026-11-09 eatGoMap 字標與雙列搜尋頁首
+
+依新參考圖將 EatGoMap 字標與三個篩選置於第一列，搜尋欄與裝飾性頭像置於第二列，保留既有浮動導覽。只調整 map-home 頁面呈現。Cloudflare 前端建置通過，在本機備用地圖驗證 320、390、1280 px 寬度的頁首排版、篩選與頁籤切換。尚未驗收真實底圖或手機實機，尚未部署。
+
+## 2026-11-09 eatGoMap 專用本機 HTTP 連接埠
+
+eatGoMap 的 Vite HTTP 開發連接埠固定為 5180，占用時直接提示。既有 HTTPS 5174 與其他 Project 的預設連接埠維持原設定。已啟動並確認 localhost:5180 回應 HTTP 200、專案設定為 eatGoMap，另以 Vite 設定確認 project-a 預設 5173。原型文件已同步新網址、Google Maps 來源與 IndexedDB 分區說明。
+
+## 2026-11-09 eatGoMap 頂部搜尋與浮動導覽
+
+依兩張參考圖調整 `map-home`。頂部採淺底固定區塊、獨立品牌標誌、灰色搜尋欄與同列篩選；底部採固定於應用畫面下方的深綠浮動導覽與淺綠選取狀態。地圖延伸到導覽後方，地點卡片、定位按鈕與收藏清單底部留出導覽空間。本次只改頁面呈現，沿用既有模組註冊、Store、Storage 與 API 資料流。
+
+Cloudflare 前端建置與指定檔案 diff 檢查通過。使用本機備用地圖與模擬收藏 API，在 320×568、390×844、1280×900 驗證導覽位置、三個頁籤切換及旅遊篩選。尚未驗收真實 Google 底圖或手機實機，尚未部署。
+
+## 2026-11-05 eatGoMap 假資料地點詳情卡 Staging v0.1.13
+
+已發布 `dep_eatgomap_v0.1.13`，Commit `5eae3bb46849844a9b8552fa76a613f87eb72281`。收藏地標卡新增資訊／打卡／留言分頁、記憶體假留言與假打卡，以及可互動的新增留言／打卡表單；假資料只存於目前頁面狀態，不寫 IndexedDB 或呼叫 API。只將 `platform/frontend/projects/eatGoMap/modules/map-home/pages/index.vue` 納入本次 Commit，工作樹其他修改保留。
+
+隔離乾淨工作目錄執行 Cloudflare build 與前端 API 測試成功；Worker 測試 81/81 通過，Wrangler dry-run 通過。GitHub Actions `42007648209` 成功，完成 Worker／Static Assets 部署、D1 相容檢查、健康檢查、eatGoMap 收藏 API Smoke、Release 與 Deployment 記錄。線上 `/api/health` 回傳 `{ ok: true, service: eatgomap-staging, database: ok }`；首頁載入的 JS/CSS 已確認包含詳情卡和打卡／留言介面。Staging：https://eatgomap-staging.takoson68.workers.dev/ 。尚待手機實機查看卡片大小；建議重新載入或關閉後重開捷徑以取得新資產。
+
+## 2026-11-05 eatGoMap 收藏詳情與紫色 Marker Staging v0.1.12
+
+已發布 `dep_eatgomap_v0.1.12`，Commit `25ca37883c98d863bb1d070d600de431b9a5589c`。本版修正 `world.createStore` action 內部重複傳入 store 造成 Place 詳情無法寫入 IndexedDB、支援 `fetchFields()` 回傳的 `{ lat, lng }` location literal、收斂頁面開啟時自動詳情查詢為一次，並加入可點擊的亮紫色收藏星號 Marker 與 eatGoMap 自有資料卡。資料卡顯示名稱／自訂名稱、地址／自訂地址、電話與個人日記；打卡、評分、照片尚無資料契約，因此只顯示尚未建立狀態。
+
+部署前 Cloudflare build 196 modules、Worker 測試 81/81 通過。GitHub Actions `42000192497` 成功，D1 Schema 相容檢查、Migration、Worker／Static Assets 部署、公開端點、收藏 API persistence Smoke、Release 與 Deployment 記錄均通過。線上健康檢查回傳 `{ ok: true, service: eatgomap-staging, database: ok }`，首頁 HTTP 200。Release 已建立並包含 ZIP、manifest、checksum。Staging：https://eatgomap-staging.takoson68.workers.dev/ 。未執行手機端紫色 Marker 點擊與 IndexedDB 實機驗收；手機若仍顯示舊資產，需強制重新整理或關閉後重開捷徑。
+
+## 2026-11-05 eatGoMap 本機收藏 GetPlace／IndexedDB 根因修正
+
+收藏地圖 Marker 改為高辨識亮紫色星號（`#a855f7`），卡片縮圖同步使用紫色漸層。Marker 現在可點擊並開啟 eatGoMap 自有地點卡，顯示本機保存的名稱／自訂名稱、地址／自訂地址、電話與個人日記；打卡、評分與照片尚無資料契約，卡片明確顯示未建立狀態且不偽造內容。「建立打卡」目前只提示功能尚未建立。D008 與 MAP_HOME_PROTOTYPE 已同步。Cloudflare build `/tmp/eatgomap-purple-favorite-marker` 成功（196 modules），本次檔案 `git diff --check` 通過。未部署或 Commit／Push；尚待本機重載後點擊紫色 Marker 驗收。
+
+階段式 Log 找到最終根因：`world.createStore` 會把底層 store 自動注入 action 第一參數，但 `map-home/store.js` 的 action 內部呼叫寫成 `store.persistPlace(store, payload)`，重複傳入 store，導致 `persistPlace` 實際收到的 `place` 是 Store 本身並拋出「拒絕保存沒有有效 Place ID 的地點資料」。已將六處同型呼叫全部改為 `store.persistPlace(payload)`，並移除本次暫時診斷 Log；精確搜尋確認不再存在 `store.<action>(store, ...)`。Cloudflare build `/tmp/eatgomap-store-action-args-fix` 成功（196 modules），本次檔案 `git diff --check` 通過。未部署或 Commit／Push；本機完整重載後，既有空殼收藏會重新查詢一次並應正確保存詳情。
+
+使用者再次提供 IndexedDB 截圖，兩筆有效 Place ID 仍只有空殼，`detailsFetchedAt`、失敗數與錯誤皆為 0；已確認 Google `fetchFields()` 回傳完整，因此追蹤範圍收斂到 Store 正規化、Storage set/get 與讀回核對。新增不會觸發額外請求的階段式 Console 診斷：`[eatGoMap][Place Details] Store 正規化結果`、`[eatGoMap][IndexedDB] 準備寫入地點詳情`、`[eatGoMap][IndexedDB] 寫入後原始讀回`、`[eatGoMap][IndexedDB] 地點詳情保存失敗`，頁面 catch 另輸出 `[eatGoMap][Place Details] 更新收藏詳情失敗`。Cloudflare build `/tmp/eatgomap-storage-trace` 成功（196 modules）。待使用者完整重載後提供最先停止的 Log；尚未部署或 Commit／Push。
+
+使用者提供實際 `fetchFields()` Log，確認 `response.place`、`responsePlace`、`requestedPlace` 均含正確 `id`、`displayName`、`formattedAddress`、`location: { lat, lng }` 與 `nationalPhoneNumber`。實際落地斷點是頁面只用 `place.location?.toJSON?.()` 取座標；本次回傳的 `location` 可直接讀取 `{ lat, lng }`，若沒有 `toJSON()` 就會被轉成 `undefined` 並遭完整性檢查拒絕。現改為 `toJSON()` 結果或原始 location literal，並移除暫時原始資料 Log。D008 已記錄實際欄位與兩種 location 形狀。Cloudflare build `/tmp/eatgomap-location-literal-fix` 成功（196 modules）。未部署或 Commit／Push；本機需完整重載一次驗證 IndexedDB。
+
+依使用者要求先觀察實際 SDK 資料格式，不再調整欄位映射。`fetchPlaceDetails()` 現在於 `fetchFields()` resolve 後立即以 `[eatGoMap][Place Details] fetchFields 原始回傳` 輸出當次 `placeId`、完整 `response`、`response.place` 與原始 `requestedPlace`；不包含 API key，也沒有新增請求。Cloudflare build `/tmp/eatgomap-place-details-console-log` 成功（196 modules）。需完整重載本機頁面後在 Console 搜尋上述前綴，展開物件確認實際欄位，再決定保存映射。
+
+使用者重載後提供 IndexedDB 截圖：有效 Place ID 記錄仍為空欄位、`detailsFetchedAt: 0`、失敗數／錯誤皆為 0，證明該次只完成 hydrate，詳情刷新沒有走到成功或失敗落地。進一步移除切換「收藏」頁籤時的整批刷新入口；頁面生命週期增加一次性 Gate，僅在 hydrate 與 Places library 完成後逐筆 `await` 過期詳情更新。`fetchFields()` 優先讀正式回傳的 `response.place`，並兼容 Google 官方範例採用的原始 `requestedPlace`。Cloudflare build `/tmp/eatgomap-single-refresh-fix` 成功（196 modules）。未重載使用者頁面、未呼叫 Places API、未部署或 Commit／Push；仍需使用者再次完整重載後觀察同一 ID 是否只出現一次 `GetPlace`，以及 IndexedDB 成功欄位或明確失敗狀態。
+
+追查實際資料流後確認，瀏覽器 Network 中 `GetPlace` 的位置式陣列是 Google Maps JavaScript API 的內部傳輸格式，不會直接交給 eatGoMap Store；先前在 Store 依陣列索引正規化，因此沒有接上真實執行路徑。`Place.fetchFields()` 的正式回傳型別是 `{ place: Place }`，頁面原先丟棄回傳值並改讀建構時的原始 `Place`。現已改由回傳的 `place` 讀取 `displayName`、`formattedAddress`、`location`、`nationalPhoneNumber`，再交給 Store 驗證及寫入 IndexedDB；移除 Store 對內部位置式陣列的猜測。
+
+頁面開啟時的詳情自動更新已收斂成單一入口：收藏 hydrate 與 Places library 都完成後只執行一次，不再由 items watcher 重複觸發。Store 保留同 Place ID 請求合併與最多兩次失敗限制。`favoriteId()` 另拒絕字串 `undefined`／`null`；hydrate 會依有效 API 收藏清單移除 `eatGoMap:place:undefined` 等歷史髒 key。未猜測或限制 Google Place ID 的合法字串格式。
+
+精確 `git diff --check` 通過。`npm run build:cloudflare -- --outDir /tmp/eatgomap-place-response-fix` 成功（196 modules）。全工作樹 `git diff --check` 仍只回報既有 `_workspace/成熟常用指令.txt` 尾端空白，本次未修改。診斷與修正期間沒有重載 localhost、沒有觸發 Places API、沒有修改 D1／IndexedDB、沒有部署或 Commit／Push。本機 Vite `http://localhost:5173/` 正在執行且已提供新程式；要驗收必須完整重載一次，讓先前 `World not started` 的頁面重新 boot。預期每個缺漏／過期且未達兩次失敗上限的有效收藏 Place ID 只送出一次 `GetPlace`，成功後同一筆 IndexedDB 應有名稱、地址、座標與大於 0 的 `detailsFetchedAt`；電話若 Google 無資料可為空。Staging 驗收才需要另行部署。
+
+## 2026-11-05 eatGoMap 位置式地標資料映射修正
+
+使用者提供底圖地標的實際位置式陣列，含索引 6 電話、8 地址、11 `[lat, lng]`、30 `[名稱, 語系]`。原 Store 僅讀具名欄位物件，因此此陣列若送入會漏掉名稱／地址／座標並使資料無法落地。`map-home/store.js` 現在會將此陣列與 Places 具名欄位物件統一正規化；更新詳情時先驗證名稱、地址與有效座標，格式缺漏則記錄一次失敗並遵守每個 Place ID 最多兩次連續失敗的既有限制。`D008` 已記錄欄位索引及其輸入形狀限制。`npm run build:cloudflare -- --outDir /tmp/eatgomap-array-mapping-check` 成功（196 modules）。未執行測試、未部署、未 Commit／Push。注意：目前底圖 click event 在應用程式中仍只提供 Place ID，`Place.fetchFields()` 路徑回傳具名 Place 欄位；這次修正讓 Store 能接納使用者提供的陣列格式，但尚未證明該陣列會由現行瀏覽器事件自動送進 Store。要用該筆特定資料立即補存，仍需其 Place ID 及來源連線。
+
+使用者接著明確要求修好「點收藏 → 取得資料 → IndexedDB」流程。已確認原流程為先 POST Place ID，再透過 `Place.fetchFields()` 取得名稱、地址、電話、座標並寫本機。新增保存後立即從同一 Storage capability 讀回核對；資料不完整或座標超界不視為成功。點擊時若 Places library 未載入，現在會在建立收藏前停止並提示。Build `npm run build:cloudflare -- --outDir /tmp/eatgomap-favorite-idb-write-check` 成功（196 modules）。尚未在瀏覽器端對真實地標做點擊驗收，未部署、未 Commit／Push；既有達兩次失敗的 ID 仍不會自動重試。
+
+使用者提供本機收藏頁仍只有 Place ID 的截圖。追查新增收藏時，Store 的 ID 清單監看器會啟動詳情查詢，而按鈕處理器也立即呼叫更新；Store 會合併相同 Place ID 的請求，但 UI 層原先看到 `loadingFavoriteIds` 就直接回傳 `false`，未等待進行中的請求，導致按鈕流程過早判定資料未保存。已移除 UI 層這個短路，讓兩條路徑共用並等待 Store 同一請求。待 build 與瀏覽器驗收；未執行測試、未部署、未 Commit／Push。
+
+Cloudflare build `npm run build:cloudflare -- --outDir /tmp/eatgomap-favorite-race-check` 成功（196 modules）。用戶本機頁面檢查時，當前 localhost tab 已空白，console 顯示 Vue setup 的 `World not started`；因此沒有重載頁面，避免載入收藏時自動再次呼叫 Places，未能做真實收藏驗收。尚未部署、Commit／Push。
+
+## 2026-11-05 eatGoMap Places Details 重試循環與收藏錯因追蹤 v0.1.11
+
+使用者回報收藏後詳情未落地、查詢失敗時畫面重複跳錯，並要求同一 Place ID 連續兩次失敗就停止。v0.1.9 對收藏項目 ID 做 alias 正規化／缺值防護；v0.1.10 加入 Place Details 15 秒逾時、名稱／地址／座標完整檢查與兩次失敗上限，僅在詳情確實寫入 IndexedDB 時回報成功。測試瀏覽器顯示三筆收藏各已達兩次失敗，停止後續呼叫。直接原因為 `watch(...items, { deep: true })` 監聽到失敗次數寫回 Store，立即再次觸發同一 Place Details 查詢；v0.1.11 改為只監聽收藏 ID 清單變動，另將錯誤訊息（隱藏 API key）存到 IndexedDB 並顯示於收藏卡。Staging v0.1.11 已發布：Commit `f729972a901ef8a4aad0cc582d3c4e7fa018341e`、Tag `dep_eatgomap_v0.1.11`、Workflow `41991236856` 成功。前端 build 74 modules、Worker 測試、部署 Smoke 與健康檢查均通過。Place Details 精確錯因仍無法從既有失敗還原，因先前版沒有保存錯誤訊息，且測試瀏覽器內該三筆 ID 已到兩次上限，不會為了診斷再呼叫。曾恢復先前已存在的 Place ID `ChIJG9CYlmCpQjQRUPsSe31WS4I`，但稍後 API 清單再次變動；最新唯讀檢查只回傳 `ChIJ0aRZ3GepQjQRc_WIUd_mZiY`，不再自行增刪以免覆蓋使用者測試。每次 `Place.fetchFields()` 是一次 Places Details 嘗試；目前每個 ID 每個瀏覽器最多兩次連續失敗，IndexedDB 本機保存失敗數，不是跨裝置全域限制。Staging：https://eatgomap-staging.takoson68.workers.dev/ 。
+
+## 2026-11-05 eatGoMap 收藏重整後清單修正 v0.1.8
+
+使用者回報按收藏後重整，收藏資料不見。查證 Staging D1 已有收藏 Place ID `ChIJG9CYlmCpQjQRUPsSe31WS4I`；前端 `hydrate()` 對 `world.services.storage().list()` 傳入尾端冒號的 namespace（`eatGoMap:place:`），違反 Storage key 格式並中斷收藏清單載入。已修正 namespace 與逐筆 key 篩選，Commit `00056145c09da76a4fa8612b8170c5294e917b61`、Tag `dep_eatgomap_v0.1.8` 已推送並部署；GitHub Actions `41987985774` 成功，健康檢查回傳 `{ ok: true, service: eatgomap-staging, database: ok }`。部署後重新載入頁面並進入「收藏」，介面顯示 `1 個收藏地點` 與已保存 Place ID，確認清單重整後仍存在。驗證使用的獨立瀏覽器沒有該地點的 IndexedDB 詳情，所以呈現短 ID 與 Place ID；使用者原瀏覽器若保有本機詳情仍可顯示名稱／地址。Staging：https://eatgomap-staging.takoson68.workers.dev/ 。
+
+## 2026-11-05 eatGoMap Place ID 與 IndexedDB 詳情更新流程
+
+依使用者確認的流程完成本機修改：D1 `eatgomap_favorites` 收斂為只含 `place_id`，Worker API 僅支援清單 GET、Place ID POST 與 DELETE；新增 `0005_place_id_only.sql` 保留既有 ID 並移除來源、建立時間及自訂欄位。前端 Store 經 `world.services.storage()` 以 `eatGoMap:place:{place_id}` 逐筆保存名稱、地址、座標、電話、使用者自訂名稱／地址及個人日記。搜尋結果沿用當次欄位；底圖 POI 在收藏成功後以 ID 查詳情。缺資料或詳情超過 30 天時，在載入收藏時按 ID 查詢並更新，同 ID 請求合併；API 回傳 ID 清單仍是收藏權威，移除收藏時刪除對應本機資料。
+
+新增決策 D008 並更新 Project 文件、Worker 測試契約與 Staging Smoke 腳本。Worker 測試 81/81、前端 API 檢查 3/3、前端 Cloudflare build 74 modules、專用 Worker dry-run 與隔離本機 D1 五筆 Migration 均成功。已發布 `dep_eatgomap_v0.1.7`，Commit `5e47fa8533cc2379b4d067670f2852afbd0e7fe3`；GitHub Actions `41987102117` 完成，遠端套用 Migration、部署 Worker／Assets 與收藏 API Smoke 均通過，健康檢查回傳 `{ ok: true, service: eatgomap-staging, database: ok }`。部署網址：https://eatgomap-staging.takoson68.workers.dev/ 。已在瀏覽器開啟新版首頁；尚未手動驗收收藏、重新整理、逾期重查與 Marker 流程。Google 官方條款對 Place ID 與座標有明確留存說明，但此實作依使用者要求暫存名稱、地址及電話；D008 已註明需另行確認這些欄位的適用政策，不宣稱符合 Google 留存條款。
+
+注意：工作樹有大量其他既存修改，本次僅在 eatGoMap 收藏流程及其直接文件、Worker API/Migration 範圍內修改；未清理或覆蓋其他 Project 變更。
+
+## 2026-11-05 eatGoMap 前一階段收藏落地與地圖標記
+
+使用者要求收藏成功後進入收藏列表，資料保存於瀏覽器，以便地圖顯示收藏點。已完成前端流程：收藏先 POST Worker API/D1，成功後寫回 `eatGoMapFavoriteStore` 並透過 `world.services.storage()` 保存 API 投影；可用座標另存在瀏覽器，地圖據此建立深綠星號 Marker。搜尋結果收藏沿用 Places API 當次已取得的座標；底圖 POI 收藏不額外查 Place Details，也不保存 map click event 的游標位置。尚無座標的收藏仍會顯示於收藏頁，使用者可明確載入地點資訊取得位置。
+
+Google Place ID 可長期保留；Google Places 緯經度於瀏覽器快取最多 30 日並在到期時清除。Google 回傳名稱／地址只留在當次頁面記憶體；收藏列表重整後若沒有使用者自訂名稱會先顯示 Place ID 短碼，使用者可手動輸入名稱／地址保存。依 Google [Places API policies](https://developers.google.com/maps/documentation/places/web-service/policies) 與 [Maps Service Specific Terms](https://cloud.google.com/maps-platform/terms/maps-service-terms)。
+
+Cloudflare build 74 modules 成功；未執行測試、未部署、未 Commit／Push。尚待瀏覽器實際點收藏／重整／觀察地圖標記驗收；Staging D1 Migration/Worker 仍未部署。
+
+## 2026-11-05 憲法優先導讀與一致性修正
+
+使用者要求 AI 導讀明確以 World 憲法為最高準則，並指出 eatGoMap、chatCore 曾未依模組 Store 規則實作。已調整 `AGENTS.md`、`_ai-context/AI_IMPLEMENTATION_GUIDE.md`、`_ai-context/導讀規則.md` 與 `_ai-context/index.md`：工程前完整閱讀 RootIndex 指定的 World 主鏈 00–09；把憲法與適用 Contract 轉成檢查點；入口衝突依 `STARTUP_DECLARATION.md` 停止受影響工作；結束前逐項檢查，不得以現況或測試通過合法化違規。未修改 `_VibeCore/world/`。
+
+eatGoMap 已增加並註冊 `map-home/store.js`，收藏狀態由 Worker API/D1 為權威，透過 `world.services.storage()` 快取；Google Places 名稱／地址／座標不進本機持久層或 D1，底圖 POI 收藏不呼叫 Place Details。已修正 `saveManualLabels` 重複呼叫 PATCH API 的錯誤。D1 遠端 Migration 尚未套用、Worker 尚未部署。
+
+chatCore 已增加並註冊 `private-chat-lab/store.js`；房間清單與 deviceId 改用平台 Storage capability，訊息/outbox 執行狀態進模組 Store。但檢查發現 `messageRepository.js` 仍直接呼叫 IndexedDB，違反 `platform/frontend/src/app/container/services/storage.md` 的唯一 I/O 入口規則；先前 M2 報告以可靠持久化作例外，不能凌駕正式 Contract。此項尚未修正，故不可宣稱 chatCore 已符合憲法。下一步需回到 `platform/frontend/index.md` 與 services 索引，設計具備原子交易與不靜默降級語意的正式 Storage capability，再將 Repository 改由 capability 執行；不要以模組私自操作 IndexedDB 充當豁免。
+
+eatGoMap 與 chatCore Cloudflare build 均成功（分別 74、83 modules）；未執行測試。`git diff --check` 只回報先前已修改的 `_workspace/成熟常用指令.txt` 有尾端空白，本次未觸碰該檔。未部署、未 Commit／Push。保留工作樹其他既有修改。
+
+## 2026-11-05 eatGoMap 暫用 D1 API Staging 部署準備
+
+使用者補充收藏頁需能點擊名稱，手動輸入自訂名稱與地址並存入 D1。前端編輯欄只回填先前已存的使用者自訂值；Google Places 回傳值只在目前頁面暫存，需要時另以 Place ID 查取，不自動放入自訂欄。D1 保存 Place ID、自訂欄位；Google 回傳座標最多 30 天並由每小時排程及讀取路徑清除。已新增 0003 自訂欄位 Migration、PATCH API、收藏頁編輯 UI 與測試；待 Migration／Worker 測試、前端 build、部署流程驗證。Cloudflare 已建立空的 `eatgomap-staging-db`（APAC，UUID 已寫入設定），遠端 Migration 尚未套用，Worker 尚未部署，也未 Commit／Push／Tag。Google Maps 儲存政策：[Places policy](https://developers.google.com/maps/documentation/places/web-service/policies)、[Service Terms](https://cloud.google.com/maps-platform/terms/maps-service-terms)。
+
+## 2026-11-05 eatGoMap 底圖 POI 免 Place Details 流程
+
+已將 Google 底圖 POI 點擊改為保留原生資訊窗，透過 Maps click event 的 `placeId` 顯示 eatGoMap 自有收藏操作；此路徑不呼叫 Place Details，也不擷取原生資訊窗文字。收藏目前僅存在頁面記憶體，尚未接後端／跨裝置同步。Places 搜尋建議選取仍呼叫 Place Details 取得名稱、地址、座標。已同步 D004、模組索引、Prototype 與 Project Brief。尚待 Cloudflare build 與實機 POI 點擊驗收；未部署、Commit 或 Push。
+
+## 2026-11-04 eatGoMap Google 原生 POI 資訊窗與收藏決策
+
+已確認底圖 POI 收藏採 Google 原生資訊窗展示 Google 提供的內容；eatGoMap 另放自有收藏操作，收藏時只保存 `placeId` 及收藏者、時間等自有資料，不呼叫 Place Details，也不擷取原生資訊窗文字。Google 原生資訊窗內容依 POI 而異，不能由 eatGoMap 直接換色、插入收藏按鈕或讀取欄位；若建立自己的 `InfoWindow` 可控制內容、標題與寬度等，但那是自訂資訊窗。已新增決策 `D004_google_native_poi_favorite.md`。此項決策於 2026-11-05 落實在底圖 POI 點擊路徑；搜尋建議選取仍使用 Place Details，收藏目前僅為頁面記憶體示意。
+
+## 2026-11-04 eatGoMap 底圖 POI 點選與卡片關閉
+
+啟用 Google Maps 底圖 POI 點選；Map click event 含 placeId 時呼叫 Places Place Details，阻止 Google 預設資訊窗，並載入共用地點卡片。POI 選取不再疊加第二個 marker；搜尋選取仍會顯示搜尋 Marker。卡片 × 清除選取、搜尋欄及建議，並移除搜尋暫存 Marker。Cloudflare build 72 modules 通過；本機瀏覽器以有效 Place ID 觸發 Map click event，確認卡片顯示店名／地址、搜尋欄維持空白；再點 × 確認卡片消失且搜尋欄空白。尚未部署／Commit／Push；實機點擊底圖 POI 尚待驗收。
+
+## 2026-11-04 eatGoMap 首頁初始不選取地點
+
+首頁 `selectedPlaceId` 初始設為空，地點卡片只在選取地圖 Marker 或搜尋結果後顯示；切換美食／旅遊篩選時若原選取地點不符合篩選，會清除選取而不自動挑選另一地點。Cloudflare build 72 modules 成功；本機瀏覽器確認 Google 地圖載入、搜尋欄存在、初始卡片隱藏。尚未部署或 Commit／Push。
+
+## 2026-11-04 eatGoMap 搜尋選取卡片未渲染修正
+
+使用者回報卡片未顯示並提供 Vue console error。根因是空選取時 `selectedPlaceDetail` 無保護讀取 `null.detail`，搜尋結果時卡片範本又直接從空的預設地點讀取 tone，兩者會中斷 Vue render。新增統一 `activePlace` 投影並讓空選取 computed 安全回傳；Google PinElement 改直接傳入 marker，移除 deprecated `.element` 使用。Cloudflare build 72 modules 成功；在本機瀏覽器實際搜尋「幸花雞白湯拉麵」並選取建議後，建議選單收合，地圖移至三重店，卡片顯示店名／地址與「收藏」按鈕；沒有 Vue render error 或 PinElement deprecation warning。未部署／Commit／Push。
+
+## 2026-11-04 eatGoMap 選取搜尋建議後關閉清單並顯示卡片
+
+選取 Places 搜尋建議時，立即清空建議清單並以建議名稱／place ID 顯示地點卡片；Place Details 回傳後補上正式名稱、地址並移動地圖。Cloudflare build 72 modules 成功；尚未送出真實 Places 查詢做端對端驗收。
+
+## 2026-11-04 eatGoMap 搜尋結果卡片收藏／打卡切換
+
+搜尋結果選取後，地點卡片改顯示 Google Places 的名稱與地址。新地點主要按鈕顯示「收藏」；按下後加入前端記憶體中的示意收藏，狀態提示變為「已收藏 · 尚未打卡」，主要按鈕切換為「打卡」。書籤可取消收藏並恢復「收藏」按鈕。示意收藏只存活於本次頁面執行期間，reload 會清除；實際共享收藏／打卡需待合作方 API 契約與串接完成。尚未部署、未 Commit／Push。
+
+## 2026-11-04 eatGoMap 店家與地址搜尋
+
+搜尋欄已串接 Google Maps JavaScript API 的 Places Autocomplete Data API；輸入至少 2 個字後顯示最多 6 個店家／地標或地址建議，使用 autocomplete session token，並以目前地圖視野作為位置偏好。選取建議會取得名稱、地址與座標，地圖移至結果並顯示搜尋標記。Places library 初始化失敗時仍保留底圖與定位。Cloudflare build 72 modules 成功；本機瀏覽器確認搜尋 placeholder、Google 地圖與手機 viewport 設定。尚未送出 Places 查詢，Google Cloud Places API (New) 啟用、帳單與真實建議流程尚未確認；未部署、未 Commit／Push。
+
+## 2026-11-04 eatGoMap 停用頁面手勢縮放
+
+依使用者要求，僅在 `map-home` 首頁掛載時將 viewport 設為 `maximum-scale=1, user-scalable=no`，避免手機捏合手勢放大整頁；Google Maps 地圖手勢仍由地圖本身處理。離開頁面時還原原 viewport，避免影響其他頁面。原型文件已記錄此行為與實機驗收待辦。尚未執行手機實機驗收、Build 或部署。
+
+## 2026-11-04 eatGoMap 本機 HTTPS 開發與預設地點
+
+依使用者要求設定可供 iPhone 同網段測試 GPS 的本機 HTTPS 開發服務。新增 `npm run dev:https`，Vite 綁定 `0.0.0.0:5174`，使用位於 `platform/frontend/.certs/`（Git 忽略）的本機伺服器憑證；本機 CA 私鑰留在 `~/Library/Application Support/eatGoMap/dev-https/`，CA 已加入 Mac 使用者 Keychain SSL 信任。伺服器目前已啟動，網址 `https://192.168.50.113:5174/`；公開 CA 憑證 `/Users/zhangyu/Downloads/eatgomap-dev-ca.cer` 需 AirDrop 到 iPhone 並安裝、啟用完整信任後才能在手機信任 HTTPS。curl TLS 憑證驗證成功，Chrome 瀏覽器 `window.isSecureContext` 為 true。Google 地圖預設中心改為台北中山區約 `{ lat: 25.0641, lng: 121.5336 }`；載入時若定位獲准仍會移至裝置實際座標。尚未部署；尚待 iPhone 安裝 CA 後實機允許定位驗收。
 
 ## 2026-11-04 eatGoMap 首次載入定位與定位圖示修正 v0.1.6
 

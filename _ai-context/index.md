@@ -65,5 +65,6 @@ implemented: true
 - 先讀索引，再讀主題文件。
 - 原始碼、設定、測試與命令輸出用來判斷實際現況。
 - 實作現況不得反向推翻 World 或 Engineering 的正式規則。
+- 工程工作先完成 RootIndex 規定的 World 主鏈閱讀與一致性檢查；導讀鏈衝突時不得自行裁決，應依啟動聲明停止受影響工作並回報。
 - `CURRENT_WORK.md` 只用於恢復停止點，不是架構真相。
 - PHP／MySQL 是舊後端參考；目標後端是 Workers JavaScript + D1／SQLite。

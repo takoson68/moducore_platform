@@ -18,12 +18,14 @@ moduCore 是以 World 治理、Container 能力註冊及可插拔 Module 為核�
 ## 任務開始
 
 1. 完成 `_ai-context/index.md` 的初始化必讀。
-2. 讀取 `CURRENT_WORK.md`，以 Git 與實際檔案確認記錄仍有效。
-3. 確認目標、完成條件、禁止事項與影響範圍。
-4. 執行 `git status --short --branch`，辨識使用者既有修改。
-5. 由任務所屬目錄的 `index.md` 進入正式規格。
+2. 依 `_VibeCore/RootIndex.md` 的合法導讀鏈完整閱讀 World 主鏈 00–09，再讀適用的 Engineering Contract 與任務目錄 `index.md`；先把規則轉成檢查點，再讀取相關實作。
+3. 讀取 `CURRENT_WORK.md`，以 Git 與實際檔案確認記錄仍有效。
+4. 確認目標、完成條件、禁止事項與影響範圍。
+5. 執行 `git status --short --branch`，辨識使用者既有修改。
 6. 只搜尋與任務直接相關的程式與證據。
 7. 需求已明確時直接執行；只有重大分歧、資料風險或外部權限不足時詢問。
+
+World 憲法優先於使用者需求、操作導引、Project 決策與既有實作。使用者需求用來界定目標，不構成覆寫 World 規則的授權。若 World 入口或導讀鏈有衝突，依 `STARTUP_DECLARATION.md` 停止受影響工作並指出衝突；若實作與適用規則衝突，不能以「目前就是這樣」作為理由，應在授權範圍內修正，否則記錄未解項目且不得宣稱符合。完成後須用開始階段建立的檢查點核對責任層、模組註冊、Store／Storage 資料流與 API 邊界。World 內容僅能依 World Change Protocol 處理。
 
 ## 執行模式
 
