@@ -63,9 +63,15 @@ implemented: false
 
 ### 3.3 建議採用路線
 
-優先建議「自行轉錄主底本」：選一套權利狀態明確的古籍影像作主要底本，自行切段與校對；維基文庫、Kanripo、CText 只先作交叉比對。這條路人工作業較多，但正式文字、標點政策與異文決策最容易完整記錄。
+本實驗專案的 MVP 決定採最快路線：以中文維基文庫《周易》作主要機讀來源。入口頁先固定為 `oldid=7907208`：
 
-若希望先加速 MVP，可使用維基文庫固定 revision 建立第一版轉錄，但 corpus 必須保留 attribution、修改聲明及適用的 ShareAlike 條件，並把授權邊界和應用程式程式碼分開記錄。兩條路都不能只保存目前網頁 URL；必須保存固定 revision 或原始快照 checksum。
+`https://zh.wikisource.org/w/index.php?title=周易&oldid=7907208`
+
+入口頁所連結的 64 卦及相關子頁仍各自有 revision；匯入時需透過 MediaWiki API 建立 snapshot manifest，逐頁保存 `title`、`pageId`、`revisionId`、固定 URL、擷取時間與內容 checksum。只固定入口頁不足以凍結完整 corpus。
+
+MVP 不先進行完整掃描本自行轉錄；Kanripo 與 CText 只在發現結構或文字疑點時人工比對。Corpus 保留維基文庫 attribution、修改聲明及適用的 ShareAlike 條件，並把內容授權與應用程式程式碼分開記錄。
+
+非營利、實驗性及低流量可降低實務風險與作業規模，但不會自動取消來源授權條件；本案採自動產生 attribution 與 source manifest 的方式，把合規成本降到最低。
 
 ## 4. Authoring 檔案結構
 
@@ -241,12 +247,13 @@ corpus:release   只發布已核准且 checksum 固定的版本
 
 ## 11. 第一批實作順序
 
-1. 選定主要底本及第二見證來源。
-2. 建立 source registry 與權利核准格式。
+1. 以維基文庫《周易》入口 `oldid=7907208` 建立 source registry。
+2. 透過 MediaWiki API 列出 64 卦與相關子頁的固定 revision，建立 snapshot manifest。
 3. 先完成乾、坤兩卦的端到端樣本。
-4. 驗證 stable ID、異文、簡明導讀、D1 seed、API 與離線 package。
-5. 樣本審校通過後再擴到 64 卦，避免先大量貼文後返工。
-6. 64 卦原文發布完成後，再逐一加入不同 InterpretationProfile。
+4. 驗證 stable ID、來源定位、簡明導讀、D1 seed、API 與離線 package。
+5. 樣本審校通過後再批次擴到 64 卦，避免先大量匯入後返工。
+6. 發現文字疑點時以 Kanripo／CText 人工比對並留下 review note，不直接替換主來源文字。
+7. 64 卦原文發布完成後，再逐一加入不同 InterpretationProfile。
 
 ## 12. 來源與法律參考
 

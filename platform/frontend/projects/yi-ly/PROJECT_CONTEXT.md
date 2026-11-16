@@ -57,7 +57,7 @@
 
 - 外部系統：規劃由 ModuCore Cloudflare Worker 提供權威資料 Query；正式部署資源待確認。
 - 外部 API：第一版核心流程不依賴第三方 API，也不串站內 AI。
-- 第三方資料：可能使用維基文庫、Kanripo 或公有領域掃描本；正式底本與授權組合待裁決。
+- 第三方資料：MVP 採中文維基文庫《周易》固定 revisions；Kanripo、CText 或公有領域掃描本暫作疑點比對與後續校勘見證。
 
 ## 9. 假設
 

@@ -48,8 +48,8 @@ implemented: false
 
 ### 4.2 來源候選
 
-- 維基文庫《周易》固定 revision。
-- Kanripo `KR1a0001` 固定 commit。
+- MVP 主來源：中文維基文庫《周易》入口固定 revision `oldid=7907208`；各卦子頁另存 revision snapshot。
+- Kanripo `KR1a0001` 固定 commit：只作人工比對，授權未確認前不包入產品。
 - 公有領域古籍掃描本作為影像見證。
 - 中國哲學書電子化計劃只作人工比對，未取得授權前不包入產品。
 
@@ -200,7 +200,7 @@ implemented: false
 
 ### Phase 1：Corpus 與授權
 
-- 選定底本、比對來源與授權策略。
+- 以中文維基文庫固定 revisions 建立主來源 snapshot、attribution 與授權紀錄。
 - 建立 schema 與完整性驗證。
 - 依 `CORPUS_DATA_PIPELINE.md` 先完成乾、坤兩卦的端到端樣本，再擴充至全量。
 

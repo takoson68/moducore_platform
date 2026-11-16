@@ -17,6 +17,10 @@
 
 ## Chosen Direction
 
+- MVP 主要機讀來源採中文維基文庫《周易》，入口固定為 `oldid=7907208`。
+- 64 卦及相關子頁各自保存 revision ID 與 checksum，不能只保存入口頁目前 URL。
+- MVP 接受維基文庫內容適用的 attribution、修改聲明及 ShareAlike 條件；由 manifest 與 attribution 產物自動處理。
+- Kanripo 與 CText 暫作人工比對來源，不包入正式 corpus。
 - 受版控 canonical 內容檔與轉換程式是 corpus authoring 的主來源。
 - 原始來源以 immutable snapshot、固定 revision／commit／掃描定位及 checksum 保存。
 - D1 是發布後的線上查詢投影，不作唯一編輯來源。
@@ -32,6 +36,6 @@
 
 ## Follow-up
 
-- 選定主要底本、第二見證來源與授權策略。
+- 建立維基文庫頁面清單、revision snapshot 與 attribution 產物。
 - 工程階段確認 corpus 工作區位置、D1 migration 與 Worker API Contract。
 - 建立乾、坤兩卦的最小資料樣本與完整性測試。
