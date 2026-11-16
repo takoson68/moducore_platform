@@ -7,15 +7,18 @@
 ## 閱讀順序
 
 1. `PROJECT_REQUIREMENT_SPEC.md`
-2. `TECHNICAL_ARCHITECTURE_PLAN.md`
-3. 後續新增且由本索引註冊的里程碑或驗收文件
+2. `DIVINATION_METHOD_TAXONOMY.md`
+3. `TECHNICAL_ARCHITECTURE_PLAN.md`
+4. 後續新增且由本索引註冊的里程碑或驗收文件
 
 ## Registry
 
-- `PROJECT_REQUIREMENT_SPEC.md`：產品定位、Persona、MVP、流程、功能、閱讀框架、規則及驗收標準。
+- `PROJECT_REQUIREMENT_SPEC.md`：產品定位、Persona、MVP、流程、功能、卜問結構、規則及驗收標準。
+- `DIVINATION_METHOD_TAXONOMY.md`：金錢卦、蓍草、梅花、六爻、龜卜、鳥卦、籤筊與六壬的邊界，以及多步驟卜問模型。
 - `TECHNICAL_ARCHITECTURE_PLAN.md`：權威資料、API、離線快照、AI 邊界及演進計畫。
 
 ## 狀態
 
-- 兩份文件目前均為 `planned`。
-- `decisions/D002_reading-frameworks.md` 仍為 `proposed`；多種閱讀框架尚未全部升為 MVP Must。
+- 三份文件目前均為 `planned`。
+- `decisions/D002_reading-frameworks.md` 保留為同一結果的不同閱讀視角與具來源解讀，屬未來範圍。
+- `decisions/D003_methods-and-consultation-layouts.md` 定義卜法與多步驟卜問；兩者和 D002 並存，均未全部升為 MVP Must。

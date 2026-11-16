@@ -14,7 +14,7 @@ implemented: false
 ## 2. World 與責任邊界
 
 - `yi-ly` 是單一 Project，對應唯一 `tenant_id=yi-ly`。
-- 經文、起卦、閱讀框架、離線快照、本機歷史及 AI Context 均為本 Project 業務語意。
+- 卜法、卜問結構、經文、結果解讀、離線快照、本機歷史及 AI Context 均為本 Project 業務語意。
 - 核心功能預期先收斂於單一可拔除 Business Module，不為畫面數量過早拆成互相依賴的 Module。
 - Module 經合法 Registry、Store、Routes 與 Container 入口進入 World。
 - Layout 只提供視覺殼層，不取得經文、不執行起卦、不裁決權限。
@@ -81,17 +81,28 @@ implemented: false
 - `Hexagram`：文王卦序、名稱、`patternBottomUp[6]`、上下卦及 passage 關聯。
 - `Passage`：類型、底本文字、顯示文字、直譯、本站導讀、異文、來源及審校狀態。
 
-### 5.3 CastingSession／SavedReading
+### 5.3 DivinationMethod／ConsultationSession
 
-- `CastingSession`：問題、起卦方法、原始擲幣、六爻值、本卦、動爻、之卦及 corpus version。
-- `SavedReading`：本機唯一 ID、預設名稱 `TAKO`、可編輯名稱、選定框架、Session 與時間。
-- 未選擇保存時，Session 不進入歷史資料庫。
+- `DivinationMethod`：方法 ID、規則版本、輸入型態、結果 schema 與適用 corpus。
+- `ConsultationLayout`：結構 ID、步驟定義、次序、子問題提示與來源聲明。
+- `ConsultationSession`：主問題、所選方法、Layout、解讀選擇、各步驟結果及 corpus version。
+- `ConsultationStep`：步驟 ID、次序、子問題與獨立 `DivinationResult`。
+- `IChingCastingResult`：易卦步驟的原始擲幣、六爻值、本卦、動爻、之卦及規則版本。
+- `SavedReading`：本機唯一 ID、預設名稱 `TAKO`、可編輯名稱、完整 ConsultationSession 與時間。
+- 未選擇保存時，ConsultationSession 不進入歷史資料庫。
 
 ### 5.4 ReadingFramework
 
 - `frameworkId`、名稱、欄位順序及說明。
 - `sourceBasis`：標示傳統結構或本站編輯框架。
 - `aiPromptTemplate`：只重排既有卦象內容，不增加占術資料。
+
+### 5.5 InterpretationProfile
+
+- `interpretationId`、名稱、適用方法與適用 passage／結果類型。
+- 底本或作者／編者、版本、授權、審校狀態及內容 checksum。
+- 經典原文、本站中性導讀、傳統／現代解讀及 AI 草稿分層保存。
+- 切換 Profile 只換解讀投影，不改變任何原始 `DivinationResult`。
 
 ## 6. Query API 計畫
 
@@ -128,17 +139,20 @@ implemented: false
 - 刪除只處理 `yi-ly` 自己的 corpus/cache namespace。
 - 清除離線 corpus 與清除本機歷史必須分開。
 
-## 8. 起卦與閱讀框架
+## 8. 卜法、卜問結構與結果解讀
 
 - 6、8 為陰；7、9 為陽；6、9 為動爻。
 - 六次結果 bottom-up 保存。
 - 6 轉陽、9 轉陰；全部動爻同時反轉得到之卦。
-- AI 與 ReadingFramework 都不參與卦象演算。
+- AI、ConsultationLayout、ReadingFramework 與 InterpretationProfile 都不參與卦象演算。
 - 標準框架直接映射本卦／動爻／之卦。
 - 其他框架只提供視角與欄位順序，必須附上本站編輯聲明。
-- 若未來提供三次獨立起卦，資料模型需保存三個獨立 Session，不能偽裝成同一卦的三層。
+- 一卦問事只建立一個 Step；三卦或五卦結構需保存三個或五個獨立 Result，不能偽裝成同一卦的三層。
+- 金錢法與蓍草法可共用 `IChingCastingResult`，但必須保留不同的原始操作紀錄與規則版本。
+- 梅花易數、六爻納甲需自己的起卦／解讀欄位；龜卜、鳥卦、籤筊與六壬不得寫入 `IChingCastingResult`。
+- 同一結果可切換多個已核准 InterpretationProfile；各 Profile 必須能回溯來源、授權、版本與審校狀態。
 
-固定測試：乾、坤、既濟、未濟；零至六個動爻；用九／用六；bottom-up；雙重反轉；所有框架不改變 Session 結果。
+固定測試：乾、坤、既濟、未濟；零至六個動爻；用九／用六；bottom-up；雙重反轉；所有框架與解讀切換不改變原始結果；多步驟結果數量與順序正確。
 
 ## 9. 前端責任草案
 
@@ -146,7 +160,7 @@ implemented: false
 
 - `store`：當次起卦、載入狀態、active corpus version 與本機偏好投影。
 - `api`：manifest、package 與線上單卦 Query。
-- `service`：package 驗證、卦象演算、框架投影與 AI Context 組裝。
+- `service`：package 驗證、各卜法演算、卜問流程、解讀投影與 AI Context 組裝。
 - `repository`：IndexedDB corpus 與選配歷史存取。
 - `pages`：起卦、結果、來源、離線設定與歷史。
 
@@ -156,7 +170,7 @@ implemented: false
 
 - 前端決定性產生純文字／JSON Context。
 - 使用者自行複製或分享，第一版不呼叫模型 API。
-- Context 只含使用者選擇分享的問題、卦象、框架、經文及來源。
+- Context 只含使用者選擇分享的主問題、步驟、各自結果、解讀設定、經文及來源。
 - 外部 AI 回應不寫回正式 corpus，也不自動匯入本機歷史。
 - 每種框架可提供不同的問題模板，但不得增添未提供的占術資料。
 
@@ -179,7 +193,8 @@ implemented: false
 ### Phase 0：需求裁決
 
 - 決定《彖傳》《象傳》範圍。
-- 決定 B、C、D 閱讀框架是否進入 MVP。
+- 決定 B、C、D 閱讀視角及不同解讀資料是否進入第一版。
+- 決定三卦／五卦卜問結構的優先級與步驟名稱。
 - 確認 `TAKO` 的產品語意。
 
 ### Phase 1：Corpus 與授權
@@ -199,9 +214,14 @@ implemented: false
 
 - 逐條撰寫、審校並標記 review status。
 
-### Phase 5：閱讀框架與外部 AI
+### Phase 5：卜問結構、解讀資料與外部 AI
 
-- 實作已核准框架投影及純文字／JSON Context。
+- 實作已核准的多步驟流程、閱讀視角、解讀 Profile 及純文字／JSON Context。
+
+### Phase 6：其他卜法研究
+
+- 依 `DIVINATION_METHOD_TAXONOMY.md` 逐一確認規則、結果 schema、語料、授權與文化語境。
+- 新方法先建立獨立引擎與測試，不以 UI 選項直接套用易卦演算。
 
 ## 14. Gate
 
@@ -212,7 +232,8 @@ implemented: false
 - Store／IndexedDB 是否只保存投影或版本化快照。
 - API Query／Command 是否沒有混用。
 - 離線、歷史與分享是否由使用者控制。
-- 閱讀框架是否未改變卦象演算或偽裝成古法。
+- 卜問結構、閱讀視角與解讀資料是否未改變原始結果或偽裝成古法。
+- 新卜法是否具有獨立規則、結果 schema、語料與測試。
 - 是否新增未核准的占術、AI 或共享平台能力。
 
 ## 15. 未解風險
@@ -220,4 +241,5 @@ implemented: false
 - 正式底本與 CC BY-SA／自行轉錄路線尚未裁決。
 - 簡明導讀的審校人力與責任人尚未確認。
 - Service Worker 與跨版本離線策略尚未實測。
-- B、C、D 框架的傳統依據及文字界線仍需內容審校。
+- B、C、D 視角及不同解讀資料的傳統依據、授權與文字界線仍需內容審校。
+- 鳥卦、龜卜等名稱涵蓋不同民俗實作，未確認具體流派前不能進入實作。
