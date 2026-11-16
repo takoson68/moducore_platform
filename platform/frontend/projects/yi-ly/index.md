@@ -75,6 +75,7 @@
 - `decisions/D003_methods-and-consultation-layouts.md`
 - `decisions/D004_corpus-authoring-and-release.md`
 - `decisions/D005_visible-source-attribution.md`
+- `decisions/D006_mvp-content-and-display-scope.md`
 - `layout/index.js`
 - `layout/LayoutRoot.vue`
 - `modules/index.js`

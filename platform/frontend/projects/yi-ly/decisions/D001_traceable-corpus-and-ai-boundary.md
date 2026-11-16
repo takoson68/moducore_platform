@@ -40,6 +40,6 @@
 
 ## Follow-up
 
-- 選定正式底本與授權策略。
-- 定義內容審校流程。
+- 依 D004 使用維基文庫固定 revisions 建立來源 snapshot 與 attribution。
+- 依 D006 使用 `draft → self_reviewed → published` 的實驗版內容流程。
 - 建立 Corpus schema、離線驗證及 AI Context 契約。

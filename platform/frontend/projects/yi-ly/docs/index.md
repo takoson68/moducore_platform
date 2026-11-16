@@ -26,3 +26,4 @@
 - `decisions/D003_methods-and-consultation-layouts.md` 定義卜法與多步驟卜問；兩者和 D002 並存，均未全部升為 MVP Must。
 - `decisions/D004_corpus-authoring-and-release.md` 已接受為資料整理及發布的規劃方向。
 - `decisions/D005_visible-source-attribution.md` 要求結果頁、離線與分享內容顯示正確署名及授權公告。
+- `decisions/D006_mvp-content-and-display-scope.md` 已裁決完整傳文資料、折疊顯示、第一版閱讀視角、`TAKO` 與實驗版自審流程。

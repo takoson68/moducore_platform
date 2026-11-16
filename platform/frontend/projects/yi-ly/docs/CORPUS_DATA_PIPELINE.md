@@ -229,6 +229,8 @@ MVP release 至少驗證：
 - 恰有 64 個唯一卦序與 64 個唯一六爻 pattern。
 - 每卦恰有六個爻位，總計 384 則爻辭。
 - 乾用九、坤用六各一，位置及卦別正確。
+- 64 卦各有《彖傳》與《大象》；每個爻辭及用九／用六均能對應自己的《小象》。
+- 《文言》只掛在乾、坤並保持內部分段，不錯配到其他卦。
 - 每個正式 passage 都有 base witness、source locator、rights status 及 checksum。
 - 每個可發布來源都有固定版本連結、授權連結、短版／完整署名及修改聲明。
 - 每個 InterpretationProfile 宣告預期涵蓋數、實際涵蓋數與缺漏清單。
@@ -237,7 +239,7 @@ MVP release 至少驗證：
 - 線上、離線與分享輸出的 attribution snapshot 一致。
 - 同一 `corpusVersion` 的產物不可在發布後被替換。
 
-若加入《彖傳》《象傳》等內容，應以各自 passage kind 與預期數量驗證，不把它們混入 64 卦辭或 384 爻辭計數。
+《彖傳》《象傳》《文言》以各自 passage kind 與預期覆蓋規則驗證，不把它們混入 64 卦辭或 384 爻辭計數。
 
 預計提供可重現的內容命令，但名稱需在工程階段依 Repository scripts 慣例確認：
 

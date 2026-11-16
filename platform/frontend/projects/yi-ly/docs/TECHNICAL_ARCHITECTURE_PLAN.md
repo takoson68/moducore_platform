@@ -44,7 +44,8 @@ implemented: false
 
 - 64 卦卦名、卦畫、上下卦及文王卦序。
 - 64 則卦辭、384 則爻辭、乾用九與坤用六。
-- 《彖傳》《大象》《小象》是否在 MVP：待確認。
+- 64 卦《彖傳》《大象》、各爻《小象》及乾坤《文言》；使用獨立 passage kind 保存。
+- 傳文資料進入 MVP package，但結果頁預設折疊且不自動加入 AI Context。
 
 ### 4.2 來源候選
 
@@ -81,6 +82,7 @@ implemented: false
 
 - `Hexagram`：文王卦序、名稱、`patternBottomUp[6]`、上下卦及 passage 關聯。
 - `Passage`：類型、底本文字、顯示文字、直譯、本站導讀、異文、來源及審校狀態。
+- `Passage.kind` 至少區分 `judgment`、`line_statement`、`use_statement`、`tuan`、`great_xiang`、`line_xiang`、`wenyan`。
 - `AttributionRecord`：來源顯示名稱、貢獻者標示、固定版本 URL、授權、修改聲明與短版／完整版文字。
 
 ### 5.3 DivinationMethod／ConsultationSession
@@ -108,6 +110,8 @@ implemented: false
 
 ## 6. Query API 計畫
 
+- Worker 規劃使用 `wrangler.yi-ly.jsonc`，`PROJECT_ID=yi-ly`，D1 migrations 放在 `platform/worker/migrations/yi-ly/`。
+- 本機開發需為 `yi-ly` 設定獨立 Worker port 與 Vite `/api` proxy；不得沿用舊 PHP API target。
 - `GET /api/yijing/corpus/manifest`
 - `GET /api/yijing/corpus/{version}/package`
 - `GET /api/yijing/hexagrams/{number}`
@@ -173,6 +177,7 @@ implemented: false
 - 前端決定性產生純文字／JSON Context。
 - 使用者自行複製或分享，第一版不呼叫模型 API。
 - Context 只含使用者選擇分享的主問題、步驟、各自結果、解讀設定、經文及來源。
+- 傳文是否進入 Context 由使用者逐類或逐段選取，預設不選。
 - 分享內容固定附帶精簡 attribution；頁面與離線資料顯示完整版。
 - 外部 AI 回應不寫回正式 corpus，也不自動匯入本機歷史。
 - 每種框架可提供不同的問題模板，但不得增添未提供的占術資料。
@@ -195,10 +200,10 @@ implemented: false
 
 ### Phase 0：需求裁決
 
-- 決定《彖傳》《象傳》範圍。
-- 決定 B、C、D 閱讀視角及不同解讀資料是否進入第一版。
-- 決定三卦／五卦卜問結構的優先級與步驟名稱。
-- 確認 `TAKO` 的產品語意。
+- 已完成：MVP 收錄完整原典與傳文資料，但傳文預設折疊。
+- 已完成：第一版只提供「形勢／變動／趨勢」。
+- 已完成：三卦／五卦結構延後，`TAKO` 為每筆歷史預設名稱。
+- 已完成：實驗版導讀採專案方逐段自審。
 
 ### Phase 1：Corpus 與授權
 
@@ -216,7 +221,7 @@ implemented: false
 
 ### Phase 4：簡明導讀
 
-- 逐條撰寫、審校並標記 review status。
+- 專案方逐條撰寫、自審並依 `draft → self_reviewed → published` 標記狀態。
 
 ### Phase 5：卜問結構、解讀資料與外部 AI
 
@@ -243,8 +248,8 @@ implemented: false
 
 ## 15. 未解風險
 
-- 正式底本與 CC BY-SA／自行轉錄路線尚未裁決。
-- 簡明導讀的審校人力與責任人尚未確認。
+- 維基文庫 64 卦子頁 revision snapshot、attribution 與完整度仍未實際驗證。
+- 實驗版採專案方自審，內容品質仍低於獨立易學審校；需在 UI 顯示審校層級。
 - Service Worker 與跨版本離線策略尚未實測。
-- B、C、D 視角及不同解讀資料的傳統依據、授權與文字界線仍需內容審校。
+- 後續 B、C、D 視角及其他解讀資料的傳統依據、授權與文字界線仍需內容審校。
 - 鳥卦、龜卜等名稱涵蓋不同民俗實作，未確認具體流派前不能進入實作。
