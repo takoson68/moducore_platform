@@ -83,7 +83,9 @@
 - `layout/index.js`
 - `layout/LayoutRoot.vue`
 - `modules/index.js`
-- `styles/sass/main.sass`
+- `styles/sass/main.sass`：Project 全域基礎樣式。
+- `styles/sass/_variables.sass`：易占專案色彩、字體、尺寸與間距變數。
+- `modules/casting/styles.sass`：卜卦模組頁面樣式。
 
 ## 8. 裁決聲明
 

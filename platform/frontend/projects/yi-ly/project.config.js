@@ -1,6 +1,6 @@
 export default {
   name: 'yi-ly',
-  title: '易經解卦',
+  title: '易占',
   tenant_id: 'yi-ly',
   modules: ['casting'],
   description: '提供可追溯卜法、卜問結構、解讀資料、選配離線內容與外部 AI 交接的手機優先工具。',

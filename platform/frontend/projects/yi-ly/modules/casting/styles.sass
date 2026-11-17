@@ -1,0 +1,983 @@
+@use '../../styles/sass/variables' as *
+
+.yi-casting
+  position: relative
+  isolation: isolate
+  min-height: 100vh
+  padding: $space-4 $space-4 calc(#{$space-12} + env(safe-area-inset-bottom))
+  background: $bg-paper
+  box-shadow: inset 0 0 60px rgba(139, 126, 102, .12)
+  color: $ink-primary
+  font-family: $font-serif
+  line-height: 1.6
+
+  &__paper-grain
+    position: fixed
+    z-index: 0
+    inset: 0
+    width: 100%
+    height: 100%
+    opacity: .05
+    mix-blend-mode: multiply
+    pointer-events: none
+
+  &__landscape
+    position: fixed
+    z-index: 0
+    right: 0
+    bottom: 0
+    left: 0
+    width: 100vw
+    height: min(58vh, 480px)
+    filter: blur(1px)
+    pointer-events: none
+
+  &__paper
+    position: relative
+    z-index: 1
+    display: flex
+    width: min(100%, $app-max-width)
+    margin: $space-3 auto
+    flex-direction: column
+    gap: $space-7
+
+  &__header, &__dialog-header
+    display: flex
+    align-items: center
+    justify-content: space-between
+    gap: $space-5
+
+  &__brand
+    display: flex
+    min-width: 0
+    align-items: center
+    gap: $space-4
+
+  &__brand-copy
+    min-width: 0
+
+    .yi-casting__eyebrow
+      margin-bottom: $space-1
+
+    h1
+      margin: 0
+      font-size: $font-size-2xl
+      font-weight: 700
+      letter-spacing: .15em
+
+  &__logo-button, &__icon-button
+    display: grid
+    flex: 0 0 auto
+    place-items: center
+    border: 0
+    border-radius: 50%
+    background: transparent
+    color: $ink-primary
+    cursor: pointer
+
+    &:focus-visible
+      outline: 2px solid $vermilion
+      outline-offset: 2px
+
+  &__logo-button
+    position: relative
+    overflow: hidden
+    width: 36px
+    height: 36px
+    border: $border-seal
+    background: $vermilion
+    color: $bg-card
+    font-size: $font-size-md
+    font-weight: 700
+
+    &::after
+      position: absolute
+      inset: 3px
+      border: 1px solid rgba(250, 248, 243, .45)
+      border-radius: 3px
+      content: ''
+      pointer-events: none
+
+  &__icon-button
+    width: 36px
+    height: 36px
+    color: $ink-primary
+    font-size: $font-size-lg
+    line-height: 1
+
+  &__eyebrow
+    margin: 0 0 $space-2
+    color: $ink-secondary
+    font-size: $font-size-sm
+    letter-spacing: .12em
+
+  &__main
+    display: flex
+    flex-direction: column
+    gap: $space-7
+
+  &__entry-panel, &__gua-card, &__result-card, &__dialog
+    min-width: 0
+    border: $border-thin
+    border-radius: $radius-sm
+    background: $bg-card
+
+  &__entry-panel, &__result-card
+    padding: $space-8
+
+  &__question-card
+    display: flex
+    flex-direction: column
+    gap: $space-2
+
+  &__section-label, &__gua-label
+    display: block
+    margin: 0
+    color: $ink-secondary
+    font-size: $font-size-sm
+    font-weight: 600
+    letter-spacing: .08em
+
+  &__question, &__save-input
+    display: block
+    width: 100%
+    min-height: 56px
+    padding: 0 0 $space-1
+    resize: none
+    border: 0
+    border-bottom: $border-thin
+    border-radius: 0
+    outline: none
+    background: transparent
+    color: $ink-primary
+    font-size: $font-size-md
+    line-height: 1.75
+    transition: border-color .16s ease
+
+    &::placeholder
+      color: $ink-secondary
+
+    &:focus
+      border-color: $ink-primary
+      outline: none
+      box-shadow: none
+
+  &__save-input
+    min-height: $button-height
+    padding: $space-4
+    border: $border-thin
+    border-radius: $radius-sm
+    resize: none
+
+  &__question
+    height: 56px
+    min-height: 56px
+    border-bottom: 0
+
+  &__ink-divider
+    display: block
+    width: 100%
+    height: 7px
+    margin-top: -$space-2
+    overflow: visible
+    transition: opacity .2s ease
+
+  &__question-card:focus-within .yi-casting__ink-divider
+    opacity: .95
+
+  &__category-list
+    margin-top: -$space-2
+
+  &__category-list
+    display: flex
+    flex-wrap: nowrap
+    justify-content: space-between
+    gap: $space-2
+
+  &__category
+    flex: 1 1 0
+    padding: 3px $space-2
+    border: $border-thin
+    border-radius: 2px
+    background: transparent
+    color: $ink-secondary
+    font-size: 13px
+    cursor: pointer
+
+    &.is-active
+      border: $border-seal
+      background: $vermilion-tint
+      color: $vermilion
+
+  &__mode-switch, &__framework-switch
+    display: grid
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+    gap: $space-1
+    padding: $space-1
+    border: $border-thin
+    border-radius: $radius-sm
+    background: transparent
+
+    button
+      min-height: 40px
+      padding: $space-3 $space-4
+      border: 0
+      border-radius: 2px
+      background: transparent
+      color: $ink-secondary
+      font-size: $font-size-base
+      cursor: pointer
+
+      &.is-active
+        background: $ink-primary
+        color: $bg-card
+
+  &__mode-switch
+    width: min(100%, 232px)
+    height: 34px
+    margin: 0 auto
+    border-radius: 18px
+
+    button
+      min-height: 26px
+      padding: 0 $space-2
+      border-radius: 14px
+      font-size: 13px
+
+  &__entry-panel
+    position: relative
+    isolation: isolate
+    display: flex
+    min-height: $game-stage-min-height
+    flex-direction: column
+    justify-content: center
+    gap: $space-7
+    padding: $space-10
+    border: 1px solid transparent
+    background: linear-gradient(rgba(252, 250, 245, .82), rgba(252, 250, 245, .82)) padding-box, linear-gradient(140deg, rgba(38, 36, 34, .2), rgba(38, 36, 34, .035) 24%, rgba(38, 36, 34, .025) 72%, rgba(38, 36, 34, .14)) border-box
+    backdrop-filter: blur(4px)
+
+    &::before, &::after
+      position: absolute
+      z-index: 1
+      width: 15px
+      height: 15px
+      border-color: rgba(38, 36, 34, .28)
+      border-style: solid
+      content: ''
+      pointer-events: none
+
+    &::before
+      top: 8px
+      left: 8px
+      border-width: 1px 0 0 1px
+
+    &::after
+      right: 8px
+      bottom: 8px
+      border-width: 0 1px 1px 0
+
+  &__timed-panel
+    min-height: 278px
+    align-items: center
+    padding: $space-8
+
+  &__timed-content
+    display: flex
+    width: 100%
+    flex-direction: column
+    align-items: center
+    text-align: center
+
+    h2
+      margin: $space-9 0 $space-2
+      font-size: $font-size-lg
+      font-weight: 600
+
+    .yi-casting__helper
+      max-width: 260px
+      font-size: 13px
+      line-height: 1.7
+
+  &__start-emblem
+    position: relative
+    display: grid
+    width: 120px
+    height: 120px
+    place-items: center
+    color: $ink-primary
+    font-size: $font-size-xl
+    letter-spacing: .2em
+    animation: enso-breath 4.8s ease-in-out infinite
+
+    &:hover .yi-casting__enso-ink
+      animation: enso-draw .9s ease-out both
+
+    &:hover .yi-casting__enso-trace
+      animation: enso-trace .95s cubic-bezier(.3, .7, .25, 1) both
+
+  &__timed-panel:has(+ .yi-casting__stage-action:hover) .yi-casting__enso-ink,
+  &__timed-panel:has(+ .yi-casting__stage-action:focus-visible) .yi-casting__enso-ink
+    animation: enso-draw .9s ease-out both
+
+  &__timed-panel:has(+ .yi-casting__stage-action:hover) .yi-casting__enso-trace,
+  &__timed-panel:has(+ .yi-casting__stage-action:focus-visible) .yi-casting__enso-trace
+    animation: enso-trace .95s cubic-bezier(.3, .7, .25, 1) both
+
+  &__enso
+    position: absolute
+    inset: 0
+    width: 100%
+    height: 100%
+    overflow: visible
+    pointer-events: none
+
+  &__enso-ink
+    fill: currentColor
+    transform-box: fill-box
+    transform-origin: center
+
+  &__enso-trace
+    fill: none
+    stroke: #fff
+    stroke-width: 34
+    stroke-linecap: round
+    stroke-linejoin: round
+    stroke-dasharray: 500
+    stroke-dashoffset: 0
+    animation: enso-trace 1.35s cubic-bezier(.3, .7, .25, 1) both
+
+  &__enso-heavy
+    fill: currentColor
+    opacity: .97
+
+  &__enso-dry
+    fill: none
+    stroke: $bg-paper
+    stroke-width: 1.15
+    stroke-linecap: round
+    stroke-dasharray: 16 3 7 7 22 4
+    opacity: .78
+
+  &__enso-thread
+    fill: none
+    stroke: currentColor
+    stroke-width: 1
+    stroke-linecap: round
+    stroke-dasharray: 38 5 12 6
+    opacity: .62
+
+  &__emblem-seal
+    position: absolute
+    right: 3px
+    bottom: 10px
+    display: grid
+    width: 14px
+    height: 14px
+    place-items: center
+    border: 1px solid $vermilion
+    border-radius: 2px
+    background: $bg-paper
+    color: $vermilion
+    font-size: 8px
+    line-height: 1
+
+  &__panel-heading
+    display: flex
+    align-items: flex-start
+    justify-content: space-between
+    gap: $space-5
+
+    h2
+      margin: 0 0 $space-2
+      font-size: $font-size-lg
+      font-weight: 600
+
+    p
+      margin: 0
+      color: $ink-secondary
+      font-size: $font-size-sm
+      line-height: 1.75
+
+  &__panel-mark
+    flex: 0 0 auto
+    padding: $space-2 $space-3
+    border: $border-thin
+    border-radius: 2px
+    color: $ink-secondary
+    font-size: $font-size-xs
+
+  &__line-entry-list
+    display: flex
+    flex-direction: column
+    gap: $space-2
+
+  &__line-entry
+    display: grid
+    grid-template-columns: 40px minmax(0, 1fr) 52px
+    align-items: center
+    gap: $space-3
+    min-height: 54px
+    padding: $space-2 0
+    border-bottom: $border-thin
+
+  &__line-info
+    display: grid
+    gap: $space-1
+
+  &__line-name
+    font-size: $font-size-sm
+
+  &__line-result
+    color: $vermilion
+    font-size: $font-size-xs
+    font-weight: 600
+
+    &.is-empty
+      color: $ink-secondary
+
+  &__coins
+    display: flex
+    justify-content: space-around
+    gap: $space-2
+
+  &__coin-pair
+    display: flex
+    gap: $space-1
+
+  &__coin
+    display: grid
+    width: $coin-size
+    height: $coin-size
+    padding: 0
+    place-items: center
+    border: $border-ink
+    border-radius: 50%
+    background: $bg-card
+    color: $ink-primary
+    font-size: $font-size-xs
+    cursor: pointer
+    position: relative
+
+    &::before
+      position: absolute
+      top: 7px
+      left: 7px
+      width: 7px
+      height: 7px
+      border: 1px solid currentColor
+      background: $bg-paper
+      content: ''
+
+    &.is-selected
+      border-color: $vermilion
+      color: $vermilion
+      background: $vermilion-tint
+
+  &__line-preview
+    display: flex
+    justify-content: flex-end
+    color: $ink-primary
+    font-family: $font-serif
+    font-size: $font-size-base
+    letter-spacing: -2px
+    white-space: nowrap
+
+  &__broken-line
+    display: inline-block
+    width: 42px
+    height: 8px
+    border-right: 15px solid $ink-primary
+    border-left: 15px solid $ink-primary
+
+  &__line-placeholder
+    color: $ink-border
+
+  &__helper, &__privacy-note, &__data-note, &__framework-note
+    margin: 0
+    color: $ink-secondary
+    font-size: $font-size-sm
+    line-height: 1.8
+
+  &__primary-button, &__secondary-button
+    display: inline-flex
+    min-height: $button-height
+    align-items: center
+    justify-content: center
+    padding: $space-4 $space-8
+    border: $border-ink
+    border-radius: $radius-sm
+    font-size: $font-size-base
+    cursor: pointer
+
+    &:disabled
+      border-color: $bg-disabled
+      background: $bg-disabled
+      color: $ink-secondary
+      cursor: not-allowed
+
+  &__primary-button
+    width: 100%
+    background: $ink-primary
+    color: $bg-card
+
+  &__stage-action
+    min-height: 46px
+
+  &__secondary-button
+    background: transparent
+    color: $ink-primary
+
+  &__privacy-note
+    text-align: center
+
+  &__interlude, &__game
+    min-height: $game-stage-min-height
+    align-items: center
+    justify-content: center
+    padding: $space-10
+    border: $border-thin
+    border-radius: $radius-sm
+    background: $bg-card
+    text-align: center
+
+    h2
+      margin: 0
+      font-size: $font-size-xl
+
+    > p:not(.yi-casting__eyebrow)
+      max-width: 32ch
+
+  &__countdown-circle
+    position: relative
+    display: grid
+    width: $countdown-size
+    height: $countdown-size
+    place-items: center
+    color: $ink-primary
+    font-size: $font-size-countdown
+    line-height: 1
+
+    .yi-casting__enso-ink
+      animation: enso-draw 1s ease-out both
+
+    .yi-casting__enso-trace
+      animation: enso-trace 1s cubic-bezier(.3, .7, .25, 1) both
+
+    span
+      position: relative
+      z-index: 1
+
+  &__text-button
+    padding: $space-3 $space-5
+    border: 0
+    background: transparent
+    color: $ink-secondary
+    text-decoration: underline
+    text-underline-offset: 3px
+    cursor: pointer
+
+  &__timed-grid
+    display: grid
+    width: 100%
+    grid-template-columns: repeat(3, minmax(0, 1fr))
+    justify-items: center
+    gap: $space-6
+    padding: $space-5 0
+
+  &__timed-key
+    display: flex
+    width: min(100%, $timed-key-size)
+    aspect-ratio: 1
+    flex-direction: column
+    align-items: center
+    justify-content: center
+    gap: $space-2
+    border: $border-ink
+    border-radius: 50%
+    background: transparent
+    color: $ink-primary
+    cursor: pointer
+
+    &:disabled
+      cursor: default
+
+    &.is-done
+      border-color: $vermilion
+      background: $vermilion-tint
+
+  &__key-mark
+    display: grid
+    min-width: 29px
+    min-height: 29px
+    place-items: center
+    border: 1px solid transparent
+    border-radius: 2px
+    color: $ink-secondary
+    font-size: $font-size-lg
+
+    .is-done &
+      min-width: 38px
+      min-height: 29px
+      border: 2px solid $vermilion
+      color: $vermilion
+      font-size: $font-size-xs
+      font-weight: 600
+
+  &__game-progress
+    margin: 0
+    color: $ink-secondary
+    font-size: $font-size-sm
+
+  &__result-heading
+    display: flex
+    flex-direction: column
+    gap: $space-2
+
+    h2
+      margin: 0
+      font-size: $font-size-xl
+      line-height: 1.5
+
+  &__result-meta, &__gua-number
+    margin: 0
+    color: $ink-secondary
+    font-size: $font-size-xs
+
+  &__gua-pair
+    display: grid
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr)
+    align-items: center
+    gap: $space-3
+
+  &__gua-card
+    display: flex
+    min-width: 0
+    flex-direction: column
+    align-items: center
+    gap: $space-2
+    padding: $space-5 $space-3
+    text-align: center
+
+    h3
+      margin: 0
+      font-size: $font-size-md
+      line-height: 1.5
+
+  &__gua-label
+    color: $ink-secondary
+
+  &__gua-lines
+    display: flex
+    width: 100%
+    flex-direction: column
+    gap: $space-2
+    margin-top: $space-3
+
+  &__gua-line
+    display: grid
+    grid-template-columns: 26px minmax(36px, 1fr) 14px 16px
+    align-items: center
+    gap: $space-1
+    min-height: 18px
+    color: $ink-primary
+
+    &.is-moving
+      color: $vermilion
+
+  &__line-position, &__line-value
+    color: $ink-secondary
+    font-size: 9px
+    white-space: nowrap
+
+  &__yang-line
+    display: block
+    height: 5px
+    background: currentColor
+
+  &__broken-line
+    border-color: currentColor
+
+  &__moving-mark
+    width: 8px
+    height: 8px
+    border-radius: 50%
+    background: $vermilion
+    font-size: 0
+
+  &__change-arrow
+    color: $ink-secondary
+    font-size: $font-size-lg
+    text-align: center
+
+  &__data-note
+    padding: $space-3 0
+    border-bottom: $border-thin
+
+  &__result-grid
+    display: flex
+    flex-direction: column
+    gap: $space-8
+
+  &__result-card
+    display: flex
+    flex-direction: column
+    gap: $space-5
+    line-height: 1.85
+
+    h3
+      margin: 0
+      font-size: $font-size-lg
+
+    p
+      margin: 0
+
+  &__yilin-feature
+    border-color: $vermilion
+
+  &__yilin-heading
+    h3
+      margin: 0
+      font-size: $font-size-lg
+
+  &__passage
+    color: $ink-primary
+    font-size: $font-size-base
+    line-height: 1.85
+    white-space: pre-wrap
+    overflow-wrap: anywhere
+
+  &__yilin-source, &__source-entry
+    display: flex
+    flex-direction: column
+    gap: $space-1
+    color: $ink-secondary
+    font-size: $font-size-xs
+  &__source-link
+    width: fit-content
+    color: $ink-secondary
+    text-decoration-color: $ink-border
+    text-underline-offset: 3px
+
+  &__copy-poem
+    margin-top: $space-2
+
+  &__copy-fallback
+    width: 100%
+    min-height: 100px
+    padding: $space-4
+    border: $border-thin
+    border-radius: $radius-sm
+    background: transparent
+    font-size: $font-size-sm
+
+  &__inline-message, &__save-message
+    color: $vermilion
+    font-size: $font-size-sm
+
+  &__framework-switch
+    width: 100%
+
+    button
+      font-size: $font-size-xs
+
+  &__reading-section
+    display: flex
+    flex-direction: column
+    gap: $space-3
+    padding-top: $space-5
+    border-top: $border-thin
+
+    h4
+      margin: 0
+      color: $ink-secondary
+      font-size: $font-size-sm
+
+  &__passage-block
+    display: flex
+    flex-direction: column
+    gap: $space-2
+
+  &__passage-label
+    color: $ink-secondary
+    font-size: $font-size-xs
+
+  &__details, &__attribution
+    padding-top: $space-5
+    border-top: $border-thin
+
+    summary
+      color: $ink-secondary
+      font-size: $font-size-sm
+      cursor: pointer
+
+  &__details[open], &__attribution[open]
+    display: flex
+    flex-direction: column
+    gap: $space-5
+
+  &__attribution
+    display: flex
+    flex-direction: column
+    gap: $space-5
+    padding: $space-8
+    border: $border-thin
+    border-radius: $radius-sm
+    background: $bg-card
+    font-size: $font-size-xs
+    line-height: 1.8
+
+    &:not([open])
+      display: block
+
+    h4, p
+      margin: 0
+
+  &__version, &__modification
+    color: $ink-secondary
+
+  &__result-actions, &__dialog-actions
+    display: grid
+    grid-template-columns: 1fr 1fr
+    gap: $space-3
+
+  &__loading, &__empty
+    color: $ink-secondary
+    font-size: $font-size-sm
+  &__error
+    display: flex
+    flex-direction: column
+    gap: $space-3
+    color: $vermilion
+    font-size: $font-size-sm
+
+  &__small-button, &__delete-button
+    min-height: 36px
+    padding: $space-2 $space-4
+    border: $border-thin
+    border-radius: $radius-sm
+    background: transparent
+    color: $ink-secondary
+    cursor: pointer
+
+  &__overlay
+    position: fixed
+    z-index: 20
+    inset: 0
+    display: grid
+    place-items: center
+    padding: $space-5
+    background: rgba(38, 36, 34, .35)
+
+  &__dialog
+    display: flex
+    width: min(100%, 420px)
+    max-height: min(85vh, 760px)
+    flex-direction: column
+    gap: $space-6
+    overflow: auto
+    padding: $space-8
+
+    h2
+      margin: 0
+      font-size: $font-size-lg
+
+    > p
+      margin: 0
+      color: $ink-secondary
+      font-size: $font-size-sm
+
+  &__history-list
+    display: flex
+    flex-direction: column
+    gap: $space-3
+
+  &__history-item
+    display: grid
+    grid-template-columns: minmax(0, 1fr) auto
+    align-items: center
+    gap: $space-3
+    padding: $space-4 0
+    border-bottom: $border-thin
+
+  &__history-open
+    display: flex
+    min-width: 0
+    flex-direction: column
+    align-items: flex-start
+    gap: $space-1
+    border: 0
+    background: transparent
+    color: $ink-primary
+    text-align: left
+    cursor: pointer
+
+    span, small
+      color: $ink-secondary
+      font-size: $font-size-xs
+
+  &__delete-button
+    color: $vermilion
+
+@media (max-width: $breakpoint-mobile)
+  .yi-casting
+    padding: max(env(safe-area-inset-top), $space-5) $space-4 calc(#{$space-10} + env(safe-area-inset-bottom))
+
+    &__paper
+      margin: 0 auto
+      gap: $space-8
+
+    &__entry-panel, &__result-card
+      padding: $space-6
+
+    &__timed-panel
+      min-height: 260px
+
+    &__coin
+      width: 34px
+      height: 34px
+
+    &__line-entry
+      grid-template-columns: 38px minmax(0, 1fr) 46px
+
+    &__timed-key
+      width: min(100%, 76px)
+
+    &__gua-pair
+      grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr)
+      gap: $space-2
+
+    &__gua-card
+      padding: $space-4 $space-2
+
+    &__line-position
+      font-size: 8px
+
+@keyframes enso-breath
+  0%, 100%
+    opacity: .84
+  50%
+    opacity: 1
+
+@keyframes enso-draw
+  from
+    transform: scale(.94) rotate(-2deg)
+    filter: blur(1.4px)
+    opacity: .68
+  to
+    transform: scale(1) rotate(0)
+    filter: blur(0)
+    opacity: 1
+
+@keyframes enso-trace
+  from
+    stroke-dashoffset: 500
+  to
+    stroke-dashoffset: 0
+
+@media (prefers-reduced-motion: reduce)
+  .yi-casting__start-emblem
+    animation: none
+
+  .yi-casting__enso-ink, .yi-casting__enso-trace, .yi-casting__countdown-circle .yi-casting__enso-ink
+    animation: none !important

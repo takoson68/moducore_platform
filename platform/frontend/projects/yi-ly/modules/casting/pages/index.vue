@@ -34,6 +34,7 @@ const saveMessage = ref('')
 const savedReadingId = ref('')
 
 const manualComplete = computed(() => manualLines.value.every((line) => line.coins.every((coin) => coin !== null)))
+const manualLineDisplay = computed(() => [...manualLines.value].reverse())
 const timedComplete = computed(() => timedLines.value.length === 6)
 const baseCorePassages = computed(() => passagesFor(reading.value?.corePassages, reading.value?.baseHexagram?.hexagram_number))
 const changedCorePassages = computed(() => passagesFor(reading.value?.corePassages, reading.value?.changedHexagram?.hexagram_number))
@@ -226,18 +227,19 @@ function questionAndPoemPrompt() {
   if (!reading.value?.yilin) return ''
   const poem = reading.value.yilin
   const source = poem.source
+  const sourceName = source?.name?.trim() || '來源未標示'
+  const rawEdition = source?.edition?.trim() || ''
+  const edition = rawEdition.startsWith(sourceName)
+    ? rawEdition.slice(sourceName.length).replace(/^[｜|；;：:\s]+/, '').trim()
+    : rawEdition
+  const sourceCitation = [sourceName, edition, source?.url].filter(Boolean).join('｜')
   return [
     '請只根據「我的問題」與「《焦氏易林》詩籤原文」說明詩意及它可能如何回應問題。不要引用或推測其他卦辭、爻辭、傳文、術數或未提供的背景；請將詩籤原文與你的推論分開，不要把推測說成必然。若詩意無法明確對應問題，請直接說明。',
     '【我的問題】',
     casting.value.question || '（尚未填寫）',
     '【《焦氏易林》詩籤原文】',
     poem.text,
-    '【資料來源與版本】',
-    `${source.name}（${source.edition || '版本依來源紀錄'}）`,
-    `原始來源：${source.url}`,
-    source.attribution || '',
-    `權利說明：${source.rightsNote || '依來源頁聲明'}`,
-    '本站修改聲明：僅依所列來源擷取、解析及結構化原文，未人工改寫詩辭。',
+    `【來源】${sourceCitation}`,
   ].filter(Boolean).join('\n\n')
 }
 
@@ -379,20 +381,47 @@ onBeforeUnmount(() => {
 
 <template lang="pug">
 .yi-casting
+  svg.yi-casting__paper-grain(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" preserveAspectRatio="none" aria-hidden="true" focusable="false")
+    defs
+      filter#paper-fiber
+        feTurbulence(type="fractalNoise" baseFrequency="0.78 0.035" numOctaves="3" seed="8")
+        feColorMatrix(type="saturate" values="0")
+    rect(width="100%" height="100%" filter="url(#paper-fiber)")
+  svg.yi-casting__landscape(xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 480" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false")
+    defs
+      linearGradient#mountain-wash(x1="0" y1="0" x2="0" y2="1")
+        stop(offset="0" stop-color="#262422" stop-opacity="0.015")
+        stop(offset="1" stop-color="#262422" stop-opacity="0.08")
+      linearGradient#mountain-far(x1="0" y1="0" x2="0" y2="1")
+        stop(offset="0" stop-color="#262422" stop-opacity="0.015")
+        stop(offset="1" stop-color="#262422" stop-opacity="0.055")
+    path(fill="url(#mountain-far)" d="M0 253 C92 220 120 177 196 194 C257 207 281 250 351 235 C420 219 467 149 535 171 C602 193 610 235 678 221 C751 206 789 139 865 159 C930 176 961 227 1033 218 C1105 210 1141 157 1203 174 C1284 196 1316 243 1440 211 L1440 480 L0 480 Z")
+    path(fill="url(#mountain-wash)" d="M0 326 C124 281 170 239 262 263 C350 287 381 323 464 301 C549 278 602 222 704 249 C790 271 819 315 905 296 C1000 276 1045 221 1134 248 C1223 276 1283 331 1440 285 L1440 480 L0 480 Z")
+    path(fill="#262422" fill-opacity="0.035" d="M0 389 C138 359 225 320 329 345 C432 370 501 407 614 374 C722 343 804 309 916 342 C1042 378 1113 418 1226 386 C1329 357 1386 353 1440 365 L1440 480 L0 480 Z")
+    path(fill="#FAF8F3" fill-opacity="0.48" d="M0 357 C172 334 224 368 389 351 C543 335 652 366 789 344 C949 319 1042 369 1190 348 C1300 332 1365 342 1440 328 L1440 480 L0 480 Z")
   .yi-casting__paper
     header.yi-casting__header
       .yi-casting__brand
         button.yi-casting__logo-button(type="button" aria-label="重新整理畫面" title="重新整理畫面" @click="refreshScreen")
           span(aria-hidden="true") 易
         .yi-casting__brand-copy
-          p.yi-casting__eyebrow 易經・卜問與閱讀
-          h1 易經解卦
+          p.yi-casting__eyebrow 易經 · 卜問與閱讀
+          h1 易占
       button.yi-casting__icon-button(type="button" aria-label="開啟卜卦歷史" @click="openHistory") ⟲
 
     main(v-if="stage === 'input'" class="yi-casting__main")
       section.yi-casting__question-card
         label.yi-casting__section-label(for="casting-question") 今日所問
         textarea#casting-question.yi-casting__question(v-model="question" rows="2" maxlength="240" placeholder="寫下你想詢問的事情，也可以留白。")
+        svg.yi-casting__ink-divider(viewBox="0 0 360 8" preserveAspectRatio="none" aria-hidden="true" focusable="false")
+          defs
+            linearGradient#ink-line-gradient(x1="0" y1="0" x2="1" y2="0")
+              stop(offset="0" stop-color="#78736A" stop-opacity="0")
+              stop(offset="0.12" stop-color="#78736A" stop-opacity="0.55")
+              stop(offset="0.5" stop-color="#262422" stop-opacity="0.72")
+              stop(offset="0.88" stop-color="#78736A" stop-opacity="0.55")
+              stop(offset="1" stop-color="#78736A" stop-opacity="0")
+          path(d="M2 4 C78 3.3 114 4.7 179 3.8 C245 3 290 4.6 358 3.5" fill="none" stroke="url(#ink-line-gradient)" stroke-width="1.15" stroke-linecap="round")
         .yi-casting__category-list(role="group" aria-label="問題分類")
           button(v-for="item in categories" :key="item" type="button" :class="['yi-casting__category', { 'is-active': category === item }]" :aria-pressed="category === item" @click="category = item") {{ item }}
 
@@ -400,14 +429,14 @@ onBeforeUnmount(() => {
         button(type="button" role="tab" :aria-selected="mode === 'manual'" :class="{ 'is-active': mode === 'manual' }" @click="mode = 'manual'") 手動輸入
         button(type="button" role="tab" :aria-selected="mode === 'timed'" :class="{ 'is-active': mode === 'timed' }" @click="mode = 'timed'") 時機取數
 
-      section(v-if="mode === 'manual'" class="yi-casting__entry-panel")
+      section(v-if="mode === 'manual'" class="yi-casting__entry-panel game-stage")
         .yi-casting__panel-heading
           div
             h2 實體三錢
             p 每一爻依序記下三枚錢的正反面，由初爻往上填。
           span.yi-casting__panel-mark 金錢法
         .yi-casting__line-entry-list
-          .yi-casting__line-entry(v-for="line in manualLines" :key="line.position")
+          .yi-casting__line-entry(v-for="line in manualLineDisplay" :key="line.position")
             .yi-casting__line-info
               span.yi-casting__line-name {{ lineNames[line.position - 1] }}
               span.yi-casting__line-result(v-if="line.coins.every((coin) => coin !== null)") {{ line.coins.reduce((sum, coin) => sum + coin, 0) }}
@@ -421,22 +450,42 @@ onBeforeUnmount(() => {
               span.yi-casting__broken-line(v-else-if="line.coins.every((coin) => coin !== null)")
               span.yi-casting__line-placeholder(v-else) ━ ━ ━
         p.yi-casting__helper 正面記 3 點、反面記 2 點；依三枚錢的點數加總，不替你選爻。
-        button.yi-casting__primary-button(type="button" :disabled="!manualComplete" @click="beginManualCasting") 確認起卦
 
-      section(v-else class="yi-casting__entry-panel yi-casting__timed-panel")
-        .yi-casting__panel-heading
-          div
-            h2 六鍵計時
-            p 倒數後依你點擊各爻按鈕的經過時間取數。
-          span.yi-casting__panel-mark 時機取數
-        p.yi-casting__helper 六個按鈕固定代表初爻至上爻。依序或隨意點選都可以；結果會等六爻完成後一起揭示。
-        button.yi-casting__primary-button(type="button" @click="beginTimedCasting") 開始倒數
+      section(v-else class="yi-casting__entry-panel yi-casting__timed-panel game-stage")
+        .yi-casting__timed-content
+          .yi-casting__start-emblem(aria-hidden="true")
+            svg.yi-casting__enso(viewBox="0 0 160 160" focusable="false")
+              defs
+                mask#enso-reveal-mask(maskUnits="userSpaceOnUse" x="0" y="0" width="160" height="160")
+                  rect(width="160" height="160" fill="black")
+                  path.yi-casting__enso-trace(d="M35 130 C18 114 12 91 17 68 C22 43 40 24 64 17 C89 10 115 18 133 37 C151 56 155 83 146 106 C137 129 116 144 93 146 C73 148 54 142 42 132" pathLength="500")
+              path.yi-casting__enso-ink(mask="url(#enso-reveal-mask)" d="M34 128 C17 113 12 91 16 68 C20 43 37 24 61 16 C85 8 112 13 132 31 C153 50 159 79 151 105 C143 129 123 146 99 151 C78 155 60 148 49 140 Q45 138 43 133 C58 140 75 145 95 141 C116 136 132 121 138 101 C145 81 140 58 123 42 C106 26 84 20 64 26 C43 32 29 49 25 70 C21 90 25 109 38 120 Q42 124 34 128 Z")
+              path.yi-casting__enso-heavy(mask="url(#enso-reveal-mask)" d="M20 106 C27 113 35 120 43 125 C51 130 60 135 65 142 L59 143 L55 149 L49 146 L45 151 L39 146 L35 147 L31 141 C24 137 18 133 15 126 C12 119 14 111 20 106 Z")
+              path.yi-casting__enso-dry(mask="url(#enso-reveal-mask)" d="M38 43 C55 23 79 17 101 22 C122 27 139 42 146 61 M43 132 C62 148 89 150 111 139")
+              path.yi-casting__enso-thread(mask="url(#enso-reveal-mask)" d="M128 48 C141 68 141 91 130 110 C121 125 105 136 88 140")
+            span 起卦
+            span.yi-casting__emblem-seal 占
+          h2 六鍵計時
+          p.yi-casting__helper 倒數後依你點擊各爻按鈕的經過時間取數。六個按鈕固定代表初爻至上爻。依序或隨意點選都可以；結果會等六爻完成後一起揭示。
+
+      button.yi-casting__primary-button.yi-casting__stage-action(v-if="mode === 'manual'" type="button" :disabled="!manualComplete" @click="beginManualCasting") 確認起卦
+      button.yi-casting__primary-button.yi-casting__stage-action(v-else type="button" @click="beginTimedCasting") 開始倒數
 
       p.yi-casting__privacy-note 歷史預設不保存；只有你選擇「保存紀錄」後才會寫入這台裝置。
 
     main(v-else-if="stage === 'countdown'" class="yi-casting__main yi-casting__interlude")
       p.yi-casting__eyebrow 六鍵計時・準備
-      .yi-casting__countdown-circle(aria-live="polite") {{ countdown }}
+      .yi-casting__countdown-circle(aria-live="polite")
+        svg.yi-casting__enso(viewBox="0 0 160 160" focusable="false" aria-hidden="true")
+          defs
+            mask#enso-reveal-mask(maskUnits="userSpaceOnUse" x="0" y="0" width="160" height="160")
+              rect(width="160" height="160" fill="black")
+              path.yi-casting__enso-trace(d="M35 130 C18 114 12 91 17 68 C22 43 40 24 64 17 C89 10 115 18 133 37 C151 56 155 83 146 106 C137 129 116 144 93 146 C73 148 54 142 42 132" pathLength="500")
+          path.yi-casting__enso-ink(mask="url(#enso-reveal-mask)" d="M34 128 C17 113 12 91 16 68 C20 43 37 24 61 16 C85 8 112 13 132 31 C153 50 159 79 151 105 C143 129 123 146 99 151 C78 155 60 148 49 140 Q45 138 43 133 C58 140 75 145 95 141 C116 136 132 121 138 101 C145 81 140 58 123 42 C106 26 84 20 64 26 C43 32 29 49 25 70 C21 90 25 109 38 120 Q42 124 34 128 Z")
+          path.yi-casting__enso-heavy(mask="url(#enso-reveal-mask)" d="M20 106 C27 113 35 120 43 125 C51 130 60 135 65 142 L59 143 L55 149 L49 146 L45 151 L39 146 L35 147 L31 141 C24 137 18 133 15 126 C12 119 14 111 20 106 Z")
+          path.yi-casting__enso-dry(mask="url(#enso-reveal-mask)" d="M38 43 C55 23 79 17 101 22 C122 27 139 42 146 61 M43 132 C62 148 89 150 111 139")
+          path.yi-casting__enso-thread(mask="url(#enso-reveal-mask)" d="M128 48 C141 68 141 91 130 110 C121 125 105 136 88 140")
+        span {{ countdown }}
       h2 靜心想著所問之事
       p 倒數結束後，六個爻位按鈕會開始記錄點擊時間。
       button.yi-casting__text-button(type="button" @click="resetCasting") 返回
@@ -447,7 +496,7 @@ onBeforeUnmount(() => {
       p.yi-casting__helper 完成前不顯示個別結果，避免前面的數值影響後續點選。
       .yi-casting__timed-grid
         button(v-for="position in timedOrder" :key="position" type="button" :class="['yi-casting__timed-key', { 'is-done': timedLines.some((line) => line.position === position) }]" :disabled="timedLines.some((line) => line.position === position)" :aria-label="`${lineNames[position - 1]}${timedLines.some((line) => line.position === position) ? '已完成' : '點選'}`" @click="tapTimedLine(position)")
-          span.yi-casting__key-mark(v-if="timedLines.some((line) => line.position === position)") ✓
+          span.yi-casting__key-mark(v-if="timedLines.some((line) => line.position === position)") 已取
           span.yi-casting__key-mark(v-else) ○
           span {{ lineNames[position - 1] }}
       p.yi-casting__game-progress 已完成 {{ timedLines.length }}／6 爻
@@ -467,9 +516,9 @@ onBeforeUnmount(() => {
           .yi-casting__gua-lines(aria-label="本卦卦畫，由上爻至初爻")
             .yi-casting__gua-line(v-for="line in lineDisplay" :key="`base-${line.position}`" :class="{ 'is-moving': line.moving }")
               span.yi-casting__line-position {{ lineNames[line.position - 1] }}
-              span.yi-casting__yang-line(v-if="line.yinYang === 'yang'") ━━━━━
+              span.yi-casting__yang-line(v-if="line.yinYang === 'yang'")
               span.yi-casting__broken-line(v-else)
-              span.yi-casting__moving-mark(v-if="line.moving") 動
+              span.yi-casting__moving-mark(v-if="line.moving" aria-label="動爻")
               span.yi-casting__line-value {{ line.value }}
         span.yi-casting__change-arrow(aria-hidden="true") →
         .yi-casting__gua-card.is-changed
@@ -479,7 +528,7 @@ onBeforeUnmount(() => {
           .yi-casting__gua-lines(aria-label="之卦卦畫，由上爻至初爻")
             .yi-casting__gua-line(v-for="line in lineDisplay" :key="`changed-${line.position}`")
               span.yi-casting__line-position {{ lineNames[line.position - 1] }}
-              span.yi-casting__yang-line(v-if="line.changedYinYang === 'yang'") ━━━━━
+              span.yi-casting__yang-line(v-if="line.changedYinYang === 'yang'")
               span.yi-casting__broken-line(v-else)
               span.yi-casting__line-value {{ line.value }}
 
@@ -575,761 +624,5 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="sass">
-.yi-casting
-  min-height: 100vh
-  padding: max(22px, env(safe-area-inset-top)) 14px calc(36px + env(safe-area-inset-bottom))
-  color: #29251f
-  background: radial-gradient(ellipse at 50% -10%, #fffdf7 0, #f5f0e4 48%, #e9dfcb 100%)
-  font-family: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif
-
-  *, *::before, *::after
-    box-sizing: border-box
-
-  button, input, textarea
-    font: inherit
-
-  :where(button)
-    color: inherit
-
-  &__paper
-    width: min(100%, 560px)
-    margin: 0 auto
-
-  &__header, &__dialog-header
-    display: flex
-    align-items: center
-    justify-content: space-between
-
-  &__header
-    margin: 0 0 18px
-    gap: 12px
-
-  &__brand
-    display: flex
-    min-width: 0
-    align-items: center
-    gap: 12px
-
-  &__brand-copy
-    min-width: 0
-
-    .yi-casting__eyebrow
-      margin-bottom: 2px
-
-    h1
-      margin: 0
-      font-size: clamp(25px, 7vw, 38px)
-      letter-spacing: .1em
-
-  &__logo-button
-    display: grid
-    width: 46px
-    height: 46px
-    flex: 0 0 auto
-    place-items: center
-    border: 1px solid rgba(255, 249, 235, .75)
-    border-radius: 15px
-    background: linear-gradient(145deg, #a7543e, #783426)
-    box-shadow: 0 4px 10px rgba(91, 49, 32, .2), inset 0 1px 0 rgba(255, 255, 255, .22)
-    color: #fff !important
-    font-size: 25px
-    font-weight: 700
-    cursor: pointer
-    transition: transform .16s ease, box-shadow .16s ease
-
-    &:active
-      transform: scale(.95)
-      box-shadow: 0 2px 5px rgba(91, 49, 32, .18)
-
-    &:focus-visible
-      outline: 3px solid #c98963
-      outline-offset: 3px
-
-  &__eyebrow
-    margin: 0 0 4px
-    color: #8d3c2d
-    font-size: 12px
-    letter-spacing: .14em
-
-  &__icon-button
-    display: grid
-    width: 42px
-    height: 42px
-    place-items: center
-    border: 1px solid #d5cbb9
-    border-radius: 50%
-    background: rgba(255, 253, 246, .7)
-    font-size: 23px
-    cursor: pointer
-
-  &__main
-    display: grid
-    gap: 16px
-
-  &__question-card, &__entry-panel, &__gua-card, &__result-card, &__dialog
-    border: 1px solid rgba(103, 85, 62, .24)
-    border-radius: 17px
-    background: rgba(255, 254, 249, .83)
-    box-shadow: 0 6px 18px rgba(66, 48, 26, .08)
-
-  &__question-card
-    padding: 19px 17px
-    border-color: rgba(126, 70, 49, .28)
-    border-left: 3px solid #9e4c3a
-    background: rgba(255, 254, 250, .96)
-    box-shadow: 0 9px 24px rgba(66, 48, 26, .1)
-
-  &__section-label, &__gua-label
-    display: block
-    margin: 0 0 8px
-    color: #806149
-    font-size: 12px
-    font-weight: 700
-    letter-spacing: .1em
-
-  &__question
-    display: block
-    width: 100%
-    min-height: 54px
-    resize: vertical
-    border: 0
-    border-bottom: 1px solid #d7cbb7
-    background: transparent
-    color: #29251f
-    font-size: 16px
-    line-height: 1.6
-    outline: none
-
-    &:focus
-      border-color: #9c4937
-
-  &__category-list
-    display: flex
-    gap: 7px
-    margin-top: 13px
-    overflow-x: auto
-    padding-bottom: 2px
-
-  &__category
-    flex: 0 0 auto
-    padding: 6px 11px
-    border: 1px solid #d6cbb8
-    border-radius: 999px
-    background: transparent
-    color: #625846
-    font-size: 12px
-    cursor: pointer
-
-    &.is-active
-      border-color: #9e4c3a
-      background: #9e4c3a
-      color: #fff
-
-  &__mode-switch
-    display: grid
-    grid-template-columns: 1fr 1fr
-    gap: 4px
-    padding: 4px
-    border: 1px solid #d8cdbb
-    border-radius: 999px
-    background: rgba(235, 227, 210, .72)
-
-    button
-      min-height: 40px
-      border: 0
-      border-radius: 999px
-      background: transparent
-      color: #675b49
-      font-size: 14px
-      cursor: pointer
-
-      &.is-active
-        background: #fffdf7
-        box-shadow: 0 2px 8px rgba(50, 39, 24, .1)
-        color: #382e23
-
-  &__entry-panel
-    padding: 16px
-    background: rgba(255, 254, 249, .92)
-    box-shadow: 0 7px 20px rgba(66, 48, 26, .09), inset 0 3px 0 rgba(158, 76, 58, .22)
-
-  &__panel-heading
-    display: flex
-    align-items: flex-start
-    justify-content: space-between
-    gap: 10px
-    margin-bottom: 13px
-
-    h2
-      margin: 0 0 5px
-      font-size: 18px
-
-    p
-      margin: 0
-      color: #766c5d
-      font-size: 12px
-      line-height: 1.6
-
-  &__panel-mark
-    flex: 0 0 auto
-    padding: 5px 8px
-    border: 1px solid #d6b89e
-    border-radius: 5px
-    color: #984a37
-    font-size: 11px
-
-  &__line-entry-list
-    display: grid
-    gap: 6px
-
-  &__line-entry
-    display: grid
-    grid-template-columns: 48px minmax(0, 1fr) 48px
-    align-items: center
-    gap: 6px
-    min-height: 49px
-    padding: 4px 3px
-    border-bottom: 1px solid #eee8dc
-
-  &__line-info
-    display: grid
-    gap: 3px
-
-  &__line-name
-    font-size: 13px
-
-  &__line-result
-    color: #9c4937
-    font-size: 11px
-    font-weight: 700
-
-    &.is-empty
-      color: #bbb09d
-
-  &__coins
-    display: flex
-    justify-content: space-around
-    gap: 4px
-
-  &__coin-pair
-    display: flex
-    gap: 3px
-
-  &__coin
-    width: 31px
-    height: 31px
-    padding: 0
-    border: 1px solid #c7bba7
-    border-radius: 50%
-    background: linear-gradient(145deg, #f7f1e3, #ddcfb4)
-    color: #64563f
-    font-size: 11px
-    cursor: pointer
-
-    &.is-selected
-      border-color: #98503a
-      background: #9a4b38
-      color: #fff
-      box-shadow: inset 0 0 0 2px rgba(255, 244, 217, .3)
-
-  &__line-preview
-    display: flex
-    justify-content: flex-end
-    color: #2c2924
-    font-family: Georgia, serif
-    font-size: 12px
-    letter-spacing: -2px
-    white-space: nowrap
-
-  &__broken-line
-    display: inline-block
-    width: 42px
-    height: 7px
-    border-right: 15px solid #39352d
-    border-left: 15px solid #39352d
-
-  &__line-placeholder
-    color: #c9c0b2
-
-  &__helper, &__privacy-note
-    margin: 11px 0
-    color: #776d5e
-    font-size: 12px
-    line-height: 1.6
-
-  &__privacy-note
-    margin: 0 5px
-    text-align: center
-
-  &__primary-button, &__secondary-button
-    min-height: 46px
-    padding: 11px 18px
-    border: 1px solid #8f4231
-    border-radius: 10px
-    background: #954735
-    color: #fff
-    font-size: 14px
-    font-weight: 600
-    cursor: pointer
-
-    &:disabled
-      border-color: #c8c0b3
-      background: #d4d0c7
-      color: #f7f4ed
-      cursor: not-allowed
-
-  &__secondary-button
-    border-color: #cfc3af
-    background: #fffdf7
-    color: #514735
-
-  &__timed-panel
-    min-height: 200px
-    display: flex
-    flex-direction: column
-    justify-content: center
-
-  &__interlude, &__game
-    min-height: min(72vh, 620px)
-    align-content: center
-    justify-items: center
-    text-align: center
-
-    h2
-      margin: 2px 0 0
-      font-size: 22px
-
-    > p:not(.yi-casting__eyebrow)
-      max-width: 330px
-      color: #766c5d
-      font-size: 13px
-      line-height: 1.7
-
-  &__countdown-circle
-    display: grid
-    width: 168px
-    height: 168px
-    place-items: center
-    margin: 12px 0
-    border: 1px solid #cbbda7
-    border-radius: 50%
-    background: radial-gradient(circle, #fffef9, #eee5d4)
-    box-shadow: inset 0 0 0 8px rgba(192, 174, 143, .14), 0 8px 22px rgba(61, 44, 24, .09)
-    color: #302a22
-    font-family: Georgia, serif
-    font-size: 84px
-
-  &__text-button
-    border: 0
-    background: transparent
-    color: #8a4636
-    text-decoration: underline
-    text-underline-offset: 4px
-    cursor: pointer
-
-  &__timed-grid
-    display: grid
-    width: min(100%, 380px)
-    grid-template-columns: repeat(2, 1fr)
-    gap: 10px
-    margin: 13px 0
-
-  &__timed-key
-    display: flex
-    min-height: 76px
-    align-items: center
-    justify-content: center
-    gap: 11px
-    border: 1px solid #cbbda8
-    border-radius: 15px
-    background: #fffdf7
-    box-shadow: 0 4px 12px rgba(55, 42, 26, .08)
-    cursor: pointer
-
-    &:disabled
-      background: #eee7da
-      color: #7a715f
-      cursor: default
-
-    &.is-done
-      border-color: #a3543b
-
-  &__key-mark
-    color: #9d4c38
-    font-size: 23px
-
-  &__game-progress
-    margin: 0
-    color: #897b65
-    font-size: 12px
-
-  &__result-heading
-    text-align: center
-
-    h2
-      margin: 4px 0
-      font-size: 23px
-
-  &__result-meta, &__gua-number
-    margin: 4px 0
-    color: #81745f
-    font-size: 12px
-
-  &__gua-pair
-    display: grid
-    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr)
-    align-items: center
-    gap: 5px
-
-  &__gua-card
-    min-width: 0
-    padding: 13px 9px
-    text-align: center
-
-    h3
-      margin: 2px 0
-      color: #2a251f
-      font-size: 17px
-
-    &.is-changed
-      border-color: rgba(157, 75, 53, .36)
-
-  &__gua-label
-    margin-bottom: 4px
-
-  &__gua-lines
-    display: grid
-    gap: 4px
-    margin-top: 10px
-
-  &__gua-line
-    display: grid
-    grid-template-columns: 30px 1fr 20px 18px
-    align-items: center
-    gap: 2px
-    min-height: 20px
-    font-family: Georgia, serif
-    font-size: 11px
-    letter-spacing: -2px
-
-    &.is-moving
-      color: #9a4935
-
-  &__line-position
-    color: #857962
-    font-family: 'Noto Serif TC', 'Songti TC', serif
-    font-size: 9px
-    letter-spacing: 0
-
-  &__yang-line
-    color: #2c2924
-    white-space: nowrap
-
-  &__moving-mark
-    color: #a44c38
-    font-family: 'Noto Serif TC', 'Songti TC', serif
-    font-size: 9px
-    letter-spacing: 0
-
-  &__line-value
-    color: #8a7d68
-    font-family: 'Noto Serif TC', 'Songti TC', serif
-    font-size: 10px
-    letter-spacing: 0
-
-  &__change-arrow
-    color: #a34e38
-    text-align: center
-
-  &__data-note
-    margin: 0
-    color: #766b5d
-    font-size: 12px
-    text-align: center
-
-  &__result-grid
-    display: grid
-    gap: 11px
-
-  &__result-card
-    padding: 15px
-
-    h3
-      margin: 0 0 12px
-      font-size: 17px
-
-    h4
-      margin: 15px 0 6px
-      color: #8b4937
-      font-size: 13px
-
-    > p
-      color: #63594b
-      font-size: 13px
-      line-height: 1.75
-
-  &__yilin-feature
-    border-color: #d6c3a4
-    background: linear-gradient(145deg, #fffdf7, #f5eddd)
-
-    h3
-      margin: 3px 0 0 !important
-
-    > .yi-casting__passage
-      margin: 13px 0 8px
-      font-size: 16px !important
-      line-height: 2 !important
-
-  &__yilin-heading
-    display: flex
-    align-items: flex-start
-    flex-direction: column
-    gap: 6px
-
-  &__copy-poem
-    width: 100%
-    margin-top: 10px
-
-  &__copy-fallback
-    width: 100%
-    min-height: 150px
-    margin-top: 8px
-    padding: 10px
-    border: 1px solid #d6cbb9
-    border-radius: 8px
-    background: #fffdf7
-    color: #514a3e
-    font-size: 12px
-    line-height: 1.6
-    resize: vertical
-
-  &__yilin-source
-    display: flex
-    justify-content: space-between
-    align-items: center
-    gap: 12px
-    padding-top: 10px
-    border-top: 1px solid #e7decd
-    color: #877963
-    font-size: 11px
-
-    @media (max-width: 380px)
-      align-items: flex-start
-      flex-direction: column
-
-  &__framework-switch
-    display: grid
-    grid-template-columns: 1fr 1fr
-    gap: 5px
-    padding: 4px
-    border: 1px solid #ded4c4
-    border-radius: 10px
-    background: #f1ecdf
-
-    button
-      min-height: 40px
-      padding: 7px
-      border: 0
-      border-radius: 7px
-      background: transparent
-      color: #665b4c
-      font-size: 12px
-      cursor: pointer
-
-      &.is-active
-        background: #fffdf7
-        color: #8f4532
-        box-shadow: 0 1px 4px rgba(52, 39, 25, .12)
-
-  &__framework-note
-    padding: 9px 11px
-    border-left: 2px solid #b67856
-    background: #f7f0e4
-    font-size: 11px !important
-
-  &__reading-section
-    & + &
-      margin-top: 12px
-
-  &__passage
-    margin: 5px 0 10px
-    color: #353027 !important
-    font-size: 14px !important
-    line-height: 1.85 !important
-    white-space: pre-wrap
-
-  &__passage-label, &__empty, &__loading
-    margin: 5px 0
-    color: #877963
-    font-size: 11px
-
-  &__passage-block
-    padding: 9px 0
-    border-top: 1px solid #eee8de
-
-  &__check-option
-    display: flex
-    align-items: flex-start
-    gap: 9px
-    margin: 13px 0
-    color: #514a3e
-    font-size: 12px
-    line-height: 1.6
-
-    input
-      margin: 3px 0 0
-      accent-color: #984b39
-
-  &__details
-    margin: 10px 0
-    border-top: 1px solid #e7dfd2
-    border-bottom: 1px solid #e7dfd2
-
-    summary
-      padding: 11px 0
-      color: #745d40
-      font-size: 12px
-      cursor: pointer
-
-  &__source-link
-    color: #934834
-    font-size: 11px
-    text-underline-offset: 3px
-
-  &__inline-message, &__save-message
-    color: #59764d
-    font-size: 12px
-
-  &__attribution
-    padding: 13px 15px
-    border: 1px solid #d6cbb9
-    border-radius: 13px
-    background: rgba(250, 247, 238, .72)
-
-    summary
-      color: #745d40
-      font-size: 13px
-      cursor: pointer
-
-    p
-      color: #63594b
-      font-size: 11px
-      line-height: 1.65
-      overflow-wrap: anywhere
-
-  &__version, &__modification
-    margin: 9px 0
-
-  &__source-entry
-    padding-top: 8px
-    border-top: 1px solid #e8dfd0
-
-    h4
-      margin: 8px 0
-      font-size: 12px
-
-  &__result-actions
-    display: grid
-    grid-template-columns: 1fr 1fr
-    gap: 9px
-
-  &__overlay
-    position: fixed
-    z-index: 20
-    inset: 0
-    display: grid
-    align-items: end
-    justify-items: center
-    padding: 14px
-    background: rgba(35, 30, 22, .44)
-
-  &__dialog
-    width: min(100%, 520px)
-    max-height: min(82vh, 740px)
-    overflow: auto
-    padding: 18px
-    border-radius: 19px 19px 12px 12px
-
-    h2
-      margin: 0
-      font-size: 19px
-
-    > p
-      color: #726856
-      font-size: 13px
-      line-height: 1.65
-
-  &__history-list
-    display: grid
-    gap: 8px
-
-  &__history-item
-    display: grid
-    grid-template-columns: 1fr auto
-    align-items: center
-    gap: 8px
-    padding: 10px
-    border: 1px solid #e6dccb
-    border-radius: 11px
-
-  &__history-open
-    display: grid
-    gap: 4px
-    padding: 0
-    border: 0
-    background: transparent
-    text-align: left
-    cursor: pointer
-
-    span, small
-      color: #756b5d
-      font-size: 12px
-
-  &__delete-button
-    border: 0
-    background: transparent
-    color: #934834
-    font-size: 12px
-    cursor: pointer
-
-  &__save-input
-    width: 100%
-    min-height: 44px
-    padding: 8px 10px
-    border: 1px solid #d5c9b5
-    border-radius: 9px
-    background: #fffdf7
-
-  &__error
-    color: #9c3e31 !important
-
-  &__dialog-actions
-    display: grid
-    grid-template-columns: 1fr 1fr
-    gap: 8px
-    margin-top: 15px
-
-@media (min-width: 700px)
-  .yi-casting
-    padding: 38px 22px 50px
-
-    &__header
-      margin-bottom: 24px
-
-    &__line-entry
-      grid-template-columns: 76px minmax(0, 1fr) 70px
-
-    &__coin
-      width: 36px
-      height: 36px
-
-    &__result-grid
-      grid-template-columns: 1.08fr .92fr
-      align-items: start
-
-    &__overlay
-      align-items: center
-
-    &__dialog
-      border-radius: 18px
+@use '../styles'
 </style>
