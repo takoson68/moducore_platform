@@ -6,6 +6,10 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-17 yi-ly 紙墨 UI Staging v0.1.2
+
+易占首頁完成緊湊比例與宣紙水墨視覺，起卦／倒數圓相改為由左下起筆逐段描繪；複製來源列會移除版本欄位中重複的來源名稱。同步將 Yi-Ly 加入 Tag 部署手冊。Commit `7aa69c97b746c43e4f116ef134c68a509bc32957`、Tag `dep_yi-ly_v0.1.2` 已推送；GitHub Actions `44055061517` 完成成功，前端 build、Worker 82 項測試、Worker dry-run、D1 相容檢查／migration／語料 seed、Staging Worker 部署與 Smoke 全部通過。Release ZIP、manifest、checksum 已發布。首頁載入 `index-BXInvZjj.js` 與 `style-MJksN1Fy.css`；`/api/health` 回傳 Worker／D1 正常。Staging：https://yi-ly-staging.takoson68.workers.dev 。本機 `platform/frontend/.env` 修改未納入部署提交。
+
 ## 2026-11-17 yi-ly Staging 首次發布與 UI 微調
 
 新增獨立 `yi-ly-staging` Worker／D1 發布目標；遠端 D1（`b06bec43-9087-48d0-92f5-a7869e44d5c4`）已套用 Migration 並匯入來源語料。Seed 為 11 MB：64 卦、1,005 段卦頁原文、795 段傳文、4,096 首焦氏易林，142 個來源頁。Commit `1453951` 與 Tag `dep_yi-ly_v0.1.0` 已推送，Workflow `44045082761` 成功，公開首頁、D1 health、reading API 與 smoke 均通過。首次 smoke 在 Worker 資產傳播完成前遇到 HTTP 404；人工重跑後通過，後續發布流程已加入有限重試。最新版 UI 加入手機安全區、560px 內容最大寬度、左上「易」刷新按鈕、較清楚的提問／起卦視覺層級與鍵盤 focus 樣式；手機 390px 預覽及刷新操作確認正常，前端 build 通過。UI／smoke 重試修正已提交於 `5fb0404` 並以 `dep_yi-ly_v0.1.1` 部署；Workflow `44046027931` 成功。已再次確認首頁 HTML 200、`/about` 200、D1 health 正常、乾淨卦象查詢回傳井之升與對應易林詩辭；線上載入新版 CSS/JS。Staging 網址：https://yi-ly-staging.takoson68.workers.dev 。`.env` 未納入提交。
