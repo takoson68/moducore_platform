@@ -1,6 +1,22 @@
 const RECORDS = 'records'
 const NAME = /^[a-zA-Z0-9_-]+$/
 
+// 產生每次寫入使用的版本識別，支援未提供 randomUUID 的區網瀏覽器。
+function createRevision() {
+  const cryptoApi = globalThis.crypto
+  if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID()
+
+  if (typeof cryptoApi?.getRandomValues === 'function') {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16))
+    bytes[6] = (bytes[6] & 0x0f) | 0x40
+    bytes[8] = (bytes[8] & 0x3f) | 0x80
+    const hex = [...bytes].map(value => value.toString(16).padStart(2, '0'))
+    return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`
+  }
+
+  return `revision-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 // 用專案與模組隔離資料庫，分類放在該模組的紀錄鍵中。
 export function createIndexedDbService(backup) {
   return function indexedDb({ tenantId, module }) {
@@ -56,7 +72,7 @@ export function createIndexedDbService(backup) {
       },
       async set(category, id, data) {
         const recordKey = key(category, id)
-        const record = { revision: crypto.randomUUID(), data }
+        const record = { revision: createRevision(), data }
         await transact('readwrite', store => store.put(record, recordKey))
       },
       async remove(category, id) {

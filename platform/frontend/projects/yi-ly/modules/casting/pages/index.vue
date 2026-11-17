@@ -160,12 +160,14 @@ async function finishCasting(inputMode, rawLines) {
 
 async function retryReading() {
   if (!casting.value) return
+  const existingSavedId = savedReadingId.value
   const rawLines = casting.value.lines.map((line) => (
     casting.value.inputMode === 'manual-coins-v1'
       ? { position: line.position, coins: line.rawInput }
       : { position: line.position, elapsedMilliseconds: line.rawInput.elapsedMilliseconds }
   ))
   await finishCasting(casting.value.inputMode, rawLines)
+  if (existingSavedId) savedReadingId.value = existingSavedId
 }
 
 function resetCasting() {
@@ -324,7 +326,7 @@ async function openSaveDialog() {
 }
 
 async function saveReading() {
-  if (!casting.value || !reading.value) return
+  if (!casting.value) return
   const name = saveName.value.trim()
   if (!name) {
     saveMessage.value = '請先輸入紀錄名稱。'
@@ -342,28 +344,30 @@ async function saveReading() {
         question: casting.value.question,
         category: casting.value.category,
         casting: casting.value,
-        reading: reading.value,
+        reading: reading.value || null,
         readingFramework: readingFramework.value,
         savedAt: new Date().toISOString(),
       },
     })
     savedReadingId.value = id
     saveOpen.value = false
-  } catch {
-    saveMessage.value = '目前無法保存到本機，卦象仍保留在這個畫面。'
+  } catch (error) {
+    saveMessage.value = error?.message
+      ? `本機保存失敗：${error.message}`
+      : '目前無法保存到本機，卦象仍保留在這個畫面。'
   }
 }
 
 async function restoreReading(entry) {
   const data = entry?.data
-  if (!data?.casting || !data?.reading) return
+  if (!data?.casting) return
   casting.value = data.casting
-  reading.value = data.reading
+  reading.value = data.reading || null
   question.value = data.question || ''
   category.value = data.category || '其他'
   readingFramework.value = data.readingFramework || 'overview'
   savedReadingId.value = entry.id
-  readingError.value = ''
+  readingError.value = reading.value ? '' : '這筆紀錄只有卦象資料；經文尚未載入，可連線後重試。'
   historyOpen.value = false
   stage.value = 'result'
 }
@@ -590,7 +594,7 @@ onBeforeUnmount(() => {
 
       .yi-casting__result-actions
         button.yi-casting__secondary-button(type="button" @click="resetCasting") 重新起卦
-        button.yi-casting__secondary-button(type="button" :disabled="!reading" @click="savedReadingId ? openHistory() : openSaveDialog()") {{ savedReadingId ? '已保存紀錄' : '保存紀錄' }}
+        button.yi-casting__secondary-button(type="button" :disabled="!casting" @click="savedReadingId ? openHistory() : openSaveDialog()") {{ savedReadingId ? '已保存紀錄' : '保存紀錄' }}
       p.yi-casting__save-message(v-if="saveMessage" aria-live="polite") {{ saveMessage }}
 
   .yi-casting__overlay(v-if="historyOpen" @click.self="historyOpen = false")
