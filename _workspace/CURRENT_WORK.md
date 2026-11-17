@@ -6,6 +6,10 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-17 yi-ly AI 解籤提示 Staging v0.1.3
+
+複製給外部 AI 的提示已改為「逐句釋詞與意象 → 分析情勢與象徵 → 將詩意對照問題提出可能方向」，要求列出詩句依據、區分原文／字義／推論，並保留不確定性。Commit `ee52fa4b40f7b031d3d6108055c27f50d374c3c1`、Tag `dep_yi-ly_v0.1.3` 已推送；GitHub Actions `44057100849` 成功，Worker 測試、D1 檢查與部署 Smoke 通過。Release ZIP、manifest、checksum 已發布；線上首頁載入 `index-DQEc9bBF.js`，確認含新版提示，`/api/health` 顯示 Worker 與 D1 正常。Staging：https://yi-ly-staging.takoson68.workers.dev 。本機 `platform/frontend/.env` 修改未納入。
+
 ## 2026-11-17 yi-ly 紙墨 UI Staging v0.1.2
 
 易占首頁完成緊湊比例與宣紙水墨視覺，起卦／倒數圓相改為由左下起筆逐段描繪；複製來源列會移除版本欄位中重複的來源名稱。同步將 Yi-Ly 加入 Tag 部署手冊。Commit `7aa69c97b746c43e4f116ef134c68a509bc32957`、Tag `dep_yi-ly_v0.1.2` 已推送；GitHub Actions `44055061517` 完成成功，前端 build、Worker 82 項測試、Worker dry-run、D1 相容檢查／migration／語料 seed、Staging Worker 部署與 Smoke 全部通過。Release ZIP、manifest、checksum 已發布。首頁載入 `index-BXInvZjj.js` 與 `style-MJksN1Fy.css`；`/api/health` 回傳 Worker／D1 正常。Staging：https://yi-ly-staging.takoson68.workers.dev 。本機 `platform/frontend/.env` 修改未納入部署提交。
