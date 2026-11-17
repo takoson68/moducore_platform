@@ -8,7 +8,7 @@ authority: work-state
 
 ## 2026-11-17 yi-ly 本機卦象保存修正（尚未部署）
 
-使用者回報保存卦象失敗，並確認歷史只需保存於前端裝置。查得保存按鈕原先要求經文 API 成功載入才可用，且 IndexedDB 寫入版本直接呼叫 `crypto.randomUUID()`，在部分區網 HTTP 瀏覽器可能不可用。已調整為卦象完成即可保存，經文可缺席並於重開後重試；IndexedDB revision 加入 `randomUUID`、`getRandomValues` 與時間／隨機值相容備援，保存錯誤顯示具體原因。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過；尚未跑測試或部署。保存責任仍為前端 IndexedDB，不新增後端寫入。
+使用者回報保存卦象失敗，並確認歷史只需保存於前端裝置。查得保存按鈕原先要求經文 API 成功載入才可用，且 IndexedDB 寫入版本直接呼叫 `crypto.randomUUID()`，在部分區網 HTTP 瀏覽器可能不可用。已調整為卦象完成即可保存，經文可缺席並於重開後重試；IndexedDB revision 加入 `randomUUID`、`getRandomValues` 與時間／隨機值相容備援，保存錯誤顯示具體原因。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過。Commit `572a325`、Tag `dep_yi-ly_v0.1.4` 已推送；Workflow `44062136894` 成功，Worker 測試、D1 檢查、部署與 Smoke 通過。線上首頁載入 `index-BGaEvsk2.js` 且已確認包含修正，`/api/health` 顯示資料庫正常。保存責任仍為前端 IndexedDB，不新增後端寫入。Staging：https://yi-ly-staging.takoson68.workers.dev 。本機 `platform/frontend/.env` 未納入。
 
 ## 2026-11-17 yi-ly AI 解籤提示 Staging v0.1.3
 
