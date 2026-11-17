@@ -315,7 +315,17 @@ jobs:
       - name: Verify public staging endpoints
         if: matrix.database == true
         working-directory: platform/worker
-        run: node scripts/smoke.mjs https://${{ matrix.target }}.takoson68.workers.dev ${{ matrix.target }}
+        run: |
+          for attempt in {1..8}; do
+            if node scripts/smoke.mjs https://${{ matrix.target }}.takoson68.workers.dev ${{ matrix.target }}; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 8 ]]; then
+              echo "Staging endpoint is not ready yet (attempt $attempt/8); retrying in 5 seconds."
+              sleep 5
+            fi
+          done
+          exit 1
 
       - name: Verify static site and SPA fallback
         if: matrix.database == false && matrix.staticSite != false

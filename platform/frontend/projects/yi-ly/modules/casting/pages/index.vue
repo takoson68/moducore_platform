@@ -184,6 +184,10 @@ function resetCasting() {
   copyFallbackText.value = ''
 }
 
+function refreshScreen() {
+  window.location.reload()
+}
+
 function formatLineValue(value) {
   if (value === 6) return '老陰 · 6'
   if (value === 7) return '少陽 · 7'
@@ -377,9 +381,12 @@ onBeforeUnmount(() => {
 .yi-casting
   .yi-casting__paper
     header.yi-casting__header
-      div
-        p.yi-casting__eyebrow 易經・卜問與閱讀
-        h1 易經解卦
+      .yi-casting__brand
+        button.yi-casting__logo-button(type="button" aria-label="重新整理畫面" title="重新整理畫面" @click="refreshScreen")
+          span(aria-hidden="true") 易
+        .yi-casting__brand-copy
+          p.yi-casting__eyebrow 易經・卜問與閱讀
+          h1 易經解卦
       button.yi-casting__icon-button(type="button" aria-label="開啟卜卦歷史" @click="openHistory") ⟲
 
     main(v-if="stage === 'input'" class="yi-casting__main")
@@ -570,7 +577,7 @@ onBeforeUnmount(() => {
 <style lang="sass">
 .yi-casting
   min-height: 100vh
-  padding: 22px 14px 36px
+  padding: max(22px, env(safe-area-inset-top)) 14px calc(36px + env(safe-area-inset-bottom))
   color: #29251f
   background: radial-gradient(ellipse at 50% -10%, #fffdf7 0, #f5f0e4 48%, #e9dfcb 100%)
   font-family: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif
@@ -585,7 +592,7 @@ onBeforeUnmount(() => {
     color: inherit
 
   &__paper
-    width: min(100%, 620px)
+    width: min(100%, 560px)
     margin: 0 auto
 
   &__header, &__dialog-header
@@ -595,11 +602,48 @@ onBeforeUnmount(() => {
 
   &__header
     margin: 0 0 18px
+    gap: 12px
+
+  &__brand
+    display: flex
+    min-width: 0
+    align-items: center
+    gap: 12px
+
+  &__brand-copy
+    min-width: 0
+
+    .yi-casting__eyebrow
+      margin-bottom: 2px
 
     h1
       margin: 0
-      font-size: clamp(30px, 8vw, 42px)
-      letter-spacing: .12em
+      font-size: clamp(25px, 7vw, 38px)
+      letter-spacing: .1em
+
+  &__logo-button
+    display: grid
+    width: 46px
+    height: 46px
+    flex: 0 0 auto
+    place-items: center
+    border: 1px solid rgba(255, 249, 235, .75)
+    border-radius: 15px
+    background: linear-gradient(145deg, #a7543e, #783426)
+    box-shadow: 0 4px 10px rgba(91, 49, 32, .2), inset 0 1px 0 rgba(255, 255, 255, .22)
+    color: #fff !important
+    font-size: 25px
+    font-weight: 700
+    cursor: pointer
+    transition: transform .16s ease, box-shadow .16s ease
+
+    &:active
+      transform: scale(.95)
+      box-shadow: 0 2px 5px rgba(91, 49, 32, .18)
+
+    &:focus-visible
+      outline: 3px solid #c98963
+      outline-offset: 3px
 
   &__eyebrow
     margin: 0 0 4px
@@ -620,7 +664,7 @@ onBeforeUnmount(() => {
 
   &__main
     display: grid
-    gap: 14px
+    gap: 16px
 
   &__question-card, &__entry-panel, &__gua-card, &__result-card, &__dialog
     border: 1px solid rgba(103, 85, 62, .24)
@@ -629,13 +673,18 @@ onBeforeUnmount(() => {
     box-shadow: 0 6px 18px rgba(66, 48, 26, .08)
 
   &__question-card
-    padding: 16px
+    padding: 19px 17px
+    border-color: rgba(126, 70, 49, .28)
+    border-left: 3px solid #9e4c3a
+    background: rgba(255, 254, 250, .96)
+    box-shadow: 0 9px 24px rgba(66, 48, 26, .1)
 
   &__section-label, &__gua-label
     display: block
     margin: 0 0 8px
-    color: #806a4b
+    color: #806149
     font-size: 12px
+    font-weight: 700
     letter-spacing: .1em
 
   &__question
@@ -701,6 +750,8 @@ onBeforeUnmount(() => {
 
   &__entry-panel
     padding: 16px
+    background: rgba(255, 254, 249, .92)
+    box-shadow: 0 7px 20px rgba(66, 48, 26, .09), inset 0 3px 0 rgba(158, 76, 58, .22)
 
   &__panel-heading
     display: flex
