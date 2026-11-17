@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "workId": "jiaoshi-yilin",
+  "displayTitle": "焦氏易林",
+  "traditionalAttribution": "傳統題作漢焦延壽（焦贛）撰；作者與文本傳承有目錄學爭議，來源 metadata 不把題署寫成定論。",
+  "coverageTarget": {
+    "baseHexagrams": 64,
+    "changedHexagrams": 64,
+    "expectedEntries": 4096,
+    "entryShape": "每一筆為本卦至之卦的一首林辭"
+  },
+  "selectedTextualEdition": "eee-learning-jiaoshi-yilin-siku",
+  "preferredTextualCandidate": "eee-learning-jiaoshi-yilin-siku",
+  "selectionStatus": "selected-captured-4096-pairs-needs-human-review",
+  "textualSourcePolicy": "《焦氏易林》作為獨立語料，只收錄本卦至之卦對應的林辭原文；不收序跋、注文、校語、括號異卦參照、異文提示、白話或後人解讀。全書採單一《四庫全書》版本，不混用其他網站或版本補字。僅擷取本書必要文字，不下載或辨識掃描圖片。每筆保留來源篇名、版本、固定連結、章節定位、收錄／標點修改聲明、來源署名與權利狀態。易林第一版先以線上閱讀為主，不要求納入離線資料包。",
+  "inactiveImageCandidate": {
+    "edition": "清光緒三十三年（1907）刻本《焦氏易林十六卷》",
+    "holdingInstitution": "國家哲學社會科學文獻中心",
+    "digitizationHost": "Wikimedia Commons",
+    "licenseCode": "Public-Domain-Mark-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "files": [
+      {
+        "title": "NCPSSD-71014734 焦氏易林十六卷 第一册.pdf",
+        "commonsPageId": 117954883,
+        "descriptionUrl": "https://commons.wikimedia.org/wiki/File:NCPSSD-71014734_%E7%84%A6%E6%B0%8F%E6%98%93%E6%9E%97%E5%8D%81%E5%85%AD%E5%8D%B7_%E7%AC%AC%E4%B8%80%E5%86%8C.pdf",
+        "fileUrl": "https://upload.wikimedia.org/wikipedia/commons/1/15/NCPSSD-71014734_%E7%84%A6%E6%B0%8F%E6%98%93%E6%9E%97%E5%8D%81%E5%85%AD%E5%8D%B7_%E7%AC%AC%E4%B8%80%E5%86%8C.pdf",
+        "sha1": "b2f71247cb9447f5328fd9fad1c47cbf7e4c2c0c",
+        "sizeBytes": 37812495,
+        "pageCount": 114
+      },
+      {
+        "title": "NCPSSD-71014735 焦氏易林十六卷 第二册.pdf",
+        "commonsPageId": 117954882,
+        "descriptionUrl": "https://commons.wikimedia.org/wiki/File:NCPSSD-71014735_%E7%84%A6%E6%B0%8F%E6%98%93%E6%9E%97%E5%8D%81%E5%85%AD%E5%8D%B7_%E7%AC%AC%E4%BA%8C%E5%86%8C.pdf",
+        "fileUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/NCPSSD-71014735_%E7%84%A6%E6%B0%8F%E6%98%93%E6%9E%97%E5%8D%81%E5%85%AD%E5%8D%B7_%E7%AC%AC%E4%BA%8C%E5%86%8C.pdf",
+        "sha1": "6d366527d3aa1b5017bbc362f8d9c644942c8447",
+        "sizeBytes": 34148717,
+        "pageCount": 105
+      }
+    ],
+    "ingestionStatus": "deleted-after-text-corpus-capture",
+    "localTempCopies": [],
+    "note": "完整文字語料收錄後，已依使用者指示刪除兩冊 PDF 暫存檔；未將影像納入本版，也未進行 OCR。"
+  },
+  "otherTextCandidates": [
+    {
+      "sourceId": "wikisource-zh-jiaoshi-yilin",
+      "entryRevisionId": 447583,
+      "entryUrl": "https://zh.wikisource.org/w/index.php?title=%E7%84%A6%E6%B0%8F%E6%98%93%E6%9E%97&oldid=447583",
+      "licenseCode": "CC-BY-SA-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "observedPages": 4,
+      "observedTotalPages": 64,
+      "observedMissingPages": 60,
+      "status": "excluded-incomplete-different-transcription",
+      "note": "入口列出 64 個卦篇，但固定入口目前只有乾之、坤之、屯之、艮之有正文；不匯入、不校字、不補正文。"
+    },
+    {
+      "sourceId": "ctext-siku-jiaoshi-yilin",
+      "title": "《欽定四庫全書》本《焦氏易林》",
+      "url": "https://ctext.org/library.pl?if=gb&res=6837",
+      "status": "excluded-different-edition",
+      "note": "版本不同，暫不納入本專案易林語料；若未來改選，須重新核定版本、完整度、授權與署名。"
+    },
+    {
+      "sourceId": "eee-learning-jiaoshi-yilin-lu-song-collation",
+      "title": "易學網《焦氏易林［陸敕先校宋本］》",
+      "url": "https://www.eee-learning.com/book/giau",
+      "baseEdition": "藝文印書館校宋本重雕",
+      "status": "excluded-incomplete-with-cross-edition-substitution",
+      "scope": "僅取 4096 組本卦／之卦林辭原文；排除序跋、注文、校語、翻譯及其他解讀。",
+      "retrievalPolicy": "僅擷取此一作品的必要文字，不抓取網站其他作品、不下載掃描圖片或 PDF、不自行 OCR；易林第一版不要求離線包。",
+      "licenseStatement": "網站聲明古籍原文屬公共領域，並歡迎非商業合理轉載與引用，要求完整標註出處及原網頁連結。",
+      "note": "雖標示校對完成，但至少一條明示缺文並以四庫本替代；不符合單一版本原文收錄政策，故不採用。"
+    },
+    {
+      "sourceId": "eee-learning-jiaoshi-yilin-siku",
+      "title": "易學網《焦氏易林［四庫全書版］》",
+      "url": "https://www.eee-learning.com/book/giauii",
+      "baseEdition": "《欽定四庫全書》子部術數類《焦氏易林》",
+      "status": "selected-captured-needs-human-review",
+      "scope": "只收錄 4096 組本卦／之卦林辭原文，不收序跋、注文、校語或影像。",
+      "retrievalPolicy": "逐篇擷取此一作品必要文字；不抓取網站其他作品，不下載掃描圖片或 PDF，不作 OCR；每頁保存來源 URL 與 checksum。",
+      "licenseStatement": "網站聲明古籍原文屬公共領域，歡迎非商業合理轉載與引用，並要求完整標註出處及原網頁連結。",
+      "note": "64 個本卦頁皆已擷取，每頁按文字卦序解析 64 條，共 4096 個唯一配對。原頁一筆圖示誤標（本卦 56、之卦 49 的圖示指向 4），資料保留來源標記並列入人工複核；全部內容尚待人工校勘。詳見 corpus/reviews/2026-11-17-jiaoshi-yilin-complete-capture.md。"
+    },
+    {
+      "sourceId": "eee-learning-jiaoshi-yilin-annotation-2162",
+      "title": "易學網《易林註（焦氏易林注）》",
+      "url": "https://www.eee-learning.com/article/2162",
+      "status": "excluded-annotated-and-incomplete",
+      "note": "此頁為四庫《易林註》注本，並明示缺兩頁；不收錄其注文，也不以它作《焦氏易林》原文底本。"
+    },
+    {
+      "sourceId": "ctext-wiki-jiaoshi-yilin-ocr",
+      "title": "CText Wiki《焦氏易林》OCR 電子版",
+      "url": "https://ctext.org/wiki.pl?if=gb&res=619574",
+      "baseEdition": "《士禮居叢書》本",
+      "status": "alternate-candidate-not-selected",
+      "scope": "不與易學網候選版本混合；若改選須重做版本、完整度及權利 Gate。",
+      "retrievalPolicy": "不自動批次下載；不下載掃描圖、不自行 OCR。",
+      "note": "CText 頁面標示 OCR 轉錄並提醒圖文核對；其下載與再發布條件另有要求，目前易學網版本較符合本專案的非商業署名使用方向。"
+    }
+  ],
+  "attributionDraft": "來源：《焦氏易林》，易學網《焦氏易林［四庫全書版］》（依據版本：《欽定四庫全書》子部術數類），https://www.eee-learning.com/book/giauii 。非商業使用；依來源要求完整標註原網頁連結。本站僅整理林辭原文，並列明收錄、標點及文字正規化修改聲明與版本。傳統題作漢焦延壽撰。",
+  "coverageAudit": {
+    "expectedEntries": 4096,
+    "verifiedEntries": 4096,
+    "verifiedUniquePairs": 4096,
+    "status": "captured-full-coverage-needs-human-review",
+    "sourcePages": 64,
+    "emptyTexts": 0,
+    "missingPairs": [],
+    "sourceLabelIconMismatches": [{"baseHexagram": 56, "changedHexagram": 49, "iconHexagram": 4}],
+    "requiredChecks": ["64 個本卦篇目", "每篇 64 個之卦條目（含本卦自變）", "4096 個唯一本卦／之卦配對", "每筆存在林辭正文", "排除括號校語與異卦參照"]
+  },
+  "rightsReview": {
+    "status": "source-notice-recorded-attribution-required",
+    "note": "按易學網對古籍原文及非商業合理轉載的聲明，使用時完整標註出處與原網頁連結；易林先採線上呈現，不納入離線資料包。若未來改為商業用途或離線散布，重新核對該用途的條件。"
+  }
+}

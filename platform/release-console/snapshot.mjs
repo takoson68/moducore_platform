@@ -15,6 +15,7 @@ export const workerConfigs = Object.freeze({
   'game-demo': 'wrangler.game-demo-staging.json',
   dinecore: 'wrangler.dinecore-staging.json',
   'project-b': 'wrangler.project-b-staging.json',
+  'yi-ly': 'wrangler.yi-ly-staging.json',
 })
 
 async function commandJson(command, args, options = {}) {
@@ -115,8 +116,8 @@ async function loadDeployments() {
 
 async function loadReleases() {
   const rows = await commandJson('gh', ['api', '-X', 'GET', `repos/${repository}/releases`, '-f', 'per_page=100'])
-  return Promise.all(rows.filter((release) => /^dep_(game-demo|dinecore|project-b)_v\d+\.\d+\.\d+$/.test(release.tag_name)).map(async (release) => {
-    const match = release.tag_name.match(/^dep_(game-demo|dinecore|project-b)_v(.+)$/)
+  return Promise.all(rows.filter((release) => /^dep_(game-demo|dinecore|project-b|yi-ly)_v\d+\.\d+\.\d+$/.test(release.tag_name)).map(async (release) => {
+    const match = release.tag_name.match(/^dep_(game-demo|dinecore|project-b|yi-ly)_v(.+)$/)
     const projectKey = match[1]
     const zipAssets = release.assets.filter((asset) => asset.name.endsWith('.zip'))
     const manifestAssets = release.assets.filter((asset) => asset.name.endsWith('.manifest.json'))

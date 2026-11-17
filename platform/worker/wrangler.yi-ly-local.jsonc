@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "yi-ly-local-corpus",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-19",
+  "workers_dev": false,
+  "vars": { "PROJECT_ID": "yi-ly", "SERVICE_NAME": "yi-ly-local-corpus" },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "yi-ly-local-db",
+    "database_id": "00000000-0000-4000-8000-000000000064",
+    "migrations_dir": "migrations/yi-ly"
+  }]
+}

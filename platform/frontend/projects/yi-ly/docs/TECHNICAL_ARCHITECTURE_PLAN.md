@@ -24,8 +24,8 @@ implemented: false
 
 ```text
 公有領域底本／開放轉錄來源
-  → 人工校勘與權利檢查
-  → 後端權威 corpus
+  → 固定來源快照＋機器解析（原文不人工編修）
+  → 本機 D1 corpus
   → immutable corpus package + manifest
   → Worker Query API
   → 使用者同意後的 IndexedDB 離線快照
@@ -33,7 +33,7 @@ implemented: false
 ```
 
 - 後端 corpus 是經文與正式導讀的 Source of Truth。
-- 受版控 canonical 內容與 build pipeline 是可重建的 authoring source；D1 是經過審校及發布後的後端權威投影。
+- 固定來源快照、機器解析器及 seed builder 是可重建的資料來源；原文與解析文字分欄保存。現階段 D1 是本機資料庫，不宣稱人工校勘完成或已發布。
 - immutable package 是某個已發布版本的完整快照。
 - IndexedDB 只保存版本化投影與選配本機歷史，不能回寫權威 corpus。
 - 當次起卦狀態由 Module Store 持有。
@@ -91,7 +91,7 @@ implemented: false
 - `ConsultationLayout`：結構 ID、步驟定義、次序、子問題提示與來源聲明。
 - `ConsultationSession`：主問題、所選方法、Layout、解讀選擇、各步驟結果及 corpus version。
 - `ConsultationStep`：步驟 ID、次序、子問題與獨立 `DivinationResult`。
-- `IChingCastingResult`：易卦步驟的原始擲幣、六爻值、本卦、動爻、之卦及規則版本。
+- `IChingCastingResult`：輸入方式 ID、該方式原始紀錄、六爻值、本卦、動爻、之卦及規則版本。手動三錢保存每爻三個二元事件；六鍵計時遊戲保存 elapsed milliseconds 與餘數；卦象結果欄位共用。
 - `SavedReading`：本機唯一 ID、預設名稱 `TAKO`、可編輯名稱、完整 ConsultationSession 與時間。
 - 未選擇保存時，ConsultationSession 不進入歷史資料庫。
 
@@ -154,7 +154,8 @@ implemented: false
 - 標準框架直接映射本卦／動爻／之卦。
 - 其他框架只提供視角與欄位順序，必須附上本站編輯聲明。
 - 一卦問事只建立一個 Step；三卦或五卦結構需保存三個或五個獨立 Result，不能偽裝成同一卦的三層。
-- 金錢法與蓍草法可共用 `IChingCastingResult`，但必須保留不同的原始操作紀錄與規則版本。
+- 手動三錢與六鍵計時遊戲可共用標準爻值／卦象欄位，必須保存 `inputMode`、原始操作紀錄與規則版本。六鍵使用單調計時相對時間，不使用 Unix 時刻做餘數，也不宣稱與三個二元事件等價。其他三次二元操作遊戲列為未來選項。
+- 蓍草法可沿用標準易卦結果欄位，但需另保留大衍操作紀錄與規則版本。
 - 梅花易數、六爻納甲需自己的起卦／解讀欄位；龜卜、鳥卦、籤筊與六壬不得寫入 `IChingCastingResult`。
 - 同一結果可切換多個已核准 InterpretationProfile；各 Profile 必須能回溯來源、授權、版本與審校狀態。
 
@@ -174,11 +175,9 @@ implemented: false
 
 ## 10. 外部 AI 邊界
 
-- 前端決定性產生純文字／JSON Context。
-- 使用者自行複製或分享，第一版不呼叫模型 API。
-- Context 只含使用者選擇分享的主問題、步驟、各自結果、解讀設定、經文及來源。
-- 傳文是否進入 Context 由使用者逐類或逐段選取，預設不選。
-- 分享內容固定附帶精簡 attribution；頁面與離線資料顯示完整版。
+- 前端在使用者明確點選後產生「問題＋《焦氏易林》詩籤」純文字並複製到剪貼簿；第一版不呼叫模型 API，也不自動開啟或傳送至外部 AI。
+- 複製內容限定為本次主問題、詩籤原文、來源署名／版本／連結／權利說明及聚焦詩意的提示，不自動加入本卦、爻辭、傳文或其他術數。
+- 頁面顯示完整來源；複製內容附上該詩籤所需的來源 attribution 與修改聲明。
 - 外部 AI 回應不寫回正式 corpus，也不自動匯入本機歷史。
 - 每種框架可提供不同的問題模板，但不得增添未提供的占術資料。
 
@@ -209,7 +208,7 @@ implemented: false
 
 - 以中文維基文庫固定 revisions 建立主來源 snapshot、attribution 與授權紀錄。
 - 建立 schema 與完整性驗證。
-- 依 `CORPUS_DATA_PIPELINE.md` 先完成乾、坤兩卦的端到端樣本，再擴充至全量。
+- 以完整來源快照直接建立本機 D1；由程式檢查筆數、來源定位、卦序及配對完整度，不要求人工校勘作為匯入條件。
 
 ### Phase 2：離線資料管線
 
@@ -217,7 +216,7 @@ implemented: false
 
 ### Phase 3：核心起卦與結果
 
-- 實作三錢／手動輸入、演算、手機優先結果與來源查閱。
+- 實作手動三錢與六鍵計時遊戲兩種輸入方式，完成共用卦象演算、手機優先結果與來源查閱。
 
 ### Phase 4：簡明導讀
 

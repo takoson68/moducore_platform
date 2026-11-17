@@ -14,6 +14,8 @@
 
 此清單是工作區的快速狀態入口，只列仍需處理或決策的事項；每項提供詳情連結，不在此複製完整報告。開始工作時先讀本清單，之後只讀與選定事項直接相關的詳情文件。
 
+- [yi-ly 易經語料校勘](../platform/frontend/projects/yi-ly/corpus/reviews/2026-11-17-parallel-witness-comparison.md) — 《焦氏易林》四庫本已收錄 4096 個唯一配對，仍待逐字校勘；《周易》傳文與平行來源差異也待人工確認。易林收錄結果見 [完整收錄紀錄](../platform/frontend/projects/yi-ly/corpus/reviews/2026-11-17-jiaoshi-yilin-complete-capture.md)，最新停止點見 [CURRENT_WORK.md](./CURRENT_WORK.md)。
+
 - [ChatCore M4a：聊天室與會員管理](../platform/frontend/projects/chatCore/docs/P2P_CHAT_MILESTONES.md) — M4 Gate 已通過；先檢視 M4 結果，再由使用者決定是否開始 M4a。詳情：[M4 結果](../platform/frontend/projects/chatCore/docs/M4_RESULT.md)、[最新停止點](./CURRENT_WORK.md)。
 - [ChatCore M1b：跨網路與 TURN 驗證](../platform/frontend/projects/chatCore/docs/M1B_RESULT.md) — 跨實體網路連線成功率與 TURN relay 成本尚待驗證；此項不阻擋已通過的 M4 Gate。詳情：[里程碑計畫](../platform/frontend/projects/chatCore/docs/P2P_CHAT_MILESTONES.md)。
 

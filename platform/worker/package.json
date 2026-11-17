@@ -10,6 +10,7 @@
     "admin:project-b": "node scripts/provision-project-b-admin.mjs",
     "check": "wrangler deploy --dry-run --outdir .wrangler-dist",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:yi-ly:local": "wrangler d1 migrations apply DB --local --config wrangler.yi-ly-local.jsonc",
     "db:migrate:eatgomap:local": "wrangler d1 migrations apply DB --local --config wrangler.eatgomap-local.jsonc",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "deploy": "wrangler deploy"

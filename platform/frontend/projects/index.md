@@ -19,7 +19,7 @@
 | `game-demo/` | Game 能力的最小遊戲試玩 Project | `project.config.js`；遊戲能力從 `../../src/app/game/index.md` 導讀 |
 | `magic-siege/` | 「攻破魔法城」格子塔防幾何原型；學習階段參考 Infinitode 2 核心體驗 | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` |
 | `modudesk/` | ModuDesk，包含 sticky-board、calendar、tasks 設定 | `project.config.js` |
-| `yi-ly/` | 易經解卦；可追溯《周易》經文、選配離線資料與外部 AI 交接，目前為企劃與空骨架階段 | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` |
+| `yi-ly/` | 易經解卦；手機優先金錢卦模組與可追溯《周易》《焦氏易林》語料初版 | `index.md` → `PROJECT_CONTEXT.md` → `project.config.js` → `docs/index.md` |
 | `_proTemp/` | Project Template 骨架 | `project.config.js` |
 
 表格只提供尋路線索；模組清單與專案現況以設定及程式碼為準，不由名稱推定成熟度、線上部署狀態或工作優先級。

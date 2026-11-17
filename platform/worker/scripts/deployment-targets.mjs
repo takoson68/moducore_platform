@@ -5,6 +5,7 @@ const targets = {
   'dinecore-staging': { project: 'dineCore', databaseId: '10230112-5e9d-4ed7-ad17-d836896e64b1' },
   'project-b-staging': { project: 'project-b', databaseId: 'd446407c-6c4b-4746-b0fb-7368d850986c' },
   'eatgomap-staging': { project: 'eatGoMap', databaseId: '2ee1ccf9-2f66-4a80-ada5-64a3c0fc78ae' },
+  'yi-ly-staging': { project: 'yi-ly', databaseId: 'b06bec43-9087-48d0-92f5-a7869e44d5c4' },
 }
 
 export function deploymentTarget(name = 'legacy') {

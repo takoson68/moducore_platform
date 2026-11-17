@@ -36,7 +36,7 @@
 - `docs/`：需求規格、卜法分類及技術架構計畫。
 - `decisions/`：已接受或待裁決的專案決策。
 - `layout/`：Project 視覺殼層；目前只有合法空殼。
-- `modules/`：Module Registry；目前不啟用任何業務模組。
+- `modules/`：Module Registry；目前啟用 `casting` 卜卦模組。
 - `styles/`：Project 樣式入口；目前只有最低背景樣式。
 
 ## 4. 入口與啟動點
@@ -44,11 +44,11 @@
 - 啟動入口：平台共用 `src/main.js` 與 `world.start()`。
 - 專案選擇方式：`VITE_PROJECT=yi-ly`。
 - 主要設定來源：`project.config.js`。
-- 目前狀態：企劃與空骨架階段；已取得維基文庫 64 卦與 9 個傳文頁的原始 revision 快照，64 卦 staging 已完成結構解析、仍待人工校勘；傳文頁尚未解析，功能尚未實作。
+- 目前狀態：已實作手機優先的金錢卦手動輸入、六鍵計時取數、結果與來源呈現、外部 AI 複製及選擇性本機歷史；Worker 提供唯讀經文查詢。本機 D1 載入 64 卦、1005 段卦頁文字、795 段傳文及 4096 首易林。離線下載、固定簡明導讀與完整閱讀視角仍未完成。
 
 ## 5. 模組與頁面範圍
 
-- 核心模組：待 MVP 架構核准後建立。
+- 核心模組：`modules/casting/` 負責單卦取得、計算、結果與本機歷史。
 - 主要頁面：預計涵蓋方法／結構選擇、逐步起卦、結果與解讀、來源、離線管理及選配本機歷史。
 - 第一版 AI：只提供複製給外部 AI，不串站內模型。
 - 導航原則：以手機優先的單一核心流程為主；未通過資料與規則 Gate 的方法不顯示，已納入的方法則清楚分流。
@@ -78,6 +78,8 @@
 - `decisions/D004_corpus-authoring-and-release.md`
 - `decisions/D005_visible-source-attribution.md`
 - `decisions/D006_mvp-content-and-display-scope.md`
+- `decisions/D007_source-preserving-corpus-import.md`：原典不經人工編修，保留來源原文及機器解析結果並匯入本機資料庫。
+- `docs/DIVINATION_METHOD_TAXONOMY.md`：卜法、卜問結構、結果閱讀方式的邊界；包含新增的考變占與焦氏易林選配規劃。
 - `layout/index.js`
 - `layout/LayoutRoot.vue`
 - `modules/index.js`

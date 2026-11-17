@@ -8,7 +8,7 @@ const project = 'eatGoMap'
 const base = 'https://example.test'
 let mf, otherMf, db
 
-const modules = ['index.js', 'auth.js', 'credentials.js', 'employees.js', 'response.js', 'eatgomap-favorites.js'].map(name => ({
+const modules = ['index.js', 'auth.js', 'credentials.js', 'employees.js', 'response.js', 'eatgomap-favorites.js', 'yi-ly-corpus.js'].map(name => ({
   type: 'ESModule', path: fileURLToPath(new URL(`../src/${name}`, import.meta.url)),
 }))
 

@@ -1,5 +1,5 @@
 {
-  "stagingVersion": 1,
+  "stagingVersion": 2,
   "sourceId": "wikisource-zh-zhouyi",
   "hexagrams": [
     {
@@ -11,7 +11,7 @@
       "revisionTimestamp": "2024-05-09T09:29:29Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E4%B9%BE&oldid=2404991",
       "sourceContentSha256": "sha256:e8b8c4a93f7e1f86e00e83635a12423da0e134ec463ea21837f6a41b41661156",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -643,7 +643,7 @@
       "revisionTimestamp": "2024-05-09T09:29:59Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%9D%A4&oldid=2404999",
       "sourceContentSha256": "sha256:a229442f54886cd2b21b1b6ab19cb377c4c59e5fcd8ac6b75f44b846459ca881",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -1028,7 +1028,7 @@
       "revisionTimestamp": "2026-09-27T03:00:04Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%B1%AF&oldid=10643482",
       "sourceContentSha256": "sha256:46e879adeb27dcbf7d8b7d0763fddf786025ad617ea3dccf364195467e8c4096",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -1052,7 +1052,7 @@
           "linePosition": 1,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "初九：{{另|磐|盤}}桓，利居貞，利建侯。",
+          "textDisplay": "初九：磐一作「盤」桓，利居貞，利建侯。",
           "sourceWikitext": "*#<span style=\"color:blue\">初九：{{另|磐|盤}}桓，利居貞，利建侯。</span>",
           "sourceLocator": "周易/屯／scripture／block-2",
           "reviewStatus": "needs-human-review"
@@ -1243,7 +1243,7 @@
       "revisionTimestamp": "2026-09-27T03:39:23Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%92%99&oldid=10645379",
       "sourceContentSha256": "sha256:82968b32bb6552880209f9578ada9d2e30beadcc1fd2c59ee7d331c48dc9ea7b",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -1293,7 +1293,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六三：勿用{{另|取|娶}}女，見金夫，不有躬，无攸利。",
+          "textDisplay": "六三：勿用取一作「娶」女，見金夫，不有躬，无攸利。",
           "sourceWikitext": "*#<span style=\"color:blue\">六三：勿用{{另|取|娶}}女，見金夫，不有躬，-{无}-攸利。</span>",
           "sourceLocator": "周易/蒙／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -1458,7 +1458,7 @@
       "revisionTimestamp": "2026-09-27T02:55:21Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%9C%80&oldid=10643261",
       "sourceContentSha256": "sha256:ccff1d03f4da5a90b388b3ec308fef5aa49ad588ad480be8627d633a3ad5bac3",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -1673,7 +1673,7 @@
       "revisionTimestamp": "2026-09-27T03:39:59Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%A8%9F&oldid=10645409",
       "sourceContentSha256": "sha256:8c6b14ac0b22d80ed48dd164132905c4dbdec9b3dda633744271e4bef064ee81",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -1762,7 +1762,7 @@
           "linePosition": 6,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "上九：或錫之鞶帶，終朝三{{另|褫|拕}}之。",
+          "textDisplay": "上九：或錫之鞶帶，終朝三褫一作「拕」之。",
           "sourceWikitext": "*#<span style=\"color:blue\">上九：或錫之鞶帶，終朝三{{另|褫|拕}}之。</span>",
           "sourceLocator": "周易/訟／scripture／block-7",
           "reviewStatus": "needs-human-review"
@@ -1888,7 +1888,7 @@
       "revisionTimestamp": "2024-05-09T09:30:35Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%B8%AB&oldid=2405011",
       "sourceContentSha256": "sha256:131b206cbc0995b1adfdab9560e66d7843fd85e3172bb4e9f89bb37e4665c1f9",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -2103,7 +2103,7 @@
       "revisionTimestamp": "2026-09-27T03:42:47Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%AF%94&oldid=10645543",
       "sourceContentSha256": "sha256:c722de4c7a95194e064b0c39c40c4712af8f007bf2186bc0d4f207e1fb0406e0",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -2179,7 +2179,7 @@
           "linePosition": 5,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九五：顯比。王用三{{另|敺|驅}}，失前禽，邑人不誡，吉。",
+          "textDisplay": "九五：顯比。王用三敺一作「驅」，失前禽，邑人不誡，吉。",
           "sourceWikitext": "*#<span style=\"color:blue\">九五：顯比。王用三{{另|敺|驅}}，失前禽，邑人不誡，吉。</span>",
           "sourceLocator": "周易/比／scripture／block-6",
           "reviewStatus": "needs-human-review"
@@ -2318,7 +2318,7 @@
       "revisionTimestamp": "2026-09-27T03:42:32Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%B0%8F%E7%95%9C&oldid=10645530",
       "sourceContentSha256": "sha256:6e1e827c09da249c5391f31c860080fd05657107b62c7e109c31a038349aebb9",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -2368,7 +2368,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九三：{{另|車|輿}}說{{另|輹|輻}}，夫妻反目。",
+          "textDisplay": "九三：車一作「輿」說輹一作「輻」，夫妻反目。",
           "sourceWikitext": "*#<span style=\"color:blue\">九三：{{另|車|輿}}說{{另|輹|輻}}，夫妻反目。</span>",
           "sourceLocator": "周易/小畜／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -2407,7 +2407,7 @@
           "linePosition": 6,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "上九：既雨既處，尚{{另|得|德}}載，婦貞厲，月幾望，君子征凶。",
+          "textDisplay": "上九：既雨既處，尚得一作「德」載，婦貞厲，月幾望，君子征凶。",
           "sourceWikitext": "*#<span style=\"color:blue\">上九：既雨既處，尚{{另|得|德}}載，婦貞厲，月幾望，君子征凶。</span>",
           "sourceLocator": "周易/小畜／scripture／block-7",
           "reviewStatus": "needs-human-review"
@@ -2533,7 +2533,7 @@
       "revisionTimestamp": "2026-09-27T04:25:09Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%B1%A5&oldid=10647513",
       "sourceContentSha256": "sha256:4cba3bd1b9e4d13bb34a71531611e37bebb7801d8e783c86870912540453cd49",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -2748,7 +2748,7 @@
       "revisionTimestamp": "2022-02-16T00:35:51Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%B3%B0&oldid=2106138",
       "sourceContentSha256": "sha256:ecd49dba63369af09ab717293badc4b5823106b89c25ee5ebed44466817616e7",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -2963,7 +2963,7 @@
       "revisionTimestamp": "2026-09-27T03:44:00Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%90%A6&oldid=10645603",
       "sourceContentSha256": "sha256:40db949fcb2f204562ec6ba5377425cbc4261c46cc04e0748fdf399d5bb56fef",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -3039,7 +3039,7 @@
           "linePosition": 5,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九五，休否，大人吉。其亡其亡，繫于{{另|包|苞}}桑。",
+          "textDisplay": "九五，休否，大人吉。其亡其亡，繫于包一作「苞」桑。",
           "sourceWikitext": "*#<span style=\"color:blue\">九五，休否，大人吉。其亡其亡，繫-{于}-{{另|包|苞}}桑。</span>",
           "sourceLocator": "周易/否／scripture／block-6",
           "reviewStatus": "needs-human-review"
@@ -3178,7 +3178,7 @@
       "revisionTimestamp": "2026-09-27T03:44:44Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%90%8C%E4%BA%BA&oldid=10645635",
       "sourceContentSha256": "sha256:c60417d5fd75abf7a958e368c092afadb2357e0d1af69085a1abe990c05a3d37",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -3241,7 +3241,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：乘其{{另|庸|墉}}，弗克攻，吉。",
+          "textDisplay": "九四：乘其庸一作「墉」，弗克攻，吉。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：乘其{{另|庸|墉}}，弗克攻，吉。</span>",
           "sourceLocator": "周易/同人／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -3349,7 +3349,7 @@
           "lineMapping": "inferred_from_source_order",
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "乘其{{另|庸|墉}}，義弗克也，其吉，則困而反則也。",
+          "textDisplay": "乘其庸一作「墉」，義弗克也，其吉，則困而反則也。",
           "sourceWikitext": "*#乘其{{另|庸|墉}}，義弗克也，其吉，則困而反則也。",
           "sourceLocator": "周易/同人／xiang／block-13",
           "reviewStatus": "needs-human-review"
@@ -3393,7 +3393,7 @@
       "revisionTimestamp": "2026-09-27T03:46:24Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%A4%A7%E6%9C%89&oldid=10645712",
       "sourceContentSha256": "sha256:3c4fdab8bfd0a57bfe53c483c5ad32a308d58094167a8dbb52b16c8c4c26ef0c",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -3430,7 +3430,7 @@
           "linePosition": 2,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九二：大{{另|轝|車}}以載，有攸往，无咎。",
+          "textDisplay": "九二：大轝一作「車」以載，有攸往，无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">九二：大{{另|轝|車}}以載，有攸往，-{无}-咎。</span>",
           "sourceLocator": "周易/大有／scripture／block-3",
           "reviewStatus": "needs-human-review"
@@ -3456,7 +3456,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：匪其{{另|尫|彭}}，无咎。",
+          "textDisplay": "九四：匪其尫一作「彭」，无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：匪其{{另|尫|彭}}，-{无}-咎。</span>",
           "sourceLocator": "周易/大有／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -3482,7 +3482,7 @@
           "linePosition": 6,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "上九：自天{{另|佑|右}}之，吉无不利。",
+          "textDisplay": "上九：自天佑一作「右」之，吉无不利。",
           "sourceWikitext": "*#<span style=\"color:blue\">上九：自天{{另|佑|右}}之，吉-{无}-不利。</span>",
           "sourceLocator": "周易/大有／scripture／block-7",
           "reviewStatus": "needs-human-review"
@@ -3536,7 +3536,7 @@
           "lineMapping": "inferred_from_source_order",
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "大{{另|轝|車}}以載，積中不敗也。",
+          "textDisplay": "大轝一作「車」以載，積中不敗也。",
           "sourceWikitext": "*#大{{另|轝|車}}以載，積中不敗也。",
           "sourceLocator": "周易/大有／xiang／block-11",
           "reviewStatus": "needs-human-review"
@@ -3608,7 +3608,7 @@
       "revisionTimestamp": "2022-02-16T00:37:04Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%AC%99&oldid=2106142",
       "sourceContentSha256": "sha256:2ffb3b0269b10fe966f76b4dd96b49503733677215fa6b9df7414a0a903d3700",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -3823,7 +3823,7 @@
       "revisionTimestamp": "2026-09-27T03:46:53Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%B1%AB&oldid=10645735",
       "sourceContentSha256": "sha256:65bf434245ce44f90a7034ebef4159cd64b85f7cdb099c7f52e8820215bbfe5b",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -3886,7 +3886,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：由豫，大有得。勿疑。朋盍{{另|戠|簪}}。",
+          "textDisplay": "九四：由豫，大有得。勿疑。朋盍戠一作「簪」。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：由豫，大有得。勿疑。朋盍{{另|戠|簪}}。</span>",
           "sourceLocator": "周易/豫／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -4038,7 +4038,7 @@
       "revisionTimestamp": "2026-09-27T03:31:53Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%9A%A8&oldid=10645020",
       "sourceContentSha256": "sha256:af3531608314476f887b4c8adc97ccf6c2ca09abf5718d4643be598cdda4a8d0",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -4253,7 +4253,7 @@
       "revisionTimestamp": "2022-02-16T00:38:30Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%A0%B1&oldid=2106145",
       "sourceContentSha256": "sha256:b823e1f7c186f7ae3ea27e22955595a873311c8c8f1c00a1b09d00f887df6a5a",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -4468,7 +4468,7 @@
       "revisionTimestamp": "2022-02-16T00:38:55Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%87%A8&oldid=2106146",
       "sourceContentSha256": "sha256:beadffbfc5356c83e7068507a7446efbe4c175eeec1c3845ec634e288f3217cc",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -4683,7 +4683,7 @@
       "revisionTimestamp": "2026-09-27T03:34:42Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%A7%80&oldid=10645159",
       "sourceContentSha256": "sha256:73da70d9f76cf58dc6ff2ca031e27125ef50b80fca221ffdf082e28fe044de6e",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -4898,7 +4898,7 @@
       "revisionTimestamp": "2026-09-27T03:47:15Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%99%AC%E5%97%91&oldid=10645753",
       "sourceContentSha256": "sha256:cbfa0c3f32152b3c31c91624dddc4abd7b8217b7121507fecb8a68d7dc68ecee",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -4948,7 +4948,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六三：噬{{另|昔|臘}}肉，遇毒；小吝，无咎。",
+          "textDisplay": "六三：噬昔一作「臘」肉，遇毒；小吝，无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">六三：噬{{另|昔|臘}}肉，遇毒；小吝，-{无}-咎。</span>",
           "sourceLocator": "周易/噬嗑／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -5113,7 +5113,7 @@
       "revisionTimestamp": "2024-05-09T09:32:07Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%B3%81&oldid=2405035",
       "sourceContentSha256": "sha256:f7418a0d3805c366e3afc6e9c7fb32c0c1da7883bf714cbe6235fe477365773c",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -5328,7 +5328,7 @@
       "revisionTimestamp": "2026-09-27T03:48:15Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%89%9D&oldid=10645800",
       "sourceContentSha256": "sha256:641e20b6320b0c6d6bce4b0856297382547a9ae0f5b4da7ea219944208773090",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -5417,7 +5417,7 @@
           "linePosition": 6,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "上九：碩果不食，君子{{另|德車|得輿}}，小人剝廬。",
+          "textDisplay": "上九：碩果不食，君子德車一作「得輿」，小人剝廬。",
           "sourceWikitext": "*#<span style=\"color:blue\">上九：碩果不食，君子{{另|德車|得輿}}，小人剝廬。</span>",
           "sourceLocator": "周易/剝／scripture／block-7",
           "reviewStatus": "needs-human-review"
@@ -5543,7 +5543,7 @@
       "revisionTimestamp": "2026-09-27T02:50:39Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%BE%A9&oldid=10643037",
       "sourceContentSha256": "sha256:f798cd72e1c558fb9bcd640ee52ba089ca7b0f6f5be3e26c804c8a7733a17b5a",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -5758,7 +5758,7 @@
       "revisionTimestamp": "2026-09-27T03:32:15Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%97%A0%E5%A6%84&oldid=10645038",
       "sourceContentSha256": "sha256:c11bc5a60fde2c199374195527cee4102ef5e5b755b7cb2bb44454eec95fd310",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -5973,7 +5973,7 @@
       "revisionTimestamp": "2026-09-27T03:59:06Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%A4%A7%E7%95%9C&oldid=10646304",
       "sourceContentSha256": "sha256:5cfe64d4db6fea5edd781f4ee13b6465e27d62e1cb1ee777121b158700bbfeaa",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -6010,7 +6010,7 @@
           "linePosition": 2,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九二：輿說{{另|輹|腹}}。",
+          "textDisplay": "九二：輿說輹一作「腹」。",
           "sourceWikitext": "*#<span style=\"color:blue\">九二：輿說{{另|輹|腹}}。</span>",
           "sourceLocator": "周易/大畜／scripture／block-3",
           "reviewStatus": "needs-human-review"
@@ -6036,7 +6036,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六四：童牛之{{另|告|牿}}，元吉。",
+          "textDisplay": "六四：童牛之告一作「牿」，元吉。",
           "sourceWikitext": "*#<span style=\"color:blue\">六四：童牛之{{另|告|牿}}，元吉。</span>",
           "sourceLocator": "周易/大畜／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -6188,7 +6188,7 @@
       "revisionTimestamp": "2026-09-27T02:51:46Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%A0%A4&oldid=10643091",
       "sourceContentSha256": "sha256:d356ddc403ae8a2923c8805df8854b44b65eaa39c430b41a7924ea55593f320a",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -6403,7 +6403,7 @@
       "revisionTimestamp": "2026-09-27T03:35:14Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%A4%A7%E9%81%8E&oldid=10645184",
       "sourceContentSha256": "sha256:1249e5a4ebb965dc31392541cf4f2b2892361c3b7a147eea0d79d7050778490f",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -6618,7 +6618,7 @@
       "revisionTimestamp": "2026-09-27T04:00:41Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%9D%8E&oldid=10646381",
       "sourceContentSha256": "sha256:67649ec92aad923c487b99d0eadb244f47fd81ac9ec1fc41c991cae52fe8c980",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -6681,7 +6681,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六四：{{另|尊酒簋，貳用缶。内約自牖|樽酒簋貳，用缶，納約自牖}}，終无咎。",
+          "textDisplay": "六四：尊酒簋，貳用缶。内約自牖一作「樽酒簋貳，用缶，納約自牖」，終无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">六四：{{另|尊酒簋，貳用缶。内約自牖|樽酒簋貳，用缶，納約自牖}}，終-{无}-咎。</span>",
           "sourceLocator": "周易/坎／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -6694,7 +6694,7 @@
           "linePosition": 5,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九五：坎不盈，{{另|禔|祗}}既平，无咎。",
+          "textDisplay": "九五：坎不盈，禔一作「祗」既平，无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">九五：坎不盈，{{另|禔|祗}}既平，-{无}-咎。</span>",
           "sourceLocator": "周易/坎／scripture／block-6",
           "reviewStatus": "needs-human-review"
@@ -6833,7 +6833,7 @@
       "revisionTimestamp": "2026-09-27T04:01:34Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%9B%A2&oldid=10646424",
       "sourceContentSha256": "sha256:441acca23398f8f80692371d6f6210c53ee2d945f3f77df0f649b2eb9da02ec9",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -6883,7 +6883,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九三：日昃之離，不鼓缶而歌，則大耋之{{另|差|嗟}}，凶。",
+          "textDisplay": "九三：日昃之離，不鼓缶而歌，則大耋之差一作「嗟」，凶。",
           "sourceWikitext": "*#<span style=\"color:blue\">九三：日昃之離，不鼓缶而歌，則大耋之{{另|差|嗟}}，凶。</span>",
           "sourceLocator": "周易/離／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -7048,7 +7048,7 @@
       "revisionTimestamp": "2026-09-27T04:02:08Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%92%B8&oldid=10646450",
       "sourceContentSha256": "sha256:fb35b42cf24d00ebc1532456ea7832c2d30f99fa52ba76c778451aa31a8d85ff",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -7072,7 +7072,7 @@
           "linePosition": 1,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "初六：咸其{{另|拇|母}}。",
+          "textDisplay": "初六：咸其拇一作「母」。",
           "sourceWikitext": "*#<span style=\"color:blue\">初六：咸其{{另|拇|母}}。</span>",
           "sourceLocator": "周易/咸／scripture／block-2",
           "reviewStatus": "needs-human-review"
@@ -7263,7 +7263,7 @@
       "revisionTimestamp": "2026-09-27T04:02:54Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%81%92&oldid=10646486",
       "sourceContentSha256": "sha256:e9c83f30c75539487013066246e4f8cbf27bde372ec46b4e47c609e0622b67bc",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -7352,7 +7352,7 @@
           "linePosition": 6,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "上六：{{另|震|振}}恆，凶。",
+          "textDisplay": "上六：震一作「振」恆，凶。",
           "sourceWikitext": "*#<span style=\"color:blue\">上六：{{另|震|振}}恆，凶。</span>",
           "sourceLocator": "周易/恒／scripture／block-7",
           "reviewStatus": "needs-human-review"
@@ -7478,7 +7478,7 @@
       "revisionTimestamp": "2026-09-27T03:33:40Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%81%AF&oldid=10645108",
       "sourceContentSha256": "sha256:2676bbe35fe01a331f62ce09665031ce05435a5b8f9bc2bb49a4ae761c0751fb",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -7693,7 +7693,7 @@
       "revisionTimestamp": "2026-09-27T04:03:48Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%A4%A7%E5%A3%AF&oldid=10646529",
       "sourceContentSha256": "sha256:cddc93eed027f6a988901d305169ec51ba9b38c783b14488de6f1b141aec868b",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -7756,7 +7756,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：貞吉悔亡，藩決不羸，壯于大{{另|轝|輿}}之{{另|腹|輹}}。",
+          "textDisplay": "九四：貞吉悔亡，藩決不羸，壯于大轝一作「輿」之腹一作「輹」。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：貞吉悔亡，藩決不羸，壯-{于}-大{{另|轝|輿}}之{{另|腹|輹}}。</span>",
           "sourceLocator": "周易/大壯／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -7908,7 +7908,7 @@
       "revisionTimestamp": "2026-09-27T04:04:54Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%99%89&oldid=10646579",
       "sourceContentSha256": "sha256:7322474e504b7919ee7f29188f90aade0c384a2e5f4570de3eea3c8cbb083354",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -7971,7 +7971,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：晉如{{另|鼫|碩}}鼠，貞厲。",
+          "textDisplay": "九四：晉如鼫一作「碩」鼠，貞厲。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：晉如{{另|鼫|碩}}鼠，貞厲。</span>",
           "sourceLocator": "周易/晉／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -7984,7 +7984,7 @@
           "linePosition": 5,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六五：悔亡，{{另|矢|失}}得勿恤，往吉无不利。",
+          "textDisplay": "六五：悔亡，矢一作「失」得勿恤，往吉无不利。",
           "sourceWikitext": "*#<span style=\"color:blue\">六五：悔亡，{{另|矢|失}}得勿恤，往吉-{无}-不利。</span>",
           "sourceLocator": "周易/晉／scripture／block-6",
           "reviewStatus": "needs-human-review"
@@ -8123,7 +8123,7 @@
       "revisionTimestamp": "2026-09-27T03:20:43Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%98%8E%E5%A4%B7&oldid=10644507",
       "sourceContentSha256": "sha256:4d341536c62fa6e76cf02602e433eaff9a377efc8ed19258b85ae6ada8aea0ab",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -8338,7 +8338,7 @@
       "revisionTimestamp": "2024-05-09T09:30:20Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%AE%B6%E4%BA%BA&oldid=2405005",
       "sourceContentSha256": "sha256:0179c8e76f2ef04ee811c1acf142f707d29083fe324de7c4cd086ceb47f79c99",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -8553,7 +8553,7 @@
       "revisionTimestamp": "2026-09-27T04:05:49Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E7%9D%BD&oldid=10646622",
       "sourceContentSha256": "sha256:e992371a0dc8ee58aba5f44f8ede6205712dbdad25edb7c030a1dcf12f067706",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -8603,7 +8603,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六三：見輿曳，其牛{{另|𧤊|掣}}，其人天且劓，无初有終。",
+          "textDisplay": "六三：見輿曳，其牛𧤊一作「掣」，其人天且劓，无初有終。",
           "sourceWikitext": "*#<span style=\"color:blue\">六三：見輿曳，其牛{{另|𧤊|掣}}，其人天且劓，-{无}-初有終。</span>",
           "sourceLocator": "周易/睽／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -8768,7 +8768,7 @@
       "revisionTimestamp": "2024-05-09T09:32:11Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%B9%87&oldid=2405036",
       "sourceContentSha256": "sha256:4fca7850987f383c2a66b195c5c35c5f39be0c41877c5607013d6a9858d7066b",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -8983,7 +8983,7 @@
       "revisionTimestamp": "2026-09-27T04:06:43Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%A7%A3&oldid=10646666",
       "sourceContentSha256": "sha256:46fd421e644b9e766810bc08b912d61b680d17a3b5a420311d5bf75289a831f2",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -9059,7 +9059,7 @@
           "linePosition": 5,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六五：君子{{另|惟|維}}有解，吉；有孚于小人。",
+          "textDisplay": "六五：君子惟一作「維」有解，吉；有孚于小人。",
           "sourceWikitext": "*#<span style=\"color:blue\">六五：君子{{另|惟|維}}有解，吉；有孚-{于}-小人。</span>",
           "sourceLocator": "周易/解／scripture／block-6",
           "reviewStatus": "needs-human-review"
@@ -9072,7 +9072,7 @@
           "linePosition": 6,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "上六：公用射隼，于高{{另|墉|庸}}之上，獲之，无不利。",
+          "textDisplay": "上六：公用射隼，于高墉一作「庸」之上，獲之，无不利。",
           "sourceWikitext": "*#<span style=\"color:blue\">上六：公用射隼，-{于}-高{{另|墉|庸}}之上，獲之，-{无}-不利。</span>",
           "sourceLocator": "周易/解／scripture／block-7",
           "reviewStatus": "needs-human-review"
@@ -9198,7 +9198,7 @@
       "revisionTimestamp": "2026-09-27T04:07:31Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%90%8D&oldid=10646704",
       "sourceContentSha256": "sha256:35cd31fa7274be23f261cdbeedea2764f755f2b9216e187ebd7cb19f104e7cea",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -9222,7 +9222,7 @@
           "linePosition": 1,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "初九：{{另|祀|已}}事遄往，无咎，酌損之。",
+          "textDisplay": "初九：祀一作「已」事遄往，无咎，酌損之。",
           "sourceWikitext": "*#<span style=\"color:blue\">初九：{{另|祀|已}}事遄往，-{无}-咎，酌損之。</span>",
           "sourceLocator": "周易/損／scripture／block-2",
           "reviewStatus": "needs-human-review"
@@ -9413,7 +9413,7 @@
       "revisionTimestamp": "2026-09-27T04:08:03Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E7%9B%8A&oldid=10646726",
       "sourceContentSha256": "sha256:b6b667ee48181cb28e9ba3a96f5e9f209d30a5a50396594c55b5260b5cb29aee",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -9476,7 +9476,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六四：中行，告公從。利用為依遷{{另|國|邦}}。",
+          "textDisplay": "六四：中行，告公從。利用為依遷國一作「邦」。",
           "sourceWikitext": "*#<span style=\"color:blue\">六四：中行，告公從。利用為依遷{{另|國|邦}}。</span>",
           "sourceLocator": "周易/益／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -9628,7 +9628,7 @@
       "revisionTimestamp": "2024-05-09T09:30:15Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%A4%AC&oldid=2405003",
       "sourceContentSha256": "sha256:1dbda1e9e07a19fe4ff04491bf7f99b3b9c501702773972d647745c2c5f4b0aa",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -9843,7 +9843,7 @@
       "revisionTimestamp": "2026-09-27T04:10:10Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%A7%A4&oldid=10646826",
       "sourceContentSha256": "sha256:6b32ae120b58931145ddff8085f5c56e45f7c52c3a1cb6a5c6a49d3b358819e3",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -9867,7 +9867,7 @@
           "linePosition": 1,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "初六：系于金柅，貞吉，有攸往，見凶，羸豕，孚，{{另|蹢躅|𨅙𨄃}}。",
+          "textDisplay": "初六：系于金柅，貞吉，有攸往，見凶，羸豕，孚，蹢躅一作「𨅙𨄃」。",
           "sourceWikitext": "*#<span style=\"color:blue\">初六：系-{于}-金柅，貞吉，有攸往，見凶，羸豕，孚，{{另|蹢躅|𨅙𨄃}}。</span>",
           "sourceLocator": "周易/姤／scripture／block-2",
           "reviewStatus": "needs-human-review"
@@ -9919,7 +9919,7 @@
           "linePosition": 5,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九五：以杞{{另|包|苞}}瓜，含章，有隕自天。",
+          "textDisplay": "九五：以杞包一作「苞」瓜，含章，有隕自天。",
           "sourceWikitext": "*#<span style=\"color:blue\">九五：以杞{{另|包|苞}}瓜，含章，有隕自天。</span>",
           "sourceLocator": "周易/姤／scripture／block-6",
           "reviewStatus": "needs-human-review"
@@ -10058,7 +10058,7 @@
       "revisionTimestamp": "2026-09-27T04:25:52Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%90%83&oldid=10647546",
       "sourceContentSha256": "sha256:f353e767fdeeca38561dfe43a34c587366154bad4ab6e5899924045b28da1c14",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -10147,7 +10147,7 @@
           "linePosition": 6,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "上六：齎{{另|資|咨}}涕洟，无咎。",
+          "textDisplay": "上六：齎資一作「咨」涕洟，无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">上六：齎{{另|資|咨}}涕洟，-{无}-咎。</span>",
           "sourceLocator": "周易/萃／scripture／block-7",
           "reviewStatus": "needs-human-review"
@@ -10273,7 +10273,7 @@
       "revisionTimestamp": "2026-09-27T04:11:17Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%8D%87&oldid=10646879",
       "sourceContentSha256": "sha256:443fb95dd115611d330e6ff8c5e71cde43295b15c5004bd1e2e7ecdf4754f742",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -10336,7 +10336,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六四：王用{{另|享|亨}}于岐山，吉无咎。",
+          "textDisplay": "六四：王用享一作「亨」于岐山，吉无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">六四：王用{{另|享|亨}}-{于}-岐山，吉-{无}-咎。</span>",
           "sourceLocator": "周易/升／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -10488,7 +10488,7 @@
       "revisionTimestamp": "2026-09-27T04:14:24Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%9B%B0&oldid=10647032",
       "sourceContentSha256": "sha256:cc243ac371a6fa4df22160bc14f1d5ce8802849a778522758ec24b87fa562b8b",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -10538,7 +10538,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六三：困于石，據于蒺{{另|蔾|藜}}，入于其宮，不見其妻，凶。",
+          "textDisplay": "六三：困于石，據于蒺蔾一作「藜」，入于其宮，不見其妻，凶。",
           "sourceWikitext": "*#<span style=\"color:blue\">六三：困-{于}-石，據-{于}-蒺{{另|蔾|藜}}，入-{于}-其宮，不見其妻，凶。</span>",
           "sourceLocator": "周易/困／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -10551,7 +10551,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：來{{另|荼荼|徐徐}}，困于金{{另|轝|車}}，吝，有終。",
+          "textDisplay": "九四：來荼荼一作「徐徐」，困于金轝一作「車」，吝，有終。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：來{{另|荼荼|徐徐}}，困-{于}-金{{另|轝|車}}，吝，有終。</span>",
           "sourceLocator": "周易/困／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -10703,7 +10703,7 @@
       "revisionTimestamp": "2026-09-27T03:36:25Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E4%BA%95&oldid=10645240",
       "sourceContentSha256": "sha256:1ab27335076e1c166642c60b9f31789337a7da0c66ec4e3d9f28632786ff0914",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -10918,7 +10918,7 @@
       "revisionTimestamp": "2026-09-27T02:53:30Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%9D%A9&oldid=10643173",
       "sourceContentSha256": "sha256:095de39170ac0e2407fbebd131f3957b08f13d1aeea25eed4f331aa672fde643",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -11133,7 +11133,7 @@
       "revisionTimestamp": "2026-09-27T04:15:34Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%BC%8E&oldid=10647086",
       "sourceContentSha256": "sha256:f42593c252a3f9a3c5f3e0005959c887acb653016eef0b887bf51c129b841fa8",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -11196,7 +11196,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：鼎折足，覆公餗，其{{另|刑|形}}渥，凶。",
+          "textDisplay": "九四：鼎折足，覆公餗，其刑一作「形」渥，凶。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：鼎折足，覆公餗，其{{另|刑|形}}渥，凶。</span>",
           "sourceLocator": "周易/鼎／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -11348,7 +11348,7 @@
       "revisionTimestamp": "2026-09-27T03:29:43Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%9C%87&oldid=10644930",
       "sourceContentSha256": "sha256:a91ae3f5544413961abcc2d134f79310de1f7bab2c81f7f29a42d309a75ad26a",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -11563,7 +11563,7 @@
       "revisionTimestamp": "2026-09-27T04:16:35Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%89%AE&oldid=10647135",
       "sourceContentSha256": "sha256:58c8311a879b6c5e764365d0beb1c946ae2a2e63784e1e1d6a946f387a0379ee",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -11613,7 +11613,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九三：艮其限，{{另|裂|列}}其夤，厲{{另|閽|薰}}心。",
+          "textDisplay": "九三：艮其限，裂一作「列」其夤，厲閽一作「薰」心。",
           "sourceWikitext": "*#<span style=\"color:blue\">九三：艮其限，{{另|裂|列}}其夤，厲{{另|閽|薰}}心。",
           "sourceLocator": "周易/艮／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -11639,7 +11639,7 @@
           "linePosition": 5,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六五：艮其輔，言有{{另|孚|序}}，悔亡。",
+          "textDisplay": "六五：艮其輔，言有孚一作「序」，悔亡。",
           "sourceWikitext": "*#<span style=\"color:blue\">六五：艮其輔，言有{{另|孚|序}}，悔亡。",
           "sourceLocator": "周易/艮／scripture／block-6",
           "reviewStatus": "needs-human-review"
@@ -11778,7 +11778,7 @@
       "revisionTimestamp": "2025-05-11T22:11:31Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%BC%B8&oldid=2560535",
       "sourceContentSha256": "sha256:46da172e6576ba774f6c61741a2d566014f5e5fc90c1065251cb80ccd89b28d7",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -11993,7 +11993,7 @@
       "revisionTimestamp": "2026-09-27T04:17:35Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%AD%B8%E5%A6%B9&oldid=10647182",
       "sourceContentSha256": "sha256:3b875fda93e1388dd9359d5185626e56e542344e07efe0659b02512595c992fd",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -12030,7 +12030,7 @@
           "linePosition": 2,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九二：眇{{另|能|而}}視，利幽人之貞。",
+          "textDisplay": "九二：眇能一作「而」視，利幽人之貞。",
           "sourceWikitext": "*#<span style=\"color:blue\">九二：眇{{另|能|而}}視，利幽人之貞。</span>",
           "sourceLocator": "周易/歸妹／scripture／block-3",
           "reviewStatus": "needs-human-review"
@@ -12208,7 +12208,7 @@
       "revisionTimestamp": "2026-09-27T03:37:28Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%B1%90&oldid=10645290",
       "sourceContentSha256": "sha256:decc267b9a05f7779a16ca01bc00fce9bff4e650fd3b1195d0f97d91297df302",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -12423,7 +12423,7 @@
       "revisionTimestamp": "2026-09-27T04:18:40Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%97%85&oldid=10647234",
       "sourceContentSha256": "sha256:3e8aed4bcd7651b4afde4fbfa7451fd15d632ad313d8760c1dda7d3d3c49e819",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -12460,7 +12460,7 @@
           "linePosition": 2,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六二：旅即次，懷其資，得{{另|僮|童}}僕貞。",
+          "textDisplay": "六二：旅即次，懷其資，得僮一作「童」僕貞。",
           "sourceWikitext": "*#<span style=\"color:blue\">六二：旅即次，懷其資，得{{另|僮|童}}僕貞。</span>",
           "sourceLocator": "周易/旅／scripture／block-3",
           "reviewStatus": "needs-human-review"
@@ -12473,7 +12473,7 @@
           "linePosition": 3,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九三：旅焚其次，喪其{{另|僮|童}}僕，貞厲。",
+          "textDisplay": "九三：旅焚其次，喪其僮一作「童」僕，貞厲。",
           "sourceWikitext": "*#<span style=\"color:blue\">九三：旅焚其次，喪其{{另|僮|童}}僕，貞厲。</span>",
           "sourceLocator": "周易/旅／scripture／block-4",
           "reviewStatus": "needs-human-review"
@@ -12638,7 +12638,7 @@
       "revisionTimestamp": "2026-09-27T03:30:30Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%B7%BD&oldid=10644966",
       "sourceContentSha256": "sha256:99a815af7cfac36d8d46784002467f6e70babf49e7fe4bb930976d0e78dc066c",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -12853,7 +12853,7 @@
       "revisionTimestamp": "2024-05-09T09:29:35Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%85%8C&oldid=2404993",
       "sourceContentSha256": "sha256:0ecebe0d070dcd3cdf07019a3f1d578cbcd4d1bb441c48b8536bb596e3e49850",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -13068,7 +13068,7 @@
       "revisionTimestamp": "2026-09-27T04:26:36Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%B8%99&oldid=10647580",
       "sourceContentSha256": "sha256:9c8c9b4298fa8429c00ece4a08821a83f9a5692f9bba09eb26cd2e180850c76e",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -13283,7 +13283,7 @@
       "revisionTimestamp": "2024-05-09T09:31:27Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E7%AF%80&oldid=2405027",
       "sourceContentSha256": "sha256:a017661595c6358621214894a41885648d4e2fe71af0d43ebd9f7b3f66517bcf",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -13498,7 +13498,7 @@
       "revisionTimestamp": "2026-09-27T04:23:02Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E4%B8%AD%E5%AD%9A&oldid=10647425",
       "sourceContentSha256": "sha256:9048c101757a1c3a0f5e7ec3d79e0fa22ba121babbf7fc083b8a48e1a0514e2b",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -13522,7 +13522,7 @@
           "linePosition": 1,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "初九：虞吉，有{{另|它|他}}不燕。",
+          "textDisplay": "初九：虞吉，有它一作「他」不燕。",
           "sourceWikitext": "*#<span style=\"color:blue\">初九：虞吉，有{{另|它|他}}不燕。</span>",
           "sourceLocator": "周易/中孚／scripture／block-2",
           "reviewStatus": "needs-human-review"
@@ -13561,7 +13561,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "六四：月{{另|既|几、幾}}望，馬匹亡，无咎。",
+          "textDisplay": "六四：月既一作「几、幾」望，馬匹亡，无咎。",
           "sourceWikitext": "*#<span style=\"color:blue\">六四：月{{另|既|几、幾}}望，馬匹亡，-{无}-咎。</span>",
           "sourceLocator": "周易/中孚／scripture／block-5",
           "reviewStatus": "needs-human-review"
@@ -13713,7 +13713,7 @@
       "revisionTimestamp": "2026-09-27T02:54:52Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%B0%8F%E9%81%8E&oldid=10643238",
       "sourceContentSha256": "sha256:899bcfc5e793f63761f01098bc6997cbec4c71be84f183f763c553e69075f1cd",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -13928,7 +13928,7 @@
       "revisionTimestamp": "2025-06-24T03:32:03Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%97%A2%E6%BF%9F&oldid=2572417",
       "sourceContentSha256": "sha256:e9099522d8013177a9316c8fc499a10b80d50edd18b3401cbd79b2d31ab58d78",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -14143,7 +14143,7 @@
       "revisionTimestamp": "2026-09-27T04:23:32Z",
       "sourceUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E6%9C%AA%E6%BF%9F&oldid=10647450",
       "sourceContentSha256": "sha256:9dcd6ad074f7d0633872e3e83665e86bd3d2bc19a3ae23cb4ff0eb044e2b4a83",
-      "parserVersion": 1,
+      "parserVersion": 2,
       "stagingStatus": "needs-human-review",
       "records": [
         {
@@ -14206,7 +14206,7 @@
           "linePosition": 4,
           "sourceGroup": null,
           "sourceGroupStart": null,
-          "textDisplay": "九四：貞吉，悔亡，震用伐鬼方，三年有賞于大{{另|國|邦}}。",
+          "textDisplay": "九四：貞吉，悔亡，震用伐鬼方，三年有賞于大國一作「邦」。",
           "sourceWikitext": "*#<span style=\"color:blue\">九四：貞吉，悔亡，震用伐鬼方，三年有賞-{于}-大{{另|國|邦}}。</span>",
           "sourceLocator": "周易/未濟／scripture／block-5",
           "reviewStatus": "needs-human-review"

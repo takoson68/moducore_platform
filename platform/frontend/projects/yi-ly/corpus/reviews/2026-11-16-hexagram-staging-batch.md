@@ -31,3 +31,7 @@
 - 來源授權與署名尚未通過 release gate。
 
 本批次結果供後續人工審查及調整 parser；不可直接視為已出版或完整校勘的《周易》文本。
+
+## 2026-11-17 parser v2 後續註記
+
+`stage-hexagrams.mjs` 已升為 parser v2，會將 `{{另|甲|乙}}` 顯示為 `甲一作「乙」`，不改寫 `sourceWikitext`。重新產生後仍為 64 卦、1005 段；原始快照中的 50 個模板實例均已展開，分布於 46 筆候選記錄，`textDisplay` 未見未展開的 `{{` 標記。此處理忠實呈現來源模板列出的主讀與一作異文，不代表選定 canonical 讀法或完成逐字校勘。模板定義固定頁：[Template:另 oldid=5438530](https://zh.wikisource.org/w/index.php?title=Template%3A%E5%8F%A6&oldid=5438530)。

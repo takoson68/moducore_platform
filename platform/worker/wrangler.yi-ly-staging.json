@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "yi-ly-staging",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": { "PROJECT_ID": "yi-ly", "SERVICE_NAME": "yi-ly-staging" },
+  "assets": {
+    "directory": ".assets/yi-ly-staging",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api", "/api/*"]
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "yi-ly-staging-db",
+    "database_id": "b06bec43-9087-48d0-92f5-a7869e44d5c4",
+    "migrations_dir": "migrations/yi-ly"
+  }]
+}

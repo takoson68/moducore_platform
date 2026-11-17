@@ -23,7 +23,7 @@ for (const filename of inputs) {
     revisionTimestamp: page.revisionTimestamp,
     sourceUrl: page.revisionUrl,
     sourceContentSha256: page.contentSha256,
-    parserVersion: 1,
+    parserVersion: 2,
     stagingStatus: 'needs-human-review',
     records: parsePage(page)
   })
@@ -34,7 +34,7 @@ if (targetPages.length !== 64 || hexagrams.length !== 64) {
 }
 
 hexagrams.sort((a, b) => (a.hexagramNumber ?? 999) - (b.hexagramNumber ?? 999))
-const output = `${JSON.stringify({ stagingVersion: 1, sourceId: 'wikisource-zh-zhouyi', hexagrams }, null, 2)}\n`
+const output = `${JSON.stringify({ stagingVersion: 2, sourceId: 'wikisource-zh-zhouyi', hexagrams }, null, 2)}\n`
 const destination = path.join(stagingDir, 'wikisource-zhouyi-hexagrams.json')
 await mkdir(stagingDir, { recursive: true })
 try {
@@ -167,6 +167,7 @@ function cleanWikiText(value) {
     .replace(/<span[^>]*>/gi, '').replace(/<\/span>/gi, '')
     .replace(/'''([^']+)'''/g, '$1').replace(/''([^']+)''/g, '$1')
     .replace(/-\{([^{}|]+)\}-/g, '$1')
+    .replace(/\{\{另\|([^{}|]+)\|([^{}|]+)\}\}/gu, '$1一作「$2」')
     .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
     .replace(/\[\[([^\]]+)\]\]/g, '$1')
     .replace(/\{\{\*\|([^{}]+)\}\}/g, '（$1）')

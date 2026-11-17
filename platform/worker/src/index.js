@@ -2,6 +2,7 @@ import { login, logout, session } from './auth.js'
 import { listEmployees, createEmployee, updateEmployee, deleteEmployee } from './employees.js'
 import { listEatGoMapFavorites, createEatGoMapFavorite, deleteEatGoMapFavorite } from './eatgomap-favorites.js'
 import { errorResponse, HttpError, json } from './response.js'
+import { getYiLyReading } from './yi-ly-corpus.js'
 
 const routes = new Map([
   ['/api/employees/list', { GET: listEmployees }],
@@ -9,6 +10,7 @@ const routes = new Map([
   ['/api/employees/update', { POST: updateEmployee }],
   ['/api/employees/delete', { POST: deleteEmployee }],
   ['/api/eatgomap/favorites', { GET: listEatGoMapFavorites, POST: createEatGoMapFavorite, DELETE: deleteEatGoMapFavorite }],
+  ['/api/yijing/reading', { GET: getYiLyReading }],
   ['/api/health', { GET: healthResponse }],
   ['/api/login', { POST: login }],
   ['/api/logout', { POST: logout }],

@@ -29,7 +29,9 @@ export default defineConfig(({ command, mode, isPreview }) => {
   const isDevHttps = process.env.VITE_DEV_HTTPS === 'true'
   // 目前專案以前後端同源為主，暫不使用 VITE_API_TARGET 覆寫 proxy 目標。
   // 若未來改回前後端分離部署，再評估是否重新啟用 env 控制。
-  const apiTarget = project === 'eatGoMap' ? 'http://127.0.0.1:8790' : 'http://moducore_platform.test'
+  const apiTarget = project === 'eatGoMap'
+    ? 'http://127.0.0.1:8790'
+    : project === 'yi-ly' ? 'http://127.0.0.1:8787' : 'http://moducore_platform.test'
   const projectOutDir = isCloudflareBuild
     ? 'dist'
     : path.join('projects', project, 'dist')

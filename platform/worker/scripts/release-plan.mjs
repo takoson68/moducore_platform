@@ -9,11 +9,12 @@ const targets = {
   'platform-chat': { target: 'moducore-chat-poc-staging', project: 'platform-chat', database: false, frontend: false, staticSite: false, websocket: true, config: 'wrangler.chat-poc.jsonc' },
   dinecore: { target: 'dinecore-staging', project: 'dineCore', database: true, frontend: true, staticSite: false, websocket: false, config: 'wrangler.dinecore-staging.json' },
   'project-b': { target: 'project-b-staging', project: 'project-b', database: true, frontend: true, staticSite: false, websocket: false, config: 'wrangler.project-b-staging.json' },
+  'yi-ly': { target: 'yi-ly-staging', project: 'yi-ly', database: true, migrations: 'migrations/yi-ly', frontend: true, staticSite: false, websocket: false, config: 'wrangler.yi-ly-staging.json' },
 }
 
 // 僅接受明確的部署 Tag，不讓一般 Push 或任意字串觸發部署。
 export function parseDeploymentTag(tag) {
-  const match = /^dep_(game-demo|eatgomap|chatcore|magic-siege|platform-chat|dinecore|project-b)_v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(tag || '')
+  const match = /^dep_(game-demo|eatgomap|chatcore|magic-siege|platform-chat|dinecore|project-b|yi-ly)_v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(tag || '')
   if (!match) throw new Error('部署 Tag 格式錯誤，應為 dep_<project>_v<semver>')
   const projectKey = match[1]
   return { ...targets[projectKey], projectKey, version: match[2], tag, artifactSource: 'build' }

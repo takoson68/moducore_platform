@@ -1,14 +1,48 @@
 ---
 status: active
-updated: 2026-11-09
+updated: 2026-11-17
 authority: work-state
 ---
 
 # 當前工作
 
+## 2026-11-17 yi-ly 首次 Staging 發布（進行中）
+
+新增獨立 `yi-ly-staging` Worker／D1 發布目標；遠端 D1 已建立（`b06bec43-9087-48d0-92f5-a7869e44d5c4`），GitHub Actions 已加入 Migration、來源語料匯入及驗收流程。Seed 由快照建出 11 MB SQL：64 卦、1,005 段卦頁原文、795 段傳文、4,096 首焦氏易林，142 個來源頁。Worker 測試 82/82、Yi-Ly Wrangler dry-run、前端 production build 與 seed 筆數檢查通過。`.env` 排除於發布。待完成必要檔案 commit、push 分支與首次部署 Tag，再追蹤 Staging Workflow、D1 匯入及 smoke 驗收。
+
+## 2026-11-17 yi-ly 第一版卜卦 UI 與唯讀經文查詢
+
+已新增 `casting` Module：支援實體三錢六爻手動輸入及倒數後六鍵計時取數，完成本卦／之卦計算與結果呈現；核心經文及傳文由 Worker 唯讀 `/api/yijing/reading` 按卦畫查詢，附來源、版本、授權及機器整理聲明。傳文預設折疊；《焦氏易林》結果直接展開並置於「經文原文」前，只有使用者勾選才加入外部 AI 複製內容。卜卦歷史預設不保存，使用者透過保存按鈕明確寫入 World IndexedDB；首次保存需自行輸入名稱，之後預填最近一次使用者自訂名稱。Vite 開發代理已為 `yi-ly` 指向本機 Worker `127.0.0.1:8787`。驗證：前端 production build 成功；本機瀏覽器完成一次金錢卦及考變占切換檢視；未跑測試。剩餘：朱熹考變占二、四變原典核對、離線下載／啟用、簡明導讀及正式遠端 Worker/D1 部署。未 commit/push/deploy。
+
+後續更新：結果頁已增加原文通覽／朱熹《易學啟蒙・考變占》切換。考變占依動爻數選取卦辭、爻辭或用九／用六；二變以上爻優先、四變以下爻優先依目前產品規則表實作，介面與決策文件均標示仍待原典例證核對。選擇的閱讀方式會寫入本機歷史並帶入外部 AI Context。以本機 D1 和瀏覽器完成一次六爻全動實際操作，手動輸入解析為第 1 卦乾之第 2 卦坤，唯讀 API 回應 200，切換考變占後顯示乾卦用九；前端 production build 成功。其他本站分析視角、離線流程與簡明導讀仍未完成。
+
+使用者回饋後，《焦氏易林》詩辭調整為結果頁直接展開並置於「經文原文」上方；原文閱讀方式仍分開切換，詩辭只有勾選「複製時附帶此詩辭」才加入外部 AI Context。三錢按鈕改以「正／反」呈現，輔助文字說明正面 3 點、反面 2 點，技術值映射維持不變。這兩項 UI 調整已通過前端 production build。
+
+2026-11-17 排除前端 `/api/yijing/reading` 500：前端 Vite 代理目標是 `127.0.0.1:8787`；重現時專用 Wrangler Worker 未啟動。啟動 `wrangler.yi-ly-local.jsonc` 後，同一組 `basePattern=011010&changedPattern=011000` 經 Worker 直連及 `192.168.50.113:5181` 前端代理均回 200，資料為井之升並含對應易林詩辭。目前本機 Worker 保持執行，使用者可重整頁面確認。已將雙終端啟動方式補入 `corpus/tools/index.md`。
+
+已將外部 AI 交接收斂為「複製問題與《焦氏易林》詩籤」單一操作，複製模板只含使用者問題、詩籤原文、來源署名與權利聲明，以及要求 AI 不引用其他卦辭／傳文／術數並區分原文與推論的提示；不會自動開啟或送出到 AI。支援 Clipboard API 與區網 HTTP 下的相容複製備援；備援失敗時顯示可手動選取複製的全文。已同步更新產品需求與技術架構文件。
+
+使用者指定預設起卦方式為「時機取數」；首頁初始狀態已切至六鍵計時，手動實體三錢仍可切換，重新起卦沿用目前方式。D003、需求規格與 Project 情境同步更新。
+
+使用者改定歷史紀錄名稱：第一次保存留白並必須由使用者輸入，後續預填最近一筆 `nameOrigin=user` 的紀錄名稱；舊版系統預填 TAKO 的歷史不作為初次預填來源。前端 build 通過。使用者授權部署後，已新增 `yi-ly-staging` Staging 白名單、獨立 Worker 設定、專用 D1、Migration 與發布時來源語料 seed 步驟；目前正進行首次 Staging 發布。
+
+## 2026-11-17 yi-ly 本機 D1 資料庫
+
+使用者決定經文不經人工校字或改寫，資料庫直接由既有來源快照與機器解析 staging 建立。已新增 `platform/worker/migrations/yi-ly/` 專用 schema、本機 Wrangler 設定及 `corpus/tools/build-d1-seed.mjs`。本機 D1 載入 64 卦、1005 段卦頁原文、795 段傳文及 4096 首《焦氏易林》；來源頁 142 筆。易林初次匯入發現篇內序號會重複，已新增 migration 取消錯誤唯一限制並補齊。核對結果：64 卦畫、4096 唯一易林配對、來源頁缺漏 0、卦畫長度錯誤 0。僅修改本機 D1，沒有遠端資料操作。下一步適合先做金錢卦確定性演算與結果 schema，再做結果頁及 AI 複製；避免先接 AI，讓原始卦象和選讀規則清楚可見。
+
+## 2026-11-17 yi-ly 周易語料與焦氏易林整理（來源紀錄）
+
+使用者確認納入《焦氏易林》，並將朱熹《易學啟蒙・考變占》列為選配閱讀方式。易林按本卦→之卦保存林辭，收錄目標 64×64＝4096 條；焦延壽只記為傳統題署，不把作者歸屬爭議寫成定論。考變占已記錄 0–6 動爻選讀表；二變、四變屬依例推演，三變主次需依原書例表進一步核對。已改採易學網《焦氏易林［四庫全書版］》，64 個本卦頁均完成文字擷取，取得 4096 條非空正文及 4096 個唯一配對；第 56 卦篇第 49 條來源圖示誤標為第 4 卦，正文按文字標籤／卦名定位並保留異常旗標。全文仍需人工校勘，尚未進 canonical 或 release；未實作閱讀 UI。詳見 `corpus/reviews/2026-11-17-jiaoshi-yilin-complete-capture.md`。
+
+《陸敕先校宋本》雖標示校對完成，但第 34 卦篇第 38 條明示缺文並以四庫本代文，故排除；`/article/2162` 為缺頁注本，也不採用。現採易學網《四庫全書版》（`https://www.eee-learning.com/book/giauii`），依據《欽定四庫全書》子部術數類。網站聲明古籍原文屬公共領域，非商業合理轉載／引用須完整署名及提供原網頁連結。收錄只包含本書林辭，不混採其他版本、不抓取其他作品、不下載圖檔或自行 OCR；易林第一版不要求離線包。兩冊先前下載的 1907 掃描 PDF 已在文字收錄完成後刪除。來源 metadata 在 `corpus/sources/jiaoshi-yilin-candidates.json`。
+
+使用者補充資料量分層架構：基礎語料（含易林 4096 條）、卦級分類、版本化規則與執行期組合。已加入資料管線 schema 草案，新增易林配對、卦分類、閱讀規則等邏輯資料集；以來源 passage ID 組合，不為每個卦變重複人工撰稿。用神規則須綁定指定卜法／流派。第一版維持外部 AI 複製 Context，站內 LLM 只列未來可能、不視為已決策。分類清單與 64 卦覆蓋策略尚未定稿。
+
+已為原 9 個傳文入口完成 parser v4 staging，共 795 段候選資料；64 卦 staging 為 parser v2，共 1005 段。入口中 5 篇為轉址，已另存目標頁固定 revision，未動原始 73 頁 manifest／快照。《大象》《小象》《彖》《文言》保留為卦頁平行來源見證；《序卦》《說卦》《雜卦》《繫辭上》《繫辭下》保留為獨立傳文。《彖》《大象》差異已抽查；《另》模板現以主讀＋一作異文方式呈現在 staging，原始 wikitext 保留。《小象》暫以 ICU 轉繁後配對 378 條，一般爻位有 74 條候選文字差異；其中 6 筆已用 CText 歷代引文作 comparison-only 旁證，未匯入語料。四筆來源爻位標記已與顯示文字分開。詳見 [平行來源比對](../platform/frontend/projects/yi-ly/corpus/reviews/2026-11-17-parallel-witness-comparison.md)。其他待確認項目包括「逐」章 6 段映射、依順序暫定的爻位及文言變體。資料仍是 `needs-human-review`，尚未進 canonical/release。下一步分類《小象》剩餘候選差異，轉換文字只供比對，不覆蓋來源原文。
+
 ## 2026-11-16 yi-ly Corpus 原始快照與 64 卦 staging
 
-已在 `platform/frontend/projects/yi-ly/corpus/` 建立資料工作區。`tools/fetch-wikisource.mjs` 依固定目錄 revision `7907208` 取得 73 個子頁，包括 64 卦與 9 個傳文篇目；逐頁保存原始 MediaWiki wikitext、page/revision ID、固定 URL 與 SHA-256，73 筆 checksum 均核對通過。`tools/stage-hexagrams.mjs` 已產生 64 卦、1005 筆候選段落；卦序 1–64 唯一完整，各卦都有卦辭、六爻、彖傳與大象候選，未分類段落為零。所有內容仍待人工校勘；小象未明列爻位時依來源順序暫定映射，乾文言來源群組已保留。初審見 `corpus/reviews/2026-11-16-qian-kun-staging-review.md` 與 `corpus/reviews/2026-11-16-hexagram-staging-batch.md`。下一步解析 9 個獨立傳文頁並核對其與各卦內傳文的關係。
+已在 `platform/frontend/projects/yi-ly/corpus/` 建立資料工作區。`tools/fetch-wikisource.mjs` 依固定目錄 revision `7907208` 取得 73 個子頁，包括 64 卦與 9 個傳文篇目；逐頁保存原始 MediaWiki wikitext、page/revision ID、固定 URL 與 SHA-256，73 筆 checksum 均核對通過。`tools/stage-hexagrams.mjs` 已產生 64 卦、1005 筆候選段落；卦序 1–64 唯一完整，各卦都有卦辭、六爻、彖傳與大象候選，未分類段落為零。所有內容仍待人工校勘；小象未明列爻位時依來源順序暫定映射，乾文言來源群組已保留。初審見 `corpus/reviews/2026-11-16-qian-kun-staging-review.md` 與 `corpus/reviews/2026-11-16-hexagram-staging-batch.md`。9 個傳文項目的解析和關係初審已完成，詳見最新停止點。
 
 ## 2026-11-16 yi-ly 易經解卦企劃與空骨架
 

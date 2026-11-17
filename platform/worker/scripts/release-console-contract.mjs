@@ -4,6 +4,7 @@ export const releaseConsoleProjects = Object.freeze([
   { key: 'game-demo', project: 'game-demo', target: 'game-demo-staging', environment: 'staging/game-demo-staging', stagingUrl: 'https://game-demo-staging.takoson68.workers.dev', database: false },
   { key: 'dinecore', project: 'dineCore', target: 'dinecore-staging', environment: 'staging/dinecore-staging', stagingUrl: 'https://dinecore-staging.takoson68.workers.dev', database: true },
   { key: 'project-b', project: 'project-b', target: 'project-b-staging', environment: 'staging/project-b-staging', stagingUrl: 'https://project-b-staging.takoson68.workers.dev', database: true },
+  { key: 'yi-ly', project: 'yi-ly', target: 'yi-ly-staging', environment: 'staging/yi-ly-staging', stagingUrl: 'https://yi-ly-staging.takoson68.workers.dev', database: true },
 ])
 
 export const releaseConsoleEnums = Object.freeze({

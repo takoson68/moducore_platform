@@ -1,0 +1,130 @@
+{
+  "manifestVersion": 1,
+  "sourceId": "wikisource-zh-yizhuan",
+  "sourceName": "中文維基文庫《易傳》傳文目標頁",
+  "baseSnapshot": "../wikisource-zhouyi/manifest.json",
+  "fetchedAt": "2026-11-17T01:43:35.853Z",
+  "apiUrl": "https://zh.wikisource.org/w/api.php",
+  "contentFormat": "mediawiki-wikitext",
+  "license": {
+    "sourcePageStatement": "依各來源頁頁尾所示授權條款",
+    "code": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+  },
+  "attribution": "來源：中文維基文庫《易傳》各傳文頁及各頁貢獻者。本文由「周易」傳文子頁 redirect 指向，已保存目標頁固定 revision；尚未正規化或改寫正文。",
+  "redirectAliases": [
+    {
+      "aliasTitle": "周易/序卦",
+      "aliasPageId": 891251,
+      "aliasRevisionId": 1562395,
+      "aliasRevisionUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E5%BA%8F%E5%8D%A6&oldid=1562395",
+      "aliasSnapshotFile": "pages/891251-周易-序卦-1562395.json",
+      "redirectTargetTitle": "易傳/序卦"
+    },
+    {
+      "aliasTitle": "周易/說卦",
+      "aliasPageId": 891250,
+      "aliasRevisionId": 1562393,
+      "aliasRevisionUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E8%AA%AA%E5%8D%A6&oldid=1562393",
+      "aliasSnapshotFile": "pages/891250-周易-說卦-1562393.json",
+      "redirectTargetTitle": "易傳/說卦"
+    },
+    {
+      "aliasTitle": "周易/雜卦",
+      "aliasPageId": 891252,
+      "aliasRevisionId": 1562397,
+      "aliasRevisionUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E9%9B%9C%E5%8D%A6&oldid=1562397",
+      "aliasSnapshotFile": "pages/891252-周易-雜卦-1562397.json",
+      "redirectTargetTitle": "易傳/雜卦"
+    },
+    {
+      "aliasTitle": "周易/繫辭上",
+      "aliasPageId": 891248,
+      "aliasRevisionId": 1562389,
+      "aliasRevisionUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E7%B9%AB%E8%BE%AD%E4%B8%8A&oldid=1562389",
+      "aliasSnapshotFile": "pages/891248-周易-繫辭上-1562389.json",
+      "redirectTargetTitle": "易傳/繫辭上"
+    },
+    {
+      "aliasTitle": "周易/繫辭下",
+      "aliasPageId": 891249,
+      "aliasRevisionId": 1562391,
+      "aliasRevisionUrl": "https://zh.wikisource.org/w/index.php?title=%E5%91%A8%E6%98%93%2F%E7%B9%AB%E8%BE%AD%E4%B8%8B&oldid=1562391",
+      "aliasSnapshotFile": "pages/891249-周易-繫辭下-1562391.json",
+      "redirectTargetTitle": "易傳/繫辭下"
+    }
+  ],
+  "pageCount": 5,
+  "pageInventory": [
+    {
+      "title": "易傳/序卦",
+      "pageId": 13610,
+      "revisionId": 2611127,
+      "revisionTimestamp": "2025-11-02T04:54:19Z",
+      "canonicalUrl": "https://zh.wikisource.org/wiki/%E6%98%93%E5%82%B3/%E5%BA%8F%E5%8D%A6",
+      "revisionUrl": "https://zh.wikisource.org/w/index.php?title=%E6%98%93%E5%82%B3%2F%E5%BA%8F%E5%8D%A6&oldid=2611127",
+      "contentFormat": "mediawiki-wikitext",
+      "contentSha256": "sha256:ef7cf749e2ec0f36a49d95160e88d5bc0411f4ef10689c2b193065cb103c6bc1",
+      "snapshotFile": "pages/013610-易傳-序卦-2611127.json",
+      "redirectAliases": [
+        "周易/序卦"
+      ]
+    },
+    {
+      "title": "易傳/說卦",
+      "pageId": 13609,
+      "revisionId": 2614055,
+      "revisionTimestamp": "2025-11-09T10:18:24Z",
+      "canonicalUrl": "https://zh.wikisource.org/wiki/%E6%98%93%E5%82%B3/%E8%AA%AA%E5%8D%A6",
+      "revisionUrl": "https://zh.wikisource.org/w/index.php?title=%E6%98%93%E5%82%B3%2F%E8%AA%AA%E5%8D%A6&oldid=2614055",
+      "contentFormat": "mediawiki-wikitext",
+      "contentSha256": "sha256:7da093e48ca915aa517c914541b9cf49f3d1b5afc5a10b70ae5fba460d0faab5",
+      "snapshotFile": "pages/013609-易傳-說卦-2614055.json",
+      "redirectAliases": [
+        "周易/說卦"
+      ]
+    },
+    {
+      "title": "易傳/雜卦",
+      "pageId": 13611,
+      "revisionId": 2611129,
+      "revisionTimestamp": "2025-11-02T04:56:33Z",
+      "canonicalUrl": "https://zh.wikisource.org/wiki/%E6%98%93%E5%82%B3/%E9%9B%9C%E5%8D%A6",
+      "revisionUrl": "https://zh.wikisource.org/w/index.php?title=%E6%98%93%E5%82%B3%2F%E9%9B%9C%E5%8D%A6&oldid=2611129",
+      "contentFormat": "mediawiki-wikitext",
+      "contentSha256": "sha256:103297014c4250878a8248cc21c17b32a42e3e55fda21f3103862de50fcd55cb",
+      "snapshotFile": "pages/013611-易傳-雜卦-2611129.json",
+      "redirectAliases": [
+        "周易/雜卦"
+      ]
+    },
+    {
+      "title": "易傳/繫辭上",
+      "pageId": 12682,
+      "revisionId": 2611140,
+      "revisionTimestamp": "2025-11-02T05:36:59Z",
+      "canonicalUrl": "https://zh.wikisource.org/wiki/%E6%98%93%E5%82%B3/%E7%B9%AB%E8%BE%AD%E4%B8%8A",
+      "revisionUrl": "https://zh.wikisource.org/w/index.php?title=%E6%98%93%E5%82%B3%2F%E7%B9%AB%E8%BE%AD%E4%B8%8A&oldid=2611140",
+      "contentFormat": "mediawiki-wikitext",
+      "contentSha256": "sha256:9508017c95ea4c05b246d51343a2bc469a8c14d18df1c804396c29852c0dec61",
+      "snapshotFile": "pages/012682-易傳-繫辭上-2611140.json",
+      "redirectAliases": [
+        "周易/繫辭上"
+      ]
+    },
+    {
+      "title": "易傳/繫辭下",
+      "pageId": 12685,
+      "revisionId": 2611136,
+      "revisionTimestamp": "2025-11-02T05:29:36Z",
+      "canonicalUrl": "https://zh.wikisource.org/wiki/%E6%98%93%E5%82%B3/%E7%B9%AB%E8%BE%AD%E4%B8%8B",
+      "revisionUrl": "https://zh.wikisource.org/w/index.php?title=%E6%98%93%E5%82%B3%2F%E7%B9%AB%E8%BE%AD%E4%B8%8B&oldid=2611136",
+      "contentFormat": "mediawiki-wikitext",
+      "contentSha256": "sha256:15c150d7c7c32ddd0cb859bdb01dd54d22d3e5fe9658ce65c93d6e7c5580b652",
+      "snapshotFile": "pages/012685-易傳-繫辭下-2611136.json",
+      "redirectAliases": [
+        "周易/繫辭下"
+      ]
+    }
+  ]
+}

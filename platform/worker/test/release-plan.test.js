@@ -27,6 +27,11 @@ test('部署 Tag 只解析白名單專案與語意版本', () => {
     projectKey: 'eatgomap', version: '0.2.0', tag: 'dep_eatgomap_v0.2.0', artifactSource: 'build',
   })
   assert.equal(parseDeploymentTag('dep_project-b_v2.0.0').database, true)
+  assert.deepEqual(parseDeploymentTag('dep_yi-ly_v0.1.0'), {
+    target: 'yi-ly-staging', project: 'yi-ly', database: true, migrations: 'migrations/yi-ly',
+    frontend: true, staticSite: false, websocket: false, config: 'wrangler.yi-ly-staging.json',
+    projectKey: 'yi-ly', version: '0.1.0', tag: 'dep_yi-ly_v0.1.0', artifactSource: 'build',
+  })
   assert.deepEqual(parseDeploymentTag('dep_magic-siege_v0.1.0'), {
     target: 'magic-siege-staging', project: 'magic-siege', database: false,
     frontend: true, staticSite: true, websocket: false, config: 'wrangler.magic-siege-staging.json',
@@ -49,6 +54,7 @@ test('手動救援只允許單一白名單專案', () => {
   assert.equal(manualDeploymentPlan('project-b', 'abc123').target, 'project-b-staging')
   assert.equal(manualDeploymentPlan('magic-siege', 'abc123').target, 'magic-siege-staging')
   assert.equal(manualDeploymentPlan('chatcore', 'abc123').target, 'chatcore-staging')
+  assert.equal(manualDeploymentPlan('yi-ly', 'abc123').target, 'yi-ly-staging')
   assert.throws(() => manualDeploymentPlan('all'), /未知的手動部署專案/)
 })
 
