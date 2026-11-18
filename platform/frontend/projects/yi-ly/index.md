@@ -24,16 +24,18 @@
 6. `docs/DIVINATION_METHOD_TAXONOMY.md`
 7. `docs/CORPUS_DATA_PIPELINE.md`
 8. `docs/TECHNICAL_ARCHITECTURE_PLAN.md`
-9. `decisions/`
-10. `corpus/index.md`
-11. `layout/`
-12. `modules/`
+9. `docs/MEIHUA_METHOD_SPEC.md`
+10. `decisions/`
+11. `corpus/index.md`
+12. `layout/`
+13. `modules/`
 
 ## 3. 專案結構
 
 - `PROJECT_CONTEXT.md`：專案背景、範圍、限制與假設。
 - `project.config.js`：最低執行時身分與模組宣告。
 - `docs/`：需求規格、卜法分類及技術架構計畫。
+- `docs/MEIHUA_METHOD_SPEC.md`：梅花易數年月日時起卦方法草案與發布 Gate；前端初版已實作，來源規則、曆法邊界及完整解讀仍待核對。
 - `decisions/`：已接受或待裁決的專案決策。
 - `layout/`：Project 視覺殼層；目前只有合法空殼。
 - `modules/`：Module Registry；目前啟用 `casting` 卜卦模組。
@@ -44,7 +46,7 @@
 - 啟動入口：平台共用 `src/main.js` 與 `world.start()`。
 - 專案選擇方式：`VITE_PROJECT=yi-ly`。
 - 主要設定來源：`project.config.js`。
-- 目前狀態：已實作手機優先的金錢卦手動輸入、六鍵計時取數、結果與來源呈現、外部 AI 複製及本機歷史；歷史支援改名、搜尋、多選刪除、JSON 匯出／匯入與經文快照本機保存，結果可回看原始取數。含經文快照的紀錄重開時不需再次請求語料 API；完整離線啟動仍未完成。Worker 提供唯讀經文查詢。本機 D1 載入 64 卦、1005 段卦頁文字、795 段傳文及 4096 首易林。整套離線資料下載、固定簡明導讀與完整閱讀視角仍未完成。
+- 目前狀態：已實作手機優先的金錢卦手動輸入、六鍵計時取數、結果與來源呈現、外部 AI 複製及本機歷史；歷史支援改名、搜尋、多選刪除、JSON 匯出／匯入與經文快照本機保存，結果可回看原始取數。兩種卜法各自位於同層 `modules/casting/methods/coin/` 與 `modules/casting/methods/meihua/`，各自封裝 `index.vue` 與計算服務，由 `pages/index.vue` 整合切換；語料查詢仍由 casting 共用 API 負責。梅花易數已完成年月日時計算與結果頁初版，曆法邊界驗證、來源規則登錄、閱讀方式與歷史／AI 交接仍待完成。含經文快照的紀錄重開時不需再次請求語料 API；完整離線啟動仍未完成。Worker 提供唯讀經文查詢。本機 D1 載入 64 卦、1005 段卦頁文字、795 段傳文及 4096 首易林。整套離線資料下載、固定簡明導讀與完整閱讀視角仍未完成。
 
 ## 5. 模組與頁面範圍
 

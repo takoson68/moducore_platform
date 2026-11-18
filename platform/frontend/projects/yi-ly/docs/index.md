@@ -10,7 +10,8 @@
 2. `DIVINATION_METHOD_TAXONOMY.md`
 3. `CORPUS_DATA_PIPELINE.md`
 4. `TECHNICAL_ARCHITECTURE_PLAN.md`
-5. 後續新增且由本索引註冊的里程碑或驗收文件
+5. `MEIHUA_METHOD_SPEC.md`（梅花易數後續方法草案）
+6. 後續新增且由本索引註冊的里程碑或驗收文件
 
 ## Registry
 
@@ -18,6 +19,7 @@
 - `DIVINATION_METHOD_TAXONOMY.md`：金錢卦、蓍草、梅花、六爻、龜卜、鳥卦、籤筊與六壬的邊界，以及多步驟卜問模型。
 - `CORPUS_DATA_PIPELINE.md`：原始來源、來源追溯、機器解析、本機 D1 schema 及未來版本發布規劃。
 - `TECHNICAL_ARCHITECTURE_PLAN.md`：權威資料、API、離線快照、AI 邊界及演進計畫。
+- `MEIHUA_METHOD_SPEC.md`：梅花易數第一版年月日時起卦、體用解讀及發布 Gate 草案；前端初版已實作，方法仍未核准完整發布。
 
 ## 狀態
 

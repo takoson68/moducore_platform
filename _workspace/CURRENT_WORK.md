@@ -6,6 +6,14 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-18 yi-ly 梅花易數方法規格草案
+
+新增 `platform/frontend/projects/yi-ly/docs/MEIHUA_METHOD_SPEC.md`，將梅花易數定位為獨立起卦／解讀方法，共用既有《周易》語料但不混入金錢卦或《焦氏易林》詩籤。草案聚焦年月日時起卦，已用易學網「觀梅占」「牡丹占」核對取數、本卦、動爻與變卦；並補明一般互卦位置、乾坤無互例外及體用判定。新增 `lunar-javascript` 1.7.8 曆法轉換依賴與梅花計算服務，按記錄的產品慣例轉換本地時區、年支、農曆月日與時支；邊界案例尚待逐項驗證。卜法 UI 現採同層 `modules/casting/methods/coin/`、`methods/meihua/`，各含 `index.vue` 與專屬計算服務；`pages/index.vue` 整合切換，語料查詢 API 留在 casting 層。方法選擇位於 logo 列下方，按鈕只顯示方法名稱；兩種卜法各自在選擇器下方顯示適用方向與提問例句。梅花時間欄位另說明選擇實際起卦時刻、非事件預計發生時間，並解釋其用於年月日時取上卦、下卦與動爻。近期 UI 調整將方法切換改為朱砂紅藥丸、分類選中改為墨色、起卦主按鈕加古銅金細邊；使用者確認滿意的「起卦」圓相保持原樣。梅花頁呈現時間取數、本卦／變卦／互卦、體用及共用《周易》經文。此為可建置的初版切片，來源 Gate、日期邊界核驗、完整解讀、歷史保存與 AI 複製仍待後續。草案來源方向仍待確認，未核准整套方法發布。僅使用網頁文字，不下載 PDF、掃描或 OCR。Cloudflare Build、API 測試 3/3、Worker 測試 82/82 與 Worker dry-run 通過；準備部署 yi-ly v0.1.6（dep_yi-ly_v0.1.6），Tag／Staging Workflow 尚待完成。保留本機 .env；梅花方法來源及曆法邊界 Gate 仍待後續核驗。
+
+## 2026-11-18 yi-ly 首頁顯示發佈版本（尚未部署）
+
+首頁頂部新增版本標籤，Staging 由 Workflow 注入的 `VITE_RELEASE_VERSION` 顯示 `vX.Y.Z`，本機建置顯示「本機版」。一般 Yi-Ly build 通過；再以 `VITE_RELEASE_VERSION=0.1.6` 建置並確認 bundle 含 `v0.1.6`。未 Commit／Push／部署。工作樹既有 `platform/frontend/.env` 修改不屬本次。
+
 ## 2026-11-18 yi-ly 本機歷史管理與卦象回看 Staging v0.1.5
 
 按「重新起卦」會清空問題、重設分類與六爻，保留目前選擇的起卦方式。歷史新增搜尋、改名、多選刪除、版本化 JSON 匯出／匯入；匯入驗證格式並用新 ID 加入，不覆蓋原紀錄。歷史清單標示經文快照與語料版本，結果頁可回看六爻原始輸入及換算，來源區明確標示版本／署名／授權。已更新 Project 規格與入口。前端 build 通過。Commit `bebc02d`、Tag `dep_yi-ly_v0.1.5` 已推送；Workflow `44253349948` 成功，Worker 測試、Bundle、D1 相容／Migration／語料 seed、Worker 部署與公開 Smoke 通過。線上首頁載入 `index-DvLo3YTt.js`，確認含全部新功能；`/api/health` 回報資料庫正常。Release ZIP、manifest、checksum 已發布。Staging：https://yi-ly-staging.takoson68.workers.dev 。完整離線啟動仍未實作；本機 `platform/frontend/.env` 未納入。

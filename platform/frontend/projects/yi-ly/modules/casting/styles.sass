@@ -47,6 +47,21 @@
     justify-content: space-between
     gap: $space-5
 
+  &__header-actions
+    display: flex
+    flex: 0 0 auto
+    align-items: center
+    gap: $space-2
+
+  &__version-badge
+    padding: 2px $space-3
+    border: $border-thin
+    border-radius: $radius-sm
+    color: $ink-secondary
+    font-size: $font-size-xs
+    letter-spacing: .04em
+    white-space: nowrap
+
   &__brand
     display: flex
     min-width: 0
@@ -169,6 +184,21 @@
     border-radius: $radius-sm
     resize: none
 
+  &__datetime-input
+    width: 100%
+    min-height: $button-height
+    padding: $space-4
+    border: $border-thin
+    border-radius: $radius-sm
+    background: $bg-card
+    color: $ink-primary
+    font-size: $font-size-base
+
+    &:focus-visible
+      border-color: $ink-primary
+      outline: 2px solid rgba(38, 36, 34, .12)
+      outline-offset: 2px
+
   &__question
     height: 56px
     min-height: 56px
@@ -205,9 +235,9 @@
     cursor: pointer
 
     &.is-active
-      border: $border-seal
-      background: $vermilion-tint
-      color: $vermilion
+      border-color: $ink-primary
+      background: $ink-primary
+      color: $bg-card
 
   &__mode-switch, &__framework-switch
     display: grid
@@ -499,6 +529,17 @@
     font-size: $font-size-sm
     line-height: 1.8
 
+  &__method-guidance
+    display: flex
+    flex-direction: column
+    gap: $space-1
+    color: $ink-secondary
+    font-size: $font-size-sm
+    line-height: 1.7
+
+    p
+      margin: 0
+
   &__primary-button, &__secondary-button
     display: inline-flex
     min-height: $button-height
@@ -523,6 +564,9 @@
 
   &__stage-action
     min-height: 46px
+
+  &__stage-action:not(:disabled)
+    border: 1px solid $antique-gold
 
   &__secondary-button
     background: transparent
@@ -643,6 +687,36 @@
     margin: 0
     color: $ink-secondary
     font-size: $font-size-xs
+
+  &__calculation-row
+    display: flex
+    flex-direction: column
+    gap: $space-1
+    padding: $space-3 0
+    border-bottom: $border-thin
+
+    span
+      color: $ink-secondary
+      font-size: $font-size-sm
+
+    strong
+      font-size: $font-size-sm
+      font-weight: 500
+      overflow-wrap: anywhere
+
+  &__body-use
+    display: grid
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+    gap: $space-5
+    padding-top: $space-4
+
+    > div
+      display: flex
+      flex-direction: column
+      gap: $space-1
+
+    > p
+      grid-column: 1 / -1
 
   &__gua-pair
     display: grid
