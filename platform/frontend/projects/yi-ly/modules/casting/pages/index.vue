@@ -27,6 +27,13 @@ const copyFallbackText = ref('')
 const historyOpen = ref(false)
 const historyLoading = ref(false)
 const historyEntries = ref([])
+const historyMessage = ref('')
+const historySearch = ref('')
+const selectedHistoryIds = ref([])
+const editingHistoryId = ref('')
+const historyNameDraft = ref('')
+const importingHistory = ref(false)
+const historyImportInput = ref(null)
 const saveOpen = ref(false)
 const saveName = ref('')
 const saveNameLoading = ref(false)
@@ -36,6 +43,22 @@ const savedReadingId = ref('')
 const manualComplete = computed(() => manualLines.value.every((line) => line.coins.every((coin) => coin !== null)))
 const manualLineDisplay = computed(() => [...manualLines.value].reverse())
 const timedComplete = computed(() => timedLines.value.length === 6)
+const visibleHistoryEntries = computed(() => {
+  const keyword = historySearch.value.trim().toLocaleLowerCase()
+  if (!keyword) return historyEntries.value
+  return historyEntries.value.filter((entry) => {
+    const data = entry.data || {}
+    const searchableText = [
+      data.name,
+      data.question,
+      data.category,
+      data.reading?.baseHexagram?.hexagram_name,
+      data.reading?.changedHexagram?.hexagram_name,
+      data.reading?.yilin?.text,
+    ].filter(Boolean).join(' ').toLocaleLowerCase()
+    return searchableText.includes(keyword)
+  })
+})
 const baseCorePassages = computed(() => passagesFor(reading.value?.corePassages, reading.value?.baseHexagram?.hexagram_number))
 const changedCorePassages = computed(() => passagesFor(reading.value?.corePassages, reading.value?.changedHexagram?.hexagram_number))
 const movingPassages = computed(() => baseCorePassages.value.filter((passage) => passage.kind === 'line_statement' && casting.value?.movingPositions.includes(passage.linePosition)))
@@ -173,6 +196,8 @@ async function retryReading() {
 function resetCasting() {
   clearCountdown()
   stage.value = 'input'
+  question.value = ''
+  category.value = '事業'
   manualLines.value = makeManualLines()
   timedLines.value = []
   countdown.value = 3
@@ -185,6 +210,7 @@ function resetCasting() {
   savedReadingId.value = ''
   copyMessage.value = ''
   copyFallbackText.value = ''
+  saveMessage.value = ''
 }
 
 function refreshScreen() {
@@ -196,6 +222,22 @@ function formatLineValue(value) {
   if (value === 7) return '少陽 · 7'
   if (value === 8) return '少陰 · 8'
   return '老陽 · 9'
+}
+
+// 將每爻保留的輸入資料整理成可核對的文字。
+function rawLineDescription(line) {
+  if (casting.value?.inputMode === 'manual-coins-v1') {
+    return (line.rawInput || []).map((coin) => coin === 3 ? '正面' : '反面').join('、')
+  }
+  const timing = line.rawInput || {}
+  return `${timing.elapsedMilliseconds} 毫秒 % 8 = ${timing.remainder} → ${formatLineValue(line.value)}`
+}
+
+// 顯示保存紀錄所附語料的版本與來源。
+function historySourceLabel(entry) {
+  const readingData = entry.data?.reading
+  const source = readingData?.yilin?.source || readingData?.corePassages?.find((passage) => passage.source)?.source
+  return [source?.name, source?.edition].filter(Boolean).join('・')
 }
 
 function patternRows(pattern) {
@@ -297,14 +339,144 @@ function makeReadingId() {
 
 async function openHistory() {
   historyOpen.value = true
+  historyMessage.value = ''
+  historySearch.value = ''
+  selectedHistoryIds.value = []
+  editingHistoryId.value = ''
   historyLoading.value = true
   try {
-    historyEntries.value = await world.iDB.list({ module: 'casting', category: 'history' })
-  } catch {
+    const entries = await world.iDB.list({ module: 'casting', category: 'history' })
+    historyEntries.value = entries.sort((a, b) => (
+      new Date(b.data?.savedAt || b.data?.casting?.createdAt || 0).getTime()
+      - new Date(a.data?.savedAt || a.data?.casting?.createdAt || 0).getTime()
+    ))
+  } catch (error) {
     historyEntries.value = []
+    historyMessage.value = `讀取本機紀錄失敗：${error?.message || 'IndexedDB 無法使用。'}`
   } finally {
     historyLoading.value = false
   }
+}
+
+// 依照使用者勾選的本機紀錄更新批次選取清單。
+function toggleHistorySelection(id) {
+  selectedHistoryIds.value = selectedHistoryIds.value.includes(id)
+    ? selectedHistoryIds.value.filter((selectedId) => selectedId !== id)
+    : [...selectedHistoryIds.value, id]
+}
+
+// 將選取的紀錄另存成 JSON，供使用者自行備份或搬移裝置。
+function exportHistory() {
+  if (!historyEntries.value.length) return
+  const payload = {
+    format: 'yi-ly-casting-history',
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    entries: historyEntries.value.map(({ id, data }) => ({ id, data })),
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `yi-ly-history-${new Date().toISOString().slice(0, 10)}.json`
+  anchor.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  historyMessage.value = `已匯出 ${historyEntries.value.length} 筆本機紀錄。`
+}
+
+// 驗證備份格式後以新 ID 匯入，不覆蓋現有紀錄或連線後端。
+async function importHistory(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  importingHistory.value = true
+  historyMessage.value = ''
+  let importedCount = 0
+  try {
+    if (file.size > 25 * 1024 * 1024) throw new Error('備份檔超過 25 MB，請確認選擇正確的檔案。')
+    const payload = JSON.parse(await file.text())
+    if (payload?.format !== 'yi-ly-casting-history' || payload.schemaVersion !== 1 || !Array.isArray(payload.entries)) {
+      throw new Error('檔案格式或版本不支援。')
+    }
+    if (!payload.entries.every((entry) => (
+      entry?.data?.casting?.schemaVersion === 1
+      && Array.isArray(entry.data.casting.lines)
+      && entry.data.casting.lines.length === 6
+    ))) {
+      throw new Error('備份內含無效或不完整的卦象紀錄，沒有匯入任何資料。')
+    }
+    for (const entry of payload.entries) {
+      await world.iDB.save({
+        module: 'casting',
+        category: 'history',
+        id: makeReadingId(),
+        data: { ...entry.data, importedAt: new Date().toISOString() },
+      })
+      importedCount += 1
+    }
+    historyMessage.value = `已匯入 ${importedCount} 筆紀錄；原有紀錄均保留。`
+  } catch (error) {
+    historyMessage.value = importedCount
+      ? `已匯入 ${importedCount} 筆，其餘未完成：${error?.message || '本機儲存失敗。'}`
+      : `匯入失敗：${error?.message || '請確認備份檔案。'}`
+  } finally {
+    event.target.value = ''
+    importingHistory.value = false
+    try {
+      const entries = await world.iDB.list({ module: 'casting', category: 'history' })
+      historyEntries.value = entries.sort((a, b) => (
+        new Date(b.data?.savedAt || b.data?.casting?.createdAt || 0).getTime()
+        - new Date(a.data?.savedAt || a.data?.casting?.createdAt || 0).getTime()
+      ))
+    } catch {
+      // 匯入狀態訊息保留主要結果；清單載入錯誤會在下次開啟時顯示。
+    }
+  }
+}
+
+// 開始在歷史清單中編輯單筆紀錄名稱。
+function beginRenameHistory(entry) {
+  editingHistoryId.value = entry.id
+  historyNameDraft.value = entry.data?.name || ''
+  historyMessage.value = ''
+}
+
+// 將更新後的名稱寫回本機 IndexedDB。
+async function renameHistory(entry) {
+  const name = historyNameDraft.value.trim()
+  if (!name) {
+    historyMessage.value = '紀錄名稱不可空白。'
+    return
+  }
+  try {
+    const data = { ...entry.data, name, nameOrigin: 'user', updatedAt: new Date().toISOString() }
+    await world.iDB.save({ module: 'casting', category: 'history', id: entry.id, data })
+    historyEntries.value = historyEntries.value.map((item) => item.id === entry.id ? { ...item, data } : item)
+    editingHistoryId.value = ''
+    historyMessage.value = '紀錄名稱已更新。'
+  } catch (error) {
+    historyMessage.value = `改名失敗：${error?.message || '本機儲存失敗。'}`
+  }
+}
+
+// 依使用者確認刪除所選本機紀錄。
+async function removeSelectedHistory() {
+  const ids = [...selectedHistoryIds.value]
+  if (!ids.length || !window.confirm(`確定刪除選取的 ${ids.length} 筆紀錄？此操作無法復原。`)) return
+  let removedCount = 0
+  for (const id of ids) {
+    try {
+      await world.iDB.remove({ module: 'casting', category: 'history', id })
+      removedCount += 1
+      if (savedReadingId.value === id) savedReadingId.value = ''
+    } catch (error) {
+      historyMessage.value = `已刪除 ${removedCount} 筆；後續刪除失敗：${error?.message || '本機儲存失敗。'}`
+      break
+    }
+  }
+  const removedIds = new Set(ids.slice(0, removedCount))
+  historyEntries.value = historyEntries.value.filter((entry) => !removedIds.has(entry.id))
+  selectedHistoryIds.value = []
+  if (removedCount === ids.length) historyMessage.value = `已刪除 ${removedCount} 筆紀錄。`
 }
 
 async function openSaveDialog() {
@@ -373,9 +545,16 @@ async function restoreReading(entry) {
 }
 
 async function removeHistory(entry) {
-  await world.iDB.remove({ module: 'casting', category: 'history', id: entry.id })
-  historyEntries.value = historyEntries.value.filter((item) => item.id !== entry.id)
-  if (savedReadingId.value === entry.id) savedReadingId.value = ''
+  if (!window.confirm(`確定刪除「${entry.data?.name || '本次卦象'}」？此操作無法復原。`)) return
+  try {
+    await world.iDB.remove({ module: 'casting', category: 'history', id: entry.id })
+    historyEntries.value = historyEntries.value.filter((item) => item.id !== entry.id)
+    selectedHistoryIds.value = selectedHistoryIds.value.filter((id) => id !== entry.id)
+    if (savedReadingId.value === entry.id) savedReadingId.value = ''
+    historyMessage.value = '紀錄已刪除。'
+  } catch (error) {
+    historyMessage.value = `刪除失敗：${error?.message || '本機儲存失敗。'}`
+  }
 }
 
 onBeforeUnmount(() => {
@@ -537,6 +716,11 @@ onBeforeUnmount(() => {
               span.yi-casting__line-value {{ line.value }}
 
       p.yi-casting__data-note 本頁呈現來源原文與計算結果，不自動加入占斷。
+      details.yi-casting__details.yi-casting__raw-input-details
+        summary 查看六爻原始輸入與換算
+        .yi-casting__raw-line(v-for="line in lineDisplay" :key="`raw-${line.position}`")
+          strong {{ lineNames[line.position - 1] }}
+          span {{ rawLineDescription(line) }}
       section.yi-casting__result-card.yi-casting__yilin-feature(v-if="reading?.yilin")
         .yi-casting__yilin-heading
           div
@@ -581,7 +765,7 @@ onBeforeUnmount(() => {
               p.yi-casting__passage {{ passage.text }}
               a.yi-casting__source-link(:href="passage.source.url" target="_blank" rel="noopener noreferrer") 查看固定來源
       details.yi-casting__attribution(v-if="reading")
-        summary 資料來源、署名與授權
+        summary 來源、版本、署名與授權
         p.yi-casting__version 語料版本：{{ reading.corpusVersion || '版本資訊依來源紀錄' }}
         .yi-casting__source-entry(v-for="source in sourceList()" :key="`${source.id}-${source.url}`")
           h4 {{ source.name }}
@@ -602,15 +786,35 @@ onBeforeUnmount(() => {
       .yi-casting__dialog-header
         h2#history-title 本機卜卦紀錄
         button.yi-casting__icon-button(type="button" aria-label="關閉歷史紀錄" @click="historyOpen = false") ×
+      p 紀錄與經文快照只保存在這台裝置；匯出檔含問題與卦象內容，請自行妥善保管。
+      .yi-casting__history-tools
+        button.yi-casting__small-button(type="button" :disabled="!historyEntries.length || importingHistory" @click="exportHistory") 匯出 JSON
+        button.yi-casting__small-button(type="button" :disabled="importingHistory" @click="historyImportInput?.click()") {{ importingHistory ? '匯入中⋯' : '匯入 JSON' }}
+        button.yi-casting__delete-button(type="button" :disabled="!selectedHistoryIds.length || importingHistory" @click="removeSelectedHistory") 刪除所選（{{ selectedHistoryIds.length }}）
+        input.yi-casting__file-input(ref="historyImportInput" type="file" accept="application/json,.json" aria-label="選擇卜卦紀錄備份檔" @change="importHistory")
+      p.yi-casting__history-message(v-if="historyMessage" aria-live="polite") {{ historyMessage }}
       p(v-if="historyLoading") 正在讀取本機紀錄⋯
       p(v-else-if="!historyEntries.length") 目前沒有保存的紀錄。
-      .yi-casting__history-list(v-else)
-        article.yi-casting__history-item(v-for="entry in historyEntries" :key="entry.id")
-          button.yi-casting__history-open(type="button" @click="restoreReading(entry)")
-            strong {{ entry.data?.name || 'TAKO' }}
-            span {{ entry.data?.question || '本次卦象' }}
-            small {{ new Date(entry.data?.savedAt || entry.data?.casting?.createdAt).toLocaleString('zh-TW') }}
-          button.yi-casting__delete-button(type="button" :aria-label="`刪除${entry.data?.name || 'TAKO'}紀錄`" @click="removeHistory(entry)") 刪除
+      template(v-else)
+        input.yi-casting__save-input(v-model="historySearch" type="search" placeholder="搜尋名稱、問題、卦名或詩籤" aria-label="搜尋本機卜卦紀錄")
+        p.yi-casting__helper(v-if="!visibleHistoryEntries.length") 沒有符合條件的紀錄。
+        .yi-casting__history-list(v-else)
+          article.yi-casting__history-item(v-for="entry in visibleHistoryEntries" :key="entry.id")
+            input.yi-casting__history-checkbox(type="checkbox" :checked="selectedHistoryIds.includes(entry.id)" :aria-label="`選取${entry.data?.name || '本次卦象'}紀錄`" @change="toggleHistorySelection(entry.id)")
+            button.yi-casting__history-open(type="button" @click="restoreReading(entry)")
+              strong {{ entry.data?.name || 'TAKO' }}
+              span {{ entry.data?.question || '本次卦象' }}
+              small {{ new Date(entry.data?.savedAt || entry.data?.casting?.createdAt).toLocaleString('zh-TW') }}
+              small.yi-casting__history-source(v-if="entry.data?.reading") {{ entry.data.reading.corpusVersion || '經文快照' }}・{{ historySourceLabel(entry) }}・已存本機
+              small.yi-casting__history-source(v-else) 僅保存卦象；重新開啟時需連線載入經文
+            .yi-casting__history-entry-actions
+              template(v-if="editingHistoryId === entry.id")
+                input.yi-casting__save-input(v-model="historyNameDraft" maxlength="48" :aria-label="`修改${entry.data?.name || '紀錄'}名稱`" @keydown.esc="editingHistoryId = ''")
+                button.yi-casting__small-button(type="button" @click="renameHistory(entry)") 儲存
+                button.yi-casting__text-button(type="button" @click="editingHistoryId = ''") 取消
+              template(v-else)
+                button.yi-casting__small-button(type="button" @click="beginRenameHistory(entry)") 改名
+                button.yi-casting__delete-button(type="button" :aria-label="`刪除${entry.data?.name || '本次卦象'}紀錄`" @click="removeHistory(entry)") 刪除
 
   .yi-casting__overlay(v-if="saveOpen" @click.self="saveOpen = false")
     section.yi-casting__dialog(role="dialog" aria-modal="true" aria-labelledby="save-title")

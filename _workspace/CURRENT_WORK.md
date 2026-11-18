@@ -1,12 +1,16 @@
 ---
 status: active
-updated: 2026-11-17
+updated: 2026-11-18
 authority: work-state
 ---
 
 # 當前工作
 
-## 2026-11-17 yi-ly 本機卦象保存修正（尚未部署）
+## 2026-11-18 yi-ly 本機歷史管理與卦象回看（Staging v0.1.5 部署前）
+
+按「重新起卦」會清空問題、重設分類與六爻，保留目前選擇的起卦方式。歷史新增搜尋、改名、多選刪除、版本化 JSON 匯出／匯入；匯入驗證格式並用新 ID 加入，不覆蓋原紀錄。歷史狀態標示是否保存經文快照及語料版本；結果頁可展開六爻原始輸入和換算，來源區標題明確含版本。已更新 Project 規格與入口。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過。準備只提交本次 Project 程式與文件，排除本機 `platform/frontend/.env`；預計 Tag `dep_yi-ly_v0.1.5`。完整離線啟動仍未實作。
+
+## 2026-11-17 yi-ly 本機卦象保存修正 Staging v0.1.4
 
 使用者回報保存卦象失敗，並確認歷史只需保存於前端裝置。查得保存按鈕原先要求經文 API 成功載入才可用，且 IndexedDB 寫入版本直接呼叫 `crypto.randomUUID()`，在部分區網 HTTP 瀏覽器可能不可用。已調整為卦象完成即可保存，經文可缺席並於重開後重試；IndexedDB revision 加入 `randomUUID`、`getRandomValues` 與時間／隨機值相容備援，保存錯誤顯示具體原因。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過。Commit `572a325`、Tag `dep_yi-ly_v0.1.4` 已推送；Workflow `44062136894` 成功，Worker 測試、D1 檢查、部署與 Smoke 通過。線上首頁載入 `index-BGaEvsk2.js` 且已確認包含修正，`/api/health` 顯示資料庫正常。保存責任仍為前端 IndexedDB，不新增後端寫入。Staging：https://yi-ly-staging.takoson68.workers.dev 。本機 `platform/frontend/.env` 未納入。
 

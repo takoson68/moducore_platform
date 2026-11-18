@@ -816,6 +816,17 @@
     flex-direction: column
     gap: $space-5
 
+  &__raw-input-details
+    .yi-casting__raw-line
+      display: grid
+      grid-template-columns: 52px minmax(0, 1fr)
+      gap: $space-3
+      color: $ink-secondary
+      font-size: $font-size-sm
+
+      strong
+        color: $ink-primary
+
   &__attribution
     display: flex
     flex-direction: column
@@ -892,13 +903,53 @@
     flex-direction: column
     gap: $space-3
 
+  &__history-tools
+    display: grid
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+    gap: $space-2
+
+  &__file-input
+    display: none
+
+  &__history-message
+    margin: 0
+    color: $vermilion
+    font-size: $font-size-sm
+
+  &__history-source
+    color: $ink-secondary
+    font-size: $font-size-xs
+
   &__history-item
     display: grid
-    grid-template-columns: minmax(0, 1fr) auto
+    grid-template-columns: auto minmax(0, 1fr) auto
     align-items: center
     gap: $space-3
     padding: $space-4 0
     border-bottom: $border-thin
+
+  &__history-checkbox
+    width: 18px
+    height: 18px
+    accent-color: $vermilion
+
+  &__history-entry-actions
+    display: flex
+    align-items: center
+    justify-content: flex-end
+    gap: $space-2
+    flex-wrap: wrap
+
+    .yi-casting__save-input
+      max-width: 148px
+
+  &__history-entry-actions .yi-casting__small-button
+    min-width: 0
+    padding: $space-2 $space-3
+
+  &__history-tools button:disabled
+    opacity: .5
+    cursor: not-allowed
 
   &__history-open
     display: flex
@@ -929,6 +980,13 @@
 
     &__entry-panel, &__result-card
       padding: $space-6
+
+    &__history-entry-actions
+      max-width: 110px
+
+      .yi-casting__save-input
+        min-height: 40px
+        padding: $space-2
 
     &__timed-panel
       min-height: 260px
