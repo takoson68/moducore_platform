@@ -6,9 +6,9 @@ authority: work-state
 
 # 當前工作
 
-## 2026-11-18 yi-ly 本機歷史管理與卦象回看（Staging v0.1.5 部署前）
+## 2026-11-18 yi-ly 本機歷史管理與卦象回看 Staging v0.1.5
 
-按「重新起卦」會清空問題、重設分類與六爻，保留目前選擇的起卦方式。歷史新增搜尋、改名、多選刪除、版本化 JSON 匯出／匯入；匯入驗證格式並用新 ID 加入，不覆蓋原紀錄。歷史狀態標示是否保存經文快照及語料版本；結果頁可展開六爻原始輸入和換算，來源區標題明確含版本。已更新 Project 規格與入口。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過。準備只提交本次 Project 程式與文件，排除本機 `platform/frontend/.env`；預計 Tag `dep_yi-ly_v0.1.5`。完整離線啟動仍未實作。
+按「重新起卦」會清空問題、重設分類與六爻，保留目前選擇的起卦方式。歷史新增搜尋、改名、多選刪除、版本化 JSON 匯出／匯入；匯入驗證格式並用新 ID 加入，不覆蓋原紀錄。歷史清單標示經文快照與語料版本，結果頁可回看六爻原始輸入及換算，來源區明確標示版本／署名／授權。已更新 Project 規格與入口。前端 build 通過。Commit `bebc02d`、Tag `dep_yi-ly_v0.1.5` 已推送；Workflow `44253349948` 成功，Worker 測試、Bundle、D1 相容／Migration／語料 seed、Worker 部署與公開 Smoke 通過。線上首頁載入 `index-DvLo3YTt.js`，確認含全部新功能；`/api/health` 回報資料庫正常。Release ZIP、manifest、checksum 已發布。Staging：https://yi-ly-staging.takoson68.workers.dev 。完整離線啟動仍未實作；本機 `platform/frontend/.env` 未納入。
 
 ## 2026-11-17 yi-ly 本機卦象保存修正 Staging v0.1.4
 
