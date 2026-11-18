@@ -6,21 +6,19 @@ authority: work-state
 
 # 當前工作
 
-## 2026-11-18 yi-ly 梅花易數外部 AI 交接（尚未部署）
+## 2026-11-18 yi-ly 梅花易數 AI 交接與 UI Staging v0.1.7
 
-梅花易數結果頁新增「複製梅花易數結果，貼到外部 AI 詢問」：組合問題與分類、起卦時間／時區、年月日時取數、本卦／互卦／變卦、動爻、體用五行關係、已取得的《周易》原文及來源。提示 AI 分別處理計算資料、經文和推論，不把體用關係寫成必然吉凶，也不混入易林或其他卜法。經文無法取得時仍可複製卦象資料並註明缺少原文；自動複製受限時提供手動選取文字。僅在使用者按下按鈕後複製，不呼叫站內 AI。已更新 `MEIHUA_METHOD_SPEC.md` 的交接規格。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過；尚未 Commit／Push／部署。工作樹既有 `platform/frontend/.env` 修改及前一項提問欄位／版本標籤調整均保留。
+梅花易數結果頁新增「複製梅花易數結果，貼到外部 AI 詢問」，整合問題、分類、起卦時間與時區、年月日時取數、本卦／互卦／變卦、動爻、體用五行關係、《周易》原文及來源。複製引言採用使用者提供的五段定稿；相同作品與版本的來源只列一次，不同卦頁連結合併同列。經文未載入時仍可複製卦象資料並註明缺文，自動複製受限時提供手動選取文字；不呼叫站內 AI。同步將提問 textarea 改成明確紙色輸入欄，並把版本標籤移到 Logo 後方。`MEIHUA_METHOD_SPEC.md` 已補交接範圍與邊界。
 
-使用者指出複製文字中的經文來源重複；已改成相同作品、版本只列一次，並將不同卦頁來源連結合併在同一列。
-
-使用者提供梅花易數 AI 複製引言定稿，已將 prompt 指令段落替換為逐字提供的五段文字；卦象、經文、來源資料組合維持原樣。待重新建置驗證，尚未部署。
+`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過。Commit `bf1225443cb2d0098956409b173efa1e092cc85c`、Tag `dep_yi-ly_v0.1.7` 已推送；GitHub Actions `44276232847` 成功，Build、Worker 測試、D1 Migration／語料 Seed、部署、公開 API Smoke 與 Release 資產發布均通過。Staging 首頁與 JS bundle HTTP 200，已確認 bundle 含 `v0.1.7` 及使用者定稿 prompt；`/api/health` 回報資料庫正常。網址：https://yi-ly-staging.takoson68.workers.dev 。本機 `platform/frontend/.env` 未納入部署。
 
 使用者回報本機經文 API 500。查明 5181 前端有啟動，但其代理目標 `127.0.0.1:8787` 的 Yi-Ly Worker 未啟動。已啟動 `wrangler.yi-ly-local.jsonc` Worker；問題中的 `011101 → 111101` API 直連與 Vite 代理目前均 HTTP 200。
 
-## 2026-11-18 yi-ly 提問欄位辨識度調整（尚未部署）
+## 2026-11-18 yi-ly 提問欄位辨識度調整（已部署於 v0.1.7）
 
 金錢卦與梅花易數共用的「今日所問」textarea 改為紙色填寫區，增加完整細框、內距、文字游標、hover 提示及硃砂色鍵盤聚焦狀態，讓可輸入區域更明確。保留既有文字與提問流程。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過；尚未 Commit／Push／部署。工作樹原有 `platform/frontend/.env` 修改不屬本次。
 
-依使用者補充，已將金錢卦與梅花易數頁面的版本標籤移到 Logo 正後方；金錢卦歷史按鈕留在 Header 右側。調整後 `VITE_PROJECT=yi-ly npm run build:cloudflare` 通過；尚未部署。
+依使用者補充，已將金錢卦與梅花易數頁面的版本標籤移到 Logo 正後方；金錢卦歷史按鈕留在 Header 右側。調整後 Build 通過，已隨 v0.1.7 部署。
 
 ## 2026-11-18 yi-ly 梅花易數方法規格草案
 
