@@ -604,13 +604,14 @@ onDeactivated(() => {
   .yi-casting__paper
     header.yi-casting__header
       .yi-casting__brand
-        button.yi-casting__logo-button(type="button" aria-label="重新整理畫面" title="重新整理畫面" @click="refreshScreen")
-          span(aria-hidden="true") 易
+        .yi-casting__brand-mark
+          button.yi-casting__logo-button(type="button" aria-label="重新整理畫面" title="重新整理畫面" @click="refreshScreen")
+            span(aria-hidden="true") 易
+          span.yi-casting__version-badge(aria-label="目前版本") {{ releaseVersionLabel }}
         .yi-casting__brand-copy
           p.yi-casting__eyebrow 易經 · 卜問與閱讀
           h1 易占
       .yi-casting__header-actions
-        span.yi-casting__version-badge(aria-label="目前版本") {{ releaseVersionLabel }}
         button.yi-casting__icon-button(type="button" aria-label="開啟卜卦歷史" @click="openHistory") ⟲
 
     MethodPicker(:active-method="props.activeMethod" @select-method="emit('select-method', $event)")

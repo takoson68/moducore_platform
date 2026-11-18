@@ -23,6 +23,8 @@ const result = ref(null)
 const reading = ref(null)
 const readingLoading = ref(false)
 const errorMessage = ref('')
+const copyMessage = ref('')
+const copyFallbackText = ref('')
 
 const baseHexagramTitle = computed(() => reading.value?.baseHexagram?.hexagram_name || '本卦')
 const changedHexagramTitle = computed(() => reading.value?.changedHexagram?.hexagram_name || '之卦')
@@ -98,6 +100,8 @@ function resetMeihua() {
   reading.value = null
   errorMessage.value = ''
   readingLoading.value = false
+  copyMessage.value = ''
+  copyFallbackText.value = ''
 }
 
 async function castMeihua() {
@@ -139,6 +143,110 @@ async function retryReading() {
   }
 }
 
+function meihuaAiPrompt() {
+  if (!result.value) return ''
+
+  const current = result.value
+  const calendar = current.calendar
+  const solar = calendar.solarDateTime
+  const selectedPassages = readingSections.value.flatMap((section) => section.passages.map((passage) => ({
+    title: section.title,
+    label: passage.linePosition ? `${lineNames[passage.linePosition - 1]}・` : '',
+    text: passage.text,
+    source: passage.source,
+  })))
+  const passageText = selectedPassages.length
+    ? selectedPassages.map((passage) => `【${passage.title}・${passage.label}原文】\n${passage.text}`).join('\n\n')
+    : '（目前未取得本卦、動爻或之卦的經文原文）'
+  const sourceEntries = new Map()
+  selectedPassages.forEach((passage) => {
+    if (!passage.source) return
+    const source = passage.source
+    const key = `${source.id || ''}:${source.name || ''}:${source.edition || ''}`
+    const entry = sourceEntries.get(key) || { source, urls: new Set() }
+    if (source.url) entry.urls.add(source.url)
+    sourceEntries.set(key, entry)
+  })
+  const sourceText = [...sourceEntries.values()].length
+    ? [...sourceEntries.values()].map(({ source, urls }) => {
+      const sourceName = source.name?.trim() || '來源未標示'
+      const rawEdition = source.edition?.trim() || ''
+      const edition = rawEdition.startsWith(sourceName)
+        ? rawEdition.slice(sourceName.length).replace(/^[｜|；;：:\s]+/, '').trim()
+        : rawEdition
+      return `- ${[sourceName, edition, [...urls].join('；')].filter(Boolean).join('｜')}`
+    }).join('\n')
+    : '目前沒有可附上的經文來源資料。'
+
+  return [
+    `請把下面的問題、梅花易數取數結果和《周易》經文一起讀。先說你認為卦象最貼近問題的地方，再帶我看是哪一句經文、哪一個動爻，或哪組上下卦意象讓你這樣理解。
+
+用白話講，但保留經文裡有意思的細節。遇到關鍵字詞，可以先說它在原文裡可能是什麼意思，再說放到這個問題裡像什麼。如果同一句有兩種讀法，而且會讓答案走向不同，就把差別講清楚。
+
+本卦、互卦、變卦和動爻可以互相參照。遇到彼此呼應的地方，說出它們共同指向什麼；遇到彼此有張力的地方，也可以把那個矛盾講出來。篇幅跟著問題走，不必讓每個卦都佔一段，也不要把它們固定排成過去、現在、未來。
+
+依提供的體卦、用卦和五行關係，說明它們在這個問題裡可能像什麼。體用生剋是傳統規則的標籤，可以作為解讀線索，吉凶與結果仍要回到經文和卦象判斷。取數用的是實驗中的年月日時方法，請沿用提供的結果。引用時，讓我看得出哪些是程式算出的資料、哪些是《周易》原文、哪些是你的推論。解讀範圍限於這次提供的資料與經文。
+
+最後回到我的問題，說說你比較傾向哪種理解、它可能對應到什麼方向，以及哪裡還看不出來。若有兩種合理的可能，可以說明現實中出現什麼線索時，會比較貼近哪一種。`,
+    `【我的問題】\n${current.question || '（尚未填寫）'}`,
+    `【卜問分類】\n${current.category || '未分類'}`,
+    `【起卦方法】\n梅花易數・年月日時法（規則版本：${current.methodRuleVersion}）`,
+    `【起卦時間】\n公曆：${solar.year}-${String(solar.month).padStart(2, '0')}-${String(solar.day).padStart(2, '0')} ${String(solar.hour).padStart(2, '0')}:${String(solar.minute).padStart(2, '0')}（${calendar.timeZone}）\n農曆：${calendar.lunarYear}年（${calendar.yearBranch}年）・${calendar.isLeapMonth ? '閏' : ''}${calendar.lunarMonth}月${calendar.lunarDay}日・${calendar.timeBranch}時`,
+    `【取數與卦象】\n上卦：年支數 ${calendar.yearBranchNumber}＋農曆月 ${calendar.lunarMonth}＋農曆日 ${calendar.lunarDay}＝${current.calculation.upperTotal}，除八取 ${current.trigrams.upper.name}。\n下卦與動爻：再加時辰數 ${calendar.timeBranchNumber}，合計 ${current.calculation.total}；除八取 ${current.trigrams.lower.name}，除六取第 ${current.calculation.movingLine} 爻。\n本卦：${baseHexagramTitle.value}（${current.basePatternBottomUp}）\n互卦爻形（由下往上）：${current.mutual.patternBottomUp}${current.mutual.isSourceException ? '；依目前規則由之卦取互卦' : ''}\n變卦：${changedHexagramTitle.value}（${current.changedPatternBottomUp}）`,
+    `【體用資料】\n體卦：${current.bodyUse.body.name}・${current.bodyUse.body.element}\n用卦：${current.bodyUse.use.name}・${current.bodyUse.use.element}\n程式標示的五行關係：${current.bodyUse.relation}`,
+    `【《周易》經文原文】\n${passageText}`,
+    `【經文來源】\n${sourceText}`,
+  ].join('\n\n')
+}
+
+async function copyMeihuaResult() {
+  const prompt = meihuaAiPrompt()
+  if (!prompt) return
+  copyMessage.value = ''
+  copyFallbackText.value = ''
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(prompt)
+        copyMessage.value = '梅花易數結果已複製，現在可以貼到外部 AI 詢問。'
+        return
+      } catch {
+        // 區網 HTTP 或瀏覽器權限限制時，改用點擊觸發的相容複製方式。
+      }
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.value = prompt
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.top = '0'
+    textarea.style.left = '-9999px'
+    textarea.style.fontSize = '16px'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    textarea.setSelectionRange(0, textarea.value.length)
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } finally {
+      textarea.remove()
+    }
+    if (!copied) throw new Error('clipboard unavailable')
+    copyMessage.value = '梅花易數結果已複製，現在可以貼到外部 AI 詢問。'
+  } catch {
+    copyFallbackText.value = prompt
+    copyMessage.value = '瀏覽器未允許自動複製，請長按下方文字並選取複製。'
+  }
+}
+
+function selectFallbackText(event) {
+  event.target.focus()
+  event.target.select()
+  event.target.setSelectionRange(0, event.target.value.length)
+}
+
 function refreshScreen() {
   window.location.reload()
 }
@@ -149,13 +257,13 @@ function refreshScreen() {
   .yi-casting__paper
     header.yi-casting__header
       .yi-casting__brand
-        button.yi-casting__logo-button(type="button" aria-label="重新整理畫面" title="重新整理畫面" @click="refreshScreen")
-          span(aria-hidden="true") 易
+        .yi-casting__brand-mark
+          button.yi-casting__logo-button(type="button" aria-label="重新整理畫面" title="重新整理畫面" @click="refreshScreen")
+            span(aria-hidden="true") 易
+          span.yi-casting__version-badge(aria-label="目前版本") {{ releaseVersionLabel }}
         .yi-casting__brand-copy
           p.yi-casting__eyebrow 易經 · 卜問與閱讀
           h1 易占
-      .yi-casting__header-actions
-        span.yi-casting__version-badge(aria-label="目前版本") {{ releaseVersionLabel }}
 
     MethodPicker(:active-method="props.activeMethod" @select-method="emit('select-method', $event)")
 
@@ -287,7 +395,10 @@ function refreshScreen() {
           strong 本次問題
           span {{ result.question || '（未填寫）' }}
       .yi-casting__result-actions
+        button.yi-casting__primary-button(type="button" @click="copyMeihuaResult") 複製梅花易數結果，貼到外部 AI 詢問
         button.yi-casting__secondary-button(type="button" @click="resetMeihua") 重新起卦
+      p.yi-casting__inline-message(v-if="copyMessage" aria-live="polite") {{ copyMessage }}
+      textarea.yi-casting__copy-fallback(v-if="copyFallbackText" aria-label="手動複製梅花易數結果" readonly :value="copyFallbackText" @click="selectFallbackText")
 </template>
 
 <style lang="sass">

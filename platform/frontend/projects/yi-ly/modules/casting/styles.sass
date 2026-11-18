@@ -68,6 +68,12 @@
     align-items: center
     gap: $space-4
 
+  &__brand-mark
+    display: flex
+    flex: 0 0 auto
+    align-items: center
+    gap: $space-2
+
   &__brand-copy
     min-width: 0
 
@@ -200,9 +206,23 @@
       outline-offset: 2px
 
   &__question
-    height: 56px
-    min-height: 56px
-    border-bottom: 0
+    height: 76px
+    min-height: 76px
+    padding: $space-3 $space-4
+    border: $border-thin
+    border-radius: $radius-sm
+    background: rgba(250, 248, 243, .82)
+    cursor: text
+    transition: border-color .16s ease, background-color .16s ease
+
+    &:hover
+      border-color: rgba(38, 36, 34, .48)
+
+    &:focus
+      border-color: $vermilion
+      outline: 2px solid $vermilion-tint
+      outline-offset: 1px
+      background: $bg-card
 
   &__ink-divider
     display: block

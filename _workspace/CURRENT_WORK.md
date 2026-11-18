@@ -6,6 +6,22 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-18 yi-ly 梅花易數外部 AI 交接（尚未部署）
+
+梅花易數結果頁新增「複製梅花易數結果，貼到外部 AI 詢問」：組合問題與分類、起卦時間／時區、年月日時取數、本卦／互卦／變卦、動爻、體用五行關係、已取得的《周易》原文及來源。提示 AI 分別處理計算資料、經文和推論，不把體用關係寫成必然吉凶，也不混入易林或其他卜法。經文無法取得時仍可複製卦象資料並註明缺少原文；自動複製受限時提供手動選取文字。僅在使用者按下按鈕後複製，不呼叫站內 AI。已更新 `MEIHUA_METHOD_SPEC.md` 的交接規格。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過；尚未 Commit／Push／部署。工作樹既有 `platform/frontend/.env` 修改及前一項提問欄位／版本標籤調整均保留。
+
+使用者指出複製文字中的經文來源重複；已改成相同作品、版本只列一次，並將不同卦頁來源連結合併在同一列。
+
+使用者提供梅花易數 AI 複製引言定稿，已將 prompt 指令段落替換為逐字提供的五段文字；卦象、經文、來源資料組合維持原樣。待重新建置驗證，尚未部署。
+
+使用者回報本機經文 API 500。查明 5181 前端有啟動，但其代理目標 `127.0.0.1:8787` 的 Yi-Ly Worker 未啟動。已啟動 `wrangler.yi-ly-local.jsonc` Worker；問題中的 `011101 → 111101` API 直連與 Vite 代理目前均 HTTP 200。
+
+## 2026-11-18 yi-ly 提問欄位辨識度調整（尚未部署）
+
+金錢卦與梅花易數共用的「今日所問」textarea 改為紙色填寫區，增加完整細框、內距、文字游標、hover 提示及硃砂色鍵盤聚焦狀態，讓可輸入區域更明確。保留既有文字與提問流程。`VITE_PROJECT=yi-ly npm run build:cloudflare` 通過；尚未 Commit／Push／部署。工作樹原有 `platform/frontend/.env` 修改不屬本次。
+
+依使用者補充，已將金錢卦與梅花易數頁面的版本標籤移到 Logo 正後方；金錢卦歷史按鈕留在 Header 右側。調整後 `VITE_PROJECT=yi-ly npm run build:cloudflare` 通過；尚未部署。
+
 ## 2026-11-18 yi-ly 梅花易數方法規格草案
 
 新增 `platform/frontend/projects/yi-ly/docs/MEIHUA_METHOD_SPEC.md`，將梅花易數定位為獨立起卦／解讀方法，共用既有《周易》語料但不混入金錢卦或《焦氏易林》詩籤。草案聚焦年月日時起卦，已用易學網「觀梅占」「牡丹占」核對取數、本卦、動爻與變卦；並補明一般互卦位置、乾坤無互例外及體用判定。新增 `lunar-javascript` 1.7.8 曆法轉換依賴與梅花計算服務，按記錄的產品慣例轉換本地時區、年支、農曆月日與時支；邊界案例尚待逐項驗證。卜法 UI 現採同層 `modules/casting/methods/coin/`、`methods/meihua/`，各含 `index.vue` 與專屬計算服務；`pages/index.vue` 整合切換，語料查詢 API 留在 casting 層。方法選擇位於 logo 列下方，按鈕只顯示方法名稱；兩種卜法各自在選擇器下方顯示適用方向與提問例句。梅花時間欄位另說明選擇實際起卦時刻、非事件預計發生時間，並解釋其用於年月日時取上卦、下卦與動爻。近期 UI 調整將方法切換改為朱砂紅藥丸、分類選中改為墨色、起卦主按鈕加古銅金細邊；使用者確認滿意的「起卦」圓相保持原樣。梅花頁呈現時間取數、本卦／變卦／互卦、體用及共用《周易》經文。此為可建置的初版切片，來源 Gate、日期邊界核驗、完整解讀、歷史保存與 AI 複製仍待後續。草案來源方向仍待確認，未核准整套方法發布。Staging 已部署 yi-ly v0.1.6：Commit b4bd273、Tag dep_yi-ly_v0.1.6、Workflow 44272179713 全部成功。Cloudflare Build、API 測試 3/3、Worker 測試 82/82、Worker dry-run、遠端 Migration／語料 seed 及公開端點 Smoke 均通過；Release ZIP、manifest、checksum 已發布。線上首頁與 bundle HTTP 200，bundle 確認含 v0.1.6、金錢卦及梅花易數。網址：https://yi-ly-staging.takoson68.workers.dev 。梅花方法來源及曆法邊界 Gate 仍待後續核驗；本機 .env 修改未納入部署。
