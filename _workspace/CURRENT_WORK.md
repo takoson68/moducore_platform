@@ -6,6 +6,12 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-19 yi-ly 詳細問事自訂變數 Tag Staging v0.1.9
+
+詳細問事「其他」變數改為可重複加入的自訂 Tag：輸入短名稱後按「加入標籤」或 Enter，會顯示為可移除的已選 Tag，並可繼續加入清單中沒有的不同變數；內建與自訂 Tag 合計維持最多五項。
+
+前端 v0.1.9 建置、API transport 3/3、Worker 82/82 及 yi-ly Worker dry-run 均通過。程式 Commit `1da4bdeee181439e27eb182efd24f195597fc95a`、Tag `dep_yi-ly_v0.1.9` 已推送；GitHub Actions `44485991106` 成功完成 D1 相容檢查、Migration、語料 Seed、部署、公開 API Smoke、Release 發布與 Deployment 紀錄。線上 bundle `index-DDXz3vpg.js` 已確認包含 `v0.1.9` 與「加入標籤」；`/api/health` 回報 Worker／D1 正常。Release ZIP、manifest、checksum 均已發布。Staging：https://yi-ly-staging.takoson68.workers.dev 。工作樹原有 `platform/frontend/.env` 修改未納入部署。
+
 ## 2026-11-19 yi-ly 詳細問事 Staging v0.1.8
 
 金錢卦的起卦方式列已在「時機取數」後新增「詳細問事」，進入後視為內頁，不再重複顯示上層金錢卦／梅花易數按鈕。詳細問事依序收集緣起、當下、趨勢三次完整起卦原始輸入，確認前不揭示結果；每一階段六爻完成後停留於完成畫面，由使用者按「開始下一階段」才繼續。時機取數會直接進入下一階段倒數，不返回設定頁；手動三錢則直接開啟下一階段六爻輸入。使用者可依問題分類勾選最多五個相關變數 Tag，或以「其他」加入短名稱。三步完成後按「確認此次詳細問事」，該刻即為整體梅花易數起卦時間，系統才一次查詢並顯示三首《焦氏易林》林辭、梅花總勢與可複製給外部 AI 的受限 Context。Tag 只表示因素相關，不推定實際方向。詳細問事本機歷史保存尚未實作。
