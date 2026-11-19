@@ -413,7 +413,7 @@ onDeactivated(clearCountdown)
       section.yi-casting__result-card
         h3 整體解讀資料
         p 三首林辭、整體梅花易數及補充變數已整理完成。本站不自動生成占斷，可複製到外部 AI 進行受限制的整體解讀。
-        button.yi-casting__primary-button(type="button" @click="copyAiContext") 複製詳細問事，貼到外部 AI 解讀
+        button.yi-casting__primary-button(type="button" @click="copyAiContext") 複製詳細問事，請 AI 整合成篇
         p.yi-casting__inline-message(v-if="copyMessage" aria-live="polite") {{ copyMessage }}
         textarea.yi-casting__copy-fallback(v-if="copyFallbackText" readonly :value="copyFallbackText" @click="selectFallbackText")
 
