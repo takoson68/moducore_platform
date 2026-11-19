@@ -16,6 +16,7 @@ const releaseVersionLabel = import.meta.env.VITE_RELEASE_VERSION ? `v${import.me
 const question = ref('')
 const category = ref('事業')
 const selectedVariables = ref([])
+const customVariables = ref([])
 const otherVariable = ref('')
 const mode = ref('timed')
 const phase = ref('input')
@@ -39,10 +40,7 @@ const completedCount = computed(() => stepInputs.value.filter(Boolean).length)
 const manualComplete = computed(() => manualLines.value.every((line) => line.coins.every((coin) => coin !== null)))
 const manualLineDisplay = computed(() => [...manualLines.value].reverse())
 const tags = computed(() => VARIABLE_TAGS[category.value] || VARIABLE_TAGS.其他)
-const allVariables = computed(() => {
-  const custom = otherVariable.value.trim()
-  return [...selectedVariables.value, ...(custom && !selectedVariables.value.includes(custom) ? [custom] : [])].slice(0, 5)
-})
+const allVariables = computed(() => [...selectedVariables.value, ...customVariables.value].slice(0, 5))
 const canConfirm = computed(() => completedCount.value === CONSULTATION_STEPS.length && question.value.trim() && phase.value === 'review')
 
 function makeManualLines() {
@@ -56,13 +54,37 @@ function refreshScreen() {
 function selectCategory(value) {
   category.value = value
   selectedVariables.value = []
+  customVariables.value = []
   otherVariable.value = ''
 }
 
 function toggleVariable(value) {
-  selectedVariables.value = selectedVariables.value.includes(value)
-    ? selectedVariables.value.filter((item) => item !== value)
-    : allVariables.value.length < 5 ? [...selectedVariables.value, value] : selectedVariables.value
+  if (selectedVariables.value.includes(value)) {
+    selectedVariables.value = selectedVariables.value.filter((item) => item !== value)
+    return
+  }
+  if (customVariables.value.includes(value)) {
+    customVariables.value = customVariables.value.filter((item) => item !== value)
+    selectedVariables.value = [...selectedVariables.value, value]
+    return
+  }
+  if (allVariables.value.length < 5) selectedVariables.value = [...selectedVariables.value, value]
+}
+
+function addCustomVariable() {
+  const value = otherVariable.value.trim()
+  if (!value || allVariables.value.length >= 5 || allVariables.value.includes(value)) return
+  if (tags.value.includes(value)) {
+    selectedVariables.value = [...selectedVariables.value, value]
+    otherVariable.value = ''
+    return
+  }
+  customVariables.value = [...customVariables.value, value]
+  otherVariable.value = ''
+}
+
+function removeCustomVariable(value) {
+  customVariables.value = customVariables.value.filter((item) => item !== value)
 }
 
 function resetStepInputs() {
@@ -221,6 +243,7 @@ function resetConsultation() {
   question.value = ''
   category.value = '事業'
   selectedVariables.value = []
+  customVariables.value = []
   otherVariable.value = ''
   phase.value = 'input'
   completedStepIndex.value = -1
@@ -272,7 +295,13 @@ onDeactivated(clearCountdown)
         .yi-casting__variable-tags(role="group" aria-label="選擇相關變數")
           button(v-for="tag in tags" :key="tag" type="button" :class="{ 'is-active': selectedVariables.includes(tag) }" :aria-pressed="selectedVariables.includes(tag)" @click="toggleVariable(tag)") {{ tag }}
         label.yi-casting__section-label(for="other-variable") 其他
-        input#other-variable.yi-casting__save-input(v-model="otherVariable" maxlength="16" placeholder="例如：簽證" autocomplete="off" :disabled="selectedVariables.length >= 5 && !otherVariable.trim()")
+        .yi-casting__custom-variable-entry
+          input#other-variable.yi-casting__save-input(v-model="otherVariable" maxlength="16" placeholder="例如：簽證" autocomplete="off" :disabled="allVariables.length >= 5" @keydown.enter.prevent="addCustomVariable")
+          button.yi-casting__small-button(type="button" :disabled="!otherVariable.trim() || allVariables.length >= 5 || allVariables.includes(otherVariable.trim())" @click="addCustomVariable") 加入標籤
+        .yi-casting__custom-variable-tags(v-if="customVariables.length" aria-label="自訂相關變數")
+          button(v-for="tag in customVariables" :key="tag" type="button" :aria-label="`移除自訂變數${tag}`" @click="removeCustomVariable(tag)")
+            span {{ tag }}
+            span(aria-hidden="true") ×
         p.yi-casting__helper 已選 {{ allVariables.length }} 項：{{ allVariables.join('、') || '尚未選取' }}
 
       section.yi-casting__result-card.yi-casting__consultation-progress

@@ -187,6 +187,36 @@
         outline: 2px solid $vermilion
         outline-offset: 2px
 
+  &__custom-variable-entry
+    display: grid
+    grid-template-columns: minmax(0, 1fr) auto
+    align-items: center
+    gap: $space-3
+
+    .yi-casting__save-input
+      min-width: 0
+
+  &__custom-variable-tags
+    display: flex
+    flex-wrap: wrap
+    gap: $space-2
+
+    button
+      display: inline-flex
+      min-height: 34px
+      align-items: center
+      gap: $space-2
+      padding: $space-1 $space-3
+      border: 1px solid $vermilion
+      border-radius: 999px
+      background: $vermilion-tint
+      color: $vermilion
+      cursor: pointer
+
+      &:focus-visible
+        outline: 2px solid $vermilion
+        outline-offset: 2px
+
   &__consultation-progress
     ol
       display: grid
