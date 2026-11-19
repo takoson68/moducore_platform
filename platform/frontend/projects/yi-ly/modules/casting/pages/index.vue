@@ -1,10 +1,15 @@
 <script setup>
 import { computed, ref } from 'vue'
 import CoinCasting from '../methods/coin/index.vue'
+import DetailedConsultation from '../methods/detailed/index.vue'
 import MeihuaCasting from '../methods/meihua/index.vue'
 
 const activeMethod = ref('coin')
-const activeComponent = computed(() => activeMethod.value === 'coin' ? CoinCasting : MeihuaCasting)
+const activeComponent = computed(() => ({
+  coin: CoinCasting,
+  detailed: DetailedConsultation,
+  meihua: MeihuaCasting,
+}[activeMethod.value] || CoinCasting))
 </script>
 
 <template lang="pug">

@@ -86,6 +86,11 @@
       font-weight: 700
       letter-spacing: .15em
 
+  &__title-row
+    display: flex
+    align-items: center
+    gap: $space-2
+
   &__logo-button, &__icon-button
     display: grid
     flex: 0 0 auto
@@ -150,6 +155,79 @@
     display: flex
     flex-direction: column
     gap: $space-2
+
+  &__variable-panel, &__consultation-progress, &__confirmation-panel
+    display: flex
+    flex-direction: column
+    gap: $space-4
+
+    h2, p
+      margin-top: 0
+
+  &__variable-tags
+    display: flex
+    flex-wrap: wrap
+    gap: $space-2
+
+    button
+      min-height: 34px
+      padding: $space-1 $space-4
+      border: $border-thin
+      border-radius: 999px
+      background: transparent
+      color: $ink-secondary
+      cursor: pointer
+
+      &.is-active
+        border-color: $vermilion
+        background: $vermilion
+        color: $bg-card
+
+      &:focus-visible
+        outline: 2px solid $vermilion
+        outline-offset: 2px
+
+  &__consultation-progress
+    ol
+      display: grid
+      margin: 0
+      padding: 0
+      gap: $space-3
+      list-style: none
+
+    li
+      display: grid
+      padding: $space-4
+      border-left: 3px solid rgba(38, 36, 34, .16)
+      gap: $space-1
+
+      &.is-current
+        border-left-color: $vermilion
+
+      &.is-done
+        border-left-color: $antique-gold
+
+      span, small
+        color: $ink-secondary
+
+  &__detailed-results
+    display: grid
+    gap: $space-5
+
+  &__completed-lines
+    display: grid
+    grid-template-columns: repeat(2, minmax(0, 1fr))
+    gap: $space-3
+
+    span
+      padding: $space-3
+      border: $border-thin
+      border-radius: $radius-sm
+      color: $ink-secondary
+      text-align: center
+
+  &__overall-meihua
+    border-color: rgba(154, 113, 42, .48)
 
   &__section-label, &__gua-label
     display: block
@@ -283,10 +361,13 @@
         color: $bg-card
 
   &__mode-switch
-    width: min(100%, 232px)
+    width: min(100%, 348px)
     height: 34px
     margin: 0 auto
     border-radius: 18px
+
+    &:has(> button:nth-child(3))
+      grid-template-columns: repeat(3, minmax(0, 1fr))
 
     button
       min-height: 26px

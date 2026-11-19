@@ -607,10 +607,11 @@ onDeactivated(() => {
         .yi-casting__brand-mark
           button.yi-casting__logo-button(type="button" aria-label="重新整理畫面" title="重新整理畫面" @click="refreshScreen")
             span(aria-hidden="true") 易
-          span.yi-casting__version-badge(aria-label="目前版本") {{ releaseVersionLabel }}
         .yi-casting__brand-copy
           p.yi-casting__eyebrow 易經 · 卜問與閱讀
-          h1 易占
+          .yi-casting__title-row
+            h1 易占
+            span.yi-casting__version-badge(aria-label="目前版本") {{ releaseVersionLabel }}
       .yi-casting__header-actions
         button.yi-casting__icon-button(type="button" aria-label="開啟卜卦歷史" @click="openHistory") ⟲
 
@@ -639,6 +640,7 @@ onDeactivated(() => {
       .yi-casting__mode-switch(role="tablist" aria-label="選擇起卦方式")
         button(type="button" role="tab" :aria-selected="mode === 'manual'" :class="{ 'is-active': mode === 'manual' }" @click="mode = 'manual'") 手動輸入
         button(type="button" role="tab" :aria-selected="mode === 'timed'" :class="{ 'is-active': mode === 'timed' }" @click="mode = 'timed'") 時機取數
+        button(type="button" role="tab" aria-selected="false" @click="emit('select-method', 'detailed')") 詳細問事
 
       section(v-if="mode === 'manual'" class="yi-casting__entry-panel game-stage")
         .yi-casting__panel-heading
