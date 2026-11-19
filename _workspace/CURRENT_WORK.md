@@ -6,6 +6,12 @@ authority: work-state
 
 # 當前工作
 
+## 2026-11-19 yi-ly 詳細問事 AI 成篇 Prompt Staging v0.1.10
+
+外部 AI 交接 Prompt 改為要求最終輸出一篇前後連貫、可直接閱讀的完整問事文章：以主問題起筆，依緣起、當下、趨勢建立敘事脈絡，再將三首林辭的延續、轉折、呼應或矛盾與整體梅花易數融入同一條分析線，最後綜合補充變數、注意條件與可行方向。Prompt 明確禁止只做條列摘要或四份互不相連的解釋，也禁止為了成篇而勉強串連資料；結果頁本身維持原始資料呈現。
+
+前端 v0.1.10 建置、API transport 3/3、Worker 82/82 及 yi-ly Worker dry-run 均通過。程式 Commit `398bdd27e0dd6fe02b2eb408b32e1e18bcebf1b4`、Tag `dep_yi-ly_v0.1.10` 已推送；GitHub Actions `44487446801` 成功完成 D1 相容檢查、Migration、語料 Seed、部署、公開 API Smoke、Release 發布與 Deployment 紀錄。線上 bundle `index-CWIT1hQA.js` 已確認包含 `v0.1.10`、「請 AI 整合成篇」及完整文章要求；`/api/health` 回報 Worker／D1 正常。Release ZIP、manifest、checksum 均已發布。Staging：https://yi-ly-staging.takoson68.workers.dev 。工作樹原有 `platform/frontend/.env` 修改未納入部署。
+
 ## 2026-11-19 yi-ly 詳細問事自訂變數 Tag Staging v0.1.9
 
 詳細問事「其他」變數改為可重複加入的自訂 Tag：輸入短名稱後按「加入標籤」或 Enter，會顯示為可移除的已選 Tag，並可繼續加入清單中沒有的不同變數；內建與自訂 Tag 合計維持最多五項。
